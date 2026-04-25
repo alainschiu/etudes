@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.90.1 — 2026-04-25
+
+### Cloud sync via Supabase
+
+- Optional sign-in added to Réglages → Sync tab (email/password; no account required to use the app)
+- Two-tier sync strategy: cold state (items, routines, programs, history, settings, reflections, notes) debounced 30 s; hot state (itemTimes, restToday) flushed only on session stop, day close, tab hide, or reconnect
+- All 18 existing localStorage effects untouched — cloud sync is a purely additive layer
+- First-run migration modal: on first sign-in, prompts to upload existing local data or start fresh
+- Sync status indicator in the Sync tab (idle / syncing / synced / error)
+- Automatic push on reconnect via `navigator.online` event
+- Blob guards: PDFs and recordings are not synced in v1; items with attached media show "Attached on another device" / "Recording on another device" on devices that never had the file, rather than silently failing
+
+### New files
+
+- `src/lib/supabase.js` — Supabase client initialisation
+- `src/lib/useSupabaseAuth.js` — composable auth sub-hook composed inside `useEtudesState`
+- `src/lib/sync.js` — `loadFromCloud` / `syncToCloud`
+- `supabase/migrations/001_user_state.sql` — `user_state` table + row-level security policy
+
+---
+
 ## v0.9.0 — 2026-04-25
 
 ### Design system alignment

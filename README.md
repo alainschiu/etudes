@@ -1,4 +1,4 @@
-# Études (v0.9.0)
+# Études (v0.90.1)
 
 Etudes is a React + Vite practice journal app for tracking daily sessions, timing focused work, organizing repertoire, and reviewing progress over week/month views.
 
@@ -9,6 +9,7 @@ Etudes is a React + Vite practice journal app for tracking daily sessions, timin
 - Routine/program management and quick "working on" pinning
 - Data import/export support (`.json`) and log export (`.md` / `.txt`)
 - Utility tools such as metronome, drone, quick notes, and PDF attachments per item
+- Optional cloud sync via Supabase — sign in once, data follows you across devices
 
 ## Tech Stack
 
@@ -18,6 +19,7 @@ Etudes is a React + Vite practice journal app for tracking daily sessions, timin
 - ESLint
 - lucide-react
 - Études Design System (colors, typography, spacing tokens)
+- Supabase (optional — auth + PostgreSQL state sync)
 
 ## Development
 
@@ -27,6 +29,17 @@ npm run dev
 ```
 
 Default local URL is usually `http://localhost:5173`.
+
+### Sync setup (optional)
+
+Create a `.env` file at the project root:
+
+```
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+```
+
+Run `supabase/migrations/001_user_state.sql` in the Supabase SQL editor, then enable Email auth in the Supabase dashboard under Authentication → Providers.
 
 ## Build and Preview
 
@@ -41,27 +54,11 @@ npm run preview
 npm run lint
 ```
 
-## Git Upload Notes
-
-If your Git repo root is above this folder (for example at `/Users/alainchiu`), you can commit only this project with:
-
-```bash
-git -C "/Users/alainchiu" add "Projects/etudes V087"
-git -C "/Users/alainchiu" commit -m "Add Etudes project documentation"
-git -C "/Users/alainchiu" push
-```
-
-If you later keep this as a standalone repo, use the normal flow:
-
-```bash
-git add .
-git commit -m "Initial commit"
-git push -u origin main
-```
-
 ## Project Structure
 
 - `src/`: app source code (views, state, shared components)
+- `src/lib/`: storage, sync, auth utilities
+- `supabase/migrations/`: SQL migration files
 - `public/`: static assets
 - `dist/`: production build output (ignored by `.gitignore`)
 
