@@ -1,7 +1,7 @@
 import React,{useState,useEffect} from 'react';
 import {Play, Pause, Plus, X, FileText, Download, Mic, Square, Coffee, Flame, Crosshair, Zap, Waves, Archive, Upload as UploadIcon, Lock, Settings, Keyboard} from 'lucide-react';
 
-import {BG,SURFACE,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,serif,sans} from './constants/theme.js';
+import {BG,SURFACE,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,serif,sans,mono} from './constants/theme.js';
 import {SECTION_CONFIG} from './constants/config.js';
 import {getItemTime,displayTitle,formatByline} from './lib/items.js';
 import {DisplayHeader,Ring,StageLabels,Waveform,ItemPickerPopup,TargetEdit,TimeWithTarget,ItemTimeEditor,fmtSpotTime,PerformanceChip,SpotRow,SpotsBlock} from './components/shared.jsx';
@@ -31,13 +31,13 @@ export default function Etudes(){
 
   return (
     <div className="h-screen flex flex-col" style={{background:BG,color:TEXT,fontFamily:sans}}>
-      <style>{`.etudes-scroll::-webkit-scrollbar{height:4px;width:4px}.etudes-scroll::-webkit-scrollbar-track{background:transparent}.etudes-scroll::-webkit-scrollbar-thumb{background:rgba(232,223,200,0.15);border-radius:0}.etudes-scroll::-webkit-scrollbar-thumb:hover{background:rgba(232,223,200,0.32)}.etudes-scroll{scrollbar-width:thin;scrollbar-color:rgba(232,223,200,0.15) transparent}.drag-ghost{opacity:0.35}.target-hover-reveal{opacity:0;transition:opacity 0.15s}.group:hover .target-hover-reveal{opacity:1}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}.toast-enter{animation:slideUp 0.25s ease-out}`}</style>
+      <style>{`.etudes-scroll::-webkit-scrollbar{height:4px;width:4px}.etudes-scroll::-webkit-scrollbar-track{background:transparent}.etudes-scroll::-webkit-scrollbar-thumb{background:rgba(244,238,227,0.15);border-radius:0}.etudes-scroll::-webkit-scrollbar-thumb:hover{background:rgba(244,238,227,0.32)}.etudes-scroll{scrollbar-width:thin;scrollbar-color:rgba(244,238,227,0.15) transparent}.drag-ghost{opacity:0.35}.target-hover-reveal{opacity:0;transition:opacity 0.15s}.group:hover .target-hover-reveal{opacity:1}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}.toast-enter{animation:slideUp 0.25s ease-out}`}</style>
       {storageQuotaHit&&(<div className="shrink-0 px-10 py-2 flex items-center gap-3" style={{background:'#3D1A00',borderBottom:`1px solid rgba(201,126,74,0.4)`}}><span style={{color:WARM,fontSize:'11px',letterSpacing:'0.12em'}}>⚠ Storage full — new data is kept in memory only and will be lost when the tab closes. Export a backup to preserve your session.</span><button onClick={()=>setStorageQuotaHit(false)} style={{color:WARM,marginLeft:'auto',opacity:0.7,fontSize:'11px'}}>✕</button></div>)}
       <header className="shrink-0" style={{borderBottom:`1px solid ${LINE_MED}`}}>
         <div className="flex items-center px-10 h-16">
-          <div className="flex items-baseline gap-3"><div className="w-1.5 h-1.5 rounded-full" style={{background:IKB,boxShadow:`0 0 10px ${IKB}`}}/><span className="text-3xl tracking-tight" style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,letterSpacing:'-0.01em'}}>Études</span><span className="text-xs uppercase tracking-widest ml-2" style={{color:FAINT,fontWeight:300,fontSize:'10px',letterSpacing:'0.28em'}}>a practice journal</span></div>
+          <div className="flex items-baseline gap-3"><div className="w-1.5 h-1.5 rounded-full" style={{background:IKB}}/><span className="text-3xl tracking-tight" style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,letterSpacing:'-0.01em'}}>Études</span><span className="text-xs uppercase tracking-widest ml-2" style={{color:FAINT,fontWeight:300,fontSize:'10px',letterSpacing:'0.28em'}}>a practice journal</span></div>
           <div className="ml-auto flex items-center gap-5 relative">
-            <span className="font-mono tabular-nums" style={{color:MUTED,fontSize:'13px',fontWeight:300,letterSpacing:'0.04em'}}>{clockTime}</span>
+            <span className="tabular-nums" style={{fontFamily:mono,color:MUTED,fontSize:'13px',letterSpacing:'0.04em'}}>{clockTime}</span>
             <div draggable onDragStart={handleChipDrag} onDragEnd={handleChipDragEnd} className="uppercase flex items-center gap-2 cursor-grab active:cursor-grabbing select-none px-2 py-1 transition" style={{color:MUTED,fontSize:'10px',letterSpacing:'0.25em',border:`1px dashed ${LINE_MED}`}} title="Drag to desktop to save as .md"><FileText className="w-3 h-3" strokeWidth={1.25}/> .md</div>
             <button onClick={()=>setShowSettings(true)} className="uppercase flex items-center gap-2 transition" style={{color:MUTED,fontSize:'10px',letterSpacing:'0.25em'}}><Settings className="w-3 h-3" strokeWidth={1.25}/> Réglages</button>
             <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)importJsonFile(f);e.target.value='';}}/>
@@ -45,7 +45,7 @@ export default function Etudes(){
         </div>
         {storageMode==='memory'&&(<div className="px-10 py-2 flex items-center justify-center" style={{borderTop:`1px dashed ${LINE_MED}`,background:SURFACE}}><span className="uppercase tabular-nums" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.28em'}}>Storage unavailable · this session will not be saved</span></div>)}
         <nav className="flex px-10" style={{borderTop:`1px solid ${LINE}`}}>
-          {tabs.map(t=>(<button key={t.id} onClick={()=>setView(t.id)} className="relative py-3.5 mr-10 uppercase transition" style={{color:view===t.id?TEXT:FAINT,fontWeight:400,fontSize:'10px',letterSpacing:'0.28em'}}>{t.label}{view===t.id&&<span className="absolute bottom-0 left-0 right-0" style={{height:'1px',background:IKB,boxShadow:`0 0 8px ${IKB}`}}/>}</button>))}
+          {tabs.map(t=>(<button key={t.id} onClick={()=>setView(t.id)} className="relative py-3.5 mr-10 uppercase transition" style={{color:view===t.id?TEXT:FAINT,fontWeight:400,fontSize:'10px',letterSpacing:'0.28em'}}>{t.label}{view===t.id&&<span className="absolute bottom-0 left-0 right-0" style={{height:'1px',background:IKB}}/>}</button>))}
         </nav>
       </header>
       <div className="flex-1 flex overflow-hidden">
