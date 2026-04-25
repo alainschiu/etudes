@@ -4,6 +4,8 @@
 
 ### Fixes & polish
 
+- **Sync reliability** — debounce reduced from 30 s to 5 s; all sync paths (stop, close day, tab hide, reconnect) now update the status indicator correctly
+- **Sync Now button** — manual sync trigger in Réglages → Sync; doubles as status indicator (Syncing… / Sync error); last synced time shown inline under the account email
 - **Sync conflict resolution** — signing in on a device with unsynced local data now shows a three-option modal: Merge (union by ID), Keep local, or Keep cloud. Prevents pieces being silently overwritten on first cross-device sign-in
 - **Réglages layout** — tab order changed to Settings → Shortcuts → Sync → Export → About; Storage indicator moved from Settings into Sync tab
 - **Input overflow** — number inputs (target fields) no longer escape modal boundary; browser spinner arrows removed globally
