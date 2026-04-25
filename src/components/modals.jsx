@@ -41,15 +41,15 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
         <div className="flex items-baseline justify-between gap-4 pb-4" style={{borderBottom:`1px solid ${LINE}`}}><div className="min-w-0"><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Storage</div><div className="text-xs italic mt-0.5" style={{color:storageMode==='local'?FAINT:'#E07A7A',fontFamily:serif}}>{sl}</div></div><div className="uppercase shrink-0" style={{color:storageMode==='local'?IKB:'#E07A7A',fontSize:'10px',letterSpacing:'0.22em'}}>{sd}</div></div>
         {user?(
           <>
-            <div className="flex items-center justify-between gap-4 pb-4" style={{borderBottom:`1px solid ${LINE}`}}>
-              <div><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Account</div><div className="text-xs italic mt-0.5" style={{color:MUTED,fontFamily:serif}}>{user.email}</div></div>
-              <div className="uppercase shrink-0 flex items-center gap-1.5" style={{color:syncStatus==='error'?'#E07A7A':syncStatus==='syncing'?IKB:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>
-                {syncStatus==='syncing'?<Loader className="w-3 h-3 animate-spin" strokeWidth={1.5}/>:syncStatus==='error'?<CloudOff className="w-3 h-3" strokeWidth={1.5}/>:<Cloud className="w-3 h-3" strokeWidth={1.5}/>}
-                {syncStatus==='syncing'?'Syncing…':syncStatus==='error'?'Sync error':'Synced'}
+            <div className="flex items-start justify-between gap-4 pb-4" style={{borderBottom:`1px solid ${LINE}`}}>
+              <div><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Account</div><div className="text-xs italic mt-0.5" style={{color:MUTED,fontFamily:serif}}>{user.email}</div>{lastSyncedAt>0&&<div className="mt-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'10px'}}>Last synced {new Date(lastSyncedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>}</div>
+              <div className="flex flex-col items-end gap-2 shrink-0">
+                <button onClick={syncNow} disabled={syncStatus==='syncing'} className="uppercase flex items-center gap-1.5" style={{color:syncStatus==='error'?'#E07A7A':IKB,fontSize:'9px',letterSpacing:'0.22em',opacity:syncStatus==='syncing'?0.5:1}}>
+                  {syncStatus==='syncing'?<Loader className="w-3 h-3 animate-spin" strokeWidth={1.5}/>:syncStatus==='error'?<CloudOff className="w-3 h-3" strokeWidth={1.5}/>:<Cloud className="w-3 h-3" strokeWidth={1.5}/>}
+                  {syncStatus==='syncing'?'Syncing…':syncStatus==='error'?'Sync error':'Sync now'}
+                </button>
               </div>
             </div>
-            <button onClick={syncNow} disabled={syncStatus==='syncing'} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em',opacity:syncStatus==='syncing'?0.6:1}}>{syncStatus==='syncing'?<Loader className="w-3 h-3 animate-spin" strokeWidth={1.5}/>:<Cloud className="w-3 h-3" strokeWidth={1.25}/>} {syncStatus==='syncing'?'Syncing…':'Sync now'}</button>
-            {lastSyncedAt>0&&<div className="text-center" style={{color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'11px'}}>Last synced {new Date(lastSyncedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>}
             <button onClick={signOut} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><CloudOff className="w-3 h-3" strokeWidth={1.25}/> Sign out</button>
           </>
         ):signupSent?(
