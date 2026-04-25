@@ -1,11 +1,9 @@
-export const BG='#0B0A08',SURFACE='#131108',SURFACE2='#1A1710',TEXT='#E8DFC8';
-export const MUTED='rgba(232,223,200,0.55)',FAINT='rgba(232,223,200,0.32)',DIM='rgba(232,223,200,0.18)';
-export const LINE='rgba(232,223,200,0.08)',LINE_MED='rgba(232,223,200,0.15)',LINE_STR='rgba(232,223,200,0.28)';
-export const IKB='#2540D9',IKB_SOFT='rgba(37,64,217,0.12)';
-export const WARM='#C97E4A',WARM_SOFT='rgba(201,126,74,0.12)';
-export const serif='ui-serif, "Cormorant Garamond", "EB Garamond", Georgia, "Times New Roman", serif';
-// Font options — swap the active line to compare:
-// Option A – Helvetica Neue (current): '"Helvetica Neue", Helvetica, Arial, sans-serif'
-// Option B – SF Pro system stack (native on Mac/iOS, no load): '-apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif'
-// Option C – Inter (add Google Fonts import to index.html first): '"Inter", -apple-system, sans-serif'
-export const sans='"Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif';
+export const BG='#111010',SURFACE='#1A1918',SURFACE2='#24221F',TEXT='#F4EEE3';
+export const MUTED='#C8C1B3',FAINT='#8C8578',DIM='#5E594F';
+export const LINE='rgba(244,238,227,0.08)',LINE_MED='rgba(244,238,227,0.16)',LINE_STR='#3A3732';
+export const IKB='#002FA7',IKB_SOFT='rgba(0,47,167,0.12)';
+export const WARM='#B89668',WARM_SOFT='rgba(184,150,104,0.12)';
+export const serif="'Cormorant Garamond', 'GT Sectra', 'Tiempos Headline', 'EB Garamond', Georgia, serif";
+export const serifText="'EB Garamond', 'Tiempos Text', 'Source Serif Pro', Georgia, serif";
+export const sans="'Inter', 'Söhne', 'Graphik', -apple-system, BlinkMacSystemFont, sans-serif";
+export const mono="'JetBrains Mono', 'Berkeley Mono', 'IBM Plex Mono', ui-monospace, monospace";

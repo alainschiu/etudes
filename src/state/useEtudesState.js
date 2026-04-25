@@ -1,6 +1,8 @@
 import {useState,useEffect,useRef,useMemo,useCallback} from 'react';
 import {DEFAULT_SESSIONS,ROLLOVER_KEY,WEEK_ROLLOVER_KEY,MONTH_ROLLOVER_KEY} from '../constants/config.js';
 import {idbPut,idbDel,idbGet,idbAllKeys,storageAvailable,detectStorage,lsGet,lsSet} from '../lib/storage.js';
+import {useSupabaseAuth} from '../lib/useSupabaseAuth.js';
+import {loadFromCloud,syncToCloud,mergeStates} from '../lib/sync.js';
 import {todayDateStr,shiftDate,getWeekStart,getMonthKey} from '../lib/dates.js';
 import {mkPdfId,mkSpotId,mkPerfId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem,calcStreak} from '../lib/items.js';
 import {migrateItems,migrateSessions,migrateRoutines,migrateHistory} from '../lib/migrations.js';
@@ -17,6 +19,8 @@ export default function useEtudesState(){
   const [exportMenu,setExportMenu]=useState(false);
   const [confirmModal,setConfirmModal]=useState(null);
   const [promptModal,setPromptModal]=useState(null);
+  const [syncConflictModal,setSyncConflictModal]=useState(null);
+  const pendingRemoteRef=useRef(null);
   const [quickNoteOpen,setQuickNoteOpen]=useState(false);
   const [restoreBusy,setRestoreBusy]=useState(false);
   const [expandedItemId,setExpandedItemId]=useState(null);
@@ -70,6 +74,7 @@ export default function useEtudesState(){
   useEffect(()=>{lsSet('etudes-recordingMeta',recordingMeta);},[recordingMeta]);
   useEffect(()=>{lsSet('etudes-history',history);},[history]);
   useEffect(()=>{lsSet('etudes-dayClosed',dayClosed);},[dayClosed]);
+  useEffect(()=>{lsSet('etudes-lastSyncedAt',Date.now());},[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
 
   // ── Active item / session tracking ────────────────────────────────────────
   const [activeItemId,setActiveItemId]=useState(null);
@@ -85,6 +90,10 @@ export default function useEtudesState(){
   // ── Sub-hooks ─────────────────────────────────────────────────────────────
   const metro=useMetronome();
   const {metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,handleTap}=metro;
+  const {user,signIn,signUp,signOut}=useSupabaseAuth();
+  const userRef=useRef(null);
+  useEffect(()=>{userRef.current=user;},[user]);
+  const [syncStatus,setSyncStatus]=useState('idle'); // 'idle'|'syncing'|'error'
 
   const sessionRefs=useRef({});
   const reflectionRef=useRef(null);
@@ -118,6 +127,11 @@ export default function useEtudesState(){
   useEffect(()=>{if(!lsGet(WEEK_ROLLOVER_KEY,null))lsSet(WEEK_ROLLOVER_KEY,getWeekStart(todayDateStr()));if(!lsGet(MONTH_ROLLOVER_KEY,null))lsSet(MONTH_ROLLOVER_KEY,getMonthKey(todayDateStr()));},[]);
   const rolloverRef=useRef({totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection});
   useEffect(()=>{rolloverRef.current={totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection};});
+
+  // ── Cloud sync state ──────────────────────────────────────────────────────
+  const coldState=useMemo(()=>({items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday}),[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
+  const syncStateRef=useRef({});
+  useEffect(()=>{syncStateRef.current={...coldState,itemTimes,restToday};});
   useEffect(()=>{
     const check=()=>{
       const today=todayDateStr();const cw=getWeekStart(today);const cm=getMonthKey(today);
@@ -157,7 +171,7 @@ export default function useEtudesState(){
   const updateItem=(id,patch)=>setItems(p=>p.map(i=>i.id===id?{...i,...patch}:i));
   const addItem=(type)=>{const ni=makeNewItem(type);setItems(p=>[...p,ni]);setExpandedItemId(ni.id);return ni;};
   const startItem=(id,spotId=null,sessionId=null)=>{if(dayClosed)return;setActiveItemId(id);setActiveSpotId(spotId||null);setActiveSessionId(sessionId||null);if(isResting)setIsResting(false);setItems(p=>p.map(i=>i.id===id&&!i.startedDate?{...i,startedDate:todayDateStr()}:i));};
-  const stopItem=()=>{setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);};
+  const stopItem=()=>{setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);if(userRef.current)syncToCloud(userRef.current.id,syncStateRef.current);};
   const toggleWorking=(id)=>setWorkingOn(p=>p.includes(id)?p.filter(w=>w!==id):[...p,id]);
   const toggleRest=()=>{if(isResting){setIsResting(false);return;}if(dayClosed)return;if(activeItemId)stopItem();setIsResting(true);};
   const editItemTime=(id,min)=>{const n=Math.max(0,Math.floor(Number(min)||0));setItemTimes(t=>({...t,[id]:n*60}));};
@@ -175,7 +189,7 @@ export default function useEtudesState(){
   const deletePerformance=(id,pid)=>{setItems(p=>p.map(i=>i.id!==id?i:{...i,performances:(i.performances||[]).filter(x=>x.id!==pid)}));};
 
   // ── Day close ─────────────────────────────────────────────────────────────
-  const closeDay=()=>{setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);setIsResting(false);setEditingTimeItemId(null);setDayClosed(true);};
+  const closeDay=()=>{setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);setIsResting(false);setEditingTimeItemId(null);setDayClosed(true);if(userRef.current)syncToCloud(userRef.current.id,syncStateRef.current);};
   const reopenDay=()=>setDayClosed(false);
   const endDay=()=>{closeDay();if(reflectionRef.current){reflectionRef.current.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>reflectionRef.current?.focus(),400);}};
 
@@ -245,6 +259,38 @@ export default function useEtudesState(){
     setRestoreBusy,setExportMenu,setConfirmModal,importInputRef,
   });
 
+  // ── Cloud sync effects ─────────────────────────────────────────────────────
+  const applyCloudStateRef=useRef(null);
+  applyCloudStateRef.current=(s)=>{if(!s)return;setItems(migrateItems(s.items||[]));setRoutines(migrateRoutines(s.routines||[]));setPrograms(s.programs||[]);setHistory(migrateHistory(s.history||[]));setSettings(s.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setDailyReflection(s.dailyReflection||'');setWeekReflection(s.weekReflection||{notes:'',goals:''});setMonthReflection(s.monthReflection||{notes:'',goals:''});setFreeNotes(s.freeNotes||[]);setRecordingMeta(s.recordingMeta||{});setWorkingOn(s.workingOn||[]);setTodaySessions(migrateSessions(s.todaySessions||DEFAULT_SESSIONS));setDayClosed(!!s.dayClosed);setLoadedRoutineId(s.loadedRoutineId||null);setWarmupTimeToday(s.warmupTimeToday||0);setItemTimes(s.itemTimes||{});setRestToday(s.restToday||0);};
+  // Load or first-run migration on sign-in
+  useEffect(()=>{if(!user)return;(async()=>{try{setSyncStatus('syncing');const remote=await loadFromCloud(user.id);
+    // ── First sign-in ever: no cloud data ──
+    if(!remote){setConfirmModal({message:'Upload your existing data to your account?\n\nYour practice history, repertoire, and settings will be stored securely and available on all your devices.',confirmLabel:'Upload',onConfirm:async()=>{setConfirmModal(null);await syncToCloud(user.id,syncStateRef.current);setSyncStatus('idle');},onCancel:()=>{setConfirmModal(null);lsSet('etudes-lastSyncedAt',Date.now());setSyncStatus('idle');}});return;}
+    // ── Conflict: local has unsynced items AND cloud has different items ──
+    const localTs=lsGet('etudes-lastSyncedAt',0);
+    const localItems=syncStateRef.current.items||[];
+    const remoteItems=remote.state?.items||[];
+    const remoteIds=new Set(remoteItems.map(i=>i.id));
+    const unsyncedLocal=localItems.filter(i=>!remoteIds.has(i.id));
+    if(localTs===0&&unsyncedLocal.length>0&&remoteItems.length>0){
+      pendingRemoteRef.current=remote.state;
+      setSyncConflictModal({
+        localCount:unsyncedLocal.length,
+        remoteCount:remoteItems.length,
+        onMerge:async()=>{const merged=mergeStates(syncStateRef.current,pendingRemoteRef.current);applyCloudStateRef.current(merged);await syncToCloud(user.id,merged);setSyncStatus('idle');setSyncConflictModal(null);},
+        onKeepLocal:async()=>{await syncToCloud(user.id,syncStateRef.current);setSyncStatus('idle');setSyncConflictModal(null);},
+        onKeepCloud:()=>{applyCloudStateRef.current(pendingRemoteRef.current);setSyncStatus('idle');setSyncConflictModal(null);},
+      });
+      return;
+    }
+    // ── Normal: apply remote if newer ──
+    if(remote.updated_at&&new Date(remote.updated_at).getTime()>localTs){applyCloudStateRef.current(remote.state);}
+    setSyncStatus('idle');}catch{setSyncStatus('error');}})();},[user]);// eslint-disable-line
+  // Debounced cold-state sync (30 s)
+  useEffect(()=>{if(!user)return;const t=setTimeout(()=>syncToCloud(user.id,syncStateRef.current),30000);return()=>clearTimeout(t);},[coldState,user]);// eslint-disable-line
+  // Flush hot state on tab hide and reconnect
+  useEffect(()=>{const onHide=()=>{if(document.visibilityState!=='hidden')return;if(userRef.current)syncToCloud(userRef.current.id,syncStateRef.current);};const onOnline=()=>{if(userRef.current)syncToCloud(userRef.current.id,syncStateRef.current);};document.addEventListener('visibilitychange',onHide);window.addEventListener('online',onOnline);return()=>{document.removeEventListener('visibilitychange',onHide);window.removeEventListener('online',onOnline);};},[]);// eslint-disable-line
+
   // ── Keyboard shortcuts (delegated) ────────────────────────────────────────
   useKeyboardShortcuts({
     activeItemId,activeSpotId,activeSessionId,workingOn,items,view,todaySessions,isResting,
@@ -259,7 +305,7 @@ export default function useEtudesState(){
   // ── Return everything ─────────────────────────────────────────────────────
   return {
     view,setView,showSettings,setShowSettings,showHelp,setShowHelp,
-    exportMenu,setExportMenu,confirmModal,setConfirmModal,promptModal,setPromptModal,
+    exportMenu,setExportMenu,confirmModal,setConfirmModal,promptModal,setPromptModal,syncConflictModal,
     quickNoteOpen,setQuickNoteOpen,restoreBusy,
     expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,
     logDrawerDate,logDrawerEntry,editingTimeItemId,setEditingTimeItemId,
@@ -297,5 +343,6 @@ export default function useEtudesState(){
     exportLog,exportJson,importJsonFile,
     handleChipDrag,handleChipDragEnd,
     handleTap,
+    user,signIn,signUp,signOut,syncStatus,
   };
 }

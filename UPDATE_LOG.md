@@ -1,10 +1,28 @@
 # Update Log
 
-## v0.88.1 - 2026-04-25
+## v0.91 — 2026-04-26
 
-- Added an `About` tab in `Réglages` and exposed the current app version.
-- Updated version display formatting to show `v0.88.1` from `package.json`.
-- Refined Today workflow to prevent accidental repertoire metadata edits:
-  - Removed title/composer editing in Today item details.
-  - Removed tag editing in Today item details.
-  - Added an `Edit in Repertoire` action from Today.
+- Sync conflict modal on cross-device sign-in: Merge / Keep local / Keep cloud
+- Réglages tabs reordered: Settings → Shortcuts → Sync → Export → About
+- Storage indicator moved to Sync tab
+- Number input overflow fixed; spinner arrows removed
+- Signup confirmation message added
+- Cloudflare Pages deployment fixed (base path, SPA redirect)
+
+## v0.90.1 — 2026-04-25
+
+- Cloud sync via Supabase (optional sign-in)
+- Two-tier sync strategy; all localStorage effects preserved
+- First-run migration modal
+- Blob guards for PDFs and recordings on non-originating devices
+
+## v0.9.0 — 2026-04-25
+
+- Études Design System applied across all UI
+- IKB, ivory, brass color tokens; Cormorant Garamond + JetBrains Mono typography
+- All glow/shadow effects removed
+
+## v0.88.1 — 2026-04-25
+
+- About tab in Réglages with version number
+- Today view editing restrictions (title/composer/tags locked, edit via Repertoire)
