@@ -1,4 +1,4 @@
-# Etudes (v0.88.0)
+# Études (v0.9.0)
 
 Etudes is a React + Vite practice journal app for tracking daily sessions, timing focused work, organizing repertoire, and reviewing progress over week/month views.
 
@@ -17,6 +17,7 @@ Etudes is a React + Vite practice journal app for tracking daily sessions, timin
 - Tailwind CSS
 - ESLint
 - lucide-react
+- Études Design System (colors, typography, spacing tokens)
 
 ## Development
 
