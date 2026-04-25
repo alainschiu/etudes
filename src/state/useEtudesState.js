@@ -94,6 +94,7 @@ export default function useEtudesState(){
   const userRef=useRef(null);
   useEffect(()=>{userRef.current=user;},[user]);
   const [syncStatus,setSyncStatus]=useState('idle'); // 'idle'|'syncing'|'error'
+  const [lastSyncedAt,setLastSyncedAt]=useState(()=>lsGet('etudes-lastSyncedAt',0));
 
   const sessionRefs=useRef({});
   const reflectionRef=useRef(null);
@@ -132,6 +133,7 @@ export default function useEtudesState(){
   const coldState=useMemo(()=>({items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday}),[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
   const syncStateRef=useRef({});
   useEffect(()=>{syncStateRef.current={...coldState,itemTimes,restToday};});
+  const doSync=useCallback(async()=>{if(!userRef.current)return;setSyncStatus('syncing');const ok=await syncToCloud(userRef.current.id,syncStateRef.current);if(ok){setLastSyncedAt(Date.now());setSyncStatus('idle');}else{setSyncStatus('error');}},[]);// eslint-disable-line
   useEffect(()=>{
     const check=()=>{
       const today=todayDateStr();const cw=getWeekStart(today);const cm=getMonthKey(today);
@@ -171,7 +173,7 @@ export default function useEtudesState(){
   const updateItem=(id,patch)=>setItems(p=>p.map(i=>i.id===id?{...i,...patch}:i));
   const addItem=(type)=>{const ni=makeNewItem(type);setItems(p=>[...p,ni]);setExpandedItemId(ni.id);return ni;};
   const startItem=(id,spotId=null,sessionId=null)=>{if(dayClosed)return;setActiveItemId(id);setActiveSpotId(spotId||null);setActiveSessionId(sessionId||null);if(isResting)setIsResting(false);setItems(p=>p.map(i=>i.id===id&&!i.startedDate?{...i,startedDate:todayDateStr()}:i));};
-  const stopItem=()=>{setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);if(userRef.current)syncToCloud(userRef.current.id,syncStateRef.current);};
+  const stopItem=()=>{setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);doSync();};
   const toggleWorking=(id)=>setWorkingOn(p=>p.includes(id)?p.filter(w=>w!==id):[...p,id]);
   const toggleRest=()=>{if(isResting){setIsResting(false);return;}if(dayClosed)return;if(activeItemId)stopItem();setIsResting(true);};
   const editItemTime=(id,min)=>{const n=Math.max(0,Math.floor(Number(min)||0));setItemTimes(t=>({...t,[id]:n*60}));};
@@ -189,7 +191,7 @@ export default function useEtudesState(){
   const deletePerformance=(id,pid)=>{setItems(p=>p.map(i=>i.id!==id?i:{...i,performances:(i.performances||[]).filter(x=>x.id!==pid)}));};
 
   // ── Day close ─────────────────────────────────────────────────────────────
-  const closeDay=()=>{setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);setIsResting(false);setEditingTimeItemId(null);setDayClosed(true);if(userRef.current)syncToCloud(userRef.current.id,syncStateRef.current);};
+  const closeDay=()=>{setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);setIsResting(false);setEditingTimeItemId(null);setDayClosed(true);doSync();};
   const reopenDay=()=>setDayClosed(false);
   const endDay=()=>{closeDay();if(reflectionRef.current){reflectionRef.current.scrollIntoView({behavior:'smooth',block:'center'});setTimeout(()=>reflectionRef.current?.focus(),400);}};
 
@@ -286,10 +288,10 @@ export default function useEtudesState(){
     // ── Normal: apply remote if newer ──
     if(remote.updated_at&&new Date(remote.updated_at).getTime()>localTs){applyCloudStateRef.current(remote.state);}
     setSyncStatus('idle');}catch{setSyncStatus('error');}})();},[user]);// eslint-disable-line
-  // Debounced cold-state sync (30 s)
-  useEffect(()=>{if(!user)return;const t=setTimeout(()=>syncToCloud(user.id,syncStateRef.current),30000);return()=>clearTimeout(t);},[coldState,user]);// eslint-disable-line
-  // Flush hot state on tab hide and reconnect
-  useEffect(()=>{const onHide=()=>{if(document.visibilityState!=='hidden')return;if(userRef.current)syncToCloud(userRef.current.id,syncStateRef.current);};const onOnline=()=>{if(userRef.current)syncToCloud(userRef.current.id,syncStateRef.current);};document.addEventListener('visibilitychange',onHide);window.addEventListener('online',onOnline);return()=>{document.removeEventListener('visibilitychange',onHide);window.removeEventListener('online',onOnline);};},[]);// eslint-disable-line
+  // Debounced cold-state sync (5 s)
+  useEffect(()=>{if(!user)return;const t=setTimeout(doSync,5000);return()=>clearTimeout(t);},[coldState,user]);// eslint-disable-line
+  // Flush on tab hide and reconnect
+  useEffect(()=>{const onHide=()=>{if(document.visibilityState!=='hidden')return;doSync();};const onOnline=()=>doSync();document.addEventListener('visibilitychange',onHide);window.addEventListener('online',onOnline);return()=>{document.removeEventListener('visibilitychange',onHide);window.removeEventListener('online',onOnline);};},[]);// eslint-disable-line
 
   // ── Keyboard shortcuts (delegated) ────────────────────────────────────────
   useKeyboardShortcuts({
@@ -343,6 +345,6 @@ export default function useEtudesState(){
     exportLog,exportJson,importJsonFile,
     handleChipDrag,handleChipDragEnd,
     handleTap,
-    user,signIn,signUp,signOut,syncStatus,
+    user,signIn,signUp,signOut,syncStatus,lastSyncedAt,syncNow:doSync,
   };
 }

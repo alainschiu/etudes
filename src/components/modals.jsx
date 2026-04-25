@@ -6,7 +6,7 @@ import appPkg from '../../package.json';
 const SHORTCUTS=[{k:'Space',v:'Start / pause last practiced item'},{k:'R',v:'Toggle rest timer'},{k:'M',v:'Toggle metronome'},{k:'D',v:'Toggle tuning drone'},{k:'T',v:'Tap tempo'},{k:'L',v:'Log BPM to active item or spot'},{k:'N',v:'Quick note for active item'},{k:'1 – 4',v:'Jump to session on Today'},{k:'?',v:'Open Réglages'},{k:'Esc',v:'Close drawers and modals'}];
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
 
-export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExportTxt,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,syncStatus}){
+export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExportTxt,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,syncStatus,lastSyncedAt,syncNow}){
   const [tab,setTab]=useState('settings');
   const [authMode,setAuthMode]=useState('signin'); // 'signin'|'signup'
   const [authEmail,setAuthEmail]=useState('');
@@ -48,6 +48,8 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
                 {syncStatus==='syncing'?'Syncing…':syncStatus==='error'?'Sync error':'Synced'}
               </div>
             </div>
+            <button onClick={syncNow} disabled={syncStatus==='syncing'} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em',opacity:syncStatus==='syncing'?0.6:1}}>{syncStatus==='syncing'?<Loader className="w-3 h-3 animate-spin" strokeWidth={1.5}/>:<Cloud className="w-3 h-3" strokeWidth={1.25}/>} {syncStatus==='syncing'?'Syncing…':'Sync now'}</button>
+            {lastSyncedAt>0&&<div className="text-center" style={{color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'11px'}}>Last synced {new Date(lastSyncedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>}
             <button onClick={signOut} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><CloudOff className="w-3 h-3" strokeWidth={1.25}/> Sign out</button>
           </>
         ):signupSent?(
