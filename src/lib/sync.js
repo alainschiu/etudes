@@ -1,6 +1,27 @@
 import {supabase} from './supabase.js';
 import {lsSet} from './storage.js';
 
+// Merge two states: union array data by id (local wins same id),
+// merge object maps (local wins per key), remote wins for scalar fields.
+export function mergeStates(local, remote) {
+  const mergeById = (localArr=[], remoteArr=[]) => {
+    const map = new Map();
+    remoteArr.forEach(item => map.set(item.id, item));
+    localArr.forEach(item => map.set(item.id, item)); // local wins on same id
+    return Array.from(map.values());
+  };
+  const mergeObj = (localObj={}, remoteObj={}) => ({...remoteObj, ...localObj});
+  return {
+    ...remote,                                               // scalar fields: remote wins
+    items:     mergeById(local.items,    remote.items),
+    routines:  mergeById(local.routines, remote.routines),
+    programs:  mergeById(local.programs, remote.programs),
+    history:   mergeObj(local.history,   remote.history),   // local wins per date
+    itemTimes: mergeObj(local.itemTimes, remote.itemTimes), // local wins per item
+    workingOn: [...new Set([...(local.workingOn||[]), ...(remote.workingOn||[])])],
+  };
+}
+
 export async function loadFromCloud(userId) {
   try {
     const {data, error} = await supabase
