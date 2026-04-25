@@ -13,7 +13,8 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
   const [authPassword,setAuthPassword]=useState('');
   const [authError,setAuthError]=useState('');
   const [authBusy,setAuthBusy]=useState(false);
-  const handleAuth=async(e)=>{e.preventDefault();setAuthError('');setAuthBusy(true);const fn=authMode==='signin'?signIn:signUp;const {error}=await fn(authEmail,authPassword);setAuthBusy(false);if(error)setAuthError(error.message);};
+  const [signupSent,setSignupSent]=useState(false);
+  const handleAuth=async(e)=>{e.preventDefault();setAuthError('');setAuthBusy(true);const fn=authMode==='signin'?signIn:signUp;const {error}=await fn(authEmail,authPassword);setAuthBusy(false);if(error){setAuthError(error.message);}else if(authMode==='signup'){setSignupSent(true);}};
   const sl=storageMode==='local'?'saved locally on this device':'storage unavailable';
   const sd=storageMode==='local'?'● local':'○ memory';
   return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onClose}><div className="max-w-md w-full max-h-screen overflow-auto etudes-scroll" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
@@ -49,12 +50,18 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
             </div>
             <button onClick={signOut} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><CloudOff className="w-3 h-3" strokeWidth={1.25}/> Sign out</button>
           </>
+        ):signupSent?(
+          <div className="py-4 space-y-4">
+            <div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Check your inbox</div>
+            <p style={{fontFamily:serif,fontSize:'15px',fontWeight:300,lineHeight:1.7,color:MUTED}}>A confirmation link has been sent to <span style={{color:TEXT}}>{authEmail}</span>. Follow the link to activate your account, then return here to sign in.</p>
+            <button type="button" onClick={()=>{setSignupSent(false);setAuthMode('signin');setAuthPassword('');}} className="w-full text-center mt-2" style={{color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'12px'}}>Back to sign in</button>
+          </div>
         ):(
           <form onSubmit={handleAuth} className="space-y-5">
             <div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Sign in to sync across devices</div>
-              <div className="space-y-4">
-                <input type="email" value={authEmail} onChange={e=>{setAuthEmail(e.target.value);setAuthError('');}} placeholder="Email" required className="w-full pb-1.5 focus:outline-none" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'15px',fontWeight:300}}/>
-                <input type="password" value={authPassword} onChange={e=>{setAuthPassword(e.target.value);setAuthError('');}} placeholder="Password" required className="w-full pb-1.5 focus:outline-none" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'15px',fontWeight:300}}/>
+              <div className="space-y-4 overflow-hidden">
+                <input type="email" value={authEmail} onChange={e=>{setAuthEmail(e.target.value);setAuthError('');}} placeholder="Email" required className="w-full pb-1.5 focus:outline-none min-w-0" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'15px',fontWeight:300,boxSizing:'border-box'}}/>
+                <input type="password" value={authPassword} onChange={e=>{setAuthPassword(e.target.value);setAuthError('');}} placeholder="Password" required className="w-full pb-1.5 focus:outline-none min-w-0" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'15px',fontWeight:300,boxSizing:'border-box'}}/>
               </div>
               {authError&&<div className="text-xs mt-3 italic" style={{color:'#E07A7A',fontFamily:serif}}>{authError}</div>}
             </div>
