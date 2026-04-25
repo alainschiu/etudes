@@ -2,6 +2,7 @@ import {supabase} from './supabase.js';
 import {lsSet} from './storage.js';
 
 export async function loadFromCloud(userId) {
+  if (!supabase) return null;
   try {
     const {data, error} = await supabase
       .from('user_state')
@@ -20,6 +21,7 @@ export async function loadFromCloud(userId) {
 }
 
 export async function syncToCloud(userId, state) {
+  if (!supabase) return false;
   try {
     const {error} = await supabase
       .from('user_state')
