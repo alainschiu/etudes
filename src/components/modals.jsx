@@ -24,7 +24,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
     </div>
     {/* Tab strip */}
     <div className="flex px-8" style={{borderBottom:`1px solid ${LINE}`}}>
-      {[{id:'settings',label:'Settings'},{id:'sync',label:'Sync'},{id:'export',label:'Export'},{id:'shortcuts',label:'Shortcuts'},{id:'about',label:'About'}].map(t=>(
+      {[{id:'settings',label:'Settings'},{id:'shortcuts',label:'Shortcuts'},{id:'sync',label:'Sync'},{id:'export',label:'Export'},{id:'about',label:'About'}].map(t=>(
         <button key={t.id} onClick={()=>setTab(t.id)} className="relative py-3 mr-5 uppercase shrink-0" style={{color:tab===t.id?TEXT:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>
           {t.label}{tab===t.id&&<span className="absolute bottom-0 left-0 right-0" style={{height:'1px',background:IKB}}/>}
         </button>
@@ -34,11 +34,11 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
       <div className="px-8 py-6 space-y-5">
         <div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Targets</div>
         {[{key:'dailyTarget',label:'Daily'},{key:'weeklyTarget',label:'Weekly'},{key:'monthlyTarget',label:'Monthly'}].map(f=>(<div key={f.key} className="flex items-baseline justify-between gap-4 pb-3" style={{borderBottom:`1px solid ${LINE}`}}><div><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>{f.label}</div><div className="text-xs italic mt-0.5" style={{color:FAINT,fontFamily:serif}}>minutes · warm-up excluded</div></div><input type="number" value={settings[f.key]} onChange={e=>setSettings({...settings,[f.key]:+e.target.value||0})} className="w-24 px-2 py-1 text-right font-mono text-lg tabular-nums focus:outline-none" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontWeight:300,boxSizing:'border-box'}}/></div>))}
-        <div className="flex items-baseline justify-between gap-4 pt-2"><div className="min-w-0"><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Storage</div><div className="text-xs italic mt-0.5" style={{color:storageMode==='local'?FAINT:'#E07A7A',fontFamily:serif}}>{sl}</div></div><div className="uppercase shrink-0" style={{color:storageMode==='local'?IKB:'#E07A7A',fontSize:'10px',letterSpacing:'0.22em'}}>{sd}</div></div>
       </div>
     )}
     {tab==='sync'&&(
       <div className="px-8 py-6 space-y-5">
+        <div className="flex items-baseline justify-between gap-4 pb-4" style={{borderBottom:`1px solid ${LINE}`}}><div className="min-w-0"><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Storage</div><div className="text-xs italic mt-0.5" style={{color:storageMode==='local'?FAINT:'#E07A7A',fontFamily:serif}}>{sl}</div></div><div className="uppercase shrink-0" style={{color:storageMode==='local'?IKB:'#E07A7A',fontSize:'10px',letterSpacing:'0.22em'}}>{sd}</div></div>
         {user?(
           <>
             <div className="flex items-center justify-between gap-4 pb-4" style={{borderBottom:`1px solid ${LINE}`}}>
