@@ -52,6 +52,8 @@ export default function useEtudesState(){
   const [settings,setSettings]=useState(()=>lsGet('etudes-settings',{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400}));
   const [freeNotes,setFreeNotes]=useState(()=>lsGet('etudes-freeNotes',[]));
   const [recordingMeta,setRecordingMeta]=useState(()=>lsGet('etudes-recordingMeta',{}));
+  const [pieceRecordingMeta,setPieceRecordingMeta]=useState(()=>lsGet('etudes-pieceRecordingMeta',{}));
+  const [pieceRecordingItemId,setPieceRecordingItemId]=useState(null);
   const [history,setHistory]=useState(()=>migrateHistory(lsGet('etudes-history',[])));
   const [dayClosed,setDayClosed]=useState(()=>lsGet('etudes-dayClosed',false));
   const [pdfUrlMap,setPdfUrlMap]=useState({});
@@ -72,6 +74,7 @@ export default function useEtudesState(){
   useEffect(()=>{lsSet('etudes-settings',settings);},[settings]);
   useEffect(()=>{lsSet('etudes-freeNotes',freeNotes);},[freeNotes]);
   useEffect(()=>{lsSet('etudes-recordingMeta',recordingMeta);},[recordingMeta]);
+  useEffect(()=>{lsSet('etudes-pieceRecordingMeta',pieceRecordingMeta);},[pieceRecordingMeta]);
   useEffect(()=>{lsSet('etudes-history',history);},[history]);
   useEffect(()=>{lsSet('etudes-dayClosed',dayClosed);},[dayClosed]);
   useEffect(()=>{lsSet('etudes-lastSyncedAt',Date.now());},[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
@@ -86,6 +89,7 @@ export default function useEtudesState(){
   // ── Rest / recording state ────────────────────────────────────────────────
   const [isResting,setIsResting]=useState(false);
   const [isRecording,setIsRecording]=useState(false);
+  const [recExpanded,setRecExpanded]=useState(false);
 
   // ── Sub-hooks ─────────────────────────────────────────────────────────────
   const metro=useMetronome();
@@ -222,7 +226,7 @@ export default function useEtudesState(){
   const setDefaultPdf=(id,pid)=>setItems(p=>p.map(i=>i.id===id?{...i,defaultPdfId:pid}:i));
 
   // ── Recording (delegated) ─────────────────────────────────────────────────
-  const {startRecording,stopRecording,deleteRecording}=useRecording({dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal});
+  const {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording}=useRecording({dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal,pieceRecordingMeta,setPieceRecordingMeta,setPieceRecordingItemId});
 
   // ── Session / routine management ──────────────────────────────────────────
   const handleDragStart=(idx)=>setDragIdx(idx);
@@ -317,7 +321,7 @@ export default function useEtudesState(){
     monthReflection,setMonthReflection,settings,setSettings,
     freeNotes,setFreeNotes,recordingMeta,history,dayClosed,pdfUrlMap,trash,
     activeItemId,activeSpotId,activeSessionId,activeItem,activeSpot,activeIsWarmup,
-    isResting,isRecording,
+    isResting,isRecording,recExpanded,setRecExpanded,
     metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,
     drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,
     sessionRefs,reflectionRef,importInputRef,
@@ -334,6 +338,7 @@ export default function useEtudesState(){
     logTempo,addQuickNote,
     addPdfToItem,removePdfFromItem,renamePdf,setDefaultPdf,
     startRecording,stopRecording,deleteRecording,
+    pieceRecordingMeta,pieceRecordingItemId,startPieceRecording,stopPieceRecording,deletePieceRecording,
     handleDragStart,handleDragOver,handleDrop,handleDragEnd,
     moveSession,hideSession,addSessionType,toggleSessionWarmup,
     removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,

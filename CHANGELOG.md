@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.92.1 — 2026-04-26
+
+### Audio recording — waveform scrubbing & per-piece archive
+
+#### Waveform scrubbing
+- Replaced static bar-chart waveform with smooth SVG bezier curve using cubic interpolation
+- Real drag-to-scrub: playhead follows mouse during drag; audio seeks on mouseup and resumes if was playing
+- Transport controls redesigned as standard **Play · Pause · Rewind** row above the waveform
+- Live time counter (`0:13 / 4:50`) right-aligned in the transport row, updates during scrub
+- Re-record button moved into the transport row (alongside Play/Pause/Rewind)
+- Peak extraction upgraded: 120 buckets (was 60), RMS per bucket (was peak-max), 2-pass weighted smoothing — smoother, perceptually accurate waveform
+- Day recording drawer moved to footer pull-up panel (same pattern as metronome/tuner)
+
+#### Per-piece recording archive
+- New `pieceRecordings` IndexedDB store (DB version bumped to 2); metadata persisted to localStorage as `etudes-pieceRecordingMeta`
+- Each recording keyed `{itemId}__{date}`, tagged with BPM (from metronome at record time) and stage
+- **Recordings panel** in Répertoire expanded view: reverse-chronological list with compact scrubbable waveform per entry, date/BPM/stage badges, delete
+- **A/B comparison**: select any two recordings as A and B — side-by-side full waveforms with independent play/pause/rewind/scrub; no forced sync
+- **Mic button per item** in Today view (next to play button) — records directly to the piece archive; dims when another recording is active
+- Today's recording for a piece appears as a compact scrubbable waveform inside the item's expanded drawer (Today section), not on the collapsed row
+
+---
+
 ## v0.91 — 2026-04-26
 
 ### Fixes & polish

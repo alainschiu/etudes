@@ -1,5 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {Play, Pause, Plus, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Crosshair, Pencil, Check, Music, Calendar} from 'lucide-react';
+import {Play, Pause, SkipBack, Plus, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Crosshair, Pencil, Check, Music, Calendar} from 'lucide-react';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, serif, serifText, sans, mono} from '../constants/theme.js';
 import {STAGES} from '../constants/config.js';
 import {idbGet} from '../lib/storage.js';
@@ -12,8 +12,149 @@ export function Ring({value,max,maxSize=180}){const pct=Math.min(100,(value/max)
 
 export function StageLabels({stage,onChange,compact=false}){const ai=STAGES.findIndex(s=>s.key===stage);return (<div className={`flex ${compact?'gap-4':'gap-5'} flex-wrap`}>{STAGES.map((s,i)=>{const a=i===ai;return (<button key={s.key} onClick={(e)=>{e.stopPropagation();onChange(s.key);}} className="transition pb-1.5" style={{color:a?TEXT:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:compact?'12px':'15px',fontWeight:300,borderBottom:a?`1px solid ${IKB}`:`1px solid transparent`}}>{s.label}</button>);})}</div>);}
 
-export function Waveform({date,meta,compact=false}){const [playing,setPlaying]=useState(false);const [progress,setProgress]=useState(0);const [blobAvailable,setBlobAvailable]=useState(true);const audioRef=useRef(null);const urlRef=useRef(null);
-  useEffect(()=>{if(!meta)return;idbGet('recordings',date).then(b=>setBlobAvailable(!!b));},[date,meta]);const ensure=async()=>{if(audioRef.current)return audioRef.current;const b=await idbGet('recordings',date);if(!b)return null;urlRef.current=URL.createObjectURL(b);const a=new Audio(urlRef.current);a.ontimeupdate=()=>setProgress(a.duration?a.currentTime/a.duration:0);a.onended=()=>{setPlaying(false);setProgress(0);};audioRef.current=a;return a;};const toggle=async()=>{const a=await ensure();if(!a)return;if(playing){a.pause();setPlaying(false);}else{a.play().then(()=>setPlaying(true)).catch(()=>{});}};useEffect(()=>()=>{if(audioRef.current)audioRef.current.pause();if(urlRef.current)URL.revokeObjectURL(urlRef.current);},[]);const peaks=meta?.peaks||[];const h=compact?20:32;if(!blobAvailable&&meta)return(<div className="flex items-center gap-2" style={{color:FAINT}}><span className="meta" style={{fontSize:'10px',letterSpacing:'0.14em',textTransform:'uppercase'}}>Recording on another device</span></div>);return (<div className="flex items-center gap-3 w-full" style={{minWidth:0}}><button onClick={toggle} className="shrink-0" style={{color:playing?IKB:TEXT}}>{playing?<Pause className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>}</button><div className="flex-1 flex items-center gap-px" style={{height:h,minWidth:0}}>{peaks.map((p,i)=>{const pl=i/peaks.length<progress;return <div key={i} className="flex-1" style={{height:`${Math.max(10,p*100)}%`,background:pl?IKB:DIM,minWidth:'1px',transition:'background 0.1s'}}/>;})}{peaks.length===0&&<div className="flex-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px'}}>recording unavailable</div>}</div></div>);}
+export function Waveform({date,meta,compact=false,blobLoader,actions}){
+  const [playing,setPlaying]=useState(false);
+  const [progress,setProgress]=useState(0);
+  const [duration,setDuration]=useState(0);
+  const [blobAvailable,setBlobAvailable]=useState(true);
+  const audioRef=useRef(null);
+  const urlRef=useRef(null);
+  const svgRef=useRef(null);
+  const scrubbingRef=useRef(false);
+  const wasPlayingRef=useRef(false);
+  const uid=useRef(`wf${Math.random().toString(36).slice(2,7)}`).current;
+  const load=blobLoader||(()=>idbGet('recordings',date));
+
+  useEffect(()=>{if(!meta)return;load().then(b=>setBlobAvailable(!!b));},[date,meta]);
+
+  const ensure=async()=>{
+    if(audioRef.current)return audioRef.current;
+    const b=await load();if(!b)return null;
+    urlRef.current=URL.createObjectURL(b);
+    const a=new Audio(urlRef.current);
+    a.onloadedmetadata=()=>{setDuration(a.duration||0);};
+    a.ontimeupdate=()=>{if(!scrubbingRef.current)setProgress(a.duration?a.currentTime/a.duration:0);};
+    a.onended=()=>{setPlaying(false);setProgress(0);};
+    audioRef.current=a;return a;
+  };
+
+  const play=async()=>{const a=await ensure();if(!a)return;a.play().then(()=>setPlaying(true)).catch(()=>{});};
+  const pause=()=>{if(audioRef.current){audioRef.current.pause();setPlaying(false);}};
+  const rewind=()=>{if(audioRef.current){audioRef.current.pause();audioRef.current.currentTime=0;}setPlaying(false);setProgress(0);};
+
+  // Real scrubbing: mousedown starts drag, mousemove tracks, mouseup commits
+  const onScrubStart=async(e)=>{
+    if(!peaks.length)return;
+    e.preventDefault();
+    wasPlayingRef.current=playing;
+    // Pause during scrub so audio doesn't race ahead
+    if(audioRef.current){audioRef.current.pause();setPlaying(false);}
+    // Pre-load audio so mouseup can seek immediately
+    ensure();
+    scrubbingRef.current=true;
+
+    const getFrac=(clientX)=>{
+      if(!svgRef.current)return 0;
+      const r=svgRef.current.getBoundingClientRect();
+      return Math.max(0,Math.min(1,(clientX-r.left)/r.width));
+    };
+
+    // Set initial position immediately
+    setProgress(getFrac(e.clientX));
+
+    const onMove=(mv)=>{setProgress(getFrac(mv.clientX));};
+    const onUp=async(up)=>{
+      scrubbingRef.current=false;
+      document.removeEventListener('mousemove',onMove);
+      document.removeEventListener('mouseup',onUp);
+      const frac=getFrac(up.clientX);
+      setProgress(frac);
+      const a=audioRef.current;
+      if(a&&a.duration&&!isNaN(a.duration)){
+        a.currentTime=frac*a.duration;
+        if(wasPlayingRef.current)a.play().then(()=>setPlaying(true)).catch(()=>{});
+      }
+    };
+    document.addEventListener('mousemove',onMove);
+    document.addEventListener('mouseup',onUp);
+  };
+
+  useEffect(()=>()=>{if(audioRef.current)audioRef.current.pause();if(urlRef.current)URL.revokeObjectURL(urlRef.current);},[]);
+
+  // 2-pass smooth + normalize for display
+  const rawPeaks=meta?.peaks||[];
+  const peaks=rawPeaks.length<3?rawPeaks:(()=>{
+    let s=[...rawPeaks];
+    for(let p=0;p<2;p++){const n=[...s];for(let i=1;i<s.length-1;i++)n[i]=s[i-1]*0.25+s[i]*0.5+s[i+1]*0.25;s=n;}
+    const mx=Math.max(...s,1e-6);return s.map(v=>v/mx);
+  })();
+
+  // Closed SVG path: smooth bezier top (L→R) + bottom (R→L)
+  const shapePath=(()=>{
+    const n=peaks.length;if(n<2)return'';
+    const f=v=>v.toFixed(2);
+    const xOf=i=>(i/(n-1))*1000;
+    const topPts=peaks.map((p,i)=>[xOf(i),50-p*46]);
+    const botR2L=peaks.slice().reverse().map((p,i)=>[xOf(n-1-i),50+p*46]);
+    let top=`M${f(topPts[0][0])},${f(topPts[0][1])}`;
+    for(let i=1;i<topPts.length;i++){const cx=(topPts[i-1][0]+topPts[i][0])/2;top+=` C${f(cx)},${f(topPts[i-1][1])} ${f(cx)},${f(topPts[i][1])} ${f(topPts[i][0])},${f(topPts[i][1])}`;}
+    let bot='';
+    for(let i=1;i<botR2L.length;i++){const cx=(botR2L[i-1][0]+botR2L[i][0])/2;bot+=` C${f(cx)},${f(botR2L[i-1][1])} ${f(cx)},${f(botR2L[i][1])} ${f(botR2L[i][0])},${f(botR2L[i][1])}`;}
+    return top+` L${f(botR2L[0][0])},${f(botR2L[0][1])}`+bot+' Z';
+  })();
+
+  const fmtT=s=>{if(!s||isNaN(s))return'--:--';const m=Math.floor(s/60);return m+':'+String(Math.floor(s%60)).padStart(2,'0');};
+  const clipId=`${uid}-c`;
+  const needleX=progress*1000;
+
+  if(!blobAvailable&&meta)return(<div style={{color:FAINT,fontSize:'10px',letterSpacing:'0.14em',textTransform:'uppercase'}}>Recording on another device</div>);
+
+  const svgMarkup=(h)=>(
+    <svg ref={svgRef} width="100%" height={h} viewBox="0 0 1000 100" preserveAspectRatio="none"
+      style={{display:'block',cursor:peaks.length?'col-resize':'default',userSelect:'none'}}
+      onMouseDown={peaks.length?onScrubStart:undefined}>
+      <defs><clipPath id={clipId}><rect x="0" y="0" width={needleX} height="100"/></clipPath></defs>
+      {peaks.length>0?(<>
+        <path d={shapePath} fill={DIM}/>
+        <path d={shapePath} fill={IKB} clipPath={`url(#${clipId})`}/>
+        <line x1={needleX} y1="0" x2={needleX} y2="100" stroke={IKB} strokeWidth="2" opacity="0.9"/>
+      </>):(
+        <text x="8" y="56" fill={FAINT} fontSize="9" fontFamily={serif} fontStyle="italic">recording unavailable</text>
+      )}
+    </svg>
+  );
+
+  if(compact){
+    return(
+      <div className="flex items-center gap-3 w-full" style={{minWidth:0}}>
+        <button onClick={playing?pause:play} className="shrink-0" style={{color:playing?IKB:TEXT}}>
+          {playing?<Pause className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>}
+        </button>
+        <div className="flex-1" style={{minWidth:0}}>{svgMarkup(20)}</div>
+      </div>
+    );
+  }
+
+  const btnBase={display:'flex',alignItems:'center',gap:'6px',padding:'6px 12px',border:`1px solid ${LINE_MED}`,background:'transparent',cursor:'pointer'};
+  return(
+    <div className="w-full" style={{minWidth:0}}>
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <button onClick={play} disabled={playing} style={{...btnBase,color:playing?FAINT:TEXT,borderColor:playing?LINE:LINE_MED,cursor:playing?'default':'pointer'}}>
+          <Play className="w-3.5 h-3.5" strokeWidth={1.25} fill={playing?'none':'currentColor'}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Play</span>
+        </button>
+        <button onClick={pause} disabled={!playing} style={{...btnBase,color:!playing?FAINT:IKB,borderColor:!playing?LINE:IKB,background:playing?IKB_SOFT:'transparent',cursor:!playing?'default':'pointer'}}>
+          <Pause className="w-3.5 h-3.5" strokeWidth={1.25} fill={playing?'currentColor':'none'}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Pause</span>
+        </button>
+        <button onClick={rewind} style={{...btnBase,color:MUTED}}>
+          <SkipBack className="w-3.5 h-3.5" strokeWidth={1.25}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Rewind</span>
+        </button>
+        {actions}
+        {duration>0&&<span className="ml-auto tabular-nums" style={{fontFamily:mono,color:FAINT,fontSize:'11px',letterSpacing:'0.04em'}}>{fmtT(progress*duration)} / {fmtT(duration)}</span>}
+      </div>
+      {svgMarkup(40)}
+    </div>
+  );
+}
 
 export function ItemPickerPopup({availableItems,onPick,onClose}){return (<><div className="fixed inset-0 z-20" onClick={onClose}/><div className="absolute z-30 right-0 mt-1 min-w-64 max-h-64 overflow-auto etudes-scroll" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>{availableItems.length===0&&<div className="px-4 py-3 text-xs italic" style={{color:FAINT,fontFamily:serif}}>No items available.</div>}{availableItems.map(it=>(<button key={it.id} onClick={()=>{onPick(it.id);onClose();}} className="w-full text-left px-4 py-2.5" style={{borderBottom:`1px solid ${LINE}`}}><div style={{fontSize:'13px',fontWeight:300}}>{displayTitle(it)}</div>{formatByline(it)&&<div className="italic mt-0.5" style={{color:MUTED,fontFamily:serif,fontSize:'11px'}}>{formatByline(it)}</div>}</button>))}</div></>);}
 

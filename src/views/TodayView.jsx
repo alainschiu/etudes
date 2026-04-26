@@ -1,11 +1,12 @@
 import React, {useState, useEffect} from 'react';
-import {Play, Pause, Plus, X, ChevronDown, ChevronUp, Settings, Target, Trash2, FileText, ArrowUp, ArrowDown, EyeOff, Bookmark, RotateCcw, GripVertical, Lock, Unlock, Crosshair, Pencil, Check, MapPin, Calendar, Coffee, Music, MessageSquarePlus} from 'lucide-react';
+import {Play, Pause, Plus, X, ChevronDown, ChevronUp, Settings, Target, Trash2, FileText, ArrowUp, ArrowDown, EyeOff, Bookmark, RotateCcw, GripVertical, Lock, Unlock, Crosshair, Pencil, Check, MapPin, Calendar, Coffee, Music, MessageSquarePlus, Mic, Square} from 'lucide-react';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, sans} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
 import {todayDateStr, daysUntil} from '../lib/dates.js';
 import {getItemTime, displayTitle, formatByline, nextPerformance, getParentBucket} from '../lib/items.js';
 import {toRoman} from '../lib/music.js';
 import {DisplayHeader, TargetEdit, TimeWithTarget, ItemTimeEditor, ItemPickerPopup, PerformanceChip, SpotsBlock, Waveform} from '../components/shared.jsx';
+import {idbGet} from '../lib/storage.js';
 
 function AnalogClock({size=40}){
   const [now,setNow]=useState(new Date());
@@ -18,8 +19,8 @@ function AnalogClock({size=40}){
 }
 
 export default function TodayView(p){
-  const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,recordingMeta,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,deleteRecording,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot}=p;
-  const today=new Date();const todayKey=todayDateStr();const todayRec=recordingMeta[todayKey];
+  const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm}=p;
+  const today=new Date();const todayKey=todayDateStr();
   const [routineMenu,setRoutineMenu]=useState(false);const [addMenu,setAddMenu]=useState(false);const [pickerSessionId,setPickerSessionId]=useState(null);
 
   const getSessionItems=(session)=>{if(session.itemIds===null){const list=items.filter(i=>i.type===session.type&&i.stage!=='queued');return [...list].sort((a,b)=>{const pa=nextPerformance(a.performances);const pb=nextPerformance(b.performances);const da=pa?daysUntil(pa.date):null;const db=pb?daysUntil(pb.date):null;const ua=(da!==null&&da>=0&&da<=30)?da:Infinity;const ub=(db!==null&&db>=0&&db<=30)?db:Infinity;return ua-ub;});}return session.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);};
@@ -70,9 +71,7 @@ export default function TodayView(p){
       </div>
       {warmupMin>0&&(<div className="py-2.5 flex items-center gap-3" style={{borderBottom:`1px solid ${LINE}`}}><span style={{color:WARM,fontSize:'13px',lineHeight:1,width:'18px',textAlign:'center'}}>◔</span><span className="uppercase" style={{color:WARM,fontSize:'10px',letterSpacing:'0.28em'}}>Warm-up today</span><span className="font-mono tabular-nums" style={{color:WARM,fontSize:'11px',fontWeight:300}}>{warmupMin}′</span><span className="italic ml-auto" style={{color:FAINT,fontFamily:serif,fontSize:'11px'}}>excluded from target & streak</span></div>)}
 
-      {todayRec&&(<div className="mt-8 mb-10 px-5 py-4" style={{background:SURFACE,border:`1px solid ${LINE}`}}><div className="flex items-baseline justify-between mb-3"><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Today's recording</div><div className="flex items-center gap-3"><div className="font-mono tabular-nums" style={{color:MUTED,fontSize:'10px'}}>{Math.round((todayRec.size||0)/1024)}k</div><button onClick={()=>deleteRecording(todayKey)} style={{color:FAINT}}><Trash2 className="w-3 h-3" strokeWidth={1.25}/></button></div></div><Waveform date={todayKey} meta={todayRec}/></div>)}
-
-      <div className={todayRec?'':'mt-8'} style={{borderTop:`1px solid ${LINE_STR}`}}>
+      <div className="mt-8" style={{borderTop:`1px solid ${LINE_STR}`}}>
         {todaySessions.map((session,idx)=>{
           const type=session.type;const sessionItems=getSessionItems(session);const prescribed=session.itemIds!==null;
           const isDragging=dragIdx===idx;const isDragOver=dragOverIdx===idx&&dragIdx!==null&&dragIdx!==idx;
@@ -118,6 +117,7 @@ export default function TodayView(p){
               return (<div key={`${session.id}-${item.id}`} style={{borderBottom:`1px solid ${LINE}`}}>
                 <div onClick={()=>{if(!isEditingTime)setExpandedItemId(expanded?null:item.id);}} className="group py-2.5 px-2 flex items-center gap-4 cursor-pointer" style={{background:isActiveAny?IKB_SOFT:'transparent'}}>
                   <button onClick={e=>{e.stopPropagation();if(isActiveAny)stopItem();else startItem(item.id,null,session.id);}} disabled={dayClosed&&!isActiveAny} className="shrink-0" style={{color:isActiveWhole?IKB:(isActiveAny?MUTED:(dayClosed?FAINT:TEXT)),filter:isActiveWhole?`drop-shadow(0 0 6px ${IKB})`:'none',cursor:(dayClosed&&!isActiveAny)?'not-allowed':'pointer'}}>{isActiveAny?<Pause className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>}</button>
+                  {(()=>{const isPieceRec=pieceRecordingItemId===item.id;const blocked=(dayClosed&&!isPieceRec)||(pieceRecordingItemId&&!isPieceRec)||isRecording;return(<button onClick={e=>{e.stopPropagation();isPieceRec?stopPieceRecording():startPieceRecording(item.id,currentBpm,item.stage);}} disabled={!!blocked} className="shrink-0" title={isPieceRec?'Stop recording':'Record this piece'} style={{color:isPieceRec?'#A93226':blocked?DIM:FAINT,cursor:blocked?'not-allowed':'pointer'}}>{isPieceRec?<Square className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor" style={{animation:'pulse 1s infinite'}}/>:<Mic className="w-3.5 h-3.5" strokeWidth={1.25}/>}</button>);})()}
                   <div className="flex-1 min-w-0">
                     {/* Title + byline on one line */}
                     <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
@@ -157,6 +157,7 @@ export default function TodayView(p){
                     <button onClick={()=>setView('repertoire')} className="shrink-0 uppercase px-3 py-1.5" style={{color:view==='repertoire'?TEXT:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Edit in Repertoire</button>
                   </div>
                   <div><div className="uppercase mb-1.5 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><MessageSquarePlus className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Today</div><textarea value={item.todayNote||''} onChange={e=>updateItem(item.id,{todayNote:e.target.value})} placeholder="What happened in this session?" className="w-full h-20 p-3 text-sm resize-none focus:outline-none" style={{background:SURFACE2,color:TEXT,border:`1px solid ${IKB}40`,fontFamily:serif,lineHeight:1.6}}/></div>
+                  {(()=>{const todayEntry=pieceRecordingMeta?.[item.id]?.[todayKey];if(!todayEntry)return null;const bkey=`${item.id}__${todayKey}`;return(<Waveform key={todayEntry.ts} compact blobLoader={()=>idbGet('pieceRecordings',bkey)} meta={todayEntry}/>);})()}
                   {item.type==='piece'&&<SpotsBlock item={item} itemTimes={itemTimes} activeItemId={activeItemId} activeSpotId={activeSpotId} startItem={(id,sid)=>startItem(id,sid,session.id)} stopItem={stopItem} addSpot={addSpot} updateSpot={updateSpot} deleteSpot={deleteSpot} editSpotTime={editSpotTime} dayClosed={dayClosed}/>}
                   <div><div className="uppercase mb-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}>Notes <span style={{color:DIM,letterSpacing:'0.2em'}}>· persistent</span></div><textarea value={item.detail} onChange={e=>updateItem(item.id,{detail:e.target.value})} placeholder="Long-running notes…" className="w-full h-20 p-3 text-sm resize-none focus:outline-none" style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE}`,fontFamily:serif,lineHeight:1.6}}/></div>
                   <div className="flex items-center gap-2 text-xs flex-wrap">
