@@ -1,6 +1,6 @@
 # Update Log
 
-## v0.92.1 — 2026-04-26
+## v0.93 — 2026-04-26
 
 - Smooth SVG bezier waveform with drag-to-scrub (playhead follows mouse)
 - Transport controls: Play · Pause · Rewind · Re-record in one row; live time counter

@@ -1,4 +1,4 @@
-# Études — v0.91
+# Études — v0.93
 
 A practice journal for musicians. Track daily sessions, time focused work, organise repertoire, and review progress across week and month views.
 
@@ -6,6 +6,7 @@ A practice journal for musicians. Track daily sessions, time focused work, organ
 
 - **Today** — session timer, spot-level timing, warmup and rest tracking, day close
 - **Repertoire** — pieces with stage labels, performance dates, spots, PDF scores, recordings
+- **Audio recording** — per-day and per-piece recordings with scrubbable SVG waveforms, A/B comparison
 - **Routines & Programs** — build and load practice routines; group pieces into programs
 - **Week / Month** — ring graphs, reflections, streak tracking
 - **Logs & Notes** — searchable history, free notes

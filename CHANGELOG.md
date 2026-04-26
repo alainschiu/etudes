@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.92.1 — 2026-04-26
+## v0.93 — 2026-04-26
 
 ### Audio recording — waveform scrubbing & per-piece archive
 
