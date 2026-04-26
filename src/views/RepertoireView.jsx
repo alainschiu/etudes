@@ -50,6 +50,7 @@ export default function RepertoireView(p){
   const [sortBy,setSortBy]=useState('');
   const [groupByCollection,setGroupByCollection]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [composerOpen,setComposerOpen]=useState(true);const [instrumentOpen,setInstrumentOpen]=useState(true);const [expandedId,setExpandedId]=useState(()=>expandedItemId||null);const [showMoreIds,setShowMoreIds]=useState({});
   useEffect(()=>{if(expandedItemId){setExpandedId(expandedItemId);if(setExpandedItemId)setExpandedItemId(null);}},[]);
+  useEffect(()=>{if(!expandedId)return;const t=setTimeout(()=>{const el=document.querySelector(`[data-rep-id="${expandedId}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},80);return()=>clearTimeout(t);},[expandedId]);
   const toggleShowMore=(id)=>setShowMoreIds(p=>({...p,[id]:!p[id]}));
 
   const allComposers=useMemo(()=>{const g={};items.forEach(i=>{const raw=(i.composer||'').trim()||'(unspecified)';const key=normalizeComposerKey(raw)||'(unspecified)';if(!g[key])g[key]={variants:{},count:0};g[key].variants[raw]=(g[key].variants[raw]||0)+1;g[key].count++;});return Object.entries(g).map(([key,gg])=>{const d=Object.entries(gg.variants).sort((a,b)=>b[1]-a[1])[0][0];return {key,display:d,count:gg.count};}).sort((a,b)=>a.display.localeCompare(b.display));},[items]);
@@ -79,7 +80,7 @@ export default function RepertoireView(p){
     const showBpmTarget=i.type!=='play'&&i.type!=='study';
     const showPerformances=i.type==='piece';
     const showArranger=i.type==='piece';
-    return (<div key={i.id} style={{borderBottom:`1px solid ${LINE}`}}>
+    return (<div key={i.id} data-rep-id={i.id} style={{borderBottom:`1px solid ${LINE}`}}>
       <div onClick={()=>setExpandedId(expanded?null:i.id)} className="py-3 px-2 flex items-start gap-3 cursor-pointer" style={{background:expanded?SURFACE:'transparent'}}>
         <div className="shrink-0 mt-0.5 tabular-nums" style={{color:DIM,fontFamily:serif,fontStyle:'italic',fontSize:'11px',width:'22px'}}>{SECTION_CONFIG[i.type].roman}</div>
         <div className="flex-1 min-w-0">

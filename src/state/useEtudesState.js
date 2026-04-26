@@ -1,5 +1,5 @@
 import {useState,useEffect,useRef,useMemo,useCallback} from 'react';
-import {DEFAULT_SESSIONS,ROLLOVER_KEY,WEEK_ROLLOVER_KEY,MONTH_ROLLOVER_KEY} from '../constants/config.js';
+import {DEFAULT_SESSIONS,TYPES,ROLLOVER_KEY,WEEK_ROLLOVER_KEY,MONTH_ROLLOVER_KEY} from '../constants/config.js';
 import {idbPut,idbDel,idbGet,idbAllKeys,storageAvailable,detectStorage,lsGet,lsSet} from '../lib/storage.js';
 import {useSupabaseAuth} from '../lib/useSupabaseAuth.js';
 import {loadFromCloud,syncToCloud,mergeStates} from '../lib/sync.js';
@@ -42,7 +42,7 @@ export default function useEtudesState(){
   const [warmupTimeToday,setWarmupTimeToday]=useState(()=>lsGet('etudes-warmupTimeToday',0));
   const [restToday,setRestToday]=useState(()=>lsGet('etudes-restToday',0));
   const [workingOn,setWorkingOn]=useState(()=>lsGet('etudes-workingOn',[]));
-  const [todaySessions,setTodaySessions]=useState(()=>migrateSessions(lsGet('etudes-todaySessions',DEFAULT_SESSIONS)));
+  const [todaySessions,setTodaySessions]=useState(()=>{const raw=migrateSessions(lsGet('etudes-todaySessions',DEFAULT_SESSIONS)).map(s=>({...s,itemIds:s.itemIds===null?[]:s.itemIds}));return [...raw].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type));});
   const [loadedRoutineId,setLoadedRoutineId]=useState(()=>lsGet('etudes-loadedRoutineId',null));
   const [routines,setRoutines]=useState(()=>migrateRoutines(lsGet('etudes-routines',[])));
   const [programs,setPrograms]=useState(()=>lsGet('etudes-programs',[]));
@@ -170,7 +170,7 @@ export default function useEtudesState(){
   useEffect(()=>{if(!isResting)return;let lastTick=Date.now();const id=setInterval(()=>{const now=Date.now();const elapsed=Math.max(1,Math.round((now-lastTick)/1000));lastTick=now;setRestToday(t=>t+elapsed);},1000);return()=>clearInterval(id);},[isResting]);
 
   // ── Formatters ────────────────────────────────────────────────────────────
-  const fmt=(s)=>{s=s||0;const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;if(h)return`${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;return`${m}:${String(sec).padStart(2,'0')}`;};
+  const fmt=(s)=>{s=s||0;const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=s%60;if(h)return`${h}h${String(m).padStart(2,'0')}′`;if(sec===0)return`${m}′`;return`${m}′${String(sec).padStart(2,'0')}"`;};
   const fmtMin=(s)=>`${Math.floor((s||0)/60)}′`;
 
   // ── Item actions ──────────────────────────────────────────────────────────
@@ -228,7 +228,7 @@ export default function useEtudesState(){
   const setDefaultPdf=(id,pid)=>setItems(p=>p.map(i=>i.id===id?{...i,defaultPdfId:pid}:i));
 
   // ── Recording (delegated) ─────────────────────────────────────────────────
-  const {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording}=useRecording({dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal,pieceRecordingMeta,setPieceRecordingMeta,setPieceRecordingItemId});
+  const {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording,attachDailyToPiece}=useRecording({dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal,pieceRecordingMeta,setPieceRecordingMeta,setPieceRecordingItemId});
 
   // ── Session / routine management ──────────────────────────────────────────
   const handleDragStart=(idx)=>setDragIdx(idx);
@@ -237,7 +237,7 @@ export default function useEtudesState(){
   const handleDragEnd=()=>{setDragIdx(null);setDragOverIdx(null);};
   const moveSession=(idx,dir)=>{const a=[...todaySessions];const ni=idx+dir;if(ni<0||ni>=a.length)return;[a[idx],a[ni]]=[a[ni],a[idx]];setTodaySessions(a);};
   const hideSession=(id)=>setTodaySessions(p=>p.filter(s=>s.id!==id));
-  const addSessionType=(type)=>setTodaySessions(p=>[...p,{id:`s-${type}-${Date.now()}`,type,itemIds:null,target:null,itemTargets:{},isWarmup:false}]);
+  const addSessionType=(type)=>setTodaySessions(p=>[...p,{id:`s-${type}-${Date.now()}`,type,itemIds:[],target:null,itemTargets:{},isWarmup:false}]);
   const toggleSessionWarmup=(id)=>setTodaySessions(p=>p.map(s=>s.id===id?{...s,isWarmup:!s.isWarmup}:s));
   const removeItemFromSession=(sid,iid)=>setTodaySessions(p=>p.map(s=>{if(s.id!==sid)return s;const nt={...(s.itemTargets||{})};delete nt[iid];return {...s,itemIds:s.itemIds?s.itemIds.filter(x=>x!==iid):s.itemIds,itemTargets:nt};}));
   const addItemToSession=(sid,iid)=>setTodaySessions(p=>p.map(s=>s.id===sid?{...s,itemIds:[...(s.itemIds||[]),iid]}:s));
@@ -246,6 +246,7 @@ export default function useEtudesState(){
   const loadRoutine=(r)=>{setTodaySessions(r.sessions.map((s,i)=>({id:`s-${s.type}-${Date.now()}-${i}`,type:s.type,itemIds:Array.isArray(s.itemIds)?[...s.itemIds]:[],target:typeof s.target==='number'?s.target:null,itemTargets:s.itemTargets?{...s.itemTargets}:{},isWarmup:!!s.isWarmup})));setLoadedRoutineId(r.id);};
   const resetToFree=()=>{setTodaySessions(DEFAULT_SESSIONS.map(s=>({...s,id:`${s.id}-${Date.now()}`,itemTargets:{}})));setLoadedRoutineId(null);};
   const saveRoutine=(name)=>{const nr={id:`r-${Date.now()}`,name,sessions:todaySessions.map(s=>({type:s.type,intention:'',itemIds:Array.isArray(s.itemIds)?[...s.itemIds]:items.filter(i=>i.type===s.type&&i.stage!=='queued').map(i=>i.id),target:s.target??null,itemTargets:{...(s.itemTargets||{})},isWarmup:!!s.isWarmup}))};setRoutines(p=>[...p,nr]);};
+  const updateLoadedRoutine=()=>{if(!loadedRoutineId)return;setRoutines(p=>p.map(r=>r.id!==loadedRoutineId?r:{...r,sessions:todaySessions.map(s=>({type:s.type,intention:(r.sessions.find(rs=>rs.type===s.type)||{}).intention||'',itemIds:Array.isArray(s.itemIds)?[...s.itemIds]:[],target:s.target??null,itemTargets:{...(s.itemTargets||{})},isWarmup:!!s.isWarmup}))}));};
 
   // ── Log drawer ────────────────────────────────────────────────────────────
   const todayHistoryEntry={kind:'day',date:todayKey,minutes:Math.floor(totalToday/60),warmupMinutes:Math.floor(warmupTimeToday/60),items:buildHistoryItems(itemTimes,items),reflection:dailyReflection};
@@ -267,7 +268,7 @@ export default function useEtudesState(){
 
   // ── Cloud sync effects ─────────────────────────────────────────────────────
   const applyCloudStateRef=useRef(null);
-  applyCloudStateRef.current=(s)=>{if(!s)return;setItems(migrateItems(s.items||[]));setRoutines(migrateRoutines(s.routines||[]));setPrograms(s.programs||[]);setHistory(migrateHistory(s.history||[]));setSettings(s.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setDailyReflection(s.dailyReflection||'');setWeekReflection(s.weekReflection||{notes:'',goals:''});setMonthReflection(s.monthReflection||{notes:'',goals:''});setFreeNotes(s.freeNotes||[]);setRecordingMeta(s.recordingMeta||{});setWorkingOn(s.workingOn||[]);setTodaySessions(migrateSessions(s.todaySessions||DEFAULT_SESSIONS));setDayClosed(!!s.dayClosed);setLoadedRoutineId(s.loadedRoutineId||null);setWarmupTimeToday(s.warmupTimeToday||0);setItemTimes(s.itemTimes||{});setRestToday(s.restToday||0);};
+  applyCloudStateRef.current=(s)=>{if(!s)return;setItems(migrateItems(s.items||[]));setRoutines(migrateRoutines(s.routines||[]));setPrograms(s.programs||[]);setHistory(migrateHistory(s.history||[]));setSettings(s.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setDailyReflection(s.dailyReflection||'');setWeekReflection(s.weekReflection||{notes:'',goals:''});setMonthReflection(s.monthReflection||{notes:'',goals:''});setFreeNotes(s.freeNotes||[]);setRecordingMeta(s.recordingMeta||{});setWorkingOn(s.workingOn||[]);setTodaySessions([...migrateSessions(s.todaySessions||DEFAULT_SESSIONS).map(s=>({...s,itemIds:s.itemIds===null?[]:s.itemIds}))].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type)));setDayClosed(!!s.dayClosed);setLoadedRoutineId(s.loadedRoutineId||null);setWarmupTimeToday(s.warmupTimeToday||0);setItemTimes(s.itemTimes||{});setRestToday(s.restToday||0);};
   // Load or first-run migration on sign-in
   useEffect(()=>{if(!user)return;(async()=>{try{setSyncStatus('syncing');const remote=await loadFromCloud(user.id);
     // ── First sign-in ever: no cloud data ──
@@ -340,12 +341,12 @@ export default function useEtudesState(){
     logTempo,addQuickNote,
     addPdfToItem,removePdfFromItem,renamePdf,setDefaultPdf,
     startRecording,stopRecording,deleteRecording,
-    pieceRecordingMeta,pieceRecordingItemId,startPieceRecording,stopPieceRecording,deletePieceRecording,
+    pieceRecordingMeta,pieceRecordingItemId,startPieceRecording,stopPieceRecording,deletePieceRecording,attachDailyToPiece,
     handleDragStart,handleDragOver,handleDrop,handleDragEnd,
     moveSession,hideSession,addSessionType,toggleSessionWarmup,
     removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,
     programs,setPrograms,
-    loadRoutine,resetToFree,saveRoutine,
+    loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,
     openLogEntry,closeLogDrawer,resolveDayEntry,
     exportLog,exportJson,importJsonFile,
     handleChipDrag,handleChipDragEnd,

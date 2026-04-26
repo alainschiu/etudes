@@ -1,8 +1,10 @@
 # Update Log
 
-## v0.93.1 — 2026-04-27
+## v0.93.5 — 2026-04-27
 
-- Bug Fixes: changelog and About/version copy aligned with release `v0.93.1`.
+- **Recording R1–R3** — replaced mic icon with playback button; elapsed recording time shown in footer and panel; context-aware record (piece vs. daily when piece timer is running); attach daily recording to a piece in the current routine (resets daily recording after attach)
+- **Keyboard shortcuts K1** — hover tooltip on all shortcut-enabled buttons showing the assigned key (`Space`, `R`, `M`, `T`, `L`, `D`, `N`, `?`)
+- **Tuning panel TU1/TU3/TU4** — D key now opens/closes the tuning panel directly; all controls (Play · Vol · Pitch · Temperament · Octave) consolidated on one line; note selector redesigned as a piano keyboard (white/black keys with correct layout)
 
 ## v0.93 — 2026-04-26
 

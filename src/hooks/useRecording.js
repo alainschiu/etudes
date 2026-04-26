@@ -1,5 +1,5 @@
 import {useRef} from 'react';
-import {idbPut,idbDel} from '../lib/storage.js';
+import {idbPut,idbDel,idbGet} from '../lib/storage.js';
 import {computePeaks} from '../lib/media.js';
 import {todayDateStr} from '../lib/dates.js';
 
@@ -75,5 +75,17 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
     }});
   };
 
-  return {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording};
+  const attachDailyToPiece=async(itemId,bpm,stage)=>{
+    const date=todayDateStr();
+    const blob=await idbGet('recordings',date);
+    if(!blob)return;
+    const key=`${itemId}__${date}`;
+    const peaks=await computePeaks(blob,120);
+    await idbPut('pieceRecordings',key,blob);
+    setPieceRecordingMeta(m=>({...m,[itemId]:{...(m[itemId]||{}),[date]:{peaks,size:blob.size,ts:Date.now(),bpm:bpm||null,stage:stage||''}}}));
+    await idbDel('recordings',date);
+    setRecordingMeta(m=>{const c={...m};delete c[date];return c;});
+  };
+
+  return {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording,attachDailyToPiece};
 }

@@ -1,10 +1,23 @@
 # Changelog
 
-## v0.93.1 — 2026-04-27
+## v0.93.5 — 2026-04-27
 
-### Bug Fixes
+### Recording
 
-- Release metadata: version label and changelog aligned with `v0.93.1`.
+- **R1** — Replaced the mic icon next to the RECORD label in the footer with a playback (▶) button that opens the recording panel
+- **R2** — Elapsed recording time displayed in red mono font in the footer bar and as a pulsing counter in the pull-up panel while recording is active
+- **R3 — Context-aware recording** — pressing Record while a piece timer is running records directly into that piece; otherwise records to the daily session log. Footer button label changes to "Rec piece" when a piece is active
+- **Attach daily recording to piece** — in the recording panel, a dropdown lists all pieces in the current routine; selecting one and clicking Attach moves the daily recording into that piece's archive and resets the daily recording
+
+### Keyboard shortcuts
+
+- **K1** — All shortcut-enabled UI elements now show the assigned key in a styled tooltip on hover: `Space` (Stop timer), `R` (Rest), `M` (Metronome), `T` (Tap tempo), `L` (Log BPM), `D` (Tuning), `N` (Quick note), `?` (Réglages)
+
+### Tuning panel
+
+- **TU1** — `D` keyboard shortcut now opens/closes the tuning panel directly (was: toggle drone audio)
+- **TU3** — Play · Vol · Pitch reference · Temperament · Octave all consolidated onto a single controls line, reducing panel height significantly
+- **TU4** — Note selector redesigned as a piano keyboard: 7 white keys and 5 black keys in correct piano layout; selected note highlighted in IKB; temperament offset dots on affected keys; note names at the bottom of each key
 
 ---
 

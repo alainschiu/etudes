@@ -19,7 +19,7 @@ function AnalogClock({size=40}){
 }
 
 export default function TodayView(p){
-  const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm}=p;
+  const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm}=p;
   const today=new Date();const todayKey=todayDateStr();
   const [routineMenu,setRoutineMenu]=useState(false);const [addMenu,setAddMenu]=useState(false);const [pickerSessionId,setPickerSessionId]=useState(null);const [quickAdd,setQuickAdd]=useState(null);
   const handleFilePlus=(type,session)=>{const ni=addItem(type);updateItem(ni.id,{stage:'learning'});if(session.itemIds!==null)addItemToSession(session.id,ni.id);setCollapsedSessions(prev=>{const next=new Set(prev);next.delete(session.id);return next;});setQuickAdd({itemId:ni.id,sessionId:session.id});};
@@ -28,6 +28,8 @@ export default function TodayView(p){
   const getSessionItems=(session)=>{if(session.itemIds===null){const types=piecePlayTypes(session.type);const list=items.filter(i=>types.includes(i.type)&&i.stage!=='queued');return [...list].sort((a,b)=>{const pa=nextPerformance(a.performances);const pb=nextPerformance(b.performances);const da=pa?daysUntil(pa.date):null;const db=pb?daysUntil(pb.date):null;const ua=(da!==null&&da>=0&&da<=30)?da:Infinity;const ub=(db!==null&&db>=0&&db<=30)?db:Infinity;return ua-ub;});}return session.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean);};
   const getAvailableItems=(s)=>{const t=new Set(s.itemIds||[]);const types=piecePlayTypes(s.type);return items.filter(i=>types.includes(i.type)&&!t.has(i.id));};
   const warmupMin=Math.floor((warmupTimeToday||0)/60);const effectiveMin=Math.floor(effectiveTotalToday/60);
+  const sumSessionTargets=todaySessions.reduce((acc,s)=>acc+(s.target||0),0);
+  const effectiveDailyTarget=sumSessionTargets>0?sumSessionTargets:settings.dailyTarget;
 
   // Collapsible sessions: default open if has time logged or active item, else collapsed
   const [collapsedSessions,setCollapsedSessions]=useState(()=>{
@@ -57,9 +59,13 @@ export default function TodayView(p){
       <DisplayHeader eyebrow={`${today.toLocaleDateString('en-US',{weekday:'long'})} · ${today.toLocaleDateString('en-US',{month:'long',day:'numeric'})}`} title="Today" titleRight={<AnalogClock size={40}/>} right={
         <div className="flex items-center gap-5">
           <div className="flex items-end gap-5">
-            {loadedRoutine&&(<button onClick={resetToFree} className="uppercase flex items-center gap-1.5 pb-1.5" style={{color:MUTED,fontSize:'10px',letterSpacing:'0.22em'}} title="Return to free mode"><RotateCcw className="w-3 h-3" strokeWidth={1.25}/> Free mode</button>)}
             <div className="relative"><button onClick={()=>setRoutineMenu(v=>!v)} className="flex items-baseline gap-2 pb-1.5 italic" style={{color:loadedRoutine?TEXT:MUTED,fontFamily:serif,fontSize:'14px',borderBottom:`1px solid ${loadedRoutine?IKB:LINE_MED}`}}><Bookmark className="w-3 h-3 not-italic" strokeWidth={1.25}/><span>{loadedRoutine?loadedRoutine.name:'Load routine'}</span><ChevronDown className="w-3 h-3 not-italic" strokeWidth={1.25}/></button>
-              {routineMenu&&(<><div className="fixed inset-0 z-20" onClick={()=>setRoutineMenu(false)}/><div className="absolute right-0 mt-2 z-30 min-w-56" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>{routines.length===0&&<div className="px-4 py-3 text-xs italic" style={{color:FAINT,fontFamily:serif}}>No routines yet.</div>}{routines.map(r=>(<button key={r.id} onClick={()=>{loadRoutine(r);setRoutineMenu(false);}} className="w-full text-left px-4 py-2.5" style={{borderBottom:`1px solid ${LINE}`,fontSize:'13px'}}><div style={{fontFamily:serif,fontStyle:'italic',fontWeight:300}}>{r.name}</div><div className="mt-0.5" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.2em'}}>{r.sessions.map(s=>SECTION_CONFIG[s.type].label.toUpperCase()).join(' · ')}</div></button>))}<button onClick={()=>{setRoutineMenu(false);setPromptModal({title:'Save current arrangement as routine',placeholder:'Name',onConfirm:(name)=>{if(name?.trim())saveRoutine(name.trim());}});}} className="w-full text-left px-4 py-2.5 flex items-center gap-2 uppercase" style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> Save current as…</button></div></>)}
+              {routineMenu&&(<><div className="fixed inset-0 z-20" onClick={()=>setRoutineMenu(false)}/><div className="absolute right-0 mt-2 z-30 min-w-56" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>
+                {routines.length===0&&<div className="px-4 py-3 text-xs italic" style={{color:FAINT,fontFamily:serif}}>No routines yet.</div>}{routines.map(r=>(<button key={r.id} onClick={()=>{loadRoutine(r);setRoutineMenu(false);}} className="w-full text-left px-4 py-2.5" style={{borderBottom:`1px solid ${LINE}`,fontSize:'13px',background:loadedRoutine?.id===r.id?IKB_SOFT:'transparent'}}><div style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,color:loadedRoutine?.id===r.id?IKB:TEXT}}>{r.name}</div><div className="mt-0.5" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.2em'}}>{r.sessions.map(s=>SECTION_CONFIG[s.type].label.toUpperCase()).join(' · ')}</div></button>))}
+                {loadedRoutine&&<button onClick={()=>{resetToFree();setRoutineMenu(false);}} className="w-full text-left px-4 py-2.5 flex items-center gap-2 uppercase" style={{color:MUTED,borderBottom:`1px solid ${LINE}`,fontSize:'10px',letterSpacing:'0.22em'}}><RotateCcw className="w-3 h-3" strokeWidth={1.25}/> Unload routine</button>}
+                {loadedRoutine&&<button onClick={()=>{updateLoadedRoutine();setRoutineMenu(false);}} className="w-full text-left px-4 py-2.5 flex items-center gap-2 uppercase" style={{color:IKB,borderBottom:`1px solid ${LINE}`,fontSize:'10px',letterSpacing:'0.22em'}}><Check className="w-3 h-3" strokeWidth={1.25}/> Update "{loadedRoutine.name}"</button>}
+                <button onClick={()=>{setRoutineMenu(false);setPromptModal({title:'Save current arrangement as routine',placeholder:'Name',onConfirm:(name)=>{if(name?.trim())saveRoutine(name.trim());}});}} className="w-full text-left px-4 py-2.5 flex items-center gap-2 uppercase" style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> Save current as…</button>
+              </div></>)}
             </div>
           </div>
         </div>
@@ -68,9 +74,10 @@ export default function TodayView(p){
 
       <div className="py-4 flex items-center justify-between gap-6" style={{borderTop:`1px solid ${LINE_STR}`,borderBottom:`1px solid ${LINE}`}}>
         <div className="flex items-center gap-3 shrink-0"><Target className="w-3.5 h-3.5" strokeWidth={1.25} style={{color:IKB}}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Target</span></div>
-        <div className="flex-1 h-px relative" style={{background:LINE_MED}}><div className="absolute inset-y-0 left-0" style={{background:IKB,width:`${Math.min(100,(effectiveTotalToday/60/settings.dailyTarget)*100)}%`,boxShadow:`0 0 6px ${IKB}`}}/></div>
-        <div className="font-mono tabular-nums text-xs shrink-0 flex items-baseline gap-3" style={{fontWeight:300}}><span>{effectiveMin} / {settings.dailyTarget}′</span>{restToday>0&&<span style={{color:FAINT,fontSize:'10px'}}>· rest {Math.floor(restToday/60)}′</span>}</div>
+        <div className="flex-1 h-px relative" style={{background:LINE_MED}}><div className="absolute inset-y-0 left-0" style={{background:IKB,width:`${Math.min(100,(effectiveTotalToday/60/effectiveDailyTarget)*100)}%`,boxShadow:`0 0 6px ${IKB}`}}/></div>
+        <div className="font-mono tabular-nums text-xs shrink-0 flex items-baseline gap-3" style={{fontWeight:300}}><span>{effectiveMin} / {effectiveDailyTarget}′</span>{restToday>0&&<span style={{color:FAINT,fontSize:'10px'}}>· rest {Math.floor(restToday/60)}′</span>}</div>
       </div>
+      {dayClosed&&<div className="py-2 flex items-center justify-between" style={{borderBottom:`1px solid ${LINE}`}}><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em',color:FAINT}}>Session total <span style={{textTransform:'none',letterSpacing:0,fontFamily:serif,fontStyle:'italic'}}>incl. rest</span></span><span className="font-mono tabular-nums" style={{fontSize:'11px',fontWeight:300,color:MUTED}}>{Math.floor((effectiveTotalToday+(restToday||0))/60)}′</span></div>}
       {warmupMin>0&&(<div className="py-2.5 flex items-center gap-3" style={{borderBottom:`1px solid ${LINE}`}}><span style={{color:WARM,fontSize:'13px',lineHeight:1,width:'18px',textAlign:'center'}}>◔</span><span className="uppercase" style={{color:WARM,fontSize:'10px',letterSpacing:'0.28em'}}>Warm-up today</span><span className="font-mono tabular-nums" style={{color:WARM,fontSize:'11px',fontWeight:300}}>{warmupMin}′</span><span className="italic ml-auto" style={{color:FAINT,fontFamily:serif,fontSize:'11px'}}>excluded from target & streak</span></div>)}
 
       <div className="mt-8" style={{borderTop:`1px solid ${LINE_STR}`}}>
@@ -97,7 +104,7 @@ export default function TodayView(p){
                   <button onClick={()=>moveSession(idx,-1)} disabled={idx===0} style={{color:idx===0?DIM:FAINT}}><ArrowUp className="w-3 h-3" strokeWidth={1.25}/></button>
                   <button onClick={()=>moveSession(idx,1)} disabled={idx===todaySessions.length-1} style={{color:idx===todaySessions.length-1?DIM:FAINT}}><ArrowDown className="w-3 h-3" strokeWidth={1.25}/></button>
                   <button onClick={()=>hideSession(session.id)} style={{color:FAINT}}><EyeOff className="w-3 h-3" strokeWidth={1.25}/></button>
-                  <button onClick={()=>setPickerSessionId(pickerSessionId===session.id?null:session.id)} style={{color:FAINT}} title="Add piece from repertoire"><Plus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
+                  <button onClick={()=>{setCollapsedSessions(prev=>{const next=new Set(prev);next.delete(session.id);return next;});setPickerSessionId(pickerSessionId===session.id?null:session.id);}} style={{color:FAINT}} title="Add piece from repertoire"><Plus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
                   <button onClick={()=>handleFilePlus(type,session)} style={{color:FAINT}} title="New repertoire item"><FilePlus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
                 </span>
                 {/* ── fixed columns shared with item rows ── */}
@@ -106,7 +113,7 @@ export default function TodayView(p){
                 <span onClick={()=>toggleCollapsed(session.id)} style={{width:'20px',display:'inline-flex',justifyContent:'center',color:MUTED,cursor:'pointer'}}>{isCollapsed?<ChevronDown className="w-3.5 h-3.5" strokeWidth={1.5}/>:<ChevronUp className="w-3.5 h-3.5" strokeWidth={1.5}/>}</span>
               </div>
             </div>
-            {!isCollapsed&&sessionItems.length===0&&<div className="px-2 py-3 text-xs italic" style={{color:FAINT,fontFamily:serif,borderBottom:`1px solid ${LINE}`}}>{prescribed?'No pieces selected for this session.':'Add an item in Repertoire to begin.'}</div>}
+            {!isCollapsed&&sessionItems.length===0&&pickerSessionId!==session.id&&<div className="px-2 py-3 text-xs italic" style={{color:FAINT,fontFamily:serif,borderBottom:`1px solid ${LINE}`}}>No pieces selected for this session.</div>}
             {itemsToShow.map(item=>{
               const isActiveWhole=activeItemId===item.id&&!activeSpotId&&activeSessionId===session.id;
               const isActiveAny=activeItemId===item.id&&activeSessionId===session.id;
@@ -123,11 +130,11 @@ export default function TodayView(p){
                   {(()=>{const isPieceRec=pieceRecordingItemId===item.id;const blocked=(dayClosed&&!isPieceRec)||(pieceRecordingItemId&&!isPieceRec)||isRecording;return(<button onClick={e=>{e.stopPropagation();isPieceRec?stopPieceRecording():startPieceRecording(item.id,currentBpm,item.stage);}} disabled={!!blocked} className="shrink-0" title={isPieceRec?'Stop recording':'Record this piece'} style={{color:isPieceRec?'#A93226':blocked?DIM:FAINT,cursor:blocked?'not-allowed':'pointer'}}>{isPieceRec?<Square className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor" style={{animation:'pulse 1s infinite'}}/>:<Mic className="w-3.5 h-3.5" strokeWidth={1.25}/>}</button>);})()}
                   <div className="flex-1 min-w-0">
                     {/* Title + byline on one line */}
-                    <div className="flex items-baseline gap-2 min-w-0 flex-wrap">
-                      <span className="truncate" style={{fontFamily:sans,fontWeight:300,fontSize:'14px'}}>{displayTitle(item)}</span>
-                      {formatByline(item)&&<span className="italic shrink-0" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}>{formatByline(item)}{item.catalog?` · ${item.catalog}`:''}{item.instrument?` · ${item.instrument}`:''}</span>}
-                      {item.type==='piece'&&hasPdf&&<button onClick={e=>{e.stopPropagation();setPdfDrawerItemId(item.id);}} className="inline-flex items-center shrink-0" style={{color:TEXT,padding:'0 2px'}} title={`${item.pdfs.length} score${item.pdfs.length===1?'':'s'}`}><FileText className="w-3 h-3" strokeWidth={1.25}/></button>}
-                      {perf&&<PerformanceChip perf={perf} compact/>}
+                    <div style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                      <span style={{fontFamily:sans,fontWeight:300,fontSize:'14px'}}>{displayTitle(item)}</span>
+                      {formatByline(item)&&<span className="italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px',marginLeft:'6px'}}>{formatByline(item)}{item.catalog?` · ${item.catalog}`:''}{item.instrument?` · ${item.instrument}`:''}</span>}
+                      {item.type==='piece'&&hasPdf&&<button onClick={e=>{e.stopPropagation();setPdfDrawerItemId(item.id);}} className="inline-flex items-center" style={{color:TEXT,padding:'0 2px',marginLeft:'4px',verticalAlign:'middle'}} title={`${item.pdfs.length} score${item.pdfs.length===1?'':'s'}`}><FileText className="w-3 h-3" strokeWidth={1.25}/></button>}
+                      {perf&&<span style={{marginLeft:'4px',display:'inline-block',verticalAlign:'middle'}}><PerformanceChip perf={perf} compact/></span>}
                     </div>
                     {/* Secondary: active spot label, spots hint, note preview */}
                     {asl&&<div className="italic mt-0.5 flex items-center gap-1" style={{color:IKB,fontFamily:serif,fontSize:'11px'}}><Crosshair className="w-2.5 h-2.5" strokeWidth={1.25}/>{asl}</div>}
@@ -139,11 +146,10 @@ export default function TodayView(p){
                     <div className="shrink-0" onClick={e=>e.stopPropagation()}><ItemTimeEditor seconds={getParentBucket(itemTimes,item.id)} onCommit={(v)=>{editItemTime(item.id,v);setEditingTimeItemId(null);}} onCancel={()=>setEditingTimeItemId(null)}/></div>
                   ):(
                     <div className="flex items-center gap-2 shrink-0" onClick={e=>e.stopPropagation()}>
-                      {!dayClosed&&<button onClick={()=>setEditingTimeItemId(item.id)} className="target-hover-reveal" style={{color:FAINT}}><Pencil className="w-3 h-3" strokeWidth={1.25}/></button>}
                       {/* reserved X slot — always takes space, visible only for prescribed */}
                       <button onClick={e=>{e.stopPropagation();removeItemFromSession(session.id,item.id);}} style={{color:DIM,visibility:prescribed?'visible':'hidden'}} title="Remove from this session"><X className="w-3 h-3" strokeWidth={1.25}/></button>
-                      {/* time col */}
-                      <span className="font-mono tabular-nums" style={{width:'44px',textAlign:'right',fontSize:'11px',fontWeight:300,whiteSpace:'nowrap',letterSpacing:0,color:(it&&time>=it*60)?IKB:time>0?MUTED:FAINT,textShadow:(it&&time>=it*60)?`0 0 6px ${IKB}70`:'none'}}>{time>0?fmt(time):'—'}</span>
+                      {/* time col — click to edit */}
+                      <span onClick={()=>{if(!dayClosed)setEditingTimeItemId(item.id);}} className="font-mono tabular-nums" style={{width:'44px',textAlign:'right',fontSize:'11px',fontWeight:300,whiteSpace:'nowrap',letterSpacing:0,cursor:dayClosed?'default':'pointer',color:(it&&time>=it*60)?IKB:time>0?MUTED:FAINT,textShadow:(it&&time>=it*60)?`0 0 6px ${IKB}70`:'none'}}>{time>0?fmt(time):'—'}</span>
                       {/* target col */}
                       <span style={{width:'56px',display:'inline-flex',alignItems:'baseline',whiteSpace:'nowrap',overflow:'hidden',letterSpacing:0,fontSize:'11px',fontWeight:300}}><TargetEdit target={it} onChange={(v)=>setItemTarget(session.id,item.id,v)} small/></span>
                       {/* chevron */}
@@ -167,7 +173,7 @@ export default function TodayView(p){
                 </div>)}
               </div>);
             })}
-            {!isCollapsed&&(prescribed||pickerSessionId===session.id)&&(<div className="relative py-3 px-2" style={{borderBottom:`1px solid ${LINE}`}}>{prescribed&&<button onClick={()=>setPickerSessionId(pickerSessionId===session.id?null:session.id)} className="uppercase flex items-center gap-1.5 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add piece for today</button>}{pickerSessionId===session.id&&<ItemPickerPopup availableItems={getAvailableItems(session)} onPick={(id)=>addItemToSession(session.id,id)} onClose={()=>setPickerSessionId(null)}/>}</div>)}
+            {!isCollapsed&&(<div className="relative py-3 px-2" style={{borderBottom:`1px solid ${LINE}`}}><button onClick={()=>setPickerSessionId(pickerSessionId===session.id?null:session.id)} className="uppercase flex items-center gap-1.5" style={{color:MUTED,fontFamily:sans,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> Add piece for today</button>{pickerSessionId===session.id&&<ItemPickerPopup availableItems={getAvailableItems(session)} onPick={(id)=>addItemToSession(session.id,id)} onClose={()=>setPickerSessionId(null)}/>}</div>)}
           </div>);
         })}
         {hiddenTypes.length>0&&(<div className="relative py-4 flex items-center justify-center" style={{borderBottom:`1px solid ${LINE}`}}><button onClick={()=>setAddMenu(v=>!v)} className="uppercase flex items-center gap-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'13px'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> Add session</button>{addMenu&&(<><div className="fixed inset-0 z-20" onClick={()=>setAddMenu(false)}/><div className="absolute top-full mt-2 z-30 min-w-48" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>{hiddenTypes.map(t=>(<button key={t} onClick={()=>{addSessionType(t);setAddMenu(false);}} className="w-full text-left px-4 py-2.5 uppercase" style={{fontSize:'10px',letterSpacing:'0.28em',borderBottom:`1px solid ${LINE}`}}>{SECTION_CONFIG[t].label}</button>))}</div></>)}</div>)}

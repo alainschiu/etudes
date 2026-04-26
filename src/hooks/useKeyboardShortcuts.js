@@ -43,7 +43,7 @@ export default function useKeyboardShortcuts({
       if(e.key==='m'||e.key==='M'){e.preventDefault();setMetronome(m=>({...m,running:!m.running}));return;}
       if(e.key==='t'||e.key==='T'){e.preventDefault();handleTap();return;}
       if(e.key==='l'||e.key==='L'){e.preventDefault();logTempo();return;}
-      if(e.key==='d'||e.key==='D'){e.preventDefault();toggleDrone();return;}
+      if(e.key==='d'||e.key==='D'){e.preventDefault();setDroneExpanded(v=>!v);return;}
       if(e.key==='n'||e.key==='N'){if(activeItemId){e.preventDefault();setQuickNoteOpen(true);}return;}
       if(view==='today'&&/^[1-4]$/.test(e.key)){e.preventDefault();const idx=parseInt(e.key,10)-1;const s=todaySessions[idx];if(s&&sessionRefs.current[s.id])sessionRefs.current[s.id].scrollIntoView({behavior:'smooth',block:'start'});return;}
     };
