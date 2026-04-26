@@ -1,5 +1,6 @@
 import React, {useState, useEffect} from 'react';
-import {Play, Pause, X, Waves, Zap, Coffee, Mic, Square, MessageSquarePlus, Crosshair, Lock, TrendingUp} from 'lucide-react';
+import {Play, Pause, X, Waves, Zap, Coffee, Mic, Square, MessageSquarePlus, Crosshair, Lock, TrendingUp, Trash2} from 'lucide-react';
+import {Waveform} from './shared.jsx';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, serif, sans, mono} from '../constants/theme.js';
 import {SECTION_CONFIG} from '../constants/config.js';
 import {NOTE_NAMES, noteToFreqFull, getCentOffset} from '../lib/music.js';
@@ -73,7 +74,7 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
 
 function AccelProgress({metronome}){if(!metronome.accel.enabled)return null;const s=metronome.bpm;const tgt=metronome.accel.targetBpm;const r=s>=tgt;const pct=r?100:Math.min(100,((s-60)/Math.max(1,tgt-60))*100);const u=metronome.accel.unit||'bar';return (<div className="mt-3 flex items-center gap-3"><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Accel</span><div className="flex-1 h-px relative" style={{background:LINE_MED}}><div className="absolute inset-y-0 left-0" style={{background:r?WARM:IKB,width:`${pct}%`,height:'1px'}}/></div><span className="tabular-nums shrink-0" style={{color:r?WARM:MUTED,fontSize:'10px'}}>{r?`▲ ${tgt}`:`${s} → ${tgt} · +${metronome.accel.stepBpm}/${metronome.accel.every}${u[0]}`}</span></div>);}
 
-export default function Footer({metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed}){
+export default function Footer({metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey}){
   const [quickNoteText,setQuickNoteText]=useState('');
   // noteValue is always a string: '2','4','8','16','d4'
   const noteValOpts=[{v:'2',label:'2'},{v:'4',label:'4'},{v:'8',label:'8'},{v:'16',label:'16'}];
@@ -92,8 +93,52 @@ export default function Footer({metronome,setMetronome,metroExpanded,setMetroExp
   const nvDisplay=metronome.noteValue;
   const isDotSub=metronome.subdivision==='dot';
 
+  const todayRec=recordingMeta?.[todayKey];
+
   return (<footer className="shrink-0" style={{borderTop:`1px solid ${LINE_MED}`,background:BG}}>
     {droneExpanded&&<DronePanel drone={drone} setDrone={setDrone} toggleDrone={toggleDrone} setDroneExpanded={setDroneExpanded}/>}
+    {recExpanded&&(
+      <div className="px-10 py-6" style={{borderBottom:`1px solid ${LINE}`,background:SURFACE}}>
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Recording</div>
+            {todayRec&&<div className="font-mono tabular-nums mt-1" style={{color:MUTED,fontSize:'10px'}}>{Math.round((todayRec.size||0)/1024)}k · {todayKey}</div>}
+          </div>
+          <div className="flex items-center gap-3">
+            {todayRec&&<button onClick={()=>deleteRecording(todayKey)} style={{color:FAINT}} title="Delete recording"><Trash2 className="w-3.5 h-3.5" strokeWidth={1.25}/></button>}
+            <button onClick={()=>setRecExpanded(false)} style={{color:FAINT}}><X className="w-4 h-4" strokeWidth={1.25}/></button>
+          </div>
+        </div>
+        {isRecording&&(
+          <div className="mb-4 flex items-center gap-3">
+            <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{background:'#A93226'}}/>
+            <span className="uppercase" style={{color:'#A93226',fontSize:'9px',letterSpacing:'0.28em'}}>Recording in progress…</span>
+            <button
+              onClick={stopRecording}
+              className="flex items-center gap-2 px-3 py-1.5 ml-2"
+              style={{border:`1px solid #A93226`,color:'#A93226',background:'rgba(169,50,38,0.08)',cursor:'pointer'}}
+            >
+              <Square className="w-3 h-3" strokeWidth={1.25} fill="currentColor"/>
+              <span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Stop</span>
+            </button>
+          </div>
+        )}
+        {todayRec
+          ? <Waveform key={todayRec.ts} date={todayKey} meta={todayRec} actions={
+              !isRecording&&<button
+                onClick={startRecording}
+                disabled={dayClosed}
+                className="flex items-center gap-2 px-3 py-1.5"
+                style={{display:'flex',alignItems:'center',gap:'6px',padding:'6px 12px',border:`1px solid ${LINE_MED}`,background:'transparent',cursor:dayClosed?'not-allowed':'pointer',color:dayClosed?FAINT:MUTED}}
+              >
+                <Mic className="w-3.5 h-3.5" strokeWidth={1.25}/>
+                <span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Re-record</span>
+              </button>
+            }/>
+          : !isRecording&&<div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'13px'}}>No recording yet today.</div>
+        }
+      </div>
+    )}
     {metroExpanded&&(<div className="px-10 py-6" style={{borderBottom:`1px solid ${LINE}`,background:SURFACE}}>
       <div className="flex items-baseline justify-between mb-5"><div><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Métronome</div><h4 className="text-2xl mt-0.5" style={{fontFamily:serif,fontStyle:'italic',fontWeight:300}}>{metronome.beats}/{isDotSub?'♩.':nvDisplay}</h4></div><button onClick={()=>setMetroExpanded(false)} style={{color:FAINT}}><X className="w-4 h-4" strokeWidth={1.25}/></button></div>
       <div className="flex items-center gap-8 pb-4 mb-4 flex-wrap" style={{borderBottom:`1px solid ${LINE}`}}>
@@ -158,7 +203,8 @@ export default function Footer({metronome,setMetronome,metroExpanded,setMetroExp
 
       <div className="flex items-center gap-3 shrink-0">
         <button onClick={toggleRest} disabled={dayClosed&&!isResting} className="flex items-center gap-2 px-3 py-1.5" style={{border:`1px solid ${isResting?IKB:'transparent'}`,color:isResting?IKB:((dayClosed&&!isResting)?FAINT:MUTED),background:isResting?IKB_SOFT:'transparent',cursor:(dayClosed&&!isResting)?'not-allowed':'pointer'}}><Coffee className="w-3 h-3" strokeWidth={1.25}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>{isResting?`${Math.floor(restToday/60)}′ rest`:'Rest'}</span></button>
-        <button onClick={isRecording?stopRecording:startRecording} disabled={dayClosed&&!isRecording} className="flex items-center gap-2 px-3 py-1.5" style={{border:`1px solid ${isRecording?IKB:'transparent'}`,color:isRecording?IKB:((dayClosed&&!isRecording)?FAINT:MUTED),background:isRecording?IKB_SOFT:'transparent',cursor:(dayClosed&&!isRecording)?'not-allowed':'pointer'}}>{isRecording?<><Square className="w-3 h-3" strokeWidth={1.25} fill="currentColor"/><span className="uppercase animate-pulse" style={{fontSize:'10px',letterSpacing:'0.22em'}}>REC</span></>:<><Mic className="w-3 h-3" strokeWidth={1.25}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Record</span></>}</button>
+        <button onClick={()=>{if(isRecording){stopRecording();}else{setRecExpanded(true);startRecording();}}} disabled={dayClosed&&!isRecording} className="flex items-center gap-2 px-3 py-1.5" style={{border:`1px solid ${isRecording?IKB:(recExpanded&&todayRec?IKB:'transparent')}`,color:isRecording?IKB:((dayClosed&&!isRecording)?FAINT:MUTED),background:isRecording?IKB_SOFT:(recExpanded&&todayRec?IKB_SOFT:'transparent'),cursor:(dayClosed&&!isRecording)?'not-allowed':'pointer'}}>{isRecording?<><Square className="w-3 h-3" strokeWidth={1.25} fill="currentColor"/><span className="uppercase animate-pulse" style={{fontSize:'10px',letterSpacing:'0.22em'}}>REC</span></>:<><Mic className="w-3 h-3" strokeWidth={1.25}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Record</span></>}</button>
+        {todayRec&&!isRecording&&<button onClick={()=>setRecExpanded(x=>!x)} className="flex items-center gap-1.5 px-2 py-1.5" style={{color:recExpanded?IKB:FAINT,border:`1px solid ${recExpanded?IKB:'transparent'}`}} title="Today's recording"><Mic className="w-2.5 h-2.5" strokeWidth={1.25}/></button>}
         <button onClick={()=>setDroneExpanded(x=>!x)} className="flex items-center gap-2 px-3 py-1.5" style={{border:`1px solid ${drone.running?IKB:'transparent'}`,color:drone.running?IKB:MUTED,background:drone.running?IKB_SOFT:'transparent'}} title="Tuning pitch (D)"><Waves className="w-3 h-3" strokeWidth={1.25}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>{drone.running?`${drone.note}${drone.octave}`:'Tuning'}</span></button>
       </div>
 

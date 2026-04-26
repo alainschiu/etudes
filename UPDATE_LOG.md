@@ -1,5 +1,15 @@
 # Update Log
 
+## v0.92.1 — 2026-04-26
+
+- Smooth SVG bezier waveform with drag-to-scrub (playhead follows mouse)
+- Transport controls: Play · Pause · Rewind · Re-record in one row; live time counter
+- Day recording moved into footer pull-up drawer (like metronome/tuner)
+- Per-piece recording archive in Répertoire: date/BPM/stage tagged, compact scrubbable waveform per entry
+- A/B comparison: two waveforms side-by-side, fully independent playback and scrub
+- Mic button per item in Today view for quick piece recording
+- Today's piece recording shown as scrubbable waveform inside expanded item drawer
+
 ## v0.91 — 2026-04-26
 
 - Sync conflict modal on cross-device sign-in: Merge / Keep local / Keep cloud
