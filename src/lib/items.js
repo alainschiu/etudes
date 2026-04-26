@@ -1,6 +1,8 @@
 import {todayDateStr,shiftDate} from './dates.js';
 
 export const mkPdfId=()=>`pdf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+export const mkAttachId=()=>`att-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+export const mkBookmarkId=()=>`bm-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
 export const mkSpotId=()=>`spot-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`;
 export const mkPerfId=()=>`perf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,6)}`;
 

@@ -1,51 +1,446 @@
-import React, {useState, useEffect} from 'react';
-import {FileText, Upload, Plus, X, Pause, Play, Bookmark, Music, Crosshair} from 'lucide-react';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, serif} from '../constants/theme.js';
-import {displayTitle, formatByline, getItemTime} from '../lib/items.js';
+import React,{useState,useEffect,useRef,useCallback} from 'react';
+import {FileText,Upload,Plus,X,Pause,Play,Bookmark,Music,Crosshair,BookOpen,Library,ChevronRight,Pencil,Check,Trash2,GripVertical} from 'lucide-react';
+import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,serif,sans,mono} from '../constants/theme.js';
+import {displayTitle,formatByline,getItemTime} from '../lib/items.js';
 import {SpotRow} from './shared.jsx';
+import PdfViewer from './PdfViewer.jsx';
 
-export default function PdfDrawer({pdfItem,items,pdfUrlMap,itemTimes,activeItemId,activeSpotId,startItem,stopItem,updateItem,addPdfToItem,removePdfFromItem,renamePdf,setDefaultPdf,fmt,setPromptModal,setConfirmModal,onClose,dayClosed,addSpot,updateSpot,deleteSpot,editSpotTime}){
+const MIN_SIDEBAR=220;
+const MAX_SIDEBAR=520;
+const DEFAULT_SIDEBAR=300;
+
+export default function PdfDrawer({
+  pdfItem,items,pdfUrlMap,pdfLibrary=[],itemTimes,
+  activeItemId,activeSpotId,
+  startItem,stopItem,updateItem,
+  addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,
+  addBookmark,removeBookmark,renameBookmark,
+  fmt,setPromptModal,setConfirmModal,onClose,dayClosed,
+  addSpot,updateSpot,deleteSpot,editSpotTime,
+  jumpToPageRef,
+}){
   const [activePdfId,setActivePdfId]=useState(pdfItem.defaultPdfId||pdfItem.pdfs?.[0]?.id||null);
-  const [dragOver,setDragOver]=useState(false);const [renamingId,setRenamingId]=useState(null);const [renameVal,setRenameVal]=useState('');
-  useEffect(()=>{if(!pdfItem.pdfs||pdfItem.pdfs.length===0){setActivePdfId(null);return;}if(!pdfItem.pdfs.some(p=>p.id===activePdfId))setActivePdfId(pdfItem.defaultPdfId||pdfItem.pdfs[0].id);},[pdfItem.pdfs,pdfItem.defaultPdfId,activePdfId]);
-  const activePdf=pdfItem.pdfs?.find(p=>p.id===activePdfId);const activeUrl=activePdf?pdfUrlMap[activePdf.id]:null;const atLimit=(pdfItem.pdfs||[]).length>=5;
-  const handleFile=async(file)=>{if(!file||file.type!=='application/pdf'){setConfirmModal&&setConfirmModal({message:'Please select a PDF file.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});return;}if(atLimit){setConfirmModal&&setConfirmModal({message:'Up to 5 PDFs per piece.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});return;}const id=await addPdfToItem(pdfItem.id,file,file.name.replace(/\.pdf$/i,''));if(id)setActivePdfId(id);};
+  const [dragOver,setDragOver]=useState(false);
+  const [renamingId,setRenamingId]=useState(null);
+  const [renameVal,setRenameVal]=useState('');
+  const [sidebarTab,setSidebarTab]=useState('spots'); // 'spots' | 'bookmarks' | 'library'
+  const [sidebarW,setSidebarW]=useState(DEFAULT_SIDEBAR);
+  const [dragging,setDragging]=useState(false);
+  const [showLibrary,setShowLibrary]=useState(false);
+  const [pageRangeEdit,setPageRangeEdit]=useState(null); // attachId being edited
+  const [pageRangeVals,setPageRangeVals]=useState({start:'',end:''});
+  const [bmName,setBmName]=useState('');
+  const [bmPage,setBmPage]=useState('');
+  const [bmRenamingId,setBmRenamingId]=useState(null);
+  const [bmRenameVal,setBmRenameVal]=useState('');
+  const [currentViewPage,setCurrentViewPage]=useState(1);
+  const viewerRef=useRef(null); // exposed jumpToPage from PdfViewer
+
+  useEffect(()=>{
+    if(!pdfItem.pdfs||pdfItem.pdfs.length===0){setActivePdfId(null);return;}
+    if(!pdfItem.pdfs.some(p=>p.id===activePdfId))
+      setActivePdfId(pdfItem.defaultPdfId||pdfItem.pdfs[0].id);
+  },[pdfItem.pdfs,pdfItem.defaultPdfId,activePdfId]);
+
+  const activePdf=pdfItem.pdfs?.find(p=>p.id===activePdfId);
+  const activeUrl=activePdf?pdfUrlMap[activePdf.libraryId||activePdf.id]:null;
+  const atLimit=(pdfItem.pdfs||[]).length>=5;
+
+  const handleFile=async(file)=>{
+    if(!file||file.type!=='application/pdf'){
+      setConfirmModal&&setConfirmModal({message:'Please select a PDF file.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+      return;
+    }
+    if(atLimit){
+      setConfirmModal&&setConfirmModal({message:'Up to 5 PDFs per item.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+      return;
+    }
+    const id=await addPdfToItem(pdfItem.id,file,file.name.replace(/\.pdf$/i,''));
+    if(id)setActivePdfId(id);
+  };
+
   const onDrop=(e)=>{e.preventDefault();setDragOver(false);const f=e.dataTransfer.files?.[0];if(f)handleFile(f);};
   const onInputChange=(e)=>{const f=e.target.files?.[0];if(f)handleFile(f);e.target.value='';};
+
   const startRename=(p)=>{setRenamingId(p.id);setRenameVal(p.name);};
   const commitRename=()=>{if(renamingId&&renameVal.trim())renamePdf(pdfItem.id,renamingId,renameVal.trim());setRenamingId(null);};
-  const confirmRemove=(p)=>{setConfirmModal&&setConfirmModal({message:`Remove "${p.name}"?`,confirmLabel:'Remove',onConfirm:()=>{setConfirmModal(null);removePdfFromItem(pdfItem.id,p.id);}});};
-  const isActiveWhole=activeItemId===pdfItem.id&&!activeSpotId;const isActiveAny=activeItemId===pdfItem.id;const spots=pdfItem.spots||[];
+  const confirmRemove=(p)=>{
+    setConfirmModal&&setConfirmModal({
+      message:`Remove "${p.name}"?`,
+      confirmLabel:'Remove',
+      onConfirm:()=>{setConfirmModal(null);removePdfFromItem(pdfItem.id,p.id);},
+    });
+  };
 
-  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{background:'rgba(0,0,0,0.85)',backdropFilter:'blur(8px)'}}><div className="absolute inset-0" onClick={onClose}/><div className="relative w-full h-full max-w-7xl flex flex-col" style={{background:BG,border:`1px solid ${LINE_STR}`,boxShadow:'0 20px 60px rgba(0,0,0,0.8)'}}>
-    <div className="flex items-center justify-between px-6 py-4 gap-3 shrink-0" style={{borderBottom:`1px solid ${LINE_MED}`}}>
-      <div className="min-w-0 flex-1"><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Score</div><h3 className="text-xl mt-0.5 truncate" style={{fontFamily:serif,fontWeight:300}}>{formatByline(pdfItem)&&<span className="italic" style={{color:MUTED}}>{formatByline(pdfItem)} — </span>}{displayTitle(pdfItem)}{pdfItem.catalog&&<span className="italic ml-2" style={{color:FAINT,fontSize:'14px'}}>{pdfItem.catalog}</span>}{pdfItem.instrument&&<span className="uppercase ml-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.22em'}}>· {pdfItem.instrument}</span>}</h3>{pdfItem.referenceUrl&&<a href={pdfItem.referenceUrl} target="_blank" rel="noopener noreferrer" className="uppercase flex items-center gap-1.5 mt-1" style={{color:IKB,fontSize:'9px',letterSpacing:'0.22em'}}><Music className="w-3 h-3" strokeWidth={1.25}/> Reference recording ↗</a>}</div>
-      <div className="flex items-center gap-3 shrink-0"><button onClick={()=>{isActiveAny?stopItem():startItem(pdfItem.id);}} disabled={dayClosed&&!isActiveAny} className="uppercase px-3 py-2 flex items-center gap-1.5" style={isActiveWhole?{background:IKB,color:TEXT,border:`1px solid ${IKB}`,boxShadow:`0 0 15px ${IKB}60`,fontSize:'10px',letterSpacing:'0.22em'}:{background:'transparent',color:dayClosed?FAINT:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em',cursor:(dayClosed&&!isActiveAny)?'not-allowed':'pointer'}}>{isActiveAny?<><Pause className="w-3 h-3" strokeWidth={1.25}/> Pause</>:<><Play className="w-3 h-3" strokeWidth={1.25}/> {dayClosed?'Closed':'Whole piece'}</>}</button><button onClick={onClose} style={{color:MUTED}}><X className="w-4 h-4" strokeWidth={1.25}/></button></div>
-    </div>
-    {(pdfItem.pdfs||[]).length>0&&(<div className="flex items-center gap-0 overflow-x-auto etudes-scroll shrink-0" style={{borderBottom:`1px solid ${LINE}`,background:SURFACE}}>{pdfItem.pdfs.map(p=>{const active=p.id===activePdfId;const isD=p.id===pdfItem.defaultPdfId;const ren=renamingId===p.id;return (<div key={p.id} className="group flex items-center gap-2 px-4 py-2.5 shrink-0" style={{borderRight:`1px solid ${LINE}`,borderBottom:active?`2px solid ${IKB}`:'2px solid transparent',background:active?IKB_SOFT:'transparent',cursor:ren?'default':'pointer'}} onClick={()=>{if(!ren)setActivePdfId(p.id);}} onDoubleClick={()=>startRename(p)}>{isD&&<Bookmark className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/>}{ren?(<input autoFocus value={renameVal} onChange={e=>setRenameVal(e.target.value)} onBlur={commitRename} onKeyDown={e=>{if(e.key==='Enter')commitRename();else if(e.key==='Escape')setRenamingId(null);}} onClick={e=>e.stopPropagation()} className="focus:outline-none px-1" style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE_MED}`,fontSize:'12px',width:'120px'}}/>):(<span style={{fontSize:'12px',fontWeight:active?400:300,color:active?TEXT:MUTED,maxWidth:'180px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</span>)}{active&&!ren&&(<div className="flex items-center gap-1"><button onClick={e=>{e.stopPropagation();startRename(p);}} className="opacity-0 group-hover:opacity-100" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.2em'}}>edit</button>{!isD&&<button onClick={e=>{e.stopPropagation();setDefaultPdf(pdfItem.id,p.id);}} className="opacity-0 group-hover:opacity-100" style={{color:FAINT}}><Bookmark className="w-3 h-3" strokeWidth={1.25}/></button>}<button onClick={e=>{e.stopPropagation();confirmRemove(p);}} className="opacity-0 group-hover:opacity-100" style={{color:FAINT}}><X className="w-3 h-3" strokeWidth={1.25}/></button></div>)}</div>);})}{!atLimit&&(<label className="flex items-center gap-1.5 px-4 py-2.5 cursor-pointer shrink-0" style={{color:FAINT,fontSize:'11px',letterSpacing:'0.2em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> Add PDF<input type="file" accept="application/pdf" className="hidden" onChange={onInputChange}/></label>)}<div className="ml-auto px-4 py-2.5 uppercase shrink-0" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>{pdfItem.pdfs.length}/5</div></div>)}
-    <div className="flex-1 flex overflow-hidden">
-      <div className="flex-1 relative overflow-hidden" style={{background:'rgba(255,255,255,0.02)'}} onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)} onDrop={onDrop}>
-        {activeUrl
-          ?(<div className="w-full h-full flex items-center justify-center p-6"><iframe src={activeUrl} className="w-full h-full max-w-5xl border-0" title="Score" style={{background:'#fff'}}/></div>)
-          :activePdf
-            ?(<div className="h-full flex flex-col items-center justify-center p-8 text-center"><FileText className="w-10 h-10 mb-5" strokeWidth={1} style={{color:DIM}}/><p className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Attached on another device</p><p className="text-sm max-w-sm italic" style={{color:MUTED,fontFamily:serif,fontSize:'15px',lineHeight:1.6}}>This score is not available here. Open the app on the device where it was added.</p></div>)
-            :(<div className="h-full flex flex-col items-center justify-center p-8 text-center"><FileText className="w-10 h-10 mb-5" strokeWidth={1} style={{color:DIM}}/><p className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>No score attached</p><p className="text-sm mb-6 max-w-sm italic" style={{color:MUTED,fontFamily:serif,fontSize:'15px',lineHeight:1.6}}>Upload a PDF or drag one here.</p><label className="px-4 py-2 uppercase cursor-pointer flex items-center gap-2" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'}}><Upload className="w-3 h-3" strokeWidth={1.25}/> Upload PDF<input type="file" accept="application/pdf" className="hidden" onChange={onInputChange}/></label></div>)
-        }
-        {dragOver&&(<div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{background:`${IKB}20`,border:`2px dashed ${IKB}`,boxShadow:`inset 0 0 40px ${IKB}30`}}><div className="px-6 py-4 flex items-center gap-3" style={{background:BG,border:`1px solid ${IKB}`}}><Upload className="w-5 h-5" strokeWidth={1.25} style={{color:IKB}}/><span className="uppercase" style={{color:TEXT,fontSize:'11px',letterSpacing:'0.28em'}}>Drop to upload PDF</span></div></div>)}
-      </div>
-      <div className="w-80 flex flex-col shrink-0 overflow-hidden" style={{borderLeft:`1px solid ${LINE_MED}`}}>
-        <div className="px-5 py-4 shrink-0" style={{borderBottom:`1px solid ${LINE}`}}><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Today</div><div className="text-xs font-mono tabular-nums mt-1" style={{color:MUTED,fontWeight:300}}>{fmt(getItemTime(itemTimes,pdfItem.id))}</div></div>
-        <div className="flex-1 overflow-auto etudes-scroll">
-          <div className="px-5 py-4" style={{borderBottom:`1px solid ${LINE}`}}>
-            <div className="uppercase mb-3 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {spots.length>0&&<span style={{color:DIM,letterSpacing:'0.22em'}}>· {spots.length}</span>}</div>
-            {spots.length>0&&(<div style={{background:SURFACE2,border:`1px solid ${LINE}`}}>{spots.map((s,idx)=>(<div key={s.id} style={{borderBottom:idx<spots.length-1?`1px solid ${LINE}`:'none'}}><SpotRow spot={s} itemId={pdfItem.id} itemTimes={itemTimes} isActive={activeItemId===pdfItem.id&&activeSpotId===s.id} onStart={()=>startItem(pdfItem.id,s.id)} onStop={stopItem} onRename={(label)=>updateSpot(pdfItem.id,s.id,{label})} onDelete={()=>deleteSpot(pdfItem.id,s.id)} onEditTime={editSpotTime?(v)=>editSpotTime(pdfItem.id,s.id,v):undefined} dayClosed={dayClosed} compact/></div>))}</div>)}
-            <button onClick={()=>addSpot(pdfItem.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button>
+  // Sidebar resize
+  const dragStartX=useRef(0);
+  const dragStartW=useRef(0);
+  const onResizeMouseDown=(e)=>{
+    e.preventDefault();
+    dragStartX.current=e.clientX;
+    dragStartW.current=sidebarW;
+    setDragging(true);
+  };
+  useEffect(()=>{
+    if(!dragging)return;
+    const move=(e)=>{
+      const delta=dragStartX.current-e.clientX;
+      setSidebarW(Math.max(MIN_SIDEBAR,Math.min(MAX_SIDEBAR,dragStartW.current+delta)));
+    };
+    const up=()=>setDragging(false);
+    window.addEventListener('mousemove',move);
+    window.addEventListener('mouseup',up);
+    return()=>{window.removeEventListener('mousemove',move);window.removeEventListener('mouseup',up);};
+  },[dragging]);
+
+  const isActiveWhole=activeItemId===pdfItem.id&&!activeSpotId;
+  const isActiveAny=activeItemId===pdfItem.id;
+  const spots=pdfItem.spots||[];
+  const bookmarks=activePdf?.bookmarks||[];
+
+  // Attach from library
+  const handleAttachLibrary=(libId)=>{
+    if(atLimit)return;
+    const id=attachLibraryPdf&&attachLibraryPdf(pdfItem.id,libId,null,null,null);
+    if(id)setActivePdfId(id);
+    setShowLibrary(false);
+  };
+
+  // Page range editing
+  const openPageRangeEdit=(att)=>{
+    setPageRangeEdit(att.id);
+    setPageRangeVals({start:att.startPage??'',end:att.endPage??''});
+  };
+  const commitPageRange=()=>{
+    if(pageRangeEdit){
+      const s=parseInt(pageRangeVals.start,10)||null;
+      const e=parseInt(pageRangeVals.end,10)||null;
+      setPdfPageRange&&setPdfPageRange(pdfItem.id,pageRangeEdit,s,e);
+    }
+    setPageRangeEdit(null);
+  };
+
+  // Add bookmark
+  const handleAddBookmark=()=>{
+    if(!activePdfId||!bmName.trim())return;
+    const page=parseInt(bmPage,10)||currentViewPage||1;
+    addBookmark&&addBookmark(pdfItem.id,activePdfId,bmName.trim(),page);
+    setBmName('');setBmPage('');
+  };
+  const commitBmRename=()=>{
+    if(bmRenamingId&&bmRenameVal.trim())
+      renameBookmark&&renameBookmark(pdfItem.id,activePdfId,bmRenamingId,bmRenameVal.trim());
+    setBmRenamingId(null);
+  };
+  const jumpToBookmark=(bm)=>{
+    viewerRef.current?.jumpToPage(bm.page);
+  };
+
+  // P6: Auto-jump when a spot with a linked bookmark becomes active
+  useEffect(()=>{
+    if(!activeSpotId||activeItemId!==pdfItem.id)return;
+    const spot=(pdfItem.spots||[]).find(s=>s.id===activeSpotId);
+    if(!spot||!spot.bookmarkId||!spot.pdfAttachmentId)return;
+    const att=(pdfItem.pdfs||[]).find(p=>p.id===spot.pdfAttachmentId);
+    if(!att)return;
+    const bm=(att.bookmarks||[]).find(b=>b.id===spot.bookmarkId);
+    if(!bm)return;
+    // Switch to this attachment tab
+    setActivePdfId(att.id);
+    // Jump after a tick so PdfViewer has time to mount
+    setTimeout(()=>{viewerRef.current?.jumpToPage(bm.page);},80);
+  },[activeSpotId,activeItemId,pdfItem.id,pdfItem.spots,pdfItem.pdfs]);
+
+  // Library: PDFs in library not yet attached to this item
+  const attachedLibraryIds=new Set((pdfItem.pdfs||[]).map(p=>p.libraryId));
+  const availableLibrary=(pdfLibrary||[]).filter(e=>!attachedLibraryIds.has(e.id));
+
+  const eIn={background:'transparent',color:TEXT,border:'none',outline:'none',fontFamily:mono,fontSize:'11px'};
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{background:'rgba(0,0,0,0.85)',backdropFilter:'blur(8px)'}}>
+      <div className="absolute inset-0" onClick={onClose}/>
+      <div className="relative w-full h-full max-w-7xl flex flex-col" style={{background:BG,border:`1px solid ${LINE_STR}`,boxShadow:'0 20px 60px rgba(0,0,0,0.8)'}}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 gap-3 shrink-0" style={{borderBottom:`1px solid ${LINE_MED}`}}>
+          <div className="min-w-0 flex-1">
+            <div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Score</div>
+            <h3 className="text-xl mt-0.5 truncate" style={{fontFamily:serif,fontWeight:300}}>
+              {formatByline(pdfItem)&&<span className="italic" style={{color:MUTED}}>{formatByline(pdfItem)} — </span>}
+              {displayTitle(pdfItem)}
+              {pdfItem.catalog&&<span className="italic ml-2" style={{color:FAINT,fontSize:'14px'}}>{pdfItem.catalog}</span>}
+              {pdfItem.instrument&&<span className="uppercase ml-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.22em'}}>· {pdfItem.instrument}</span>}
+            </h3>
+            {pdfItem.referenceUrl&&<a href={pdfItem.referenceUrl} target="_blank" rel="noopener noreferrer" className="uppercase flex items-center gap-1.5 mt-1" style={{color:IKB,fontSize:'9px',letterSpacing:'0.22em'}}><Music className="w-3 h-3" strokeWidth={1.25}/> Reference ↗</a>}
           </div>
-          <textarea value={pdfItem.todayNote||''} onChange={e=>updateItem(pdfItem.id,{todayNote:e.target.value})} placeholder="Today's session notes…" className="w-full h-40 p-5 resize-none focus:outline-none" style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'14px',lineHeight:1.7,fontWeight:300,borderBottom:`1px solid ${LINE}`}}/>
-          <div className="px-5 py-3" style={{borderBottom:`1px solid ${LINE}`}}><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Notes <span style={{color:DIM,letterSpacing:'0.2em'}}>· persistent</span></div></div>
-          <textarea value={pdfItem.detail} onChange={e=>updateItem(pdfItem.id,{detail:e.target.value})} placeholder="Long-running notes…" className="w-full h-40 p-5 resize-none focus:outline-none" style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'14px',lineHeight:1.7,fontWeight:300}}/>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={()=>{isActiveAny?stopItem():startItem(pdfItem.id);}}
+              disabled={dayClosed&&!isActiveAny}
+              className="uppercase px-3 py-2 flex items-center gap-1.5"
+              style={isActiveWhole
+                ?{background:IKB,color:TEXT,border:`1px solid ${IKB}`,boxShadow:`0 0 15px ${IKB}60`,fontSize:'10px',letterSpacing:'0.22em'}
+                :{background:'transparent',color:dayClosed?FAINT:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em',cursor:(dayClosed&&!isActiveAny)?'not-allowed':'pointer'}}>
+              {isActiveAny?<><Pause className="w-3 h-3" strokeWidth={1.25}/> Pause</>:<><Play className="w-3 h-3" strokeWidth={1.25}/> {dayClosed?'Closed':'Whole piece'}</>}
+            </button>
+            <button onClick={onClose} style={{color:MUTED}}><X className="w-4 h-4" strokeWidth={1.25}/></button>
+          </div>
+        </div>
+
+        {/* Tab bar — score attachments */}
+        <div className="flex items-center gap-0 overflow-x-auto shrink-0" style={{borderBottom:`1px solid ${LINE}`,background:SURFACE}}>
+          {(pdfItem.pdfs||[]).map(p=>{
+            const active=p.id===activePdfId;
+            const isD=p.id===pdfItem.defaultPdfId;
+            const ren=renamingId===p.id;
+            return (
+              <div key={p.id} className="group flex items-center gap-2 px-4 py-2.5 shrink-0"
+                style={{borderRight:`1px solid ${LINE}`,borderBottom:active?`2px solid ${IKB}`:'2px solid transparent',background:active?IKB_SOFT:'transparent',cursor:ren?'default':'pointer'}}
+                onClick={()=>{if(!ren)setActivePdfId(p.id);}}
+                onDoubleClick={()=>startRename(p)}>
+                {isD&&<Bookmark className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:IKB}}/>}
+                {ren?(
+                  <input autoFocus value={renameVal} onChange={e=>setRenameVal(e.target.value)}
+                    onBlur={commitRename}
+                    onKeyDown={e=>{if(e.key==='Enter')commitRename();else if(e.key==='Escape')setRenamingId(null);}}
+                    onClick={e=>e.stopPropagation()}
+                    className="focus:outline-none px-1"
+                    style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE_MED}`,fontSize:'12px',width:'120px'}}/>
+                ):(
+                  <span style={{fontSize:'12px',fontWeight:active?400:300,color:active?TEXT:MUTED,maxWidth:'180px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{p.name}</span>
+                )}
+                {active&&!ren&&(
+                  <div className="flex items-center gap-1">
+                    <button onClick={e=>{e.stopPropagation();startRename(p);}} className="opacity-0 group-hover:opacity-100" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.2em'}}>edit</button>
+                    {!isD&&<button onClick={e=>{e.stopPropagation();setDefaultPdf(pdfItem.id,p.id);}} className="opacity-0 group-hover:opacity-100" style={{color:FAINT}}><Bookmark className="w-3 h-3" strokeWidth={1.25}/></button>}
+                    <button onClick={e=>{e.stopPropagation();openPageRangeEdit(p);}} className="opacity-0 group-hover:opacity-100" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.2em'}}>range</button>
+                    <button onClick={e=>{e.stopPropagation();confirmRemove(p);}} className="opacity-0 group-hover:opacity-100" style={{color:FAINT}}><X className="w-3 h-3" strokeWidth={1.25}/></button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          {!atLimit&&(
+            <label className="flex items-center gap-1.5 px-4 py-2.5 cursor-pointer shrink-0" style={{color:FAINT,fontSize:'11px',letterSpacing:'0.2em'}}>
+              <Plus className="w-3 h-3" strokeWidth={1.25}/> Upload
+              <input type="file" accept="application/pdf" className="hidden" onChange={onInputChange}/>
+            </label>
+          )}
+          {!atLimit&&availableLibrary.length>0&&(
+            <button className="flex items-center gap-1.5 px-4 py-2.5 shrink-0" style={{color:FAINT,fontSize:'11px',letterSpacing:'0.2em'}}
+              onClick={()=>setShowLibrary(v=>!v)}>
+              <Library className="w-3 h-3" strokeWidth={1.25}/> From library
+            </button>
+          )}
+          <div className="ml-auto px-4 py-2.5 uppercase shrink-0" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>{(pdfItem.pdfs||[]).length}/5</div>
+        </div>
+
+        {/* Page range quick edit */}
+        {pageRangeEdit&&(
+          <div className="flex items-center gap-3 px-6 py-2 shrink-0" style={{borderBottom:`1px solid ${LINE}`,background:SURFACE2}}>
+            <span style={{color:FAINT,fontSize:'10px',letterSpacing:'0.22em',fontFamily:sans}}>PAGE RANGE</span>
+            <input type="number" placeholder="Start" min="1" value={pageRangeVals.start}
+              onChange={e=>setPageRangeVals(v=>({...v,start:e.target.value}))}
+              style={{...eIn,width:'60px',border:`1px solid ${LINE_MED}`,padding:'2px 6px'}}/>
+            <span style={{color:FAINT}}>–</span>
+            <input type="number" placeholder="End" min="1" value={pageRangeVals.end}
+              onChange={e=>setPageRangeVals(v=>({...v,end:e.target.value}))}
+              style={{...eIn,width:'60px',border:`1px solid ${LINE_MED}`,padding:'2px 6px'}}/>
+            <button onClick={commitPageRange} style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em',fontFamily:sans}}>Save</button>
+            <button onClick={()=>setPageRangeEdit(null)} style={{color:FAINT}}><X className="w-3 h-3" strokeWidth={1.25}/></button>
+          </div>
+        )}
+
+        {/* Library picker */}
+        {showLibrary&&(
+          <div className="flex items-center gap-3 px-6 py-3 shrink-0 overflow-x-auto" style={{borderBottom:`1px solid ${LINE}`,background:SURFACE2}}>
+            <span style={{color:FAINT,fontSize:'10px',letterSpacing:'0.22em',fontFamily:sans}}>LIBRARY</span>
+            {availableLibrary.map(e=>(
+              <button key={e.id} onClick={()=>handleAttachLibrary(e.id)}
+                className="flex items-center gap-1.5 px-3 py-1.5 shrink-0"
+                style={{border:`1px solid ${LINE_MED}`,color:TEXT,fontSize:'11px'}}>
+                <FileText className="w-3 h-3" strokeWidth={1.25} style={{color:FAINT}}/> {e.name}
+              </button>
+            ))}
+            {availableLibrary.length===0&&<span style={{color:DIM,fontSize:'11px',fontStyle:'italic'}}>No other PDFs in library.</span>}
+            <button onClick={()=>setShowLibrary(false)} style={{color:FAINT,marginLeft:'auto'}}><X className="w-3 h-3" strokeWidth={1.25}/></button>
+          </div>
+        )}
+
+        {/* Main body: viewer + sidebar */}
+        <div className="flex-1 flex overflow-hidden" style={{userSelect:dragging?'none':'auto'}}>
+
+          {/* PDF viewer area */}
+          <div className="flex-1 relative overflow-hidden"
+            style={{background:'rgba(255,255,255,0.02)'}}
+            onDragOver={e=>{e.preventDefault();setDragOver(true);}}
+            onDragLeave={()=>setDragOver(false)}
+            onDrop={onDrop}>
+            {activeUrl?(
+              <PdfViewer
+                ref={viewerRef}
+                url={activeUrl}
+                startPage={activePdf?.startPage||null}
+                endPage={activePdf?.endPage||null}
+                onPageChange={setCurrentViewPage}
+              />
+            ):activePdf?(
+              <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+                <FileText className="w-10 h-10 mb-5" strokeWidth={1} style={{color:DIM}}/>
+                <p className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Attached on another device</p>
+                <p className="text-sm max-w-sm italic" style={{color:MUTED,fontFamily:serif,fontSize:'15px',lineHeight:1.6}}>This score is not available here.</p>
+              </div>
+            ):(
+              <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+                <FileText className="w-10 h-10 mb-5" strokeWidth={1} style={{color:DIM}}/>
+                <p className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>No score attached</p>
+                <p className="text-sm mb-6 max-w-sm italic" style={{color:MUTED,fontFamily:serif,fontSize:'15px',lineHeight:1.6}}>Upload a PDF or drag one here.</p>
+                <label className="px-4 py-2 uppercase cursor-pointer flex items-center gap-2" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'}}>
+                  <Upload className="w-3 h-3" strokeWidth={1.25}/> Upload PDF
+                  <input type="file" accept="application/pdf" className="hidden" onChange={onInputChange}/>
+                </label>
+              </div>
+            )}
+            {dragOver&&(
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none" style={{background:`${IKB}20`,border:`2px dashed ${IKB}`,boxShadow:`inset 0 0 40px ${IKB}30`}}>
+                <div className="px-6 py-4 flex items-center gap-3" style={{background:BG,border:`1px solid ${IKB}`}}>
+                  <Upload className="w-5 h-5" strokeWidth={1.25} style={{color:IKB}}/>
+                  <span className="uppercase" style={{color:TEXT,fontSize:'11px',letterSpacing:'0.28em'}}>Drop to upload PDF</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Resize handle */}
+          <div
+            onMouseDown={onResizeMouseDown}
+            style={{width:'6px',cursor:'col-resize',background:dragging?IKB:LINE,flexShrink:0,transition:'background 0.1s'}}
+          />
+
+          {/* Sidebar */}
+          <div style={{width:sidebarW,flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderLeft:`1px solid ${LINE_MED}`}}>
+            {/* Sidebar tabs */}
+            <div className="flex items-center shrink-0" style={{borderBottom:`1px solid ${LINE}`}}>
+              {[{id:'spots',icon:<Crosshair className="w-3 h-3" strokeWidth={1.25}/>,label:'Spots'},
+                {id:'bookmarks',icon:<Bookmark className="w-3 h-3" strokeWidth={1.25}/>,label:'Marks'},
+              ].map(t=>(
+                <button key={t.id} onClick={()=>setSidebarTab(t.id)}
+                  className="flex items-center gap-1.5 px-4 py-2.5 uppercase"
+                  style={{fontSize:'9px',letterSpacing:'0.22em',color:sidebarTab===t.id?TEXT:FAINT,borderBottom:sidebarTab===t.id?`2px solid ${IKB}`:'2px solid transparent',background:'transparent'}}>
+                  {t.icon}{t.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Time row */}
+            <div className="px-4 py-3 shrink-0" style={{borderBottom:`1px solid ${LINE}`}}>
+              <div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Today</div>
+              <div className="text-xs font-mono tabular-nums mt-0.5" style={{color:MUTED,fontWeight:300}}>{fmt(getItemTime(itemTimes,pdfItem.id))}</div>
+            </div>
+
+            {/* Tab content */}
+            <div className="flex-1 overflow-auto">
+              {sidebarTab==='spots'&&(
+                <div className="px-4 py-3">
+                  {spots.length>0&&(
+                    <div style={{background:SURFACE2,border:`1px solid ${LINE}`,marginBottom:'8px'}}>
+                      {spots.map((s,idx)=>(
+                        <div key={s.id} style={{borderBottom:idx<spots.length-1?`1px solid ${LINE}`:'none'}}>
+                          <SpotRow spot={s} itemId={pdfItem.id} itemTimes={itemTimes}
+                            isActive={activeItemId===pdfItem.id&&activeSpotId===s.id}
+                            onStart={()=>startItem(pdfItem.id,s.id)} onStop={stopItem}
+                            onRename={(label)=>updateSpot(pdfItem.id,s.id,{label})}
+                            onDelete={()=>deleteSpot(pdfItem.id,s.id)}
+                            onEditTime={editSpotTime?(v)=>editSpotTime(pdfItem.id,s.id,v):undefined}
+                            dayClosed={dayClosed} compact/>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <button onClick={()=>addSpot(pdfItem.id,'New spot')}
+                    className="uppercase flex items-center gap-1.5 italic"
+                    style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}>
+                    <Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot
+                  </button>
+                  <textarea value={pdfItem.todayNote||''} onChange={e=>updateItem(pdfItem.id,{todayNote:e.target.value})}
+                    placeholder="Today's notes…" className="w-full resize-none focus:outline-none mt-4"
+                    rows={5}
+                    style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'13px',lineHeight:1.7,fontWeight:300,border:`1px solid ${LINE}`,padding:'8px'}}/>
+                </div>
+              )}
+
+              {sidebarTab==='bookmarks'&&(
+                <div className="px-4 py-3">
+                  {/* Current page indicator */}
+                  {activeUrl&&<div style={{color:FAINT,fontSize:'10px',fontFamily:mono,marginBottom:'10px'}}>Viewing p.{currentViewPage}</div>}
+
+                  {/* Bookmark list */}
+                  {bookmarks.length>0&&(
+                    <div style={{border:`1px solid ${LINE}`,marginBottom:'12px'}}>
+                      {bookmarks.map((bm,idx)=>(
+                        <div key={bm.id} className="group flex items-center gap-2 px-3 py-2"
+                          style={{borderBottom:idx<bookmarks.length-1?`1px solid ${LINE}`:'none',cursor:'pointer'}}
+                          onClick={()=>jumpToBookmark(bm)}>
+                          <Bookmark className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:IKB}}/>
+                          {bmRenamingId===bm.id?(
+                            <input autoFocus value={bmRenameVal} onChange={e=>setBmRenameVal(e.target.value)}
+                              onBlur={commitBmRename}
+                              onKeyDown={e=>{if(e.key==='Enter')commitBmRename();else if(e.key==='Escape')setBmRenamingId(null);}}
+                              onClick={e=>e.stopPropagation()}
+                              className="flex-1 focus:outline-none"
+                              style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE_MED}`,fontSize:'11px',padding:'1px 4px'}}/>
+                          ):(
+                            <span className="flex-1 truncate" style={{fontSize:'12px',color:TEXT}}>{bm.name}</span>
+                          )}
+                          <span style={{color:FAINT,fontSize:'10px',fontFamily:mono,flexShrink:0}}>p.{bm.page}</span>
+                          <button onClick={e=>{e.stopPropagation();setBmRenamingId(bm.id);setBmRenameVal(bm.name);}}
+                            className="opacity-0 group-hover:opacity-100 shrink-0" style={{color:FAINT}}>
+                            <Pencil className="w-3 h-3" strokeWidth={1.25}/>
+                          </button>
+                          <button onClick={e=>{e.stopPropagation();removeBookmark&&removeBookmark(pdfItem.id,activePdfId,bm.id);}}
+                            className="opacity-0 group-hover:opacity-100 shrink-0" style={{color:FAINT}}>
+                            <X className="w-3 h-3" strokeWidth={1.25}/>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Add bookmark form */}
+                  {activePdf&&(
+                    <div style={{border:`1px solid ${LINE}`,padding:'10px'}}>
+                      <div style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em',marginBottom:'8px',fontFamily:sans}}>ADD BOOKMARK</div>
+                      <input
+                        type="text" placeholder="Bookmark name" value={bmName}
+                        onChange={e=>setBmName(e.target.value)}
+                        onKeyDown={e=>{if(e.key==='Enter')handleAddBookmark();}}
+                        style={{width:'100%',background:'transparent',color:TEXT,border:`1px solid ${LINE_MED}`,fontSize:'12px',padding:'4px 6px',outline:'none',marginBottom:'6px'}}/>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number" placeholder={`p.${currentViewPage}`} value={bmPage} min="1"
+                          onChange={e=>setBmPage(e.target.value)}
+                          style={{width:'60px',background:'transparent',color:TEXT,border:`1px solid ${LINE_MED}`,fontSize:'12px',padding:'4px 6px',outline:'none',fontFamily:mono}}/>
+                        <span style={{color:FAINT,fontSize:'10px'}}>page</span>
+                        <button onClick={handleAddBookmark}
+                          style={{marginLeft:'auto',color:IKB,fontSize:'10px',letterSpacing:'0.22em',fontFamily:sans}}>
+                          Add
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Persistent notes */}
+            <textarea value={pdfItem.detail} onChange={e=>updateItem(pdfItem.id,{detail:e.target.value})}
+              placeholder="Long-running notes…" className="resize-none focus:outline-none"
+              rows={5}
+              style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'13px',lineHeight:1.7,fontWeight:300,padding:'12px',borderTop:`1px solid ${LINE}`,flexShrink:0}}/>
+          </div>
         </div>
       </div>
     </div>
-  </div></div>);
+  );
 }

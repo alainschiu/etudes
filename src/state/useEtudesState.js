@@ -4,7 +4,7 @@ import {idbPut,idbDel,idbGet,idbAllKeys,storageAvailable,detectStorage,lsGet,lsS
 import {useSupabaseAuth} from '../lib/useSupabaseAuth.js';
 import {loadFromCloud,syncToCloud,mergeStates} from '../lib/sync.js';
 import {todayDateStr,shiftDate,getWeekStart,getMonthKey} from '../lib/dates.js';
-import {mkPdfId,mkSpotId,mkPerfId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem,calcStreak} from '../lib/items.js';
+import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem,calcStreak} from '../lib/items.js';
 import {migrateItems,migrateSessions,migrateRoutines,migrateHistory} from '../lib/migrations.js';
 import useMetronome from '../hooks/useMetronome.js';
 import useRecording from '../hooks/useRecording.js';
@@ -57,9 +57,11 @@ export default function useEtudesState(){
   const [history,setHistory]=useState(()=>migrateHistory(lsGet('etudes-history',[])));
   const [dayClosed,setDayClosed]=useState(()=>lsGet('etudes-dayClosed',false));
   const [pdfUrlMap,setPdfUrlMap]=useState({});
+  const [pdfLibrary,setPdfLibrary]=useState(()=>lsGet('etudes-pdfLibrary',[]));
   const [trash,setTrash]=useState(null);
 
   useEffect(()=>{lsSet('etudes-items',items.map(i=>{const {pdfUrl,...r}=i;return r;}));},[items]);
+  useEffect(()=>{lsSet('etudes-pdfLibrary',pdfLibrary);},[pdfLibrary]);
   useEffect(()=>{lsSet('etudes-itemTimes',itemTimes);},[itemTimes]);
   useEffect(()=>{lsSet('etudes-warmupTimeToday',warmupTimeToday);},[warmupTimeToday]);
   useEffect(()=>{lsSet('etudes-restToday',restToday);},[restToday]);
@@ -126,7 +128,11 @@ export default function useEtudesState(){
   const loadedRoutine=routines.find(r=>r.id===loadedRoutineId);
 
   // ── PDF loading ───────────────────────────────────────────────────────────
-  useEffect(()=>{let cancelled=false;const urls=[];(async()=>{const keys=await idbAllKeys('pdfs');if(cancelled)return;const keySet=new Set(keys.map(k=>String(k)));const urlsById={};for(const key of keys){const blob=await idbGet('pdfs',key);if(cancelled)return;if(blob){const u=URL.createObjectURL(blob);urlsById[String(key)]=u;urls.push(u);}}if(cancelled){urls.forEach(u=>URL.revokeObjectURL(u));return;}setPdfUrlMap(urlsById);setItems(prev=>prev.map(i=>{if(!i.pdfs||i.pdfs.length===0)return i;const f=i.pdfs.filter(p=>keySet.has(String(p.id)));if(f.length===i.pdfs.length&&i.defaultPdfId&&keySet.has(String(i.defaultPdfId)))return i;const d=f.some(p=>p.id===i.defaultPdfId)?i.defaultPdfId:(f[0]?.id||null);return {...i,pdfs:f,defaultPdfId:d};}));})();return()=>{cancelled=true;};},[]);// eslint-disable-line react-hooks/exhaustive-deps
+  // pdfUrlMap is keyed by libraryId (IDB key); attachments reference libraryId
+  useEffect(()=>{let cancelled=false;const urls=[];(async()=>{const keys=await idbAllKeys('pdfs');if(cancelled)return;const keySet=new Set(keys.map(k=>String(k)));const urlsById={};for(const key of keys){const blob=await idbGet('pdfs',key);if(cancelled)return;if(blob){const u=URL.createObjectURL(blob);urlsById[String(key)]=u;urls.push(u);}}if(cancelled){urls.forEach(u=>URL.revokeObjectURL(u));return;}setPdfUrlMap(urlsById);// Remove attachments whose libraryId no longer exists in IDB
+  setItems(prev=>prev.map(i=>{if(!i.pdfs||i.pdfs.length===0)return i;const f=i.pdfs.filter(p=>keySet.has(String(p.libraryId||p.id)));if(f.length===i.pdfs.length)return i;const d=f.some(p=>p.id===i.defaultPdfId)?i.defaultPdfId:(f[0]?.id||null);return {...i,pdfs:f,defaultPdfId:d};}));// Rebuild pdfLibrary from IDB keys that exist
+  setPdfLibrary(prev=>{const kept=prev.filter(e=>keySet.has(String(e.id)));const existingIds=new Set(kept.map(e=>e.id));// Add any libraryIds that are in IDB but not in pdfLibrary (edge case from old data)
+  return kept;});})();return()=>{cancelled=true;};},[]);// eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Rollover / history snapshot ───────────────────────────────────────────
   useEffect(()=>{if(!lsGet(WEEK_ROLLOVER_KEY,null))lsSet(WEEK_ROLLOVER_KEY,getWeekStart(todayDateStr()));if(!lsGet(MONTH_ROLLOVER_KEY,null))lsSet(MONTH_ROLLOVER_KEY,getMonthKey(todayDateStr()));},[]);
@@ -222,10 +228,66 @@ export default function useEtudesState(){
   const addQuickNote=useCallback((text)=>{if(!activeItemId||!text.trim())return;const ts=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});const pre=activeSpot?`(${activeSpot.label}) `:'';const e=`[${ts}] ${pre}${text.trim()}`;setItems(p=>p.map(i=>i.id===activeItemId?{...i,todayNote:(i.todayNote?i.todayNote+'\n':'')+e}:i));},[activeItemId,activeSpot]);
 
   // ── PDF management ────────────────────────────────────────────────────────
-  const addPdfToItem=async(id,file,name)=>{if(!file)return;const pid=mkPdfId();await idbPut('pdfs',pid,file);const url=URL.createObjectURL(file);setPdfUrlMap(m=>({...m,[pid]:url}));setItems(p=>p.map(i=>{if(i.id!==id)return i;const pdfs=[...(i.pdfs||[]),{id:pid,name:name||file.name.replace(/\.pdf$/i,'')}];const d=i.defaultPdfId||pid;return {...i,pdfs,defaultPdfId:d};}));return pid;};
-  const removePdfFromItem=async(id,pid)=>{await idbDel('pdfs',pid);setPdfUrlMap(m=>{const c={...m};if(c[pid])URL.revokeObjectURL(c[pid]);delete c[pid];return c;});setItems(p=>p.map(i=>{if(i.id!==id)return i;const pdfs=(i.pdfs||[]).filter(x=>x.id!==pid);const d=i.defaultPdfId===pid?(pdfs[0]?.id||null):i.defaultPdfId;return {...i,pdfs,defaultPdfId:d};}));};
-  const renamePdf=(id,pid,name)=>setItems(p=>p.map(i=>i.id!==id?i:{...i,pdfs:i.pdfs.map(x=>x.id===pid?{...x,name}:x)}));
-  const setDefaultPdf=(id,pid)=>setItems(p=>p.map(i=>i.id===id?{...i,defaultPdfId:pid}:i));
+  // Upload a new file and attach it to an item
+  const addPdfToItem=async(id,file,name)=>{
+    if(!file)return;
+    const libraryId=mkPdfId();
+    const attachId=mkAttachId();
+    const displayName=name||file.name.replace(/\.pdf$/i,'');
+    await idbPut('pdfs',libraryId,file);
+    const url=URL.createObjectURL(file);
+    setPdfUrlMap(m=>({...m,[libraryId]:url}));
+    setPdfLibrary(prev=>[...prev,{id:libraryId,name:displayName}]);
+    setItems(p=>p.map(i=>{
+      if(i.id!==id)return i;
+      const att={id:attachId,libraryId,name:displayName,startPage:null,endPage:null,bookmarks:[]};
+      const pdfs=[...(i.pdfs||[]),att];
+      const d=i.defaultPdfId||attachId;
+      return {...i,pdfs,defaultPdfId:d};
+    }));
+    return attachId;
+  };
+  // Attach an existing library PDF to an item (P5)
+  const attachLibraryPdf=(itemId,libraryId,name,startPage,endPage)=>{
+    const attachId=mkAttachId();
+    const libEntry=pdfLibrary.find(e=>e.id===libraryId);
+    const displayName=name||libEntry?.name||'Score';
+    setItems(p=>p.map(i=>{
+      if(i.id!==itemId)return i;
+      const att={id:attachId,libraryId,name:displayName,startPage:startPage||null,endPage:endPage||null,bookmarks:[]};
+      const pdfs=[...(i.pdfs||[]),att];
+      const d=i.defaultPdfId||attachId;
+      return {...i,pdfs,defaultPdfId:d};
+    }));
+    return attachId;
+  };
+  // Remove an attachment; delete blob only if no other item references the same libraryId
+  const removePdfFromItem=async(itemId,attachId)=>{
+    const item=items.find(i=>i.id===itemId);
+    if(!item)return;
+    const att=item.pdfs?.find(p=>p.id===attachId);
+    if(!att)return;
+    const libraryId=att.libraryId;
+    const otherRefs=items.some(i=>i.id!==itemId&&(i.pdfs||[]).some(p=>p.libraryId===libraryId));
+    if(!otherRefs){
+      await idbDel('pdfs',libraryId);
+      setPdfUrlMap(m=>{const c={...m};if(c[libraryId])URL.revokeObjectURL(c[libraryId]);delete c[libraryId];return c;});
+      setPdfLibrary(prev=>prev.filter(e=>e.id!==libraryId));
+    }
+    setItems(p=>p.map(i=>{
+      if(i.id!==itemId)return i;
+      const pdfs=(i.pdfs||[]).filter(x=>x.id!==attachId);
+      const d=i.defaultPdfId===attachId?(pdfs[0]?.id||null):i.defaultPdfId;
+      return {...i,pdfs,defaultPdfId:d};
+    }));
+  };
+  const renamePdf=(itemId,attachId,name)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,name}:x)}));
+  const setDefaultPdf=(itemId,attachId)=>setItems(p=>p.map(i=>i.id===itemId?{...i,defaultPdfId:attachId}:i));
+  const setPdfPageRange=(itemId,attachId,startPage,endPage)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,startPage,endPage}:x)}));
+  // Bookmark management (P2)
+  const addBookmark=(itemId,attachId,name,page)=>{const bm={id:mkBookmarkId(),name,page};setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,bookmarks:[...(x.bookmarks||[]),bm]}:x)}));return bm.id;};
+  const removeBookmark=(itemId,attachId,bmId)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,bookmarks:(x.bookmarks||[]).filter(b=>b.id!==bmId)}:x)}));
+  const renameBookmark=(itemId,attachId,bmId,name)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,bookmarks:(x.bookmarks||[]).map(b=>b.id===bmId?{...b,name}:b)}:x)}));
 
   // ── Recording (delegated) ─────────────────────────────────────────────────
   const {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording,attachDailyToPiece}=useRecording({dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal,pieceRecordingMeta,setPieceRecordingMeta,setPieceRecordingItemId});
@@ -322,7 +384,7 @@ export default function useEtudesState(){
     todaySessions,setTodaySessions,loadedRoutineId,routines,setRoutines,
     dailyReflection,setDailyReflection,weekReflection,setWeekReflection,
     monthReflection,setMonthReflection,settings,setSettings,
-    freeNotes,setFreeNotes,recordingMeta,history,dayClosed,pdfUrlMap,trash,
+    freeNotes,setFreeNotes,recordingMeta,history,dayClosed,trash,
     activeItemId,activeSpotId,activeSessionId,activeItem,activeSpot,activeIsWarmup,
     isResting,isRecording,recExpanded,setRecExpanded,
     metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,
@@ -339,7 +401,9 @@ export default function useEtudesState(){
     closeDay,reopenDay,endDay,
     deleteItem,undoDelete,dismissTrash,
     logTempo,addQuickNote,
-    addPdfToItem,removePdfFromItem,renamePdf,setDefaultPdf,
+    pdfLibrary,pdfUrlMap,
+    addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,
+    addBookmark,removeBookmark,renameBookmark,
     startRecording,stopRecording,deleteRecording,
     pieceRecordingMeta,pieceRecordingItemId,startPieceRecording,stopPieceRecording,deletePieceRecording,attachDailyToPiece,
     handleDragStart,handleDragOver,handleDrop,handleDragEnd,
