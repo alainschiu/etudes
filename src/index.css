@@ -1,0 +1,286 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =========================================================================
+   Études Design System — Colors, Type & Primitives
+   ========================================================================= */
+
+:root {
+  --ink-000: #0B0A08;
+  --ink-050: #111010;
+  --ink-100: #1A1918;
+  --ink-200: #24221F;
+  --ink-300: #2E2B27;
+  --ink-400: #3A3732;
+
+  --ivory-100: #F4EEE3;
+  --ivory-200: #E7E0D2;
+  --ivory-300: #C8C1B3;
+  --ivory-400: #8C8578;
+  --ivory-500: #5E594F;
+  --ivory-600: #403C36;
+
+  --paper-000: #FBF7EE;
+  --paper-050: #F5EFE2;
+  --paper-100: #EDE5D3;
+  --paper-200: #D9CFB8;
+
+  --inkwell-900: #141311;
+  --inkwell-700: #2A2722;
+  --inkwell-500: #5E594F;
+  --inkwell-300: #8C8578;
+
+  --accent-500: #002FA7;
+  --accent-400: #1A48C4;
+  --accent-600: #001E7A;
+  --accent-100: #0C1C5C;
+  --accent-050: #07123A;
+
+  --semantic-rest:   #7A8F6A;
+  --semantic-warn:   #B89668;
+  --semantic-record: #A35B5B;
+
+  --hairline:        rgba(244, 238, 227, 0.08);
+  --hairline-strong: rgba(244, 238, 227, 0.16);
+  --hairline-paper:  rgba(20, 19, 17, 0.12);
+  --scrim:           rgba(11, 10, 8, 0.72);
+
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 10px;
+
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  40px;
+  --space-9:  56px;
+  --space-10: 72px;
+  --space-11: 96px;
+  --space-12: 128px;
+
+  --elev-0: none;
+  --elev-1: 0 1px 0 0 var(--hairline-strong);
+  --elev-2: 0 0 0 1px var(--hairline) inset;
+  --elev-overlay: 0 24px 48px -16px rgba(0,0,0,0.55), 0 0 0 1px var(--hairline-strong);
+
+  --font-serif-display: 'Cormorant Garamond', 'GT Sectra', 'Tiempos Headline', 'EB Garamond', Georgia, serif;
+  --font-serif-text:    'EB Garamond', 'Tiempos Text', 'Source Serif Pro', Georgia, serif;
+  --font-sans:          'Inter', 'Söhne', 'Graphik', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono:          'JetBrains Mono', 'Berkeley Mono', 'IBM Plex Mono', ui-monospace, monospace;
+
+  --fs-display-xl:  88px;
+  --fs-display-lg:  64px;
+  --fs-display-md:  44px;
+  --fs-display-sm:  32px;
+  --fs-h1:          28px;
+  --fs-h2:          22px;
+  --fs-h3:          18px;
+  --fs-body:        15px;
+  --fs-body-sm:     13px;
+  --fs-meta:        11px;
+  --fs-meta-xs:     10px;
+
+  --lh-tight:   1.05;
+  --lh-display: 1.1;
+  --lh-snug:    1.25;
+  --lh-body:    1.55;
+  --lh-prose:   1.7;
+
+  --tracking-caps:   0.14em;
+  --tracking-wide:   0.04em;
+  --tracking-tight: -0.01em;
+
+  --ease-out:   cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-in:    cubic-bezier(0.6, 0, 0.8, 0.3);
+  --ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast:   120ms;
+  --dur-base:   200ms;
+  --dur-slow:   360ms;
+}
+
+html, body {
+  background: var(--ink-050);
+  color: var(--ivory-100);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'liga', 'calt', 'kern';
+}
+
+.paper {
+  background: var(--paper-000);
+  color: var(--inkwell-900);
+}
+
+.display-xl,
+.display-lg,
+.display-md,
+.display-sm {
+  font-family: var(--font-serif-display);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-display);
+  color: var(--ivory-200);
+}
+.display-xl { font-size: var(--fs-display-xl); line-height: var(--lh-tight); }
+.display-lg { font-size: var(--fs-display-lg); }
+.display-md { font-size: var(--fs-display-md); }
+.display-sm { font-size: var(--fs-display-sm); }
+
+.h1, .h2, .h3 {
+  font-family: var(--font-serif-display);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-tight);
+  color: var(--ivory-100);
+}
+.h1 { font-size: var(--fs-h1); }
+.h2 { font-size: var(--fs-h2); }
+.h3 { font-size: var(--fs-h3); }
+
+.prose {
+  font-family: var(--font-serif-text);
+  font-size: 17px;
+  line-height: var(--lh-prose);
+  color: var(--ivory-200);
+}
+.prose em, .prose i { font-style: italic; }
+
+.p     { font-family: var(--font-sans); font-size: var(--fs-body);    line-height: var(--lh-body); color: var(--ivory-100); }
+.p-sm  { font-family: var(--font-sans); font-size: var(--fs-body-sm); line-height: var(--lh-body); color: var(--ivory-300); }
+
+.meta,
+.label-caps {
+  font-family: var(--font-sans);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--ivory-400);
+}
+.meta-xs {
+  font-family: var(--font-sans);
+  font-size: var(--fs-meta-xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--ivory-500);
+}
+
+.num,
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum', 'zero';
+  letter-spacing: 0;
+  color: var(--ivory-200);
+}
+.num-lg { font-family: var(--font-mono); font-size: 28px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; color: var(--ivory-100); }
+.num-md { font-family: var(--font-mono); font-size: 18px; font-variant-numeric: tabular-nums; color: var(--ivory-200); }
+.num-sm { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ivory-300); }
+
+.code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ivory-200);
+  background: var(--ink-100);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+.link {
+  color: var(--accent-400);
+  text-decoration: none;
+  border-bottom: 1px solid var(--hairline-strong);
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.link:hover { color: var(--ivory-100); border-bottom-color: var(--ivory-300); }
+
+.hairline        { border-top: 1px solid var(--hairline); }
+.hairline-strong { border-top: 1px solid var(--hairline-strong); }
+.divider-vert    { width: 1px; background: var(--hairline); align-self: stretch; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 12px;
+  font-family: var(--font-sans);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--ivory-200);
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+.btn:hover  { color: var(--ivory-100); border-color: var(--ivory-400); }
+.btn:active { color: var(--ivory-300); border-color: var(--ivory-500); transform: translateY(0.5px); }
+
+.btn-primary { background: var(--ivory-100); color: var(--ink-050); border-color: var(--ivory-100); }
+.btn-primary:hover  { background: var(--ivory-200); border-color: var(--ivory-200); }
+.btn-primary:active { background: var(--ivory-300); border-color: var(--ivory-300); }
+
+.btn-ghost { border-color: transparent; color: var(--ivory-300); }
+.btn-ghost:hover { color: var(--ivory-100); border-color: var(--hairline-strong); }
+
+.input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline-strong);
+  color: var(--ivory-100);
+  font-family: var(--font-serif-text);
+  font-size: 17px;
+  padding: 8px 0;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+.input:focus { border-bottom-color: var(--ivory-300); }
+.input::placeholder { color: var(--ivory-500); font-style: italic; }
+
+.textarea {
+  width: 100%;
+  min-height: 120px;
+  background: var(--ink-100);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--ivory-100);
+  font-family: var(--font-serif-text);
+  font-size: 17px;
+  line-height: var(--lh-prose);
+  padding: 16px 18px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 150ms ease;
+}
+.textarea:focus { border-color: var(--hairline-strong); }
+.textarea::placeholder { color: var(--ivory-500); font-style: italic; }
+
+.card {
+  background: var(--ink-100);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+:focus-visible {
+  outline: 1px solid var(--accent-500);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}

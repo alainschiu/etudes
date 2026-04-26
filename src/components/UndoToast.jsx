@@ -1,0 +1,6 @@
+import React from 'react';
+import {Trash2, X, Undo2} from 'lucide-react';
+import {SURFACE, TEXT, MUTED, FAINT, LINE_STR, IKB, IKB_SOFT} from '../constants/theme.js';
+import {displayTitle} from '../lib/items.js';
+
+export default function UndoToast({item,onUndo,onDismiss}){return (<div className="fixed bottom-24 left-1/2 z-50 toast-enter" style={{transform:'translateX(-50%)'}}><div className="flex items-center gap-4 px-5 py-3" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 8px 30px rgba(0,0,0,0.6)'}}><Trash2 className="w-3.5 h-3.5 shrink-0" strokeWidth={1.25} style={{color:MUTED}}/><div><div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.25em'}}>Deleted</div><div className="truncate" style={{fontSize:'13px',fontWeight:300,maxWidth:'240px'}}>{displayTitle(item)}</div></div><button onClick={onUndo} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:TEXT,background:IKB,fontSize:'10px',letterSpacing:'0.22em',boxShadow:`0 0 12px ${IKB}50`}}><Undo2 className="w-3 h-3" strokeWidth={1.25}/> Undo</button><button onClick={onDismiss} style={{color:FAINT}}><X className="w-3.5 h-3.5" strokeWidth={1.25}/></button></div></div>);}
