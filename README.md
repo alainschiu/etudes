@@ -6,11 +6,13 @@ A practice journal for musicians. Track daily sessions, time focused work, organ
 
 - **Today** — session timer, spot-level timing, warmup and rest tracking, day close
 - **Repertoire** — pieces with stage labels, performance dates, spots, PDF scores, recordings
-- **Audio recording** — per-day and per-piece recordings with scrubbable SVG waveforms, A/B comparison
-- **Routines & Programs** — build and load practice routines; group pieces into programs
+- **Audio recording** — per-day and per-piece recordings with scrubbable SVG waveforms, A/B comparison; context-aware record button routes to active piece or daily log; attach daily recordings to a routine piece
+- **Routines & Programs** — build and load practice routines; group pieces into programs; save changes back to loaded routine
 - **Week / Month** — ring graphs, reflections, streak tracking
 - **Logs & Notes** — searchable history, free notes
-- **Transport** — metronome (with tap tempo + accel), tuning drone, quick notes
+- **Metronome** — tap tempo, BPM scrub drag, accelerando, compound meter (6/8 etc.), click volume
+- **Tuning drone** — piano-keyboard note picker, pitch reference, temperament offsets; open with `D`
+- **Keyboard shortcuts** — `Space` stop · `R` rest · `M` metronome · `T` tap · `L` log BPM · `D` tuning · `N` note · `?` settings; shortcut shown in tooltip on hover
 - **Sync** — optional sign-in; data syncs across devices via Supabase
 
 ## Tech Stack
