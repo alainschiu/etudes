@@ -1,5 +1,9 @@
 # Update Log
 
+## v0.93.1 — 2026-04-27
+
+- Bug Fixes: changelog and About/version copy aligned with release `v0.93.1`.
+
 ## v0.93 — 2026-04-26
 
 - Smooth SVG bezier waveform with drag-to-scrub (playhead follows mouse)

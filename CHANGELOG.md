@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.93.1 — 2026-04-27
+
+### Bug Fixes
+
+- Release metadata: version label and changelog aligned with `v0.93.1`.
+
+---
+
 ## v0.93 — 2026-04-26
 
 ### Audio recording — waveform scrubbing & per-piece archive

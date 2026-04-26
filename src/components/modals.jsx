@@ -93,10 +93,8 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
     {tab==='about'&&(
       <div className="px-8 py-6">
         <div className="flex items-baseline justify-between gap-4 pb-3" style={{borderBottom:`1px solid ${LINE}`}}>
-          <div>
-            <div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Version <span className="normal-case italic" style={{color:FAINT,fontFamily:serif,letterSpacing:'normal'}}>current build</span></div>
-          </div>
-          <div className="uppercase shrink-0" style={{color:MUTED,fontSize:'10px',letterSpacing:'0.22em'}}>v{APP_VERSION}</div>
+          <div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Version</div>
+          <div className="shrink-0 font-mono tabular-nums" style={{color:MUTED,fontSize:'11px',letterSpacing:'0.06em'}}>v{APP_VERSION}</div>
         </div>
       </div>
     )}
