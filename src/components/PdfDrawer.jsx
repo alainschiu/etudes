@@ -1,5 +1,5 @@
 import React,{useState,useEffect,useRef,useCallback} from 'react';
-import {FileText,Upload,Plus,X,Pause,Play,Bookmark,Music,Crosshair,BookOpen,Library,ChevronRight,Pencil,Check,Trash2,GripVertical} from 'lucide-react';
+import {FileText,Upload,Plus,X,Pause,Play,Bookmark,Music,Crosshair,Library,Pencil,Maximize2,Minimize2} from 'lucide-react';
 import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,serif,sans,mono} from '../constants/theme.js';
 import {displayTitle,formatByline,getItemTime} from '../lib/items.js';
 import {SpotRow} from './shared.jsx';
@@ -34,6 +34,7 @@ export default function PdfDrawer({
   const [bmRenamingId,setBmRenamingId]=useState(null);
   const [bmRenameVal,setBmRenameVal]=useState('');
   const [currentViewPage,setCurrentViewPage]=useState(1);
+  const [expanded,setExpanded]=useState(false); // fullscreen modal
   const viewerRef=useRef(null); // exposed jumpToPage from PdfViewer
 
   useEffect(()=>{
@@ -158,9 +159,9 @@ export default function PdfDrawer({
   const eIn={background:'transparent',color:TEXT,border:'none',outline:'none',fontFamily:mono,fontSize:'11px'};
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-6" style={{background:'rgba(0,0,0,0.85)',backdropFilter:'blur(8px)'}}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{padding:expanded?0:'24px',background:'rgba(0,0,0,0.85)',backdropFilter:'blur(8px)'}}>
       <div className="absolute inset-0" onClick={onClose}/>
-      <div className="relative w-full h-full max-w-7xl flex flex-col" style={{background:BG,border:`1px solid ${LINE_STR}`,boxShadow:'0 20px 60px rgba(0,0,0,0.8)'}}>
+      <div className="relative w-full h-full flex flex-col" style={{maxWidth:expanded?'100%':'112rem',background:BG,border:expanded?'none':`1px solid ${LINE_STR}`,boxShadow:expanded?'none':'0 20px 60px rgba(0,0,0,0.8)'}}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 gap-3 shrink-0" style={{borderBottom:`1px solid ${LINE_MED}`}}>
@@ -183,6 +184,9 @@ export default function PdfDrawer({
                 ?{background:IKB,color:TEXT,border:`1px solid ${IKB}`,boxShadow:`0 0 15px ${IKB}60`,fontSize:'10px',letterSpacing:'0.22em'}
                 :{background:'transparent',color:dayClosed?FAINT:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em',cursor:(dayClosed&&!isActiveAny)?'not-allowed':'pointer'}}>
               {isActiveAny?<><Pause className="w-3 h-3" strokeWidth={1.25}/> Pause</>:<><Play className="w-3 h-3" strokeWidth={1.25}/> {dayClosed?'Closed':'Whole piece'}</>}
+            </button>
+            <button onClick={()=>setExpanded(v=>!v)} title={expanded?'Restore':'Expand'} style={{color:MUTED}}>
+              {expanded?<Minimize2 className="w-4 h-4" strokeWidth={1.25}/>:<Maximize2 className="w-4 h-4" strokeWidth={1.25}/>}
             </button>
             <button onClick={onClose} style={{color:MUTED}}><X className="w-4 h-4" strokeWidth={1.25}/></button>
           </div>
@@ -283,7 +287,9 @@ export default function PdfDrawer({
                 url={activeUrl}
                 startPage={activePdf?.startPage||null}
                 endPage={activePdf?.endPage||null}
+                bookmarks={activePdf?.bookmarks||[]}
                 onPageChange={setCurrentViewPage}
+                onBookmarkClick={()=>{setSidebarTab('bookmarks');}}
               />
             ):activePdf?(
               <div className="h-full flex flex-col items-center justify-center p-8 text-center">
