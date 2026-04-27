@@ -46,7 +46,10 @@ const mdHighlight = HighlightStyle.define([
 
 function buildBaseTheme(fontSize, minHeight) {
   return EditorView.theme({
-    '&': { background: 'transparent' },
+    // Reset defaults — prevents any injected theme from leaking through
+    '&': { background: 'transparent', color: TEXT },
+    '&.cm-editor': { background: 'transparent' },
+    '.cm-scroller': { background: 'transparent' },
     '.cm-content': {
       fontFamily: serif,
       fontSize: fontSize,
@@ -57,8 +60,10 @@ function buildBaseTheme(fontSize, minHeight) {
       minHeight: `${minHeight}px`,
       caretColor: TEXT,
     },
+    '.cm-line': { color: TEXT },
     '&.cm-editor.cm-focused': { outline: 'none' },
     '&.cm-focused .cm-cursor': { borderLeftColor: TEXT, borderLeftWidth: '1.5px' },
+    '.cm-cursor': { borderLeftColor: TEXT, borderLeftWidth: '1.5px' },
     '.cm-selectionBackground': { background: `${IKB}22 !important` },
     '&.cm-focused .cm-selectionBackground': { background: `${IKB}30 !important` },
     '.cm-activeLine': { background: 'transparent' },
@@ -235,6 +240,7 @@ export function MarkdownEditor({
       extensions={extensions}
       readOnly={readOnly}
       placeholder={placeholder}
+      theme="none"
       basicSetup={{
         lineNumbers: false,
         foldGutter: false,
