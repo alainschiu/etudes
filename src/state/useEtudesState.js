@@ -2,7 +2,7 @@ import {useState,useEffect,useRef,useMemo,useCallback} from 'react';
 import {DEFAULT_SESSIONS,TYPES,ROLLOVER_KEY,WEEK_ROLLOVER_KEY,MONTH_ROLLOVER_KEY} from '../constants/config.js';
 import {idbPut,idbDel,idbGet,idbAllKeys,storageAvailable,detectStorage,lsGet,lsSet} from '../lib/storage.js';
 import {useSupabaseAuth} from '../lib/useSupabaseAuth.js';
-import {loadFromCloud,syncToCloud,mergeStates} from '../lib/sync.js';
+import {loadFromCloud,syncToCloud,mergeStates,LS_CLOUD_SYNC_KEY} from '../lib/sync.js';
 import {todayDateStr,shiftDate,getWeekStart,getMonthKey} from '../lib/dates.js';
 import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,mkNoteLogId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem,calcStreak} from '../lib/items.js';
 import {migrateItems,migrateSessions,migrateRoutines,migrateHistory} from '../lib/migrations.js';
@@ -82,7 +82,7 @@ export default function useEtudesState(){
   useEffect(()=>{lsSet('etudes-pieceRecordingMeta',pieceRecordingMeta);},[pieceRecordingMeta]);
   useEffect(()=>{lsSet('etudes-history',history);},[history]);
   useEffect(()=>{lsSet('etudes-dayClosed',dayClosed);},[dayClosed]);
-  useEffect(()=>{lsSet('etudes-lastSyncedAt',Date.now());},[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
+  useEffect(()=>{lsSet('etudes-localDirtyAt',Date.now());},[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
 
   // ── Active item / session tracking ────────────────────────────────────────
   const [activeItemId,setActiveItemId]=useState(null);
@@ -103,7 +103,7 @@ export default function useEtudesState(){
   const userRef=useRef(null);
   useEffect(()=>{userRef.current=user;},[user]);
   const [syncStatus,setSyncStatus]=useState('idle'); // 'idle'|'syncing'|'error'
-  const [lastSyncedAt,setLastSyncedAt]=useState(()=>lsGet('etudes-lastSyncedAt',0));
+  const [lastSyncedAt,setLastSyncedAt]=useState(()=>lsGet(LS_CLOUD_SYNC_KEY,0));
 
   const sessionRefs=useRef({});
   const reflectionRef=useRef(null);
@@ -146,7 +146,7 @@ export default function useEtudesState(){
   const coldState=useMemo(()=>({items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday}),[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
   const syncStateRef=useRef({});
   useEffect(()=>{syncStateRef.current={...coldState,itemTimes,restToday};});
-  const doSync=useCallback(async()=>{if(!userRef.current)return;setSyncStatus('syncing');const ok=await syncToCloud(userRef.current.id,syncStateRef.current);if(ok){setLastSyncedAt(Date.now());setSyncStatus('idle');}else{setSyncStatus('error');}},[]);// eslint-disable-line
+  const doSync=useCallback(async()=>{if(!userRef.current)return;setSyncStatus('syncing');const ok=await syncToCloud(userRef.current.id,syncStateRef.current);if(ok){const now=Date.now();setLastSyncedAt(now);lsSet('etudes-localDirtyAt',0);setSyncStatus('idle');}else{setSyncStatus('error');}},[]);// eslint-disable-line
   useEffect(()=>{
     const check=()=>{
       const today=todayDateStr();const cw=getWeekStart(today);const cm=getMonthKey(today);
@@ -239,6 +239,27 @@ export default function useEtudesState(){
 
   // Also update freeNotes tags on save
   const saveFreeNote=(id,patch)=>{setFreeNotes(prev=>prev.map(n=>{if(n.id!==id)return n;const updated={...n,...patch};if(patch.body!==undefined)updated.tags=parseTagsFromBody(patch.body);return updated;}));};
+
+  // ── Debug: seed test notes ────────────────────────────────────────────────
+  const seedTestNotes=()=>{
+    const uid=()=>Math.random().toString(36).slice(2,9);
+    const raw=[
+      {title:'On Intonation — Chromatic Scale Work',date:'2026-04-20',category:'Practice Journal',body:`# Intonation Focus\n\nWorkday 1 of targeted intonation drilling. Main pain points today:\n\n- Descending semitones consistently arrive **sharp** — need more relaxation in the arm weight transfer\n- The \`A♭–G\` semitone in the middle register is particularly slippery\n\n## Method\n\nUsed drone on A, practiced with a tuner displayed — aiming to see the needle before I hear the pitch. Slow bow, near the bridge.\n\n> "Intonation is not a problem of the ear — it is a problem of the body."\n\n[[2026-04-18]] — check yesterday's notes for the arm weight exercise.\n\n#intonation #technique #scale`},
+      {title:'Pedaling Philosophy Notes',date:'2026-04-21',category:'Theory Analysis',body:`# Pedal Craft\n\nReturning to the question of harmonic vs. rhythmic pedaling after the masterclass.\n\n## Core Tension\n\n**Harmonic clarity** vs. **tonal warmth** — these are often in conflict.\n\nChopin pedal markings make no sense on a modern Steinway. They were written for instruments with ~2s decay; now decay is 8–10s in the bass.\n\n## Rules I'm testing this week\n\n1. Change pedal *on the melody note*, not the bass\n2. Half-pedal for inner voice movement\n3. Trust resonance in the lower third of the keyboard — don't pedal it away\n\n#pedaling #chopin #interpretation`},
+      {title:'Memory Strategy — Structural Mapping',date:'2026-04-22',category:'Practice Journal',body:`# Memorisation Approach\n\nCurrently working on two pieces from memory. Applying **structural mapping**:\n\n## The Method\n\nDivide the piece into:\n- **Macro sections** (A B A′ Coda)\n- **Phrase groups** (4-bar units)\n- **Harmonic waypoints** (I, V, vi, modulation points)\n\nFor each phrase group, I should be able to:\n1. Name the harmonic destination\n2. Play it from any starting point cold\n3. Sing it without the instrument\n\n## Progress\n\n- Mm. 1–32: solid\n- Mm. 33–64: harmonic waypoints learned, fingering still inconsistent\n- Mm. 65–end: NOT started yet\n\n#memorization #practice #structure`},
+      {title:'Masterclass Notes — Prof. Chen',date:'2026-04-19',category:'Masterclass Notes',body:`# Masterclass with Prof. Chen\n**April 19, 2026 — Studio 4**\n\n## Key Points\n\n### On Phrasing\nEvery phrase needs a single *destination* note. Everything leads to it, everything departs from it. Currently my phrases feel like *journeys without destinations*.\n\n### On Bow Distribution\n"You have more bow than you think. Use it."\n\nThe tendency is to save bow — this creates a small, tight sound. Trust the full length.\n\n### Specific Correction\nIn the slow movement, mm. 12–16: the ritardando should arrive at the downbeat of m. 17 with **no bow left**. That forces the subsequent phrase to begin quietly.\n\n#masterclass #phrasing #bowcontrol`},
+      {title:'Scale Practice Log — Week 17',date:'2026-04-23',category:'Practice Journal',body:`# Scale Log — Week 17\n\n| Scale | BPM | Notes |\n|---|---|---|\n| C major, 3 octaves | 120 | Clean |\n| G minor melodic | 108 | ↓ scale still rough |\n| B♭ major | 116 | Consistent |\n| F# minor harmonic | 96 | Augmented 2nd still awkward |\n\n## Focus for Next Week\n\nG minor and F# minor. Both have issues in the same finger crossing (3→1 in the left hand, ascending).\n\nPractice plan:\n- Slow bow + exaggerated finger independence\n- Rhythmic variants: dotted, reverse dotted\n- Eyes-closed for kinaesthetic feedback\n\n#scale #technique #fingering`},
+      {title:'The "Singing Tone" Problem',date:'2026-04-17',category:'Theory Analysis',body:`# On Tone Production\n\nAfter listening back to recordings from [[2026-04-15]], I notice the tone lacks *core*. It sounds pretty but thin — like a fine pencil sketch when I want oils.\n\n## Contributing Factors\n\n1. **Contact point**: too close to the fingerboard; moving toward the bridge next session\n2. **Bow speed**: often too fast — the tone skims rather than grips\n3. **Weight**: relying on bow weight rather than arm weight\n\n## Experiment\n\nTry practicing *sul tasto* for 5 min to relax the bow arm, then immediately move to the bridge. The contrast should reveal the difference in arm engagement.\n\n#tone #bowwork #soundproduction`},
+      {title:'Rhythm Accuracy — Subdivisions',date:'2026-04-16',category:'Practice Journal',body:`# Subdivisions\n\nMetronome work today. The goal: feel 16ths internally while playing 8ths.\n\n## Exercises\n\n- **Pizzicato 16ths** → then switch to arco 8ths without changing the internal pulse\n- **"Speak it"**: vocalise the subdivision while playing\n- **Asymmetric groupings**: 3+2+3 and 3+3+2 over a 4/4 bar\n\n## Observation\n\nI rush on the beat immediately *after* a long note. The long note acts as a reset, and I haven't anchored the subdivision through it.\n\nFix: use a **ghost bow** (barely audible) on the last 16th before the long note to maintain the feel.\n\n#rhythm #metronome #technique`},
+      {title:'Audition Prep — Program Notes Draft',date:'2026-04-24',category:'Audition Prep',body:`# Program Notes Draft\n\n## Piece 1 — Opening Work\n*For the panel:*\n\nThis opening movement was chosen to demonstrate range of bow technique, from the quiet opening to the dramatic double-stop passage at m. 45. Key challenge: sustaining the pianissimo without loss of resonance.\n\n## Piece 2 — Lyrical Centerpiece  \nThe slow movement provides contrast — here the priority is **melodic line over technical display**. Aim: one continuous phrase from the opening to m. 24.\n\n## Notes for Self\n\n- Don't open with apologies for the venue acoustics\n- Make eye contact with the panel at m. 1 and again at the coda\n- Breathe before playing — actually breathe\n\n#audition #performance #preparation`},
+      {title:'Double Stop Tuning — 3rds and 6ths',date:'2026-04-14',category:'Practice Journal',body:`# Double Stop Session\n\n## The Problem\n\nMy 3rds are uneven — the upper note tends sharp when there is a string crossing involved. The 6ths are better but the lower note goes flat in forte passages.\n\n## Today's Work\n\n**Method: "One note at a time"**\n\n1. Play the bottom note alone — verify intonation\n2. Add the top note — listen for the resonance (not the pitch)\n3. If the interval rings, it's in tune. If it "beats," adjust until stillness.\n\n## Scales in 3rds — Observations\n\n- Ascending: flat tendency in upper voice at the string crossing D→E\n- Descending: much more even once I slow down to MM=52\n\nTarget: clean run at MM=72 by end of week.\n\n#doublestops #intonation #stringcrossing`},
+      {title:'Quick Idea — Practising in Reverse',date:'2026-04-25',category:'Practice Journal',body:`# Reverse Practice\n\nTried practising a difficult passage **backwards** today (from last note to first, phrase by phrase).\n\n## Why It Works\n\nThe end of a passage is almost never practised as often as the beginning. By working backwards:\n- Every starting point gets equal practice time\n- The difficult moments that usually cause the most anxiety (often toward the end) become the most familiar\n\n## Today's Passage\n\nMm. 45–60 of the Allegro. Started from m. 60, then added m. 58–60, then m. 56–60, etc.\n\n*Result*: the passage felt much more even after 20 minutes — and the final cadence, which I always dreaded, actually felt **easy**.\n\n#practice #method #technique`},
+      {title:'Weekly Reflection — Week 17',date:'2026-04-26',category:'Practice Journal',body:`# Week 17 Summary\n\n## What Went Well\n\n- Intonation work is showing measurable improvement — [[2026-04-20]] method is working\n- Finished structural mapping for the first movement (see [[2026-04-22]] for the system)\n- Prof. Chen's advice on bow distribution is already audible in recordings\n\n## What Needs Work\n\n- Still rushing after long notes (#rhythm problem from [[2026-04-16]])\n- Double stop 3rds: not yet clean at target tempo\n- Haven't started memorising mm. 65–end\n\n## Goals for Week 18\n\n1. Mm. 65–end memorised by Thursday\n2. Double stop 3rds at MM=72\n3. Record a full run-through on Friday\n\n#weeklyreview #goals #progress`},
+      {title:'Bow Distribution Exercise',date:'2026-04-13',category:'Practice Journal',body:`# Bow Work\n\nFollowing up on Prof. Chen's comment. Today: **full-bow long tones**.\n\n## Exercise\n\nOpen string, whole bow, 4 seconds. Goal: perfect evenness in tone color throughout the stroke. The last 10cm of bow should sound *exactly* like the first 10cm.\n\n## Findings\n\n- The middle section (around the balance point) is the weakest — the arm tends to "fall" here\n- Need more active *lifting* of the elbow in the upper half\n- Lower half: the thumb is gripping — consciously release it every 30 seconds\n\n#bowwork #tone #technique`},
+    ];
+    const notes=raw.map(n=>({id:`fn_test_${uid()}`,title:n.title,body:n.body,date:n.date,category:n.category||'',tags:parseTagsFromBody(n.body)}));
+    setFreeNotes(prev=>[...prev,...notes]);
+  };
 
   // ── PDF management ────────────────────────────────────────────────────────
   // Upload a new file and attach it to an item
@@ -345,29 +366,65 @@ export default function useEtudesState(){
   const applyCloudStateRef=useRef(null);
   applyCloudStateRef.current=(s)=>{if(!s)return;setItems(migrateItems(s.items||[]));setRoutines(migrateRoutines(s.routines||[]));setPrograms(s.programs||[]);setHistory(migrateHistory(s.history||[]));setSettings(s.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setDailyReflection(s.dailyReflection||'');setWeekReflection(s.weekReflection||{notes:'',goals:''});setMonthReflection(s.monthReflection||{notes:'',goals:''});setFreeNotes(s.freeNotes||[]);setRecordingMeta(s.recordingMeta||{});setWorkingOn(s.workingOn||[]);setTodaySessions([...migrateSessions(s.todaySessions||DEFAULT_SESSIONS).map(s=>({...s,itemIds:s.itemIds===null?[]:s.itemIds}))].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type)));setDayClosed(!!s.dayClosed);setLoadedRoutineId(s.loadedRoutineId||null);setWarmupTimeToday(s.warmupTimeToday||0);setItemTimes(s.itemTimes||{});setRestToday(s.restToday||0);};
   // Load or first-run migration on sign-in
-  useEffect(()=>{if(!user)return;(async()=>{try{setSyncStatus('syncing');const remote=await loadFromCloud(user.id);
-    // ── First sign-in ever: no cloud data ──
-    if(!remote){setConfirmModal({message:'Upload your existing data to your account?\n\nYour practice history, repertoire, and settings will be stored securely and available on all your devices.',confirmLabel:'Upload',onConfirm:async()=>{setConfirmModal(null);await syncToCloud(user.id,syncStateRef.current);setSyncStatus('idle');},onCancel:()=>{setConfirmModal(null);lsSet('etudes-lastSyncedAt',Date.now());setSyncStatus('idle');}});return;}
-    // ── Conflict: local has unsynced items AND cloud has different items ──
-    const localTs=lsGet('etudes-lastSyncedAt',0);
-    const localItems=syncStateRef.current.items||[];
-    const remoteItems=remote.state?.items||[];
-    const remoteIds=new Set(remoteItems.map(i=>i.id));
-    const unsyncedLocal=localItems.filter(i=>!remoteIds.has(i.id));
-    if(localTs===0&&unsyncedLocal.length>0&&remoteItems.length>0){
-      pendingRemoteRef.current=remote.state;
-      setSyncConflictModal({
-        localCount:unsyncedLocal.length,
-        remoteCount:remoteItems.length,
-        onMerge:async()=>{const merged=mergeStates(syncStateRef.current,pendingRemoteRef.current);applyCloudStateRef.current(merged);await syncToCloud(user.id,merged);setSyncStatus('idle');setSyncConflictModal(null);},
-        onKeepLocal:async()=>{await syncToCloud(user.id,syncStateRef.current);setSyncStatus('idle');setSyncConflictModal(null);},
-        onKeepCloud:()=>{applyCloudStateRef.current(pendingRemoteRef.current);setSyncStatus('idle');setSyncConflictModal(null);},
-      });
+  useEffect(()=>{if(!user)return;(async()=>{try{setSyncStatus('syncing');const result=await loadFromCloud(user.id);
+
+    // ── Real network/RLS error — do not touch local data ──
+    if(result.kind==='error'){setSyncStatus('error');return;}
+
+    // ── First sign-in ever: no cloud row yet ──
+    if(result.kind==='not_found'){
+      setConfirmModal({message:'Upload your existing data to your account?\n\nYour practice history, repertoire, and settings will be stored securely and available on all your devices.',confirmLabel:'Upload',onConfirm:async()=>{setConfirmModal(null);await syncToCloud(user.id,syncStateRef.current);setSyncStatus('idle');},onCancel:()=>{setConfirmModal(null);setSyncStatus('idle');}});
       return;
     }
-    // ── Normal: apply remote if newer ──
-    if(remote.updated_at&&new Date(remote.updated_at).getTime()>localTs){applyCloudStateRef.current(remote.state);}
-    setSyncStatus('idle');}catch{setSyncStatus('error');}})();},[user]);// eslint-disable-line
+
+    // ── Cloud row exists ──
+    const remoteState=result.state||{};
+    const remoteItems=remoteState.items||[];
+    const localItems=syncStateRef.current.items||[];
+    const localHistory=syncStateRef.current.history||[];
+
+    // Device has no meaningful local data — just apply cloud directly
+    const localEmpty=localItems.length===0&&localHistory.length===0;
+    if(localEmpty){applyCloudStateRef.current(remoteState);setLastSyncedAt(Date.now());setSyncStatus('idle');return;}
+
+    // Device has local data: check if it was mutated since last confirmed cloud sync
+    const lastCloudSync=lsGet(LS_CLOUD_SYNC_KEY,0);
+    const localDirtyAt=lsGet('etudes-localDirtyAt',0);
+    const localDirty=lastCloudSync===0||localDirtyAt>lastCloudSync;
+
+    if(!localDirty){
+      // Local matches last sync — safe to pull remote
+      applyCloudStateRef.current(remoteState);setLastSyncedAt(Date.now());setSyncStatus('idle');return;
+    }
+
+    // Both sides have data and local has unsaved changes — decide what to do
+    const remoteIds=new Set(remoteItems.map(i=>i.id));
+    const localIds=new Set(localItems.map(i=>i.id));
+    const localOnlyItems=localItems.filter(i=>!remoteIds.has(i.id));
+    const remoteOnlyItems=remoteItems.filter(i=>!localIds.has(i.id));
+    const hasOverlap=localItems.some(i=>remoteIds.has(i.id)&&remoteItems.find(r=>r.id===i.id&&JSON.stringify(r)!==JSON.stringify(i)));
+
+    // No conflicting ids on either side — auto-merge silently, no user decision needed
+    if(!hasOverlap&&(localOnlyItems.length===0||remoteOnlyItems.length===0)){
+      if(remoteOnlyItems.length>0){
+        // Remote has items local doesn't — merge in remote's extras
+        const merged=mergeStates(syncStateRef.current,remoteState);
+        applyCloudStateRef.current(merged);await syncToCloud(user.id,merged);
+      }
+      setLastSyncedAt(Date.now());setSyncStatus('idle');return;
+    }
+
+    // Conflict: both sides have data that differs — give user a choice
+    pendingRemoteRef.current=remoteState;
+    setSyncConflictModal({
+      localCount:localOnlyItems.length||localItems.length,
+      remoteCount:remoteOnlyItems.length||remoteItems.length,
+      hasOverlap,
+      onMerge:async()=>{const merged=mergeStates(syncStateRef.current,pendingRemoteRef.current);applyCloudStateRef.current(merged);await syncToCloud(user.id,merged);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
+      onKeepLocal:async()=>{await syncToCloud(user.id,syncStateRef.current);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
+      onKeepCloud:()=>{applyCloudStateRef.current(pendingRemoteRef.current);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
+    });
+  }catch{setSyncStatus('error');}})();},[user]);// eslint-disable-line
   // Debounced cold-state sync (5 s)
   useEffect(()=>{if(!user)return;const t=setTimeout(doSync,5000);return()=>clearTimeout(t);},[coldState,user]);// eslint-disable-line
   // Flush on tab hide and reconnect
@@ -414,7 +471,7 @@ export default function useEtudesState(){
     closeDay,reopenDay,endDay,
     deleteItem,undoDelete,dismissTrash,
     logTempo,addQuickNote,
-    addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,saveFreeNote,
+    addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,saveFreeNote,seedTestNotes,
     pdfLibrary,pdfUrlMap,
     addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,
     addBookmark,removeBookmark,renameBookmark,

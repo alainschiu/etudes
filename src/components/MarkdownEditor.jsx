@@ -7,7 +7,7 @@ import { EditorView, ViewPlugin, Decoration } from '@codemirror/view';
 import { RangeSetBuilder } from '@codemirror/state';
 import { autocompletion } from '@codemirror/autocomplete';
 import {
-  TEXT, MUTED, FAINT, DIM, LINE, LINE_STR, IKB, SURFACE2, serif,
+  TEXT, MUTED, FAINT, DIM, LINE, LINE_STR, IKB, SURFACE2, serif, LINK,
 } from '../constants/theme.js';
 import { displayTitle, formatByline } from '../lib/items.js';
 import { slugify, scoreMatch } from '../lib/notes.js';
@@ -29,10 +29,10 @@ const mdHighlight = HighlightStyle.define([
   { tag: tags.emphasis, fontStyle: 'italic' },
   // strong — bold text, dimmed markers
   { tag: tags.strong, fontWeight: '600' },
-  // links & URLs
-  { tag: tags.url, color: IKB, textDecoration: 'underline' },
-  { tag: tags.link, color: IKB },
-  { tag: tags.string, color: IKB },  // link text [...]
+  // links & URLs — bright blue readable on dark bg
+  { tag: tags.url, color: LINK, textDecoration: 'underline' },
+  { tag: tags.link, color: LINK },
+  { tag: tags.string, color: LINK },  // link text [...]
   // inline code
   { tag: tags.monospace, fontFamily: 'monospace', fontSize: '0.88em' },
   // blockquote
@@ -76,12 +76,12 @@ function buildBaseTheme(fontSize, minHeight) {
     },
     // ── [[wiki-link]] decoration ──
     '.cm-wikilink': {
-      color: IKB,
-      borderBottom: `1px solid ${IKB}55`,
+      color: LINK,
+      borderBottom: `1px solid ${LINK}55`,
       cursor: 'pointer',
     },
     '.cm-wikilink:hover': {
-      borderBottomColor: IKB,
+      borderBottomColor: LINK,
     },
     // ── Autocomplete dropdown ──
     '.cm-tooltip': {

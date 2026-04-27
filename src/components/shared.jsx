@@ -3,7 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {Play, Pause, SkipBack, Plus, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Crosshair, Pencil, Check, Music, Calendar} from 'lucide-react';
 import {MarkdownEditor} from './MarkdownEditor.jsx';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, serif, serifText, sans, mono} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, serif, serifText, sans, mono, LINK} from '../constants/theme.js';
 import {STAGES} from '../constants/config.js';
 import {idbGet} from '../lib/storage.js';
 import {daysUntil} from '../lib/dates.js';
@@ -196,7 +196,7 @@ function MarkdownComponents({serif:serifFont}){
       const isDeep=DEEP_LINK_SCHEMES.some(s=>href&&href.startsWith(s));
       const isExternal=href&&(href.startsWith('http://')||href.startsWith('https://'));
       const handleClick=(e)=>{if(isDeep||isExternal){e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}};
-      return (<a href={href} onClick={handleClick} style={{color:IKB,textDecoration:'underline',textDecorationColor:`${IKB}60`,cursor:'pointer'}} {...rest}>{children}</a>);
+      return (<a href={href} onClick={handleClick} style={{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'}} {...rest}>{children}</a>);
     },
     p:({children})=><p style={{marginBottom:'0.85em',lineHeight:1.8}}>{children}</p>,
     h1:({children})=><h1 style={{fontSize:'1.3em',fontWeight:400,marginBottom:'0.5em',marginTop:'1em',borderBottom:`1px solid rgba(244,238,227,0.12)`,paddingBottom:'0.2em'}}>{children}</h1>,

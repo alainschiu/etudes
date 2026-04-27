@@ -21,7 +21,7 @@ function AnalogClock({size=40}){
 export default function TodayView(p){
   const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm}=p;
   const today=new Date();const todayKey=todayDateStr();
-  const [routineMenu,setRoutineMenu]=useState(false);const [addMenu,setAddMenu]=useState(false);const [pickerSessionId,setPickerSessionId]=useState(null);const [quickAdd,setQuickAdd]=useState(null);
+  const [routineMenu,setRoutineMenu]=useState(false);const [addMenu,setAddMenu]=useState(false);const [pickerSessionId,setPickerSessionId]=useState(null);const [quickAdd,setQuickAdd]=useState(null);const [confirmClose,setConfirmClose]=useState(false);
   const handleFilePlus=(type,session)=>{const ni=addItem(type);updateItem(ni.id,{stage:'learning'});if(session.itemIds!==null)addItemToSession(session.id,ni.id);setCollapsedSessions(prev=>{const next=new Set(prev);next.delete(session.id);return next;});setQuickAdd({itemId:ni.id,sessionId:session.id});};
 
   const piecePlayTypes=(t)=>(t==='piece'||t==='play')?['piece','play']:[t];
@@ -178,7 +178,24 @@ export default function TodayView(p){
         })}
         {hiddenTypes.length>0&&(<div className="relative py-4 flex items-center justify-center" style={{borderBottom:`1px solid ${LINE}`}}><button onClick={()=>setAddMenu(v=>!v)} className="uppercase flex items-center gap-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'13px'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> Add session</button>{addMenu&&(<><div className="fixed inset-0 z-20" onClick={()=>setAddMenu(false)}/><div className="absolute top-full mt-2 z-30 min-w-48" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>{hiddenTypes.map(t=>(<button key={t} onClick={()=>{addSessionType(t);setAddMenu(false);}} className="w-full text-left px-4 py-2.5 uppercase" style={{fontSize:'10px',letterSpacing:'0.28em',borderBottom:`1px solid ${LINE}`}}>{SECTION_CONFIG[t].label}</button>))}</div></>)}</div>)}
       </div>
-      <div className="mt-12 flex justify-center">{dayClosed?(<button onClick={reopenDay} className="uppercase flex items-center gap-2 px-4 py-2.5" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'10px',letterSpacing:'0.28em'}}><Unlock className="w-3 h-3" strokeWidth={1.25}/> Reopen the day</button>):(<button onClick={endDay} className="uppercase flex items-center gap-2 px-4 py-2.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'10px',letterSpacing:'0.28em'}} title="Finalize today and lock timer edits"><Lock className="w-3 h-3" strokeWidth={1.25}/> Close the day</button>)}</div>
+      <div className="mt-12 flex flex-col items-center gap-4">
+        {dayClosed?(
+          <button onClick={reopenDay} className="uppercase flex items-center gap-2 px-4 py-2.5" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'10px',letterSpacing:'0.28em'}}><Unlock className="w-3 h-3" strokeWidth={1.25}/> Reopen the day</button>
+        ):confirmClose?(
+          <div className="w-full max-w-sm" style={{border:`1px solid ${LINE_MED}`,background:SURFACE,padding:'20px 24px'}}>
+            <div className="uppercase mb-2" style={{fontSize:'10px',letterSpacing:'0.28em',color:MUTED}}>Log today?</div>
+            <p style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,fontSize:'14px',lineHeight:1.65,color:TEXT,marginBottom:'14px'}}>
+              Today's session notes will be sent to each piece's log book, and the day will be locked. Practice timers cannot be edited after closing — you can reopen if needed.
+            </p>
+            <div className="flex items-center gap-3 justify-end">
+              <button onClick={()=>setConfirmClose(false)} className="uppercase px-3 py-1.5" style={{color:FAINT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Cancel</button>
+              <button onClick={()=>{setConfirmClose(false);endDay();}} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'10px',letterSpacing:'0.22em'}}><Lock className="w-3 h-3" strokeWidth={1.25}/> Log &amp; Close</button>
+            </div>
+          </div>
+        ):(
+          <button onClick={()=>setConfirmClose(true)} className="uppercase flex items-center gap-2 px-4 py-2.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'10px',letterSpacing:'0.28em'}} title="Finalize today and lock timer edits"><Lock className="w-3 h-3" strokeWidth={1.25}/> Close the day</button>
+        )}
+      </div>
       <div className="mt-16"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Reflection</div><h3 className="text-4xl mb-6 leading-none" style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,letterSpacing:'-0.015em'}}>Journal du jour</h3><MarkdownField value={dailyReflection||''} onChange={setDailyReflection} placeholder="How did today feel? What surprised you?" minHeight={176} style={{background:SURFACE,fontSize:'16px'}} showDeepLinkHint/><div ref={reflectionRef}/></div>
     </div>
   );

@@ -2,7 +2,7 @@ import React, {useState, useMemo, useCallback, useEffect} from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {Plus, Search, Trash2, Folder, FolderPlus, X, BookOpen, Calendar, ChevronRight, ChevronDown, Pencil, Check} from 'lucide-react';
-import {TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, SURFACE, SURFACE2, BG, serif, sans} from '../constants/theme.js';
+import {TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, SURFACE, SURFACE2, BG, serif, sans, LINK} from '../constants/theme.js';
 import {todayDateStr} from '../lib/dates.js';
 import {displayTitle, formatByline} from '../lib/items.js';
 import {resolveWikiLink, parseTagsFromBody} from '../lib/notes.js';
@@ -28,7 +28,7 @@ function DailyReflectionsView({history, onClose}){
           <div key={h.date} style={{borderBottom:`1px solid ${LINE}`,paddingBottom:'24px'}}>
             <div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>{d.toLocaleDateString('en-US',{weekday:'long', month:'long',day:'numeric',year:'numeric'})}</div>
             <div style={{fontFamily:serif,fontSize:'16px',lineHeight:1.8,fontWeight:300}}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{p:({children})=><p style={{marginBottom:'0.8em'}}>{children}</p>,h3:({children})=><h3 style={{fontSize:'1em',fontWeight:400,marginBottom:'0.35em',marginTop:'0.7em',opacity:0.75}}>{children}</h3>,hr:()=><hr style={{border:'none',borderTop:`1px solid rgba(244,238,227,0.12)`,margin:'0.75em 0'}}/>,a:({href,children})=><a href={href} target="_blank" rel="noopener noreferrer" style={{color:IKB,textDecoration:'underline'}}>{children}</a>}}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{p:({children})=><p style={{marginBottom:'0.8em'}}>{children}</p>,h3:({children})=><h3 style={{fontSize:'1em',fontWeight:400,marginBottom:'0.35em',marginTop:'0.7em',opacity:0.75}}>{children}</h3>,hr:()=><hr style={{border:'none',borderTop:`1px solid rgba(244,238,227,0.12)`,margin:'0.75em 0'}}/>,a:({href,children})=><a href={href} target="_blank" rel="noopener noreferrer" style={{color:LINK,textDecoration:'underline'}}>{children}</a>}}>
                 {h.reflection}
               </ReactMarkdown>
             </div>
@@ -74,7 +74,7 @@ function RepertoireLogsView({items}){
 }
 
 // ── Main NotesView ────────────────────────────────────────────────────────
-export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry}){
+export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes}){
   const [activeCategoryId,setActiveCategoryId]=useState('__all');
   const [activeNoteId,setActiveNoteId]=useState(freeNotes[0]?.id);
   const [query,setQuery]=useState('');
@@ -291,6 +291,19 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
               ))}
             </div>
           </>
+        )}
+
+        {/* Dev seed button */}
+        {seedTestNotes&&(
+          <div className="mt-auto pt-8">
+            <button
+              onClick={seedTestNotes}
+              className="uppercase w-full text-left"
+              style={{color:DIM,fontSize:'9px',letterSpacing:'0.18em',paddingTop:'8px',borderTop:`1px solid ${LINE}`}}
+            >
+              + Seed test notes
+            </button>
+          </div>
         )}
       </aside>
 
