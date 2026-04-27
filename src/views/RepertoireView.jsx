@@ -1,5 +1,5 @@
 import React, {useState, useMemo, useEffect} from 'react';
-import {Play, Pause, Plus, X, ChevronDown, ChevronUp, FileText, ArrowUp, ArrowDown, Crosshair, Pencil, Trash2, TrendingUp, Users, GripVertical, Search, Layers, Link as LinkIcon, Music, Guitar, Calendar, Check, BookOpen} from 'lucide-react';
+import {Play, Pause, Plus, X, ChevronDown, ChevronUp, FileText, ArrowUp, ArrowDown, Crosshair, Pencil, Trash2, TrendingUp, Users, GripVertical, Search, Layers, Link as LinkIcon, Music, Guitar, Calendar, Check, BookOpen, Mic} from 'lucide-react';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, sans} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
 import {daysUntil, todayDateStr} from '../lib/dates.js';
@@ -49,6 +49,9 @@ export default function RepertoireView(p){
   const [search,setSearch]=useState('');const [filterType,setFilterType]=useState('');const [filterComposer,setFilterComposer]=useState('');const [filterStyle,setFilterStyle]=useState('');const [filterStatus,setFilterStatus]=useState('');const [filterInstrument,setFilterInstrument]=useState('');
   const [sortBy,setSortBy]=useState('');
   const [groupByCollection,setGroupByCollection]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [composerOpen,setComposerOpen]=useState(true);const [instrumentOpen,setInstrumentOpen]=useState(true);const [expandedId,setExpandedId]=useState(()=>expandedItemId||null);const [showMoreIds,setShowMoreIds]=useState({});
+  const [spotsOpen,setSpotsOpen]=useState({});
+  const isSpotsOpen=(id)=>spotsOpen[id]!==false;
+  const toggleSpots=(id)=>setSpotsOpen(p=>({...p,[id]:p[id]===false}));
   useEffect(()=>{if(expandedItemId){setExpandedId(expandedItemId);if(setExpandedItemId)setExpandedItemId(null);}},[]);
   useEffect(()=>{if(!expandedId)return;const t=setTimeout(()=>{const el=document.querySelector(`[data-rep-id="${expandedId}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},80);return()=>clearTimeout(t);},[expandedId]);
   const toggleShowMore=(id)=>setShowMoreIds(p=>({...p,[id]:!p[id]}));
@@ -74,6 +77,7 @@ export default function RepertoireView(p){
     const si=STAGES.findIndex(s=>s.key===i.stage);const stage=STAGES[si>=0?si:0];
     const ld=lastPracticedLabel(i.id,history);const rel=relativeDay(ld);const hasSpots=(i.spots||[]).length>0;
     const perf=nextPerformance(i.performances);const hmf=!!(i.arranger);const showMore=showMoreIds[i.id]||hmf;
+    const recCount=Object.keys(pieceRecordingMeta?.[i.id]||{}).length;
     const titleValue=i.title==='Untitled'?'':(i.title||'');
     const len=formatLength(i.lengthSecs);
     // Type-based field visibility
@@ -81,7 +85,7 @@ export default function RepertoireView(p){
     const showPerformances=i.type==='piece';
     const showArranger=i.type==='piece';
     return (<div key={i.id} data-rep-id={i.id} style={{borderBottom:`1px solid ${LINE}`}}>
-      <div onClick={()=>setExpandedId(expanded?null:i.id)} className="py-3 px-2 flex items-start gap-3 cursor-pointer" style={{background:expanded?SURFACE:'transparent'}}>
+      <div onClick={()=>setExpandedId(expanded?null:i.id)} className="py-2 px-2 flex items-start gap-3 cursor-pointer" style={{background:expanded?SURFACE:'transparent'}}>
         <div className="shrink-0 mt-0.5 tabular-nums" style={{color:DIM,fontFamily:serif,fontStyle:'italic',fontSize:'11px',width:'22px'}}>{SECTION_CONFIG[i.type].roman}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-3 flex-wrap">
@@ -90,15 +94,16 @@ export default function RepertoireView(p){
             {formatByline(i)&&<span className="italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}>{formatByline(i)}</span>}
             {i.instrument&&<span className="flex items-center gap-1" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.18em'}}><Guitar className="w-2.5 h-2.5" strokeWidth={1.25}/>{i.instrument.toUpperCase()}</span>}
             {perf&&<PerformanceChip perf={perf} compact/>}
-            {i.tags.length>0&&<span style={{color:FAINT,fontSize:'9px',letterSpacing:'0.2em'}}>{i.tags.map(t=>t.toUpperCase()).join(' · ')}</span>}
           </div>
-          <div className="flex items-baseline gap-4 mt-1 flex-wrap">
-            <span style={{color:i.stage==='queued'?MUTED:TEXT,fontFamily:serif,fontStyle:'italic',fontSize:'12px',fontWeight:300,borderBottom:`1px solid ${i.stage==='queued'?LINE_MED:IKB}`,paddingBottom:'1px'}}>{stage?.label}</span>
-            <span style={{color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'11px'}}>{rel?`last practiced ${rel}`:'not yet practiced'}</span>
-            {i.startedDate&&<span style={{color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'11px'}}>· started {i.startedDate}</span>}
-            {(i.pdfs||[]).length>0&&<span className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>· {i.pdfs.length} score{i.pdfs.length===1?'':'s'}</span>}
-            {hasSpots&&<span className="uppercase flex items-center gap-1" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>· <Crosshair className="w-2.5 h-2.5" strokeWidth={1.25}/>{i.spots.length} spot{i.spots.length===1?'':'s'}</span>}
-            {len&&<span className="tabular-nums" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.12em'}}>· {len}</span>}
+          <div className="flex items-baseline gap-4 mt-1 overflow-hidden" style={{flexWrap:'nowrap'}}>
+            <span style={{flexShrink:0,color:i.stage==='queued'?MUTED:TEXT,fontFamily:serif,fontStyle:'italic',fontSize:'12px',fontWeight:300,borderBottom:`1px solid ${i.stage==='queued'?LINE_MED:IKB}`,paddingBottom:'1px'}}>{stage?.label}</span>
+            <span style={{flexShrink:0,color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'11px'}}>{rel?`last practiced ${rel}`:'not yet practiced'}</span>
+            {i.startedDate&&<span style={{flexShrink:0,color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'11px'}}>· started {i.startedDate}</span>}
+            {recCount>0&&<span className="uppercase flex items-center gap-1" style={{flexShrink:0,color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>· <Mic className="w-2.5 h-2.5" strokeWidth={1.25}/>{recCount} rec{recCount===1?'':'s'}</span>}
+            {(i.pdfs||[]).length>0&&<span className="uppercase" style={{flexShrink:0,color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>· {i.pdfs.length} score{i.pdfs.length===1?'':'s'}</span>}
+            {hasSpots&&<span className="uppercase flex items-center gap-1" style={{flexShrink:0,color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>· <Crosshair className="w-2.5 h-2.5" strokeWidth={1.25}/>{i.spots.length} spot{i.spots.length===1?'':'s'}</span>}
+            {len&&<span className="tabular-nums" style={{flexShrink:0,color:FAINT,fontSize:'10px',letterSpacing:'0.12em'}}>· {len}</span>}
+            {i.tags.length>0&&<span style={{flexShrink:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',color:FAINT,fontSize:'9px',letterSpacing:'0.2em'}}>· {i.tags.map(t=>t.toUpperCase()).join(' · ')}</span>}
           </div>
         </div>
         <span className="font-mono tabular-nums shrink-0 mt-0.5" style={{color:MUTED,fontWeight:300,fontSize:'11px'}}>{fmtMin(getItemTime(itemTimes,i.id))}</span>
@@ -130,7 +135,18 @@ export default function RepertoireView(p){
               </EditorRow>)}
               <EditorRow label="Tags">{(()=>{const tagSuggestId=`tag-sug-${i.id}`;const suggested=[...(i.composer?[i.composer.split(' ').pop()]:[]),(i.instrument||''),(i.type||''),...allTags].map(s=>s.trim().toLowerCase()).filter(s=>s&&!i.tags.includes(s));const uniqueSug=[...new Set(suggested)];return(<div className="flex items-center gap-2 flex-wrap"><datalist id={tagSuggestId}>{uniqueSug.map(s=>(<option key={s} value={s}/>))}</datalist><input type="text" list={tagSuggestId} placeholder="add + enter" onKeyDown={e=>{if(e.key==='Enter'&&e.target.value.trim()){const tag=e.target.value.trim().replace(/^#/,'');if(!i.tags.includes(tag))updateItem(i.id,{tags:[...i.tags,tag]});e.target.value='';}}} className="px-2 py-1 text-xs focus:outline-none" style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE_MED}`}}/>{i.tags.map(t=>(<span key={t} className="px-2 py-1 flex items-center gap-1" style={{background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'9px',letterSpacing:'0.18em'}}>{t.toUpperCase()}<button onClick={()=>updateItem(i.id,{tags:i.tags.filter(x=>x!==t)})}><X className="w-2.5 h-2.5" strokeWidth={1.25}/></button></span>))}</div>);})()}</EditorRow>
             </div>
-            {i.type==='piece'&&(<div className="mb-6"><div className="uppercase mb-3 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {hasSpots&&<span style={{color:DIM,letterSpacing:'0.22em'}}>· {i.spots.length}</span>}</div>{hasSpots&&(<div className="space-y-1" style={{border:`1px solid ${LINE}`}}>{i.spots.map((s,idx)=>(<div key={s.id} style={{borderTop:idx>0?`1px solid ${LINE}`:'none'}}><SpotEditor spot={s} itemId={i.id} itemTimes={itemTimes} isActive={activeItemId===i.id&&activeSpotId===s.id} onStart={()=>startItem(i.id,s.id)} onStop={stopItem} onUpdate={(patch)=>updateSpot(i.id,s.id,patch)} onDelete={()=>deleteSpot(i.id,s.id)} onMoveUp={()=>moveSpot(i.id,s.id,-1)} onMoveDown={()=>moveSpot(i.id,s.id,1)} canMoveUp={idx>0} canMoveDown={idx<i.spots.length-1} onEditTime={(v)=>editSpotTime(i.id,s.id,v)} dayClosed={dayClosed} itemPdfs={i.pdfs||[]}/></div>))}</div>)}<button onClick={()=>addSpot(i.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button></div>)}
+            {i.type==='piece'&&(<div className="mb-6">
+              <button onClick={()=>toggleSpots(i.id)} className="w-full uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>
+                <Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/>
+                Spots
+                {hasSpots&&<span style={{color:DIM,letterSpacing:'0.22em'}}>· {i.spots.length}</span>}
+                {isSpotsOpen(i.id)?<ChevronUp className="w-3 h-3 ml-auto" strokeWidth={1.25}/>:<ChevronDown className="w-3 h-3 ml-auto" strokeWidth={1.25}/>}
+              </button>
+              {isSpotsOpen(i.id)&&(<>
+                {hasSpots&&(<div className="space-y-1" style={{border:`1px solid ${LINE}`}}>{i.spots.map((s,idx)=>(<div key={s.id} style={{borderTop:idx>0?`1px solid ${LINE}`:'none'}}><SpotEditor spot={s} itemId={i.id} itemTimes={itemTimes} isActive={activeItemId===i.id&&activeSpotId===s.id} onStart={()=>startItem(i.id,s.id)} onStop={stopItem} onUpdate={(patch)=>updateSpot(i.id,s.id,patch)} onDelete={()=>deleteSpot(i.id,s.id)} onMoveUp={()=>moveSpot(i.id,s.id,-1)} onMoveDown={()=>moveSpot(i.id,s.id,1)} canMoveUp={idx>0} canMoveDown={idx<i.spots.length-1} onEditTime={(v)=>editSpotTime(i.id,s.id,v)} dayClosed={dayClosed} itemPdfs={i.pdfs||[]}/></div>))}</div>)}
+                <button onClick={()=>addSpot(i.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button>
+              </>)}
+            </div>)}
             {(i.bpmLog||[]).length>=2&&(<div className="mb-6"><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}><TrendingUp className="w-3 h-3" strokeWidth={1.25}/> Tempo history <span style={{color:DIM}}>({i.bpmLog.length} · whole piece)</span></div><BpmSparkline log={i.bpmLog} target={i.bpmTarget}/></div>)}
             {pieceRecordingMeta&&<PieceRecordingsPanel item={i} pieceRecordingMeta={pieceRecordingMeta} startPieceRecording={startPieceRecording} stopPieceRecording={stopPieceRecording} deletePieceRecording={deletePieceRecording} pieceRecordingItemId={pieceRecordingItemId} isRecording={isRecording} currentBpm={currentBpm} dayClosed={dayClosed}/>}
             <LogBookPanel item={i} updateItem={updateItem} addNoteLogEntry={addNoteLogEntry} deleteNoteLogEntry={deleteNoteLogEntry} updateNoteLogEntry={updateNoteLogEntry}/>
@@ -188,6 +204,8 @@ function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,update
   const [logSearch,setLogSearch]=useState('');
   const [addingNote,setAddingNote]=useState(false);
   const [newNoteText,setNewNoteText]=useState('');
+  const [pinnedOpen,setPinnedOpen]=useState(true);
+  const [logOpen,setLogOpen]=useState(true);
   const log=(item.noteLog||[]).slice().reverse(); // newest first
   const q=logSearch.trim().toLowerCase();
   const filteredLog=q?log.filter(e=>(e.text||'').toLowerCase().includes(q)):log;
@@ -197,78 +215,85 @@ function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,update
   return (
     <div>
       {/* Pinned notes (detail) */}
-      <div className="mb-4">
-        <div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>
+      <div className="mb-6">
+        <button onClick={()=>setPinnedOpen(v=>!v)} className="w-full uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>
           <BookOpen className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/>
           Pinned notes
-        </div>
-        <MarkdownField
-          value={item.detail||''}
-          onChange={v=>updateItem(item.id,{detail:v})}
-          placeholder="Fingerings, tempi, interpretive ideas…"
-          minHeight={80}
-          style={{background:SURFACE2}}
-          showDeepLinkHint
-        />
+          {item.detail&&<span style={{color:DIM,letterSpacing:'0.1em'}}>·</span>}
+          {pinnedOpen?<ChevronUp className="w-3 h-3 ml-auto" strokeWidth={1.25}/>:<ChevronDown className="w-3 h-3 ml-auto" strokeWidth={1.25}/>}
+        </button>
+        {pinnedOpen&&(
+          <MarkdownField
+            value={item.detail||''}
+            onChange={v=>updateItem(item.id,{detail:v})}
+            placeholder="Fingerings, tempi, interpretive ideas…"
+            minHeight={80}
+            style={{background:SURFACE2}}
+            showDeepLinkHint
+          />
+        )}
       </div>
 
       {/* Session log */}
       <div>
-        <div className="flex items-center justify-between mb-2">
-          <div className="uppercase flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>
-            <BookOpen className="w-3 h-3" strokeWidth={1.25}/>
-            Log book
-            {log.length>0&&<span style={{color:DIM}}>· {log.length}</span>}
-          </div>
-          <button onClick={()=>setAddingNote(v=>!v)} className="uppercase flex items-center gap-1 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}>
-            <Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add note
-          </button>
-        </div>
+        <button onClick={()=>{setLogOpen(v=>!v);if(logOpen)setAddingNote(false);}} className="w-full uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>
+          <BookOpen className="w-3 h-3" strokeWidth={1.25}/>
+          Log book
+          {log.length>0&&<span style={{color:DIM}}>· {log.length}</span>}
+          {logOpen?<ChevronUp className="w-3 h-3 ml-auto" strokeWidth={1.25}/>:<ChevronDown className="w-3 h-3 ml-auto" strokeWidth={1.25}/>}
+        </button>
 
-        {addingNote&&(
-          <div className="mb-3 p-3" style={{background:SURFACE2,border:`1px solid ${LINE}`}}>
-            <textarea
-              autoFocus
-              value={newNoteText}
-              onChange={e=>setNewNoteText(e.target.value)}
-              placeholder="Write a retrospective note…"
-              className="w-full resize-none focus:outline-none"
-              style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'13px',lineHeight:1.65,minHeight:'60px',fontWeight:300}}
-            />
-            <div className="flex gap-2 mt-2">
-              <button onClick={handleAdd} className="uppercase px-2 py-1 flex items-center gap-1" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}><Check className="w-2.5 h-2.5" strokeWidth={1.25}/> Save</button>
-              <button onClick={()=>{setAddingNote(false);setNewNoteText('');}} className="uppercase px-2 py-1" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}>Cancel</button>
+        {logOpen&&(<>
+          <div className="flex justify-end mb-2">
+            <button onClick={()=>setAddingNote(v=>!v)} className="uppercase flex items-center gap-1 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}>
+              <Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add note
+            </button>
+          </div>
+          {addingNote&&(
+            <div className="mb-3 p-3" style={{background:SURFACE2,border:`1px solid ${LINE}`}}>
+              <textarea
+                autoFocus
+                value={newNoteText}
+                onChange={e=>setNewNoteText(e.target.value)}
+                placeholder="Write a retrospective note…"
+                className="w-full resize-none focus:outline-none"
+                style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'13px',lineHeight:1.65,minHeight:'60px',fontWeight:300}}
+              />
+              <div className="flex gap-2 mt-2">
+                <button onClick={handleAdd} className="uppercase px-2 py-1 flex items-center gap-1" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}><Check className="w-2.5 h-2.5" strokeWidth={1.25}/> Save</button>
+                <button onClick={()=>{setAddingNote(false);setNewNoteText('');}} className="uppercase px-2 py-1" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}>Cancel</button>
+              </div>
             </div>
+          )}
+
+          {log.length>1&&(
+            <div className="flex items-center gap-2 mb-2">
+              <Search className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
+              <input
+                type="text"
+                value={logSearch}
+                onChange={e=>setLogSearch(e.target.value)}
+                placeholder="Filter log entries…"
+                className="flex-1 text-xs focus:outline-none"
+                style={{background:'transparent',color:TEXT}}
+              />
+              {logSearch&&<button onClick={()=>setLogSearch('')} style={{color:FAINT,fontSize:'10px'}}>✕</button>}
+            </div>
+          )}
+
+          {filteredLog.length===0&&log.length>0&&q&&(
+            <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No entries match.</div>
+          )}
+          {log.length===0&&(
+            <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No session notes yet. Notes from Today view are added here after day rollover.</div>
+          )}
+
+          <div className="space-y-0">
+            {filteredLog.map((entry,idx)=>(
+              <LogEntry key={entry.id} entry={entry} itemId={item.id} isLast={idx===filteredLog.length-1} onDelete={()=>deleteNoteLogEntry&&deleteNoteLogEntry(item.id,entry.id)} onUpdate={(text)=>updateNoteLogEntry&&updateNoteLogEntry(item.id,entry.id,text)}/>
+            ))}
           </div>
-        )}
-
-        {log.length>1&&(
-          <div className="flex items-center gap-2 mb-2">
-            <Search className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
-            <input
-              type="text"
-              value={logSearch}
-              onChange={e=>setLogSearch(e.target.value)}
-              placeholder="Filter log entries…"
-              className="flex-1 text-xs focus:outline-none"
-              style={{background:'transparent',color:TEXT}}
-            />
-            {logSearch&&<button onClick={()=>setLogSearch('')} style={{color:FAINT,fontSize:'10px'}}>✕</button>}
-          </div>
-        )}
-
-        {filteredLog.length===0&&log.length>0&&q&&(
-          <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No entries match.</div>
-        )}
-        {log.length===0&&(
-          <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No session notes yet. Notes from Today view are added here after day rollover.</div>
-        )}
-
-        <div className="space-y-0">
-          {filteredLog.map((entry,idx)=>(
-            <LogEntry key={entry.id} entry={entry} itemId={item.id} isLast={idx===filteredLog.length-1} onDelete={()=>deleteNoteLogEntry&&deleteNoteLogEntry(item.id,entry.id)} onUpdate={(text)=>updateNoteLogEntry&&updateNoteLogEntry(item.id,entry.id,text)}/>
-          ))}
-        </div>
+        </>)}
       </div>
     </div>
   );
