@@ -240,10 +240,13 @@ export default function useEtudesState(){
   // Also update freeNotes tags on save
   const saveFreeNote=(id,patch)=>{setFreeNotes(prev=>prev.map(n=>{if(n.id!==id)return n;const updated={...n,...patch};if(patch.body!==undefined)updated.tags=parseTagsFromBody(patch.body);return updated;}));};
 
-  // ── Debug: seed test notes ────────────────────────────────────────────────
+  // ── Debug: seed comprehensive test data ───────────────────────────────────
   const seedTestNotes=()=>{
     const uid=()=>Math.random().toString(36).slice(2,9);
-    const raw=[
+    const today=todayDateStr();
+
+    // ── Free notes ──────────────────────────────────────────────────────────
+    const rawFreeNotes=[
       {title:'On Intonation — Chromatic Scale Work',date:'2026-04-20',category:'Practice Journal',body:`# Intonation Focus\n\nWorkday 1 of targeted intonation drilling. Main pain points today:\n\n- Descending semitones consistently arrive **sharp** — need more relaxation in the arm weight transfer\n- The \`A♭–G\` semitone in the middle register is particularly slippery\n\n## Method\n\nUsed drone on A, practiced with a tuner displayed — aiming to see the needle before I hear the pitch. Slow bow, near the bridge.\n\n> "Intonation is not a problem of the ear — it is a problem of the body."\n\n[[2026-04-18]] — check yesterday's notes for the arm weight exercise.\n\n#intonation #technique #scale`},
       {title:'Pedaling Philosophy Notes',date:'2026-04-21',category:'Theory Analysis',body:`# Pedal Craft\n\nReturning to the question of harmonic vs. rhythmic pedaling after the masterclass.\n\n## Core Tension\n\n**Harmonic clarity** vs. **tonal warmth** — these are often in conflict.\n\nChopin pedal markings make no sense on a modern Steinway. They were written for instruments with ~2s decay; now decay is 8–10s in the bass.\n\n## Rules I'm testing this week\n\n1. Change pedal *on the melody note*, not the bass\n2. Half-pedal for inner voice movement\n3. Trust resonance in the lower third of the keyboard — don't pedal it away\n\n#pedaling #chopin #interpretation`},
       {title:'Memory Strategy — Structural Mapping',date:'2026-04-22',category:'Practice Journal',body:`# Memorisation Approach\n\nCurrently working on two pieces from memory. Applying **structural mapping**:\n\n## The Method\n\nDivide the piece into:\n- **Macro sections** (A B A′ Coda)\n- **Phrase groups** (4-bar units)\n- **Harmonic waypoints** (I, V, vi, modulation points)\n\nFor each phrase group, I should be able to:\n1. Name the harmonic destination\n2. Play it from any starting point cold\n3. Sing it without the instrument\n\n## Progress\n\n- Mm. 1–32: solid\n- Mm. 33–64: harmonic waypoints learned, fingering still inconsistent\n- Mm. 65–end: NOT started yet\n\n#memorization #practice #structure`},
@@ -257,8 +260,88 @@ export default function useEtudesState(){
       {title:'Weekly Reflection — Week 17',date:'2026-04-26',category:'Practice Journal',body:`# Week 17 Summary\n\n## What Went Well\n\n- Intonation work is showing measurable improvement — [[2026-04-20]] method is working\n- Finished structural mapping for the first movement (see [[2026-04-22]] for the system)\n- Prof. Chen's advice on bow distribution is already audible in recordings\n\n## What Needs Work\n\n- Still rushing after long notes (#rhythm problem from [[2026-04-16]])\n- Double stop 3rds: not yet clean at target tempo\n- Haven't started memorising mm. 65–end\n\n## Goals for Week 18\n\n1. Mm. 65–end memorised by Thursday\n2. Double stop 3rds at MM=72\n3. Record a full run-through on Friday\n\n#weeklyreview #goals #progress`},
       {title:'Bow Distribution Exercise',date:'2026-04-13',category:'Practice Journal',body:`# Bow Work\n\nFollowing up on Prof. Chen's comment. Today: **full-bow long tones**.\n\n## Exercise\n\nOpen string, whole bow, 4 seconds. Goal: perfect evenness in tone color throughout the stroke. The last 10cm of bow should sound *exactly* like the first 10cm.\n\n## Findings\n\n- The middle section (around the balance point) is the weakest — the arm tends to "fall" here\n- Need more active *lifting* of the elbow in the upper half\n- Lower half: the thumb is gripping — consciously release it every 30 seconds\n\n#bowwork #tone #technique`},
     ];
-    const notes=raw.map(n=>({id:`fn_test_${uid()}`,title:n.title,body:n.body,date:n.date,category:n.category||'',tags:parseTagsFromBody(n.body)}));
-    setFreeNotes(prev=>[...prev,...notes]);
+    const newFreeNotes=rawFreeNotes.map(n=>({id:`fn_test_${uid()}`,title:n.title,body:n.body,date:n.date,category:n.category||'',tags:parseTagsFromBody(n.body)}));
+    setFreeNotes(prev=>[...prev,...newFreeNotes]);
+
+    // ── Daily history entries (last 14 days) ─────────────────────────────────
+    const rawDays=[
+      {off:1,min:78,wu:12,ref:`# Session Notes\n\nGood concentration today. Worked through the Bach Allemande for 30 minutes — the articulation is becoming more consistent in the upper voice.\n\n---\n\n**Scales**: A harmonic minor, 3 octaves — cleaner than yesterday; the descending passage is almost there at MM=88.\n\n**Bach Allemande**: mm. 1–16 nearly memorised; the ornament in m. 8 still trips the hand.\n\n**Long tones**: 10-minute bow calibration session; the sound improved noticeably in the upper half.\n\n#focus #bach #scales`},
+      {off:2,min:92,wu:15,ref:`# Deep Work Day\n\nDedicated two full sessions today — rare to have that kind of uninterrupted time.\n\n---\n\n**Intonation drills**: Using tuner + drone. The D♭ in the upper register is consistently 8 cents flat — muscular habit. Fixed by the second session.\n\n**Repertoire run-through**: Played through the whole programme twice, start to finish. Many rough edges but the shape is there.\n\n**Technical scales**: Whole-tone and chromatic — ready to use in warm-up only.\n\n> Takeaway: Quality over quantity still holds. The second session was worse than the first — diminishing returns past 90 minutes.\n\n#deepwork #intonation #runthrough`},
+      {off:3,min:45,wu:8,ref:`# Short Session\n\nOnly 45 minutes today — personal commitments. Used the time for targeted slow practice.\n\n---\n\n**Difficult passage**: mm. 45–60 of the Allegro. Practiced in reverse order. Made real progress on the transition at m. 54.\n\n#shortday #technique`},
+      {off:4,min:0,wu:0,ref:''},
+      {off:5,min:110,wu:18,ref:`# Longest Session This Week\n\n110 minutes — pushing the limit before quality degrades.\n\n---\n\n**Warm-up**: Full scale sequence, bowing exercises, long tones.\n\n**Slow movement**: Bow distribution work — using the full length without rushing the return. The sound in the lower half improved significantly.\n\n**Double stops**: 3rds in G minor — still uneven on the string crossing at D/E.\n\n**Recording session**: Recorded mm. 1–48 for self-review. Intonation in the recap was noticeably better.\n\n#longday #slowmovement #recording`},
+      {off:6,min:82,wu:14,ref:`# Solid Practice Day\n\nConsistent and focused. No major breakthroughs but steady work.\n\n---\n\n**Scales**: B♭ major + G minor (both forms) — target met at MM=100.\n\n**Étude review**: Ran through two études for dexterity maintenance.\n\n**Main repertoire**: Worked primarily on the exposition, mm. 1–72. Phrase shapes more natural.\n\n#consistent #scales #etude`},
+      {off:7,min:70,wu:10,ref:`# Recovery Day\n\nLighter session after a demanding week. Mental reset.\n\n---\n\n**Sightreading**: 30 minutes of unknown repertoire — refreshing.\n\n**Improvisation**: 20 minutes free play, no structure.\n\n**Favourite passages**: Played through things I love, no pressure.\n\n#recovery #sightreading #play`},
+      {off:8,min:88,wu:13,ref:`# Masterclass Preparation\n\nPreparing for next week's lesson. Polishing the first movement.\n\n---\n\n**First movement**: 3 runs, with different energy each time — identifying which version feels most authentic.\n\n**Intonation spot-check**: The A♭ major passage — all clean today.\n\n**Memorisation check**: Closed the score and played. Lost the thread at m. 89 — back to score for that section.\n\n#masterclass #memorization #polish`},
+      {off:9,min:95,wu:16,ref:`# Scale Marathon\n\nDedicated today to systematic scale and arpeggio work.\n\n---\n\nAll 12 major scales, 2 octaves, legato MM=72. All 12 harmonic minor scales. Selected broken arpeggios. Chromatic scale, even and uneven rhythms.\n\nTotal scale time: ~40 minutes. Everything clean at tempo. Ready to maintain at warm-up level only.\n\n#scales #technical #marathon`},
+      {off:10,min:60,wu:10,ref:`# Rhythm Focus\n\nMetronome work — subdivisions and pulse steadiness.\n\n---\n\n**Subdivision exercise**: Internal 16th-note pulse while playing 8ths — breakthrough moment today.\n\n**Difficult passage**: mm. 45–60 again; the rushing is gone after the subdivision work.\n\n**Tempo build**: Started at MM=52, built to MM=84 in 4-click increments.\n\n#rhythm #metronome #subdivision`},
+      {off:11,min:0,wu:0,ref:''},
+      {off:12,min:75,wu:12,ref:`# Back After Rest Day\n\nAlways a strange sensation returning after a day off — the hands feel different.\n\n---\n\n**Extended warm-up**: 25 minutes — needed more time to settle.\n\n**Slow movement**: Phrasing work. Each phrase has one destination note; the preceding notes should lead, not wander.\n\n**Technical passages**: Light passes at the difficult spots — no drilling, just reminding the muscle memory.\n\n#return #phrasing #slowmovement`},
+      {off:13,min:85,wu:14,ref:`# Two-Week Milestone Review\n\nLooked back at the last two weeks of practice. Tangible progress in:\n\n1. Intonation — D♭ problem resolved\n2. Rhythm — subdivision method working well\n3. Memorisation — mm. 1–64 fully secure\n\nStill pending:\n- Double stop 3rds at full tempo\n- mm. 65–96 memorised\n- Bow distribution in the upper half\n\n#milestone #review #progress`},
+      {off:14,min:68,wu:11,ref:`# Listening Session\n\nBroke the practice routine intentionally — spent the session listening to recordings.\n\n---\n\nHeard four different interpretations. Key observations:\n- Tempo choices vary wildly (♩=66 to ♩=88)\n- The best performers seem to breathe *with* the phrase, not over it\n- Need to revisit my own bow planning in the development section\n\n#listening #research #inspiration`},
+    ];
+    const newDayEntries=rawDays.filter(d=>d.min>0||d.ref.trim()).map(d=>({kind:'day',date:shiftDate(today,-d.off),minutes:d.min,warmupMinutes:d.wu,items:[],reflection:d.ref}));
+
+    // ── Weekly history entries (last 3 weeks) ────────────────────────────────
+    const currentWeekStart=getWeekStart(today);
+    const newWeekEntries=[
+      {kind:'week',weekStart:shiftDate(currentWeekStart,-7),weekEnd:shiftDate(currentWeekStart,-1),
+        notes:`# Week in Review\n\n## What went well\n\n- Consistent daily practice — only two rest days\n- Intonation improved measurably; tuner comparison shows ~30% fewer deviations\n- The difficult passage at mm. 45–60 is finally clean and even\n\n## What needs attention\n\n- Double stop 3rds still rough at full tempo\n- Bow distribution in the upper half — a recurring issue\n- Mental fatigue noticeable after 80-minute sessions\n\n## Reflections\n\nThis was a **focused week**. The reverse-practice method made a real difference. Will keep it as a tool for learning new passages.\n\n#weekreview #progress #technique`,
+        goals:`# Goals for Next Week\n\n1. **Memorise mm. 65–96** — target Thursday\n2. **Double stop 3rds at MM=72** — daily 10-minute focused drill\n3. **Record a full run-through** — Friday evening\n4. Reduce session length to 80 minutes max — quality over quantity\n\n#goals #planning`},
+      {kind:'week',weekStart:shiftDate(currentWeekStart,-14),weekEnd:shiftDate(currentWeekStart,-8),
+        notes:`# Week in Review\n\n## Highlights\n\nThe masterclass was the defining moment of this week. Prof. Chen's feedback on bow distribution changed how I think about phrase shaping. The upper half is no longer something to *survive* — it's a resource.\n\n## Practice summary\n\n- 6 days practiced, avg 82 min\n- Main focus: slow movement phrasing\n- New method: "destination note" approach for every phrase\n\n## Observation\n\nI notice my best playing happens in the first 30 minutes. After that, quality plateaus. Might restructure sessions to put the hardest work first.\n\n#masterclass #phrasing #weekreview`,
+        goals:`# Goals for Next Week\n\n1. Apply the "destination note" approach to the entire first movement\n2. Daily bow-weight exercises (10 min) focusing on the upper half\n3. Begin serious memorisation work — first movement in full\n4. Introduce sightreading sessions (30 min twice a week)\n\n#goals #planning`},
+      {kind:'week',weekStart:shiftDate(currentWeekStart,-21),weekEnd:shiftDate(currentWeekStart,-15),
+        notes:`# Week in Review\n\n## Overview\n\nAn inconsistent week — external pressures affected practice time. Only 4 sessions instead of the usual 6. However, the sessions I did have were high-quality.\n\n## Best session of the week\n\nThe 110-minute marathon. Everything clicked. The recording from that session is the best I've heard from myself.\n\n## Concern\n\nThe memorisation work is falling behind. mm. 65–96 are not secure yet and I've been postponing it. Need to make it the priority next week.\n\n#inconsistent #weekreview #memorization`,
+        goals:`# Goals for Next Week\n\n1. **Priority**: mm. 65–96 fully memorised by Friday\n2. Get back to 6-day practice schedule\n3. Weekly recording session (Friday)\n4. Start building full programme endurance — play everything back-to-back once\n\n#goals #planning`},
+    ];
+
+    // ── Monthly history entries (last 2 months) ───────────────────────────────
+    const newMonthEntries=[
+      {kind:'month',month:shiftDate(today,-30).slice(0,7),
+        notes:`# Month in Review\n\n## Overall Assessment\n\nThe most consistent month in recent memory. Daily practice became a genuine habit rather than a discipline — it stopped feeling like effort.\n\n## Technical Milestones\n\n- **Intonation**: Measurably improved in all registers. The D♭ problem that plagued the opening passage is essentially resolved.\n- **Memorisation**: Mm. 1–64 fully secure from memory; can start from any structural point cold.\n- **Rhythm**: Subdivision method has transformed the accuracy of the difficult passage.\n\n## Performance Insight\n\nRecorded a full run-through at the end of the month. Observations:\n1. The slow movement is the strongest section\n2. The development section needs more dynamic contrast\n3. The ending is too abrupt — needs a cleaner approach\n\n#monthreview #progress #milestone`,
+        goals:`# Goals for Next Month\n\n1. **Complete memorisation** of the entire programme\n2. Build programme endurance — full run-through 3× per week\n3. Begin polish work on the first movement\n4. Book a mock performance with an audience\n5. Address the dynamic contrast in the development section\n\n#goals #planning`},
+      {kind:'month',month:shiftDate(today,-60).slice(0,7),
+        notes:`# Month in Review\n\n## Summary\n\nA month of foundation work. Less glamorous than polishing, but necessary. Scales, arpeggios, bow exercises — the kind of work that doesn't show immediately but compounds over time.\n\n## Learning\n\nRealised this month that my warm-up routine was too brief. Extended it from 15 to 25 minutes — the effect on the first hour of practice is significant.\n\n## Challenge\n\nDouble stop work remains inconsistent. Some days clean, some days not. Haven't found the systematic fix yet. Will research different approaches next month.\n\n#monthreview #foundation #technique`,
+        goals:`# Goals for Next Month\n\n1. Find a systematic approach to double stop 3rds\n2. Extend productive session length by 10 minutes\n3. Begin learning a new piece (sight-reading phase)\n4. Attend at least two live concerts for inspiration\n\n#goals #planning`},
+    ];
+
+    // Merge all history entries (skip if date already exists)
+    setHistory(prev=>{
+      const merged=[...prev];
+      [...newDayEntries,...newWeekEntries,...newMonthEntries].forEach(entry=>{
+        let idx=-1;
+        if(entry.kind==='day')idx=merged.findIndex(h=>h.kind==='day'&&h.date===entry.date);
+        else if(entry.kind==='week')idx=merged.findIndex(h=>h.kind==='week'&&h.weekStart===entry.weekStart);
+        else if(entry.kind==='month')idx=merged.findIndex(h=>h.kind==='month'&&h.month===entry.month);
+        if(idx<0)merged.push(entry);
+      });
+      return merged;
+    });
+
+    // ── Repertoire item notes (detail + noteLog) ─────────────────────────────
+    const logTemplates=[
+      (d)=>({id:`seed_${uid()}`,date:d,text:`# Session Notes\n\nSlow practice today — focusing on the transition between sections. The harmonic progression feels clearer when played at half tempo.\n\n#technique #slowpractice`,source:'session'}),
+      (d)=>({id:`seed_${uid()}`,date:d,text:`Good session. The hand position issue from last week seems resolved. Bow arm more relaxed today. Making real progress through the first section.\n\n#progress`,source:'session'}),
+      (d)=>({id:`seed_${uid()}`,date:d,text:`## Intonation Check\n\nSpent 15 minutes with a drone. Weak point: the ascending leap in the second phrase. Tends flat — will add to warm-up rotation.\n\n#intonation`,source:'session'}),
+      (d)=>({id:`seed_${uid()}`,date:d,text:`Ran through with the metronome at target tempo. Three rough spots identified:\n1. The transition at the climax\n2. The fast passage in the recapitulation\n3. The final bars — not secure from memory yet\n\n#tempo #memorization`,source:'manual'}),
+      (d)=>({id:`seed_${uid()}`,date:d,text:`# Breakthrough Moment\n\nThe phrase finally *sang* today. Stopped fighting the bow and let the weight do the work. Recorded it — the best take so far.\n\n#tone #phrasing`,source:'session'}),
+      (d)=>({id:`seed_${uid()}`,date:d,text:`Short focused session. Only had 20 minutes — used them on the hardest spot only. 5 careful repetitions, each one better than the last. Quality over quantity.\n\n#focused`,source:'session'}),
+    ];
+    const detailTemplates=[
+      (title)=>`# ${title} — Practice Notes\n\n**Stage**: Active learning\n\n## Context\n\nThis piece demands consistent attention to intonation and phrasing. The main technical challenge is the passage in the middle section — the hand position shift requires careful preparation.\n\n## Long-term goals\n\n- Performance-ready by end of quarter\n- Full memorisation before any public performance\n- Record a clean reference take monthly\n\n#technique #phrasing #longterm`,
+      (title)=>`# ${title}\n\n## Notes\n\nStarted this piece in earnest 3 weeks ago. The opening is deceptively simple — the challenge is maintaining the sustained tone while the inner voices move.\n\n## Key difficulties\n\n- String crossing clarity in the fast passage\n- Intonation in the upper register\n- Memorisation of the development section\n\n#technique #memorization`,
+      (title)=>`# About This Piece\n\nLearning for the spring programme. Historical context: composed in a period of great personal upheaval — that tension should come through in the performance.\n\n## Interpretation approach\n\nFollowing Prof. Chen's advice: every phrase has one destination note. Everything else serves it.\n\n#interpretation #masterclass`,
+    ];
+    setItems(prev=>prev.map((item,idx)=>{
+      const alreadySeeded=(item.noteLog||[]).some(e=>e.id&&e.id.startsWith('seed_'));
+      if(alreadySeeded)return item;
+      const title=displayTitle(item);
+      const detail=item.detail||detailTemplates[idx%detailTemplates.length](title);
+      const offsets=[1,3,6,9,12];
+      const logs=offsets.slice(0,3+(idx%3)).map((off,li)=>logTemplates[li%logTemplates.length](shiftDate(today,-off)));
+      return {...item,detail,noteLog:[...(item.noteLog||[]),...logs]};
+    }));
   };
 
   // ── PDF management ────────────────────────────────────────────────────────
