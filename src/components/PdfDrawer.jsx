@@ -289,7 +289,9 @@ export default function PdfDrawer({
                 endPage={activePdf?.endPage||null}
                 bookmarks={activePdf?.bookmarks||[]}
                 onPageChange={setCurrentViewPage}
-                onBookmarkClick={()=>{setSidebarTab('bookmarks');}}
+                onAddBookmark={addBookmark?(name,page)=>{
+                  addBookmark(pdfItem.id,activePdfId,name,page);
+                }:undefined}
               />
             ):activePdf?(
               <div className="h-full flex flex-col items-center justify-center p-8 text-center">
