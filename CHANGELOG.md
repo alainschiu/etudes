@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.95.0-beta — 2026-04-27
+
+### PDF Score System (P1–P6)
+
+- **P1 — All repertoire types** — PDF upload, reference link, and the "Add score" button are no longer restricted to Pieces; all four types (Technique, Pieces, Play, Study) now support scores
+- **P2 — Bookmarks** — add named bookmarks at any page within a PDF attachment; bookmarks appear as a ribbon overlay on the page in all view modes; a dedicated toolbar button shows a popover with the full bookmark list (jump to any), current-page bookmarks highlighted, and an inline add form (name + current page, press Enter or +)
+- **P3 — Viewer controls** — replaced the `<iframe>` with a full `react-pdf` viewer; toolbar includes: fit-to-width, fit-to-page, zoom in/out with % indicator, single-page mode, two-page spread mode (shows current page + next side-by-side), continuous scroll mode; page indicator shows current page / total; all toolbar icons have hover labels via portal tooltip (works through overflow clipping)
+- **P4 — Resizable sidebar** — drag the handle between the viewer and sidebar to resize (220–520 px range); expand/minimize button in header toggles edge-to-edge fullscreen
+- **P5 — Shared score library** — uploading a PDF creates a library entry (`libraryId`); the same file can be attached to multiple items via "From library" in the tab bar, each with its own page range (`startPage`, `endPage`); deleting an attachment only removes the blob from storage when no other item still references that `libraryId`
+- **P6 — Spot ↔ bookmark link** — in SpotEditor (Repertoire), a "→ bookmark" dropdown lists all bookmarks across the item's attachments; selecting one stores `bookmarkId` + `pdfAttachmentId` on the spot; when a linked spot becomes active while PdfDrawer is open, it auto-switches to the correct attachment tab and jumps to the bookmark's page
+
+### Data model
+
+- Schema version bumped from 6 → 7; existing attachment `{id, name}` shape automatically migrated to `{id, libraryId, name, startPage, endPage, bookmarks: []}` on first load
+- Spots gain optional `bookmarkId` and `pdfAttachmentId` fields (null by default, backward-compatible)
+- New `pdfLibrary` global state (persisted to `localStorage`) tracks all uploaded PDF blobs independent of which items reference them
+
 ## v0.93.5 — 2026-04-27
 
 ### Recording

@@ -1,5 +1,15 @@
 # Update Log
 
+## v0.95.0-beta — 2026-04-27
+
+- **PDF score viewer P1** — PDF upload and reference link extended to all four repertoire types (Technique, Pieces, Play, Study)
+- **PDF score viewer P2** — named bookmarks: add, rename, delete, jump to page; bookmark indicator ribbon on pages; toolbar bookmark button opens a popover with full bookmark list + inline add form
+- **PDF score viewer P3** — full viewer controls: single-page, two-page spread, continuous scroll; zoom in/out with % indicator; fit-to-width / fit-to-page; page indicator; hover-labelled toolbar
+- **PDF score viewer P4** — sidebar resizable by dragging the handle; fullscreen expand/minimize toggle in header
+- **PDF score viewer P5** — shared score library: one PDF can be attached to multiple items; each attachment has an independent page range; "From library" picker in tab bar; deleting an attachment only removes the blob when no other item references it
+- **PDF score viewer P6** — spot ↔ bookmark link: select a bookmark in SpotEditor; when the spot is activated, PdfDrawer auto-switches to the correct attachment and jumps to the linked page
+- **Data model** — schema bumped to v7; attachment shape changed to `{id, libraryId, name, startPage, endPage, bookmarks[]}`; spots gain `bookmarkId` and `pdfAttachmentId` fields; automatic migration of existing data on load
+
 ## v0.93.5 — 2026-04-27
 
 - **Recording R1–R3** — replaced mic icon with playback button; elapsed recording time shown in footer and panel; context-aware record (piece vs. daily when piece timer is running); attach daily recording to a piece in the current routine (resets daily recording after attach)
