@@ -2,6 +2,7 @@ import React, {useState, useEffect, useRef} from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {Play, Pause, SkipBack, Plus, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Crosshair, Pencil, Check, Music, Calendar} from 'lucide-react';
+import {MarkdownEditor} from './MarkdownEditor.jsx';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, serif, serifText, sans, mono} from '../constants/theme.js';
 import {STAGES} from '../constants/config.js';
 import {idbGet} from '../lib/storage.js';
@@ -210,13 +211,10 @@ function MarkdownComponents({serif:serifFont}){
   };
 }
 
-// Detect if value has Markdown syntax worth rendering live
-function hasMdSyntax(v=''){return /[#*_`\[\]>]/.test(v)||/^-{1,3}\s/m.test(v)||/^\d+\.\s/m.test(v)||/^---$/m.test(v);}
-
 export function MarkdownField({value,onChange,placeholder,minHeight=80,className='',style={},readOnly=false,showDeepLinkHint=false}){
+  const {fontSize:styleFontSize,background,border,...wrapStyle}=style||{};
   const hasCustomLink=HAS_CUSTOM_LINK_RE.test(value||'');
   const showHint=showDeepLinkHint&&hasCustomLink;
-  const showInlinePreview=!readOnly&&hasMdSyntax(value||'');
 
   if(readOnly){
     return (
@@ -231,36 +229,16 @@ export function MarkdownField({value,onChange,placeholder,minHeight=80,className
   }
 
   return (
-    <div>
-      <textarea
+    <div className={className} style={{border:border||`1px solid ${LINE}`,background:background||'transparent',...wrapStyle}}>
+      <MarkdownEditor
         value={value||''}
-        onChange={e=>onChange&&onChange(e.target.value)}
+        onChange={onChange}
         placeholder={placeholder}
-        className={`resize-none focus:outline-none w-full ${className}`}
-        style={{
-          minHeight,padding:'12px 16px',
-          background:'transparent',color:TEXT,
-          border:`1px solid ${LINE}`,
-          fontFamily:serif,fontSize:'15px',lineHeight:1.75,fontWeight:300,
-          ...style,
-        }}
+        minHeight={minHeight}
+        fontSize={styleFontSize||'15px'}
       />
-      {showInlinePreview&&(
-        <div style={{
-          padding:'10px 16px',
-          fontFamily:serif,fontSize:'14px',lineHeight:1.8,fontWeight:300,
-          color:TEXT,
-          borderLeft:`2px solid ${IKB}`,
-          borderRight:`1px solid ${LINE}`,
-          borderBottom:`1px solid ${LINE}`,
-          background:`${IKB}08`,
-          opacity:0.9,
-        }}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents({})}>{value}</ReactMarkdown>
-        </div>
-      )}
       {showHint&&(
-        <div style={{marginTop:'4px',fontSize:'11px',color:FAINT,fontStyle:'italic',fontFamily:serif}}>
+        <div style={{padding:'4px 16px 8px',fontSize:'11px',color:FAINT,fontStyle:'italic',fontFamily:serif}}>
           Custom links open in the desktop app if installed.
         </div>
       )}
