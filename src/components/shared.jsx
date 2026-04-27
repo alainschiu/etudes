@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import {Play, Pause, SkipBack, Plus, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Crosshair, Pencil, Check, Music, Calendar, Eye} from 'lucide-react';
+import {Play, Pause, SkipBack, Plus, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Crosshair, Pencil, Check, Music, Calendar} from 'lucide-react';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, serif, serifText, sans, mono} from '../constants/theme.js';
 import {STAGES} from '../constants/config.js';
 import {idbGet} from '../lib/storage.js';
@@ -210,56 +210,54 @@ function MarkdownComponents({serif:serifFont}){
   };
 }
 
+// Detect if value has Markdown syntax worth rendering live
+function hasMdSyntax(v=''){return /[#*_`\[\]>]/.test(v)||/^-{1,3}\s/m.test(v)||/^\d+\.\s/m.test(v)||/^---$/m.test(v);}
+
 export function MarkdownField({value,onChange,placeholder,minHeight=80,className='',style={},readOnly=false,showDeepLinkHint=false}){
-  const [preview,setPreview]=useState(false);
   const hasCustomLink=HAS_CUSTOM_LINK_RE.test(value||'');
   const showHint=showDeepLinkHint&&hasCustomLink;
+  const showInlinePreview=!readOnly&&hasMdSyntax(value||'');
+
+  if(readOnly){
+    return (
+      <div className={className} style={{minHeight,padding:'12px 16px',fontFamily:serif,fontSize:'15px',lineHeight:1.8,fontWeight:300,color:TEXT,background:'transparent',border:`1px solid ${LINE}`,...style}}>
+        {(value||'').trim()?(
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents({})}>{value}</ReactMarkdown>
+        ):(
+          <span style={{color:FAINT,fontStyle:'italic',fontSize:'14px'}}>{placeholder||'Nothing here yet.'}</span>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div style={{position:'relative'}}>
-      {/* toggle button */}
-      {!readOnly&&(
-        <button
-          onClick={()=>setPreview(v=>!v)}
-          title={preview?'Edit':'Preview'}
-          style={{position:'absolute',top:'8px',right:'8px',zIndex:2,color:preview?IKB:FAINT,background:'transparent',border:'none',cursor:'pointer',padding:'2px',lineHeight:1,display:'flex',alignItems:'center'}}
-        >
-          {preview?<Pencil className="w-3 h-3" strokeWidth={1.25}/>:<Eye className="w-3 h-3" strokeWidth={1.25}/>}
-        </button>
-      )}
-      {preview||readOnly?(
-        <div
-          className={className}
-          style={{
-            minHeight,padding:'12px 16px',paddingRight:'32px',
-            fontFamily:serif,fontSize:'15px',lineHeight:1.8,fontWeight:300,
-            color:TEXT,background:'transparent',
-            border:`1px solid ${LINE}`,
-            ...style,
-          }}
-        >
-          {(value||'').trim()?(
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents({serif})}>
-              {value}
-            </ReactMarkdown>
-          ):(
-            <span style={{color:FAINT,fontStyle:'italic',fontSize:'14px'}}>{placeholder||'Nothing here yet.'}</span>
-          )}
+    <div>
+      <textarea
+        value={value||''}
+        onChange={e=>onChange&&onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`resize-none focus:outline-none w-full ${className}`}
+        style={{
+          minHeight,padding:'12px 16px',
+          background:'transparent',color:TEXT,
+          border:`1px solid ${LINE}`,
+          fontFamily:serif,fontSize:'15px',lineHeight:1.75,fontWeight:300,
+          ...style,
+        }}
+      />
+      {showInlinePreview&&(
+        <div style={{
+          padding:'10px 16px',
+          fontFamily:serif,fontSize:'14px',lineHeight:1.8,fontWeight:300,
+          color:TEXT,
+          borderLeft:`2px solid ${IKB}`,
+          borderRight:`1px solid ${LINE}`,
+          borderBottom:`1px solid ${LINE}`,
+          background:`${IKB}08`,
+          opacity:0.9,
+        }}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents({})}>{value}</ReactMarkdown>
         </div>
-      ):(
-        <textarea
-          value={value||''}
-          onChange={e=>onChange&&onChange(e.target.value)}
-          placeholder={placeholder}
-          readOnly={readOnly}
-          className={`resize-none focus:outline-none ${className}`}
-          style={{
-            width:'100%',minHeight,padding:'12px 16px',paddingRight:'32px',
-            background:'transparent',color:TEXT,
-            border:`1px solid ${LINE}`,
-            fontFamily:serif,fontSize:'15px',lineHeight:1.75,fontWeight:300,
-            ...style,
-          }}
-        />
       )}
       {showHint&&(
         <div style={{marginTop:'4px',fontSize:'11px',color:FAINT,fontStyle:'italic',fontFamily:serif}}>

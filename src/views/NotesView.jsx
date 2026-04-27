@@ -486,7 +486,6 @@ function WikiPopup({popup, onSelect, onDismiss}){
 
 // ── Note editor ───────────────────────────────────────────────────────────
 function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLinkClick, items, history}){
-  const [preview,setPreview]=useState(false);
   const [catOpen,setCatOpen]=useState(false);
   const [wikiPopup,setWikiPopup]=useState(null);
   const textareaRef=useRef(null);
@@ -624,12 +623,7 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
           )}
         </div>
 
-        <div className="ml-auto flex items-center gap-2">
-          <button onClick={()=>setPreview(v=>!v)} title={preview?'Edit':'Preview'} style={{color:preview?IKB:FAINT,border:`1px solid ${preview?IKB:LINE_MED}`,padding:'2px 8px',fontSize:'10px',letterSpacing:'0.22em',display:'flex',alignItems:'center',gap:'4px'}}>
-            {preview?<Pencil className="w-3 h-3" strokeWidth={1.25}/>:<svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" strokeWidth="1.25" fill="none"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
-            {preview?'Edit':'Preview'}
-          </button>
-        </div>
+        <div className="ml-auto"/>
       </div>
 
       {/* Tags */}
@@ -644,27 +638,32 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
       )}
 
       {/* Body */}
-      {preview?(
-        <div style={{fontFamily:serif,fontSize:'17px',lineHeight:1.85,fontWeight:300,color:TEXT,minHeight:'200px'}}>
-          {(note.body||'').trim()?(
-            renderBodyWithTags(note.body,onTagClick,onWikiLinkClick,items,history)
-          ):(
-            <span style={{color:FAINT,fontStyle:'italic'}}>Nothing here yet.</span>
-          )}
-        </div>
-      ):(
-        <div style={{position:'relative'}}>
-          <textarea
-            ref={textareaRef}
-            value={note.body}
-            onChange={handleBodyChange}
-            onKeyDown={handleBodyKeyDown}
-            onBlur={handleBodyBlur}
-            placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`}
-            className="w-full h-96 resize-none focus:outline-none"
-            style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'17px',lineHeight:1.85,fontWeight:300}}
-          />
-          <WikiPopup popup={wikiPopup} onSelect={insertWikiLink} onDismiss={()=>setWikiPopup(null)}/>
+      <div style={{position:'relative'}}>
+        <textarea
+          ref={textareaRef}
+          value={note.body}
+          onChange={handleBodyChange}
+          onKeyDown={handleBodyKeyDown}
+          onBlur={handleBodyBlur}
+          placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`}
+          className="w-full h-64 resize-none focus:outline-none"
+          style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'17px',lineHeight:1.85,fontWeight:300,borderBottom:`1px solid ${LINE}`}}
+        />
+        <WikiPopup popup={wikiPopup} onSelect={insertWikiLink} onDismiss={()=>setWikiPopup(null)}/>
+      </div>
+      {/* Live inline preview */}
+      {(note.body||'').trim()&&(
+        <div style={{
+          marginTop:'1px',
+          padding:'14px 4px',
+          fontFamily:serif,fontSize:'16px',lineHeight:1.85,fontWeight:300,
+          color:TEXT,
+          borderLeft:`2px solid ${IKB}`,
+          paddingLeft:'14px',
+          background:`${IKB}06`,
+          opacity:0.92,
+        }}>
+          {renderBodyWithTags(note.body,onTagClick,onWikiLinkClick,items,history)}
         </div>
       )}
     </div>
