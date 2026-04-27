@@ -1,11 +1,11 @@
 import React, {useState, useMemo, useEffect} from 'react';
-import {Play, Pause, Plus, X, ChevronDown, ChevronUp, FileText, ArrowUp, ArrowDown, Crosshair, Pencil, Trash2, TrendingUp, Users, GripVertical, Search, Layers, Link as LinkIcon, Music, Guitar, Calendar, Check} from 'lucide-react';
+import {Play, Pause, Plus, X, ChevronDown, ChevronUp, FileText, ArrowUp, ArrowDown, Crosshair, Pencil, Trash2, TrendingUp, Users, GripVertical, Search, Layers, Link as LinkIcon, Music, Guitar, Calendar, Check, BookOpen} from 'lucide-react';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, sans} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
-import {daysUntil} from '../lib/dates.js';
+import {daysUntil, todayDateStr} from '../lib/dates.js';
 import {getItemTime, getSpotTime, displayTitle, formatByline, normalizeComposerKey, nextPerformance, mkSpotId} from '../lib/items.js';
 import {toRoman} from '../lib/music.js';
-import {DisplayHeader, StageLabels, PerformanceChip, ItemTimeEditor} from '../components/shared.jsx';
+import {DisplayHeader, StageLabels, PerformanceChip, ItemTimeEditor, MarkdownField} from '../components/shared.jsx';
 import {fmtSpotTime} from '../components/shared.jsx';
 import PieceRecordingsPanel from '../components/PieceRecordingsPanel.jsx';
 
@@ -45,7 +45,7 @@ const eInM={...eIn,fontFamily:'ui-monospace,monospace',fontSize:'13px'};
 const selectOnFocus=(e)=>e.currentTarget.select();
 
 export default function RepertoireView(p){
-  const {items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId}=p;
+  const {items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry}=p;
   const [search,setSearch]=useState('');const [filterType,setFilterType]=useState('');const [filterComposer,setFilterComposer]=useState('');const [filterStyle,setFilterStyle]=useState('');const [filterStatus,setFilterStatus]=useState('');const [filterInstrument,setFilterInstrument]=useState('');
   const [sortBy,setSortBy]=useState('');
   const [groupByCollection,setGroupByCollection]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [composerOpen,setComposerOpen]=useState(true);const [instrumentOpen,setInstrumentOpen]=useState(true);const [expandedId,setExpandedId]=useState(()=>expandedItemId||null);const [showMoreIds,setShowMoreIds]=useState({});
@@ -133,7 +133,7 @@ export default function RepertoireView(p){
             {i.type==='piece'&&(<div className="mb-6"><div className="uppercase mb-3 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {hasSpots&&<span style={{color:DIM,letterSpacing:'0.22em'}}>· {i.spots.length}</span>}</div>{hasSpots&&(<div className="space-y-1" style={{border:`1px solid ${LINE}`}}>{i.spots.map((s,idx)=>(<div key={s.id} style={{borderTop:idx>0?`1px solid ${LINE}`:'none'}}><SpotEditor spot={s} itemId={i.id} itemTimes={itemTimes} isActive={activeItemId===i.id&&activeSpotId===s.id} onStart={()=>startItem(i.id,s.id)} onStop={stopItem} onUpdate={(patch)=>updateSpot(i.id,s.id,patch)} onDelete={()=>deleteSpot(i.id,s.id)} onMoveUp={()=>moveSpot(i.id,s.id,-1)} onMoveDown={()=>moveSpot(i.id,s.id,1)} canMoveUp={idx>0} canMoveDown={idx<i.spots.length-1} onEditTime={(v)=>editSpotTime(i.id,s.id,v)} dayClosed={dayClosed} itemPdfs={i.pdfs||[]}/></div>))}</div>)}<button onClick={()=>addSpot(i.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button></div>)}
             {(i.bpmLog||[]).length>=2&&(<div className="mb-6"><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}><TrendingUp className="w-3 h-3" strokeWidth={1.25}/> Tempo history <span style={{color:DIM}}>({i.bpmLog.length} · whole piece)</span></div><BpmSparkline log={i.bpmLog} target={i.bpmTarget}/></div>)}
             {pieceRecordingMeta&&<PieceRecordingsPanel item={i} pieceRecordingMeta={pieceRecordingMeta} startPieceRecording={startPieceRecording} stopPieceRecording={stopPieceRecording} deletePieceRecording={deletePieceRecording} pieceRecordingItemId={pieceRecordingItemId} isRecording={isRecording} currentBpm={currentBpm} dayClosed={dayClosed}/>}
-            <div><div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Notes</div><textarea value={i.detail} onChange={e=>updateItem(i.id,{detail:e.target.value})} placeholder="Fingerings, tempi, interpretive ideas…" className="w-full h-40 p-4 resize-none focus:outline-none" style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE}`,fontFamily:serif,fontSize:'15px',lineHeight:1.75,fontWeight:300}}/></div>
+            <LogBookPanel item={i} updateItem={updateItem} addNoteLogEntry={addNoteLogEntry} deleteNoteLogEntry={deleteNoteLogEntry} updateNoteLogEntry={updateNoteLogEntry}/>
           </div>
           <div className="col-span-4 space-y-5 min-w-0">
             <div><div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Total time</div><div className="tabular-nums" style={{fontFamily:serif,fontWeight:300,letterSpacing:'-0.01em',fontSize:'32px'}}>{fmt(getItemTime(itemTimes,i.id))}</div>{hasSpots&&<div className="italic mt-1" style={{color:FAINT,fontFamily:serif,fontSize:'11px'}}>whole piece + spots</div>}</div>
@@ -182,6 +182,136 @@ export default function RepertoireView(p){
       </div>
     </div>
   </div>);
+}
+
+function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry}){
+  const [logSearch,setLogSearch]=useState('');
+  const [addingNote,setAddingNote]=useState(false);
+  const [newNoteText,setNewNoteText]=useState('');
+  const log=(item.noteLog||[]).slice().reverse(); // newest first
+  const q=logSearch.trim().toLowerCase();
+  const filteredLog=q?log.filter(e=>(e.text||'').toLowerCase().includes(q)):log;
+
+  const handleAdd=()=>{if(!newNoteText.trim())return;addNoteLogEntry&&addNoteLogEntry(item.id,newNoteText.trim());setNewNoteText('');setAddingNote(false);};
+
+  return (
+    <div>
+      {/* Pinned notes (detail) */}
+      <div className="mb-4">
+        <div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>
+          <BookOpen className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/>
+          Pinned notes
+        </div>
+        <MarkdownField
+          value={item.detail||''}
+          onChange={v=>updateItem(item.id,{detail:v})}
+          placeholder="Fingerings, tempi, interpretive ideas…"
+          minHeight={80}
+          style={{background:SURFACE2}}
+          showDeepLinkHint
+        />
+      </div>
+
+      {/* Session log */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="uppercase flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>
+            <BookOpen className="w-3 h-3" strokeWidth={1.25}/>
+            Log book
+            {log.length>0&&<span style={{color:DIM}}>· {log.length}</span>}
+          </div>
+          <button onClick={()=>setAddingNote(v=>!v)} className="uppercase flex items-center gap-1 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}>
+            <Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add note
+          </button>
+        </div>
+
+        {addingNote&&(
+          <div className="mb-3 p-3" style={{background:SURFACE2,border:`1px solid ${LINE}`}}>
+            <textarea
+              autoFocus
+              value={newNoteText}
+              onChange={e=>setNewNoteText(e.target.value)}
+              placeholder="Write a retrospective note…"
+              className="w-full resize-none focus:outline-none"
+              style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'13px',lineHeight:1.65,minHeight:'60px',fontWeight:300}}
+            />
+            <div className="flex gap-2 mt-2">
+              <button onClick={handleAdd} className="uppercase px-2 py-1 flex items-center gap-1" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}><Check className="w-2.5 h-2.5" strokeWidth={1.25}/> Save</button>
+              <button onClick={()=>{setAddingNote(false);setNewNoteText('');}} className="uppercase px-2 py-1" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}>Cancel</button>
+            </div>
+          </div>
+        )}
+
+        {log.length>1&&(
+          <div className="flex items-center gap-2 mb-2">
+            <Search className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
+            <input
+              type="text"
+              value={logSearch}
+              onChange={e=>setLogSearch(e.target.value)}
+              placeholder="Filter log entries…"
+              className="flex-1 text-xs focus:outline-none"
+              style={{background:'transparent',color:TEXT}}
+            />
+            {logSearch&&<button onClick={()=>setLogSearch('')} style={{color:FAINT,fontSize:'10px'}}>✕</button>}
+          </div>
+        )}
+
+        {filteredLog.length===0&&log.length>0&&q&&(
+          <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No entries match.</div>
+        )}
+        {log.length===0&&(
+          <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No session notes yet. Notes from Today view are added here after day rollover.</div>
+        )}
+
+        <div className="space-y-0">
+          {filteredLog.map((entry,idx)=>(
+            <LogEntry key={entry.id} entry={entry} itemId={item.id} isLast={idx===filteredLog.length-1} onDelete={()=>deleteNoteLogEntry&&deleteNoteLogEntry(item.id,entry.id)} onUpdate={(text)=>updateNoteLogEntry&&updateNoteLogEntry(item.id,entry.id,text)}/>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LogEntry({entry,itemId,isLast,onDelete,onUpdate}){
+  const [editing,setEditing]=useState(false);
+  const [text,setText]=useState(entry.text||'');
+  useEffect(()=>{setText(entry.text||'');},[entry.text]);
+  const commit=()=>{if(text.trim()&&text.trim()!==entry.text){onUpdate&&onUpdate(text.trim());}else{setText(entry.text||'');}setEditing(false);};
+  return (
+    <div className="group py-3" style={{borderTop:`1px solid ${LINE}`,borderBottom:isLast?`1px solid ${LINE_MED}`:'none'}}>
+      <div className="flex items-baseline justify-between gap-2 mb-1.5">
+        <div className="flex items-baseline gap-2">
+          <span className="uppercase tabular-nums" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>{entry.date}</span>
+          {entry.source==='manual'&&<span className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'9px'}}>manual</span>}
+        </div>
+        <div className="flex items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button onClick={()=>setEditing(v=>!v)} style={{color:FAINT}} title="Edit"><Pencil className="w-3 h-3" strokeWidth={1.25}/></button>
+          <button onClick={onDelete} style={{color:FAINT}} title="Delete"><Trash2 className="w-3 h-3" strokeWidth={1.25}/></button>
+        </div>
+      </div>
+      {editing?(
+        <div>
+          <textarea
+            autoFocus
+            value={text}
+            onChange={e=>setText(e.target.value)}
+            onBlur={commit}
+            onKeyDown={e=>{if(e.key==='Escape'){setText(entry.text||'');setEditing(false);}}}
+            className="w-full resize-none focus:outline-none"
+            style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE}`,fontFamily:serif,fontSize:'13px',lineHeight:1.65,minHeight:'60px',fontWeight:300,padding:'8px'}}
+          />
+          <div className="flex gap-2 mt-1">
+            <button onClick={commit} className="uppercase px-2 py-1" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}>Save</button>
+            <button onClick={()=>{setText(entry.text||'');setEditing(false);}} className="uppercase px-2 py-1" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}>Cancel</button>
+          </div>
+        </div>
+      ):(
+        <MarkdownField value={entry.text||''} readOnly minHeight={0} style={{border:'none',padding:0,fontSize:'13px',background:'transparent'}}/>
+      )}
+    </div>
+  );
 }
 
 function LengthEditorRow({i,updateItem}){

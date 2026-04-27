@@ -34,7 +34,9 @@ export function buildHistoryItems(it,items){
 export function nextPerformance(perfs){if(!Array.isArray(perfs)||perfs.length===0)return null;const td=todayDateStr();const up=perfs.filter(p=>p.date&&p.date>=td).sort((a,b)=>a.date.localeCompare(b.date));if(up[0])return up[0];const past=perfs.filter(p=>p.date).sort((a,b)=>b.date.localeCompare(a.date));return past[0]||null;}
 export function normalizeComposerKey(s){return (s||'').trim().toLowerCase().replace(/\s+/g,' ');}
 
-export const makeNewItem=(type)=>({id:Date.now()+Math.floor(Math.random()*1000),type,title:'Untitled',tags:[],pdfs:[],defaultPdfId:null,detail:'',composer:'',author:'',arranger:'',catalog:'',collection:'',movement:'',stage:'queued',referenceUrl:'',startedDate:null,bpmLog:[],bpmTarget:null,todayNote:'',instrument:'',spots:[],performances:[],lengthSecs:null});
+export const mkNoteLogId=()=>`nl-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+
+export const makeNewItem=(type)=>({id:Date.now()+Math.floor(Math.random()*1000),type,title:'Untitled',tags:[],pdfs:[],defaultPdfId:null,detail:'',composer:'',author:'',arranger:'',catalog:'',collection:'',movement:'',stage:'queued',referenceUrl:'',startedDate:null,bpmLog:[],bpmTarget:null,todayNote:'',instrument:'',spots:[],performances:[],lengthSecs:null,noteLog:[]});
 
 export const TEST_REPERTOIRE_ITEMS=[
   {id:'test-tech-001',type:'tech',title:'The Virtuoso Pianist: Exercise No. 1',tags:['hanon','finger independence'],pdfs:[],defaultPdfId:null,detail:'',composer:'Charles-Louis Hanon',author:'',arranger:'',catalog:'Part I, No. 1',collection:'The Virtuoso Pianist',movement:'Exercise No. 1',stage:'learning',referenceUrl:'',startedDate:null,bpmLog:[],bpmTarget:108,todayNote:'',instrument:'piano',spots:[],performances:[],lengthSecs:300},

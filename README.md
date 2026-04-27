@@ -1,4 +1,4 @@
-# Études — v0.95.0-beta
+# Études — v0.95.3
 
 A practice journal for musicians. Track daily sessions, time focused work, organise repertoire, and review progress across week and month views.
 

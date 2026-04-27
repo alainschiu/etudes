@@ -4,8 +4,9 @@ import {idbPut,idbDel,idbGet,idbAllKeys,storageAvailable,detectStorage,lsGet,lsS
 import {useSupabaseAuth} from '../lib/useSupabaseAuth.js';
 import {loadFromCloud,syncToCloud,mergeStates} from '../lib/sync.js';
 import {todayDateStr,shiftDate,getWeekStart,getMonthKey} from '../lib/dates.js';
-import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem,calcStreak} from '../lib/items.js';
+import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,mkNoteLogId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem,calcStreak} from '../lib/items.js';
 import {migrateItems,migrateSessions,migrateRoutines,migrateHistory} from '../lib/migrations.js';
+import {buildCompositeDailyReflection,parseTagsFromBody} from '../lib/notes.js';
 import useMetronome from '../hooks/useMetronome.js';
 import useRecording from '../hooks/useRecording.js';
 import useImportExport from '../hooks/useImportExport.js';
@@ -51,6 +52,7 @@ export default function useEtudesState(){
   const [monthReflection,setMonthReflection]=useState(()=>lsGet('etudes-monthReflection',{notes:'',goals:''}));
   const [settings,setSettings]=useState(()=>lsGet('etudes-settings',{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400}));
   const [freeNotes,setFreeNotes]=useState(()=>lsGet('etudes-freeNotes',[]));
+  const [noteCategories,setNoteCategories]=useState(()=>lsGet('etudes-noteCategories',[]));
   const [recordingMeta,setRecordingMeta]=useState(()=>lsGet('etudes-recordingMeta',{}));
   const [pieceRecordingMeta,setPieceRecordingMeta]=useState(()=>lsGet('etudes-pieceRecordingMeta',{}));
   const [pieceRecordingItemId,setPieceRecordingItemId]=useState(null);
@@ -75,6 +77,7 @@ export default function useEtudesState(){
   useEffect(()=>{lsSet('etudes-monthReflection',monthReflection);},[monthReflection]);
   useEffect(()=>{lsSet('etudes-settings',settings);},[settings]);
   useEffect(()=>{lsSet('etudes-freeNotes',freeNotes);},[freeNotes]);
+  useEffect(()=>{lsSet('etudes-noteCategories',noteCategories);},[noteCategories]);
   useEffect(()=>{lsSet('etudes-recordingMeta',recordingMeta);},[recordingMeta]);
   useEffect(()=>{lsSet('etudes-pieceRecordingMeta',pieceRecordingMeta);},[pieceRecordingMeta]);
   useEffect(()=>{lsSet('etudes-history',history);},[history]);
@@ -152,10 +155,12 @@ export default function useEtudesState(){
       if(!ld){lsSet(ROLLOVER_KEY,today);return;}
       if(ld!==today){
         const hi=buildHistoryItems(it,iv);
-        const prev={kind:'day',date:ld,minutes:Math.floor(tt/60),warmupMinutes:Math.floor((wt||0)/60),items:hi,reflection:dr||''};
-        if(prev.minutes>0||prev.reflection.trim()||prev.items.length>0){setHistory(h=>{const i=h.findIndex(x=>x.kind==='day'&&x.date===ld);if(i>=0){const c=[...h];c[i]=prev;return c;}return [...h,prev];});}
+        const composite=buildCompositeDailyReflection(dr,iv);
+        const prev={kind:'day',date:ld,minutes:Math.floor(tt/60),warmupMinutes:Math.floor((wt||0)/60),items:hi,reflection:composite};
+        if(prev.minutes>0||composite.trim()||prev.items.length>0){setHistory(h=>{const i=h.findIndex(x=>x.kind==='day'&&x.date===ld);if(i>=0){const c=[...h];c[i]=prev;return c;}return [...h,prev];});}
+        // Push noteLog entries for items with todayNote
+        setItems(p=>p.map(i=>{if(!i.todayNote||!i.todayNote.trim())return {...i,todayNote:''};const entry={id:mkNoteLogId(),date:ld,text:i.todayNote.trim(),source:'session'};return {...i,todayNote:'',noteLog:[...(i.noteLog||[]),entry]};}));
         setRestToday(0);setItemTimes({});setWarmupTimeToday(0);setDailyReflection('');setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);setIsResting(false);setDayClosed(false);
-        setItems(p=>p.map(i=>i.todayNote?{...i,todayNote:''}:i));
         lsSet(ROLLOVER_KEY,today);
       }
       if(lw&&lw!==cw){const we=shiftDate(lw,6);if((wr.notes||'').trim()||(wr.goals||'').trim()){const e={kind:'week',weekStart:lw,weekEnd:we,notes:wr.notes||'',goals:wr.goals||''};setHistory(h=>{const i=h.findIndex(x=>x.kind==='week'&&x.weekStart===lw);if(i>=0){const c=[...h];c[i]=e;return c;}return [...h,e];});}setWeekReflection({notes:'',goals:''});lsSet(WEEK_ROLLOVER_KEY,cw);}
@@ -226,6 +231,14 @@ export default function useEtudesState(){
   const BPM_LOG_MAX=200;
   const logTempo=useCallback(()=>{if(!activeItemId)return;const e={ts:Date.now(),bpm:metronome.bpm};if(activeSpotId){setItems(p=>p.map(i=>i.id!==activeItemId?i:{...i,spots:(i.spots||[]).map(s=>s.id===activeSpotId?{...s,bpmLog:[...(s.bpmLog||[]).slice(-BPM_LOG_MAX+1),e]}:s)}));}else{setItems(p=>p.map(i=>i.id===activeItemId?{...i,bpmLog:[...(i.bpmLog||[]).slice(-BPM_LOG_MAX+1),e]}:i));}},[activeItemId,activeSpotId,metronome.bpm]);
   const addQuickNote=useCallback((text)=>{if(!activeItemId||!text.trim())return;const ts=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});const pre=activeSpot?`(${activeSpot.label}) `:'';const e=`[${ts}] ${pre}${text.trim()}`;setItems(p=>p.map(i=>i.id===activeItemId?{...i,todayNote:(i.todayNote?i.todayNote+'\n':'')+e}:i));},[activeItemId,activeSpot]);
+
+  // ── Note log management ───────────────────────────────────────────────────
+  const addNoteLogEntry=(itemId,text,date)=>{const entry={id:mkNoteLogId(),date:date||todayDateStr(),text:text.trim(),source:'manual'};setItems(p=>p.map(i=>i.id===itemId?{...i,noteLog:[...(i.noteLog||[]),entry]}:i));};
+  const deleteNoteLogEntry=(itemId,entryId)=>setItems(p=>p.map(i=>i.id===itemId?{...i,noteLog:(i.noteLog||[]).filter(e=>e.id!==entryId)}:i));
+  const updateNoteLogEntry=(itemId,entryId,text)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,noteLog:(i.noteLog||[]).map(e=>e.id===entryId?{...e,text}:e)}));
+
+  // Also update freeNotes tags on save
+  const saveFreeNote=(id,patch)=>{setFreeNotes(prev=>prev.map(n=>{if(n.id!==id)return n;const updated={...n,...patch};if(patch.body!==undefined)updated.tags=parseTagsFromBody(patch.body);return updated;}));};
 
   // ── PDF management ────────────────────────────────────────────────────────
   // Upload a new file and attach it to an item
@@ -384,7 +397,7 @@ export default function useEtudesState(){
     todaySessions,setTodaySessions,loadedRoutineId,routines,setRoutines,
     dailyReflection,setDailyReflection,weekReflection,setWeekReflection,
     monthReflection,setMonthReflection,settings,setSettings,
-    freeNotes,setFreeNotes,recordingMeta,history,dayClosed,trash,
+    freeNotes,setFreeNotes,noteCategories,setNoteCategories,recordingMeta,history,dayClosed,trash,
     activeItemId,activeSpotId,activeSessionId,activeItem,activeSpot,activeIsWarmup,
     isResting,isRecording,recExpanded,setRecExpanded,
     metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,
@@ -401,6 +414,7 @@ export default function useEtudesState(){
     closeDay,reopenDay,endDay,
     deleteItem,undoDelete,dismissTrash,
     logTempo,addQuickNote,
+    addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,saveFreeNote,
     pdfLibrary,pdfUrlMap,
     addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,
     addBookmark,removeBookmark,renameBookmark,

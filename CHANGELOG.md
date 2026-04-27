@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.95.3 — 2026-04-28
+
+### Notes & Logging Architecture ("Single Entry, Multiple Echo")
+
+- **N1 — Markdown everywhere** — all text fields (pinned notes, session notes, daily/weekly/monthly reflections, spot notes, free notes, log book entries) now have an Edit / Preview toggle. Preview renders Markdown in a serif font with full GFM support (bold, italic, headings, lists, code, tables, horizontal rules).
+- **N2 — Deep-link support** — standard `https://` links open in a new tab; `obsidian://` and `x-devonthink-item://` deep links open via `window.open`. Fields that contain custom links display a faint one-line hint: *"Custom links open in the desktop app if installed."*
+- **N3 — Per-piece Log Book** — in Repertoire view, the plain `detail` textarea is replaced by a two-section panel: a pinned **Pinned notes** field (the existing `detail`, now a `MarkdownField`) and a scrollable **Log Book** showing all dated session notes for that piece, newest first. Features: inline edit, delete, text filter bar, and a manual "+ Add note" form for retrospective entries.
+- **Composite daily lock** — on day rollover, each item's `todayNote` is pushed as a timestamped `{source: 'session'}` entry into `item.noteLog`. The day's `history[].reflection` is now a composite Markdown string: user's free reflection → `---` separator → `### Piece Title` sections for each item that had a note.
+- **Composite reflection rendered in Logs** — the `DayLogContent` drawer in Logs view renders the composite reflection as Markdown (supports headings, horizontal rules, links).
+
+### Notes Tab revamp
+
+- **Category sidebar** — persistent left sidebar with standard read-only categories (Daily Reflections, Repertoire Logs) and user-defined folders. Folders can be created, renamed, and deleted inline. Notes get a `category` field; changing folder is a one-click dropdown in the note editor.
+- **Tag system** — `#tag` syntax parsed from note bodies at save time. A tag cloud in the sidebar shows all tags with counts; clicking a tag filters the note list. Tags are also rendered as inline clickable chips in preview mode.
+- **`[[wiki-link]]` fuzzy resolution** — type `[[Chopin Waterfall]]` and it resolves to the best matching repertoire item using slug-based fuzzy matching (strips punctuation, scores by exact slug / all words / any word). `[[2026-04-28]]` opens the Log Drawer for that date. `[[Piece #Spot]]` resolves to a specific spot. Unresolved links render as faint italic `[[text]]?` with a tooltip. Clicking a resolved link navigates to Repertoire or opens the Log Drawer.
+- **Daily Reflections view** — shows the last 30 daily history entries rendered as Markdown, newest first.
+- **Repertoire Logs view** — shows all `noteLog` entries across all items, filterable by piece name.
+
+### Data model
+
+- Schema version bumped 7 → 8; migration adds `noteLog: []` to all existing items.
+- New `noteCategories` state (array of strings) persisted to `localStorage` under `etudes-noteCategories`.
+- New `src/lib/notes.js` — exports: `slugify`, `scoreMatch`, `resolveWikiLink`, `parseTagsFromBody`, `buildCompositeDailyReflection`.
+- `freeNotes` entries gain `category` (string) and `tags` (string[]) fields, parsed automatically on save.
+
 ## v0.95.0-beta — 2026-04-27
 
 ### PDF Score System (P1–P6)

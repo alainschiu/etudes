@@ -1,5 +1,15 @@
 # Update Log
 
+## v0.95.3 — 2026-04-28
+
+- **Notes & Logging N1** — `MarkdownField` component: all text fields (detail, todayNote, daily/weekly/monthly reflections, spot notes, free notes, log entries) now have an Edit/Preview toggle; rendered Markdown uses a serif font
+- **Notes & Logging N2** — deep-link support in Markdown preview: `obsidian://` and `x-devonthink-item://` links open via `window.open`; fields with custom links show a faint hint "Custom links open in the desktop app if installed."
+- **Notes & Logging N3** — per-piece Log Book in Repertoire view: pinned `detail` note at top + scrollable dated session log (newest first); filter bar; manual entry (+ Add note); inline edit/delete per entry
+- **Notes & Logging** — "Single Entry, Multiple Echo": on day rollover, each item's `todayNote` is pushed as a `{source:'session'}` entry into `item.noteLog`; the daily `reflection` becomes a composite Markdown string (free text → `---` → `### Piece Title` sections)
+- **Notes & Logging** — composite daily reflection rendered as Markdown in Logs view `DayLogContent`
+- **Notes Tab revamp** — left sidebar with standard categories (Daily Reflections, Repertoire Logs) and user-defined folders; `#tag` cloud with click-to-filter; `[[wiki-link]]` fuzzy resolution (slug-based, date / piece / spot); Note editor has pen/eye preview toggle + folder picker + tag display
+- **Data model** — schema bumped to v8; `noteLog: []` added to all items; `noteCategories` state persisted to `localStorage`; new `src/lib/notes.js` (slugify, scoreMatch, resolveWikiLink, parseTagsFromBody, buildCompositeDailyReflection)
+
 ## v0.95.0-beta — 2026-04-27
 
 - **PDF score viewer P1** — PDF upload and reference link extended to all four repertoire types (Technique, Pieces, Play, Study)

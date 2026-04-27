@@ -1,5 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
-import {Play, Pause, SkipBack, Plus, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Crosshair, Pencil, Check, Music, Calendar} from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import {Play, Pause, SkipBack, Plus, X, ChevronDown, ChevronUp, ArrowUp, ArrowDown, Crosshair, Pencil, Check, Music, Calendar, Eye} from 'lucide-react';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, serif, serifText, sans, mono} from '../constants/theme.js';
 import {STAGES} from '../constants/config.js';
 import {idbGet} from '../lib/storage.js';
@@ -181,6 +183,90 @@ export function Tooltip({children,shortcut,label}){
         {shortcut&&<kbd style={{color:TEXT,fontSize:'10px',fontFamily:mono,background:'rgba(244,238,227,0.07)',border:'1px solid rgba(244,238,227,0.2)',padding:'0 4px',lineHeight:'16px',display:'inline-block'}}>{shortcut}</kbd>}
       </span>}
     </span>
+  );
+}
+
+const DEEP_LINK_SCHEMES=['obsidian://','x-devonthink-item://'];
+const HAS_CUSTOM_LINK_RE=/(?:obsidian:\/\/|x-devonthink-item:\/\/)/;
+
+function MarkdownComponents({serif:serifFont}){
+  return {
+    a:({href,children,...rest})=>{
+      const isDeep=DEEP_LINK_SCHEMES.some(s=>href&&href.startsWith(s));
+      const isExternal=href&&(href.startsWith('http://')||href.startsWith('https://'));
+      const handleClick=(e)=>{if(isDeep||isExternal){e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}};
+      return (<a href={href} onClick={handleClick} style={{color:IKB,textDecoration:'underline',textDecorationColor:`${IKB}60`,cursor:'pointer'}} {...rest}>{children}</a>);
+    },
+    p:({children})=><p style={{marginBottom:'0.85em',lineHeight:1.8}}>{children}</p>,
+    h1:({children})=><h1 style={{fontSize:'1.3em',fontWeight:400,marginBottom:'0.5em',marginTop:'1em',borderBottom:`1px solid rgba(244,238,227,0.12)`,paddingBottom:'0.2em'}}>{children}</h1>,
+    h2:({children})=><h2 style={{fontSize:'1.15em',fontWeight:400,marginBottom:'0.5em',marginTop:'0.9em'}}>{children}</h2>,
+    h3:({children})=><h3 style={{fontSize:'1em',fontWeight:400,marginBottom:'0.4em',marginTop:'0.8em',opacity:0.8}}>{children}</h3>,
+    hr:()=><hr style={{border:'none',borderTop:`1px solid rgba(244,238,227,0.15)`,margin:'1em 0'}}/>,
+    ul:({children})=><ul style={{paddingLeft:'1.4em',marginBottom:'0.8em',listStyleType:'disc'}}>{children}</ul>,
+    ol:({children})=><ol style={{paddingLeft:'1.4em',marginBottom:'0.8em',listStyleType:'decimal'}}>{children}</ol>,
+    li:({children})=><li style={{marginBottom:'0.25em'}}>{children}</li>,
+    code:({inline,children})=>inline?<code style={{background:'rgba(244,238,227,0.08)',padding:'1px 4px',fontSize:'0.88em',fontFamily:'monospace'}}>{children}</code>:<pre style={{background:'rgba(244,238,227,0.05)',padding:'0.75em 1em',overflowX:'auto',fontSize:'0.88em',fontFamily:'monospace',marginBottom:'0.8em'}}><code>{children}</code></pre>,
+    blockquote:({children})=><blockquote style={{borderLeft:`2px solid ${IKB}`,paddingLeft:'0.8em',marginLeft:0,opacity:0.8,fontStyle:'italic'}}>{children}</blockquote>,
+  };
+}
+
+export function MarkdownField({value,onChange,placeholder,minHeight=80,className='',style={},readOnly=false,showDeepLinkHint=false}){
+  const [preview,setPreview]=useState(false);
+  const hasCustomLink=HAS_CUSTOM_LINK_RE.test(value||'');
+  const showHint=showDeepLinkHint&&hasCustomLink;
+  return (
+    <div style={{position:'relative'}}>
+      {/* toggle button */}
+      {!readOnly&&(
+        <button
+          onClick={()=>setPreview(v=>!v)}
+          title={preview?'Edit':'Preview'}
+          style={{position:'absolute',top:'8px',right:'8px',zIndex:2,color:preview?IKB:FAINT,background:'transparent',border:'none',cursor:'pointer',padding:'2px',lineHeight:1,display:'flex',alignItems:'center'}}
+        >
+          {preview?<Pencil className="w-3 h-3" strokeWidth={1.25}/>:<Eye className="w-3 h-3" strokeWidth={1.25}/>}
+        </button>
+      )}
+      {preview||readOnly?(
+        <div
+          className={className}
+          style={{
+            minHeight,padding:'12px 16px',paddingRight:'32px',
+            fontFamily:serif,fontSize:'15px',lineHeight:1.8,fontWeight:300,
+            color:TEXT,background:'transparent',
+            border:`1px solid ${LINE}`,
+            ...style,
+          }}
+        >
+          {(value||'').trim()?(
+            <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents({serif})}>
+              {value}
+            </ReactMarkdown>
+          ):(
+            <span style={{color:FAINT,fontStyle:'italic',fontSize:'14px'}}>{placeholder||'Nothing here yet.'}</span>
+          )}
+        </div>
+      ):(
+        <textarea
+          value={value||''}
+          onChange={e=>onChange&&onChange(e.target.value)}
+          placeholder={placeholder}
+          readOnly={readOnly}
+          className={`resize-none focus:outline-none ${className}`}
+          style={{
+            width:'100%',minHeight,padding:'12px 16px',paddingRight:'32px',
+            background:'transparent',color:TEXT,
+            border:`1px solid ${LINE}`,
+            fontFamily:serif,fontSize:'15px',lineHeight:1.75,fontWeight:300,
+            ...style,
+          }}
+        />
+      )}
+      {showHint&&(
+        <div style={{marginTop:'4px',fontSize:'11px',color:FAINT,fontStyle:'italic',fontFamily:serif}}>
+          Custom links open in the desktop app if installed.
+        </div>
+      )}
+    </div>
   );
 }
 
