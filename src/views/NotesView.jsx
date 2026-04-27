@@ -1,11 +1,12 @@
-import React, {useState, useMemo, useCallback} from 'react';
+import React, {useState, useMemo, useCallback, useRef, useEffect} from 'react';
+import {createPortal} from 'react-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import {Plus, Search, Trash2, Folder, FolderPlus, X, BookOpen, Calendar, ChevronRight, ChevronDown, Pencil, Check} from 'lucide-react';
+import {Plus, Search, Trash2, Folder, FolderPlus, X, BookOpen, Calendar, ChevronRight, ChevronDown, Pencil, Check, Crosshair} from 'lucide-react';
 import {TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, SURFACE, SURFACE2, BG, serif, sans} from '../constants/theme.js';
 import {todayDateStr} from '../lib/dates.js';
 import {displayTitle, formatByline} from '../lib/items.js';
-import {resolveWikiLink, parseTagsFromBody, slugify} from '../lib/notes.js';
+import {resolveWikiLink, parseTagsFromBody, slugify, scoreMatch} from '../lib/notes.js';
 
 // ── Standard categories (read-only views) ────────────────────────────────
 const STD_CATEGORIES=[
@@ -438,10 +439,152 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
   );
 }
 
+// ── Wiki autocomplete popup ───────────────────────────────────────────────
+function WikiPopup({popup, onSelect, onDismiss}){
+  if(!popup||!popup.suggestions.length)return null;
+  const {suggestions, selectedIdx, rect}=popup;
+  // Position just below the textarea
+  const top=rect.bottom+6;
+  const left=rect.left;
+  const maxW=Math.min(400,rect.width);
+  return createPortal(
+    <div
+      style={{
+        position:'fixed',top,left,width:maxW,zIndex:9999,
+        background:SURFACE,border:`1px solid ${LINE_STR}`,
+        boxShadow:'0 8px 30px rgba(0,0,0,0.6)',maxHeight:'260px',overflowY:'auto',
+      }}
+      onMouseDown={e=>e.preventDefault()} // prevent textarea blur
+    >
+      {suggestions.map((s,i)=>(
+        <button
+          key={i}
+          onClick={()=>onSelect(s)}
+          className="w-full text-left px-4 py-2.5 flex items-center gap-3"
+          style={{
+            background:i===selectedIdx?IKB_SOFT:'transparent',
+            borderBottom:`1px solid ${LINE}`,
+            borderLeft:i===selectedIdx?`2px solid ${IKB}`:'2px solid transparent',
+          }}
+        >
+          <span style={{color:i===selectedIdx?IKB:FAINT,flexShrink:0}}>
+            {s.type==='day'?<Calendar className="w-3 h-3" strokeWidth={1.25}/>:
+             s.type==='spot'?<Crosshair className="w-3 h-3" strokeWidth={1.25}/>:
+             <BookOpen className="w-3 h-3" strokeWidth={1.25}/>}
+          </span>
+          <div className="min-w-0">
+            <div className="truncate" style={{fontFamily:serif,fontStyle:'italic',fontSize:'14px',fontWeight:300,color:TEXT}}>{s.label}</div>
+            {s.sub&&<div className="truncate" style={{fontSize:'10px',color:FAINT,letterSpacing:'0.15em'}}>{s.sub}</div>}
+          </div>
+        </button>
+      ))}
+      <div className="px-3 py-1.5 uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em',borderTop:`1px solid ${LINE}`}}>↑↓ navigate · Enter insert · Esc dismiss</div>
+    </div>,
+    document.body
+  );
+}
+
 // ── Note editor ───────────────────────────────────────────────────────────
 function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLinkClick, items, history}){
   const [preview,setPreview]=useState(false);
   const [catOpen,setCatOpen]=useState(false);
+  const [wikiPopup,setWikiPopup]=useState(null);
+  const textareaRef=useRef(null);
+
+  // Build full suggestion list once per items/history change
+  const allSuggestions=useMemo(()=>{
+    const list=[];
+    // Repertoire items
+    items.forEach(i=>{
+      const label=displayTitle(i);
+      const sub=[formatByline(i),i.catalog].filter(Boolean).join(' · ')||'';
+      list.push({type:'item',label,sub,insert:label});
+      // Spots for this item
+      (i.spots||[]).forEach(s=>{
+        list.push({type:'spot',label:`${label} #${s.label}`,sub:`Spot in ${label}`,insert:`${label} #${s.label}`});
+      });
+    });
+    // Recent dates from history
+    [...history].filter(h=>h.kind==='day'||!h.kind).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30).forEach(h=>{
+      const d=new Date(h.date);
+      const friendly=d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+      list.push({type:'day',label:h.date,sub:friendly,insert:h.date});
+    });
+    return list;
+  },[items,history]);
+
+  const detectAndShowPopup=(val,cursor,rect)=>{
+    const textBefore=val.slice(0,cursor);
+    // Match an open [[ that has no closing ]] yet
+    const m=textBefore.match(/\[\[([^\][]*)$/);
+    if(!m){setWikiPopup(null);return;}
+    const query=m[1];
+    const qs=slugify(query);
+    let filtered;
+    if(!qs){
+      filtered=allSuggestions.slice(0,10);
+    }else{
+      filtered=allSuggestions
+        .map(s=>({s,score:Math.max(scoreMatch(qs,slugify(s.label)),slugify(s.label).includes(qs)?1:0)}))
+        .filter(({score})=>score>0)
+        .sort((a,b)=>b.score-a.score)
+        .map(({s})=>s)
+        .slice(0,10);
+    }
+    if(!filtered.length){setWikiPopup(null);return;}
+    const triggerStart=cursor-m[0].length;
+    setWikiPopup({query,suggestions:filtered,selectedIdx:0,triggerStart,rect});
+  };
+
+  const handleBodyChange=(e)=>{
+    const val=e.target.value;
+    onUpdate({body:val});
+    const cursor=e.target.selectionStart;
+    const rect=e.target.getBoundingClientRect();
+    detectAndShowPopup(val,cursor,rect);
+  };
+
+  const handleBodyKeyDown=(e)=>{
+    if(!wikiPopup||!wikiPopup.suggestions.length){
+      // Allow normal typing even when popup is null
+      return;
+    }
+    if(e.key==='ArrowDown'){
+      e.preventDefault();
+      setWikiPopup(p=>({...p,selectedIdx:Math.min(p.selectedIdx+1,p.suggestions.length-1)}));
+    }else if(e.key==='ArrowUp'){
+      e.preventDefault();
+      setWikiPopup(p=>({...p,selectedIdx:Math.max(p.selectedIdx-1,0)}));
+    }else if(e.key==='Enter'||e.key==='Tab'){
+      e.preventDefault();
+      insertWikiLink(wikiPopup.suggestions[wikiPopup.selectedIdx]);
+    }else if(e.key==='Escape'){
+      setWikiPopup(null);
+    }
+  };
+
+  const insertWikiLink=(sug)=>{
+    if(!textareaRef.current||!wikiPopup)return;
+    const ta=textareaRef.current;
+    const val=ta.value;
+    const cursor=ta.selectionStart;
+    const before=val.slice(0,wikiPopup.triggerStart);
+    const after=val.slice(cursor);
+    const inserted=`[[${sug.insert}]]`;
+    const newVal=`${before}${inserted}${after}`;
+    onUpdate({body:newVal});
+    setWikiPopup(null);
+    // Restore cursor after the inserted link
+    setTimeout(()=>{
+      if(!textareaRef.current)return;
+      const pos=before.length+inserted.length;
+      textareaRef.current.focus();
+      textareaRef.current.setSelectionRange(pos,pos);
+    },0);
+  };
+
+  // Close popup when clicking outside textarea
+  const handleBodyBlur=()=>setTimeout(()=>setWikiPopup(null),150);
 
   return (
     <div>
@@ -510,13 +653,19 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
           )}
         </div>
       ):(
-        <textarea
-          value={note.body}
-          onChange={e=>onUpdate({body:e.target.value})}
-          placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Link with [[Piece Title]] or [[2026-01-15]]\n• Tag with #tag`}
-          className="w-full h-96 resize-none focus:outline-none"
-          style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'17px',lineHeight:1.85,fontWeight:300}}
-        />
+        <div style={{position:'relative'}}>
+          <textarea
+            ref={textareaRef}
+            value={note.body}
+            onChange={handleBodyChange}
+            onKeyDown={handleBodyKeyDown}
+            onBlur={handleBodyBlur}
+            placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`}
+            className="w-full h-96 resize-none focus:outline-none"
+            style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'17px',lineHeight:1.85,fontWeight:300}}
+          />
+          <WikiPopup popup={wikiPopup} onSelect={insertWikiLink} onDismiss={()=>setWikiPopup(null)}/>
+        </div>
       )}
     </div>
   );
