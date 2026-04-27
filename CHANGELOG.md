@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.95.4 — 2026-04-28
+
+### Week & Month views — temporal navigation
+
+- **W1 — Week navigation** — back / forward chevrons inline with the eyebrow date range in Week view; navigates to any past week; title switches from *"This week"* to the specific range (`Apr 20 — 26`; cross-month: `Mar 30 — Apr 5`); weekly Ring uses live `weekActualSeconds` for the current week and sums from `history` for past weeks; reflection fields hidden for past weeks
+- **W2 — Month navigation** — same pattern in Month view; monthly Ring recomputed from history for past months; reflection fields hidden for past months; "Now" button restores current period
+- **W3 — Bar chart hover** — hovering a day column in Week view brightens the bar to IKB blue tint, lifts minute label and weekday label to IKB; `0.12s` transitions
+- **W4 — Calendar cell hover** — hovering a day cell in Month view fills with `rgba(0,47,167,0.08)` blue wash, turns day number and minute label IKB, strengthens the left-edge activity bar; `0.12s` transitions
+
+### Routines view — collapsed row styling
+
+- Routine title promoted to `1.4rem` italic serif with `TEXT` color as the dominant element
+- Session type labels reduced to `9px DIM uppercase`; counts at `opacity:0.6`; separators at `opacity:0.5`
+- Collapsed row padding tightened to `py-4` with `items-center` alignment
+
+### Notes view — UI/UX cleanup (design system alignment)
+
+- **Collapsible sidebar** — Archives, Folders, and Tags sections are now independently collapsible with ChevronUp/Down toggles matching the RepertoireView `SidebarFacet` pattern; folder count badge shown in section header; "New folder" input moved inside the expanded Folders section; redundant "Notes" section label removed
+- **Dynamic title** — the 56px italic serif `h1` now reflects the active context: *Notes*, *Daily Reflections*, *Repertoire Logs*, folder name, or `#tag`; static "NOTES" eyebrow provides section context
+- **Search bar** — `borderTop` removed; single `borderBottom` hairline only, matching design system `.input` pattern
+- **New button placement** — moved from the page header into the top of the note list column alongside a note count label
+- **Note list** — per-item `#tag` chips removed; body snippet font changed from italic serif to `sans FAINT`; subtle IKB blue hover tint (`rgba(0,47,167,0.04)`); active row uses `IKB_SOFT` background with `2px IKB` left border
+- **Note editor** — `Trash2` delete icon removed from the title row; "Delete note" text link added at the bottom of the editor below a hairline separator, following the Repertoire expanded-panel pattern
+- **Preview / Edit toggle** — `Eye` / `Pencil` button right-aligned in the meta row; preview mode renders body through `ReactMarkdown` with full GFM (headings, bold, italic, lists, blockquotes, code, links); title becomes a static heading; folder picker collapses to a plain label; delete footer hidden in preview
+- **Vertical divider** — hairline `1px LINE` rule between the note list and editor columns
+- **Button alignment** — tag pills and "New folder" button aligned to design system hairline button style (`LINE_MED` border, `3px` radius, `0.14em` tracking)
+
 ## v0.95.3 — 2026-04-28
 
 ### Notes & Logging Architecture ("Single Entry, Multiple Echo")
