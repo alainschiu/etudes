@@ -15,6 +15,23 @@
 
 ## v0.95.5 — 2026-04-28
 
+### Reference track — Today view pull-up bar
+
+- **T3 pull-up bar** — a slide-up panel (matching the Recording panel layout) appears above the Footer when a reference track is active; `SURFACE`-equivalent green-tinted background (`#1a211a`) clearly distinguishes it from the warm Recording panel
+- **"REFERENCE FOR · piece title"** header with the piece name inline, mirroring the Recording panel's label + detail pattern; × close button top-right
+- **Full-width waveform** — `Waveform` rendered at full panel width with Play / Pause / Rewind controls; speed slider integrated flush with the Rewind button as an `actions` row element
+- **Varispeed: 25–100%, 1% granularity** — slider width 140 px, `step=0.01`; speed resets to 100% on each new item activation
+- **Pull-up animation** — `max-height` + `translateY` CSS transition combo gives a true bottom-sheet slide-in without covering the Footer; state lifted to `useEtudesState` so App.jsx owns the bar position in the normal document flow (above Footer, never overlapping it)
+- **Music note trigger** — compact ♪ button in each Today item row activates/deactivates the bar for that item; tinted green when active
+
+### Reference track — Repertoire view (PieceRecordingsPanel)
+
+- **Recording-style card** — `RefTrackPlayer` restyled with `border: 1px solid LINE_STR`, `padding: 12px 14px 14px`, transparent background; matches the recording preview section layout
+- **Header row** — `REF` label in green mono + filename in MUTED mono (mirrors `PREVIEW` + date in recording cards)
+- **Controls** — full `Waveform` (non-compact, 40 px) replaces the previous compact inline version; speed slider + Replace + Delete buttons rendered as `actions` in the Waveform button row, flush with Rewind
+- **Drag-and-drop upload** — border shifts to dashed green on file drag; "drop to replace" hint appears inline; audio formats: mp3, wav, flac, m4a
+- **Varispeed: 25–100%, 5% steps** in the Repertoire inline player; 1% steps in the Today pull-up bar
+
 ### Notes view — layout fixes & sidebar improvements
 
 - **Sidebar alignment** — categories sidebar now starts level with the note list (below the search bar); the header ("NOTES" eyebrow + italic `h1`) is lifted above the two-column flex row and offset to align with the content column
