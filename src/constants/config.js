@@ -1,5 +1,5 @@
 export const APP_VERSION='0.95.5';
-export const SCHEMA_VERSION=8;
+export const SCHEMA_VERSION=9;
 
 export const STAGES=[{key:'queued',label:'Queued',pct:0},{key:'learning',label:'Learning',pct:30},{key:'polishing',label:'Polishing',pct:70},{key:'maintenance',label:'Maintenance',pct:95},{key:'retired',label:'Retired',pct:100}];
 export const TYPES=['tech','piece','play','study'];
