@@ -1,5 +1,24 @@
 # Update Log
 
+## v0.95.6 — 2026-04-28
+
+- **Logs view** — unified card shell across Daily / Weekly / Monthly: identical border, padding, background, and hover state; 2px top accent as the sole type differentiator (IKB / DIM / LINE_STR); date promoted to 52px italic serif hero; minutes demoted to right-aligned mono badge; eyebrow labels unified to FAINT 10px uppercase
+
+## v0.95.5 — 2026-04-28
+
+- **Reference track — Today pull-up bar** — slide-up panel above the Footer when a ref track is active; green-tinted background, piece title header, full-width scrubbable waveform, varispeed 25–100% at 1% granularity; ♪ button per Today item activates/deactivates the bar
+- **Reference track — Repertoire** — `RefTrackPlayer` restyled as a recording-style card with drag-and-drop file replace, full waveform, speed slider, Replace and Delete actions; varispeed 25–100% at 5% steps
+- **Notes view** — sidebar starts level with note list; note list bounded to viewport height with independent scroll; sidebar collapse toggle; wiki links clickable in preview mode; Ctrl/Cmd+Click opens external links from editor; "Filter" button restores collapsed sidebar
+- **Repertoire view** — "Facets" sidebar toggle renamed to "Filter"
+
+## v0.95.4 — 2026-04-28
+
+- **Week navigation** — back/forward chevrons in Week view; past-week ring and bar chart recomputed from history; reflection fields hidden for past weeks
+- **Month navigation** — same pattern in Month view; "Now" button restores current period
+- **Bar chart hover** — day column brightens to IKB blue tint in Week view; calendar cell fills with blue wash in Month view; 0.12s transitions
+- **Routines view** — collapsed row: title at 1.4rem italic serif; session type labels 9px DIM; tightened padding
+- **Notes view** — collapsible sidebar sections; dynamic h1 title; search bar hairline only; note list IKB hover tint + active left border; "Delete note" footer link; Preview/Edit toggle with ReactMarkdown GFM; vertical divider between list and editor
+
 ## v0.95.3 — 2026-04-28
 
 - **Notes & Logging N1** — `MarkdownField` component: all text fields (detail, todayNote, daily/weekly/monthly reflections, spot notes, free notes, log entries) now have an Edit/Preview toggle; rendered Markdown uses a serif font

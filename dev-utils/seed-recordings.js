@@ -99,12 +99,13 @@ const TARGET_PIECE_INDEX = 0; // 0 = first piece; change index to target another
   // ── 5. IDB helpers — includes onupgradeneeded to handle fresh DB ─────────
   const openDB = () => new Promise((res, rej) => {
     try {
-      const r = indexedDB.open('etudes', 2);
+      const r = indexedDB.open('etudes', 3);
       r.onupgradeneeded = () => {
         const db = r.result;
-        if (!db.objectStoreNames.contains('recordings'))    db.createObjectStore('recordings');
-        if (!db.objectStoreNames.contains('pieceRecordings')) db.createObjectStore('pieceRecordings');
-        if (!db.objectStoreNames.contains('pdfs'))          db.createObjectStore('pdfs');
+        if (!db.objectStoreNames.contains('pdfs'))             db.createObjectStore('pdfs');
+        if (!db.objectStoreNames.contains('recordings'))       db.createObjectStore('recordings');
+        if (!db.objectStoreNames.contains('pieceRecordings'))  db.createObjectStore('pieceRecordings');
+        if (!db.objectStoreNames.contains('refTracks'))        db.createObjectStore('refTracks');
       };
       r.onsuccess = () => res(r.result);
       r.onerror   = () => rej(r.error);
