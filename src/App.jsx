@@ -1,5 +1,22 @@
-import React,{useState,useEffect} from 'react';
-import {Play, Pause, Plus, X, FileText, Download, Mic, Square, Coffee, Flame, Crosshair, Zap, Waves, Archive, Upload as UploadIcon, Lock, Settings, Keyboard} from 'lucide-react';
+import React,{useState,useEffect,Suspense,lazy} from 'react';
+import Play from 'lucide-react/dist/esm/icons/play';
+import Pause from 'lucide-react/dist/esm/icons/pause';
+import Plus from 'lucide-react/dist/esm/icons/plus';
+import X from 'lucide-react/dist/esm/icons/x';
+import FileText from 'lucide-react/dist/esm/icons/file-text';
+import Download from 'lucide-react/dist/esm/icons/download';
+import Mic from 'lucide-react/dist/esm/icons/mic';
+import Square from 'lucide-react/dist/esm/icons/square';
+import Coffee from 'lucide-react/dist/esm/icons/coffee';
+import Flame from 'lucide-react/dist/esm/icons/flame';
+import Crosshair from 'lucide-react/dist/esm/icons/crosshair';
+import Zap from 'lucide-react/dist/esm/icons/zap';
+import Waves from 'lucide-react/dist/esm/icons/waves';
+import Archive from 'lucide-react/dist/esm/icons/archive';
+import UploadIcon from 'lucide-react/dist/esm/icons/upload';
+import Lock from 'lucide-react/dist/esm/icons/lock';
+import Settings from 'lucide-react/dist/esm/icons/settings';
+import Keyboard from 'lucide-react/dist/esm/icons/keyboard';
 
 import {BG,SURFACE,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,serif,sans,mono} from './constants/theme.js';
 import {SECTION_CONFIG,APP_VERSION} from './constants/config.js';
@@ -16,7 +33,7 @@ import ProgramsView from './views/ProgramsView.jsx';
 import Footer from './components/Footer.jsx';
 import UndoToast from './components/UndoToast.jsx';
 import {SettingsModal,HelpModal,ConfirmModal,PromptModal,SyncConflictModal} from './components/modals.jsx';
-import PdfDrawer from './components/PdfDrawer.jsx';
+const PdfDrawer = lazy(() => import('./components/PdfDrawer.jsx'));
 import useEtudesState from './state/useEtudesState.js';
 
 const tabs=[{id:'today',label:'Today'},{id:'week',label:'Week'},{id:'month',label:'Month'},{id:'repertoire',label:'Repertoire'},{id:'programs',label:'Programs'},{id:'routines',label:'Routines'},{id:'logs',label:'Logs'},{id:'notes',label:'Notes'}];
@@ -83,7 +100,7 @@ export default function Etudes(){
       {trash&&<UndoToast item={trash.item} onUndo={undoDelete} onDismiss={dismissTrash}/>}
       {showSettings&&<SettingsModal settings={settings} setSettings={setSettings} storageMode={storageMode} onExportMd={()=>exportLog('md')} onExportTxt={()=>exportLog('txt')} onExportJson={exportJson} onImportClick={()=>importInputRef.current?.click()} onClose={()=>setShowSettings(false)} user={s.user} signIn={s.signIn} signUp={s.signUp} signOut={s.signOut} syncStatus={s.syncStatus} lastSyncedAt={s.lastSyncedAt} syncNow={s.syncNow}/>}
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
-      {pdfItem&&<PdfDrawer {...{pdfItem,items,pdfUrlMap,pdfLibrary,itemTimes,activeItemId,activeSpotId,startItem,stopItem,updateItem,addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,addBookmark,removeBookmark,renameBookmark,fmt,setPromptModal,setConfirmModal,onClose:()=>setPdfDrawerItemId(null),dayClosed,addSpot,updateSpot,deleteSpot,editSpotTime}}/>}
+      {pdfItem&&<Suspense fallback={null}><PdfDrawer {...{pdfItem,items,pdfUrlMap,pdfLibrary,itemTimes,activeItemId,activeSpotId,startItem,stopItem,updateItem,addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,addBookmark,removeBookmark,renameBookmark,fmt,setPromptModal,setConfirmModal,onClose:()=>setPdfDrawerItemId(null),dayClosed,addSpot,updateSpot,deleteSpot,editSpotTime}}/></Suspense>}
       {logDrawerDate&&<LogDrawer entry={logDrawerEntry} dayData={logDrawerEntry?.kind==='day'?logDrawerEntry:(logDrawerEntry?null:resolveDayEntry(logDrawerDate))} items={items} recordingMeta={recordingMeta} freeNotes={freeNotes} onClose={closeLogDrawer} deleteRecording={deleteRecording}/>}
       {confirmModal&&<ConfirmModal {...confirmModal} onCancel={()=>setConfirmModal(null)}/>}
       {promptModal&&<PromptModal {...promptModal} onCancel={()=>setPromptModal(null)}/>}

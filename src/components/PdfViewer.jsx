@@ -3,7 +3,17 @@ import {createPortal} from 'react-dom';
 import {Document,Page} from 'react-pdf';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
-import {ChevronLeft,ChevronRight,ZoomIn,ZoomOut,Maximize2,BookMarked,AlignJustify,Columns2,FileText,Plus,X} from 'lucide-react';
+import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
+import ZoomIn from 'lucide-react/dist/esm/icons/zoom-in';
+import ZoomOut from 'lucide-react/dist/esm/icons/zoom-out';
+import Maximize2 from 'lucide-react/dist/esm/icons/maximize-2';
+import BookMarked from 'lucide-react/dist/esm/icons/book-marked';
+import AlignJustify from 'lucide-react/dist/esm/icons/align-justify';
+import Columns2 from 'lucide-react/dist/esm/icons/columns-2';
+import FileText from 'lucide-react/dist/esm/icons/file-text';
+import Plus from 'lucide-react/dist/esm/icons/plus';
+import X from 'lucide-react/dist/esm/icons/x';
 import {BG,TEXT,MUTED,FAINT,LINE,LINE_MED,IKB,IKB_SOFT,serif,sans,mono} from '../constants/theme.js';
 
 const BTN_BASE={cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',flexShrink:0,background:'transparent',border:`1px solid ${LINE_MED}`,color:TEXT};

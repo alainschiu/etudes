@@ -1,5 +1,7 @@
 import React, {useState} from 'react';
-import {Flame, ChevronLeft, ChevronRight} from 'lucide-react';
+import Flame from 'lucide-react/dist/esm/icons/flame';
+import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import {BG, SURFACE, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, serif, sans} from '../constants/theme.js';
 import {todayDateStr, shiftDate, getWeekStart} from '../lib/dates.js';
 import {DisplayHeader, Ring, MarkdownField} from '../components/shared.jsx';

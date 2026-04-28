@@ -1,5 +1,7 @@
 import React from 'react';
-import {Trash2, X, Undo2} from 'lucide-react';
+import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
+import X from 'lucide-react/dist/esm/icons/x';
+import Undo2 from 'lucide-react/dist/esm/icons/undo-2';
 import {SURFACE, TEXT, MUTED, FAINT, LINE_STR, IKB, IKB_SOFT} from '../constants/theme.js';
 import {displayTitle} from '../lib/items.js';
 

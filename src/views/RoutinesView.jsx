@@ -1,5 +1,13 @@
 import React, {useState, useRef} from 'react';
-import {Plus, X, ArrowUp, ArrowDown, ChevronDown, ChevronUp, Pencil, Check, Clock} from 'lucide-react';
+import Plus from 'lucide-react/dist/esm/icons/plus';
+import X from 'lucide-react/dist/esm/icons/x';
+import ArrowUp from 'lucide-react/dist/esm/icons/arrow-up';
+import ArrowDown from 'lucide-react/dist/esm/icons/arrow-down';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
+import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
+import Pencil from 'lucide-react/dist/esm/icons/pencil';
+import Check from 'lucide-react/dist/esm/icons/check';
+import Clock from 'lucide-react/dist/esm/icons/clock';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, sans} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG} from '../constants/config.js';
 import {displayTitle, formatByline} from '../lib/items.js';

@@ -1,5 +1,11 @@
 import React, {useState} from 'react';
-import {X, Download, Archive, Upload as UploadIcon, Cloud, CloudOff, Loader} from 'lucide-react';
+import X from 'lucide-react/dist/esm/icons/x';
+import Download from 'lucide-react/dist/esm/icons/download';
+import Archive from 'lucide-react/dist/esm/icons/archive';
+import UploadIcon from 'lucide-react/dist/esm/icons/upload';
+import Cloud from 'lucide-react/dist/esm/icons/cloud';
+import CloudOff from 'lucide-react/dist/esm/icons/cloud-off';
+import Loader from 'lucide-react/dist/esm/icons/loader';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, serif} from '../constants/theme.js';
 import appPkg from '../../package.json';
 

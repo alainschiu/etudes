@@ -1,5 +1,28 @@
 import React, {useState, useMemo, useEffect} from 'react';
-import {Play, Pause, Plus, X, ChevronDown, ChevronUp, FileText, ArrowUp, ArrowDown, Crosshair, Pencil, Trash2, TrendingUp, Users, GripVertical, Search, Layers, Link as LinkIcon, Music, Guitar, Calendar, Check, BookOpen, Mic} from 'lucide-react';
+import Play from 'lucide-react/dist/esm/icons/play';
+import Pause from 'lucide-react/dist/esm/icons/pause';
+import Plus from 'lucide-react/dist/esm/icons/plus';
+import X from 'lucide-react/dist/esm/icons/x';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
+import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
+import FileText from 'lucide-react/dist/esm/icons/file-text';
+import ArrowUp from 'lucide-react/dist/esm/icons/arrow-up';
+import ArrowDown from 'lucide-react/dist/esm/icons/arrow-down';
+import Crosshair from 'lucide-react/dist/esm/icons/crosshair';
+import Pencil from 'lucide-react/dist/esm/icons/pencil';
+import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
+import TrendingUp from 'lucide-react/dist/esm/icons/trending-up';
+import Users from 'lucide-react/dist/esm/icons/users';
+import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical';
+import Search from 'lucide-react/dist/esm/icons/search';
+import Layers from 'lucide-react/dist/esm/icons/layers';
+import LinkIcon from 'lucide-react/dist/esm/icons/link';
+import Music from 'lucide-react/dist/esm/icons/music';
+import Guitar from 'lucide-react/dist/esm/icons/guitar';
+import Calendar from 'lucide-react/dist/esm/icons/calendar';
+import Check from 'lucide-react/dist/esm/icons/check';
+import BookOpen from 'lucide-react/dist/esm/icons/book-open';
+import Mic from 'lucide-react/dist/esm/icons/mic';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, sans, mono} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
 import {daysUntil, todayDateStr} from '../lib/dates.js';
@@ -180,10 +203,10 @@ export default function RepertoireView(p){
             {perf&&<div><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}><Calendar className="w-3 h-3" strokeWidth={1.25}/> Next performance</div><div style={{fontFamily:serif,fontStyle:'italic',fontSize:'15px',fontWeight:300}}>{perf.label||'performance'} <span style={{color:FAINT,fontSize:'13px'}}>· {perf.date}</span></div></div>}
             <div className="p-3 space-y-2" style={{border:`1px solid ${LINE}`}}>
               <button onClick={()=>isActiveAny?stopItem():startItem(i.id)} disabled={dayClosed&&!isActiveAny} className="w-full uppercase px-3 py-2.5 flex items-center justify-center gap-2" style={isActiveWhole?{background:IKB,color:TEXT,border:`1px solid ${IKB}`,boxShadow:`0 0 15px ${IKB}60`,fontSize:'10px',letterSpacing:'0.22em'}:{background:'transparent',color:dayClosed?FAINT:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em',cursor:(dayClosed&&!isActiveAny)?'not-allowed':'pointer'}}>{isActiveAny?<><Pause className="w-3 h-3" strokeWidth={1.25}/> Pause</>:<><Play className="w-3 h-3" strokeWidth={1.25}/> {dayClosed?'Day closed':'Practice'}</>}</button>
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                <button onClick={()=>setPdfDrawerItemId(i.id)} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}><FileText className="w-3 h-3" strokeWidth={1.25}/> {(i.pdfs||[]).length>0?`Scores (${i.pdfs.length})`:'Scores'}</button>
-                {(i.type==='piece'||i.type==='play')&&<button onClick={()=>updateItem(i.id,{type:i.type==='piece'?'play':'piece'})} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}>→ {i.type==='piece'?'Play':'Pieces'}</button>}
-                <button onClick={()=>{deleteItem(i.id);setExpandedId(null);}} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}><Trash2 className="w-3 h-3" strokeWidth={1.25}/> Delete</button>
+              <div className="pt-1" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',alignItems:'center'}}>
+                <div><button onClick={()=>setPdfDrawerItemId(i.id)} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}><FileText className="w-3 h-3" strokeWidth={1.25}/> {(i.pdfs||[]).length>0?`Scores (${i.pdfs.length})`:'Scores'}</button></div>
+                <div className="flex justify-center">{(i.type==='piece'||i.type==='play')&&<button onClick={()=>updateItem(i.id,{type:i.type==='piece'?'play':'piece'})} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}>→ {i.type==='piece'?'Play':'Pieces'}</button>}</div>
+                <div className="flex justify-end"><button onClick={()=>{deleteItem(i.id);setExpandedId(null);}} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}><Trash2 className="w-3 h-3" strokeWidth={1.25}/> Delete</button></div>
               </div>
             </div>
           </div>

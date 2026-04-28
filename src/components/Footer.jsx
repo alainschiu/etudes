@@ -1,5 +1,17 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
-import {Play, Pause, X, Waves, Zap, Coffee, Mic, Square, MessageSquarePlus, Crosshair, Lock, TrendingUp, Trash2} from 'lucide-react';
+import Play from 'lucide-react/dist/esm/icons/play';
+import Pause from 'lucide-react/dist/esm/icons/pause';
+import X from 'lucide-react/dist/esm/icons/x';
+import Waves from 'lucide-react/dist/esm/icons/waves';
+import Zap from 'lucide-react/dist/esm/icons/zap';
+import Coffee from 'lucide-react/dist/esm/icons/coffee';
+import Mic from 'lucide-react/dist/esm/icons/mic';
+import Square from 'lucide-react/dist/esm/icons/square';
+import MessageSquarePlus from 'lucide-react/dist/esm/icons/message-square-plus';
+import Crosshair from 'lucide-react/dist/esm/icons/crosshair';
+import Lock from 'lucide-react/dist/esm/icons/lock';
+import TrendingUp from 'lucide-react/dist/esm/icons/trending-up';
+import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import {Waveform,Tooltip} from './shared.jsx';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, serif, sans, mono} from '../constants/theme.js';
 import {SECTION_CONFIG} from '../constants/config.js';

@@ -1,7 +1,13 @@
 import React, {useState, useMemo} from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import {X, Search, Music, Trash2, StickyNote, Crosshair, Clock} from 'lucide-react';
+import X from 'lucide-react/dist/esm/icons/x';
+import Search from 'lucide-react/dist/esm/icons/search';
+import Music from 'lucide-react/dist/esm/icons/music';
+import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
+import StickyNote from 'lucide-react/dist/esm/icons/sticky-note';
+import Crosshair from 'lucide-react/dist/esm/icons/crosshair';
+import Clock from 'lucide-react/dist/esm/icons/clock';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, serif, sans, mono, LINK} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG} from '../constants/config.js';
 import {displayTitle, formatByline, resolveHistoryItem} from '../lib/items.js';
