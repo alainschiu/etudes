@@ -30,7 +30,7 @@ export function Ring({value,max,maxSize=180}){const pct=Math.min(100,(value/max)
 
 export function StageLabels({stage,onChange,compact=false}){const ai=STAGES.findIndex(s=>s.key===stage);return (<div className={`flex ${compact?'gap-4':'gap-5'} flex-wrap`}>{STAGES.map((s,i)=>{const a=i===ai;return (<button key={s.key} onClick={(e)=>{e.stopPropagation();onChange(s.key);}} className="transition pb-1.5" style={{color:a?TEXT:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:compact?'12px':'15px',fontWeight:300,borderBottom:a?`1px solid ${IKB}`:`1px solid transparent`}}>{s.label}</button>);})}</div>);}
 
-export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRate=1.0}){
+export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRate=1.0,accentColor=IKB,accentSoft=IKB_SOFT}){
   const [playing,setPlaying]=useState(false);
   const [progress,setProgress]=useState(0);
   const [duration,setDuration]=useState(0);
@@ -142,8 +142,8 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
       <defs><clipPath id={clipId}><rect x="0" y="0" width={needleX} height="100"/></clipPath></defs>
       {peaks.length>0?(<>
         <path d={shapePath} fill={DIM}/>
-        <path d={shapePath} fill={IKB} clipPath={`url(#${clipId})`}/>
-        <line x1={needleX} y1="0" x2={needleX} y2="100" stroke={IKB} strokeWidth="2" opacity="0.9"/>
+        <path d={shapePath} fill={accentColor} clipPath={`url(#${clipId})`}/>
+        <line x1={needleX} y1="0" x2={needleX} y2="100" stroke={accentColor} strokeWidth="2" opacity="0.9"/>
       </>):(
         <text x="8" y="56" fill={FAINT} fontSize="9" fontFamily={serif} fontStyle="italic">recording unavailable</text>
       )}
@@ -153,7 +153,7 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
   if(compact){
     return(
       <div className="flex items-center gap-3 w-full" style={{minWidth:0}}>
-        <button onClick={playing?pause:play} className="shrink-0" style={{color:playing?IKB:TEXT}}>
+        <button onClick={playing?pause:play} className="shrink-0" style={{color:playing?accentColor:TEXT}}>
           {playing?<Pause className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>}
         </button>
         <div className="flex-1" style={{minWidth:0}}>{svgMarkup(20)}</div>
@@ -169,7 +169,7 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
         <button onClick={play} disabled={playing} style={{...btnBase,color:playing?FAINT:TEXT,borderColor:playing?LINE:LINE_MED,cursor:playing?'default':'pointer'}}>
           <Play className="w-3.5 h-3.5" strokeWidth={1.25} fill={playing?'none':'currentColor'}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Play</span>
         </button>
-        <button onClick={pause} disabled={!playing} style={{...btnBase,color:!playing?FAINT:IKB,borderColor:!playing?LINE:IKB,background:playing?IKB_SOFT:'transparent',cursor:!playing?'default':'pointer'}}>
+        <button onClick={pause} disabled={!playing} style={{...btnBase,color:!playing?FAINT:accentColor,borderColor:!playing?LINE:accentColor,background:playing?accentSoft:'transparent',cursor:!playing?'default':'pointer'}}>
           <Pause className="w-3.5 h-3.5" strokeWidth={1.25} fill={playing?'currentColor':'none'}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Pause</span>
         </button>
         <button onClick={rewind} style={{...btnBase,color:MUTED}}>
@@ -222,26 +222,25 @@ export function RefTrackPlayer({meta,blobLoader,onUpload,onDelete}){
 
   // ── Player state ────────────────────────────────────────────────────────
   const waveActions=(
-    <>
-      <div style={{display:'flex',alignItems:'center',gap:'6px',padding:'6px 10px',border:`1px solid ${LINE_MED}`,marginLeft:'-1px'}}>
-        <input type="range" min="0.25" max="1" step="0.05" value={speed} onChange={e=>setSpeed(parseFloat(e.target.value))} style={{width:'56px',accentColor:REF_COLOR,cursor:'pointer'}} title={`Speed: ${Math.round(speed*100)}%`}/>
-        <span className="tabular-nums" style={{fontFamily:mono,color:FAINT,fontSize:'9px',minWidth:'28px'}}>{Math.round(speed*100)}%</span>
-      </div>
-      {onUpload&&<button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{...btnBase,color:FAINT}} title="Replace ref track (or drag a new file)"><Upload className="w-3.5 h-3.5" strokeWidth={1.25}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Replace</span></button>}
-      {onDelete&&<button onClick={onDelete} style={{...btnBase,color:FAINT}} title="Remove ref track"><X className="w-3.5 h-3.5" strokeWidth={1.25}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Delete</span></button>}
-    </>
+    <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'6px 14px',border:`1px solid ${LINE_MED}`,marginLeft:'-1px'}}>
+      <input type="range" min="0.25" max="1" step="0.01" value={speed} onChange={e=>setSpeed(parseFloat(e.target.value))} style={{width:'140px',accentColor:REF_COLOR,cursor:'pointer'}} title={`Speed: ${Math.round(speed*100)}%`}/>
+      <span className="tabular-nums" style={{fontFamily:mono,color:FAINT,fontSize:'9px',minWidth:'32px'}}>{Math.round(speed*100)}%</span>
+    </div>
   );
 
   return(
     <div onDragOver={canDrop?onDragOver:undefined} onDragLeave={canDrop?onDragLeave:undefined} onDrop={canDrop?onDrop:undefined}
       style={{border:`1px solid ${isDragActive?REF_COLOR:LINE_STR}`,background:isDragActive?'rgba(107,143,113,0.08)':'transparent',padding:'12px 14px 14px',marginBottom:'10px',transition:'border-color 120ms,background 120ms'}}>
       <input ref={fileRef} type="file" accept="audio/*" style={{display:'none'}} onChange={handleFile}/>
-      <div className="flex items-baseline gap-3 mb-3">
+      <div className="flex items-center gap-2 mb-3">
         <span className="uppercase shrink-0" style={{fontFamily:mono,color:REF_COLOR,fontSize:'9px',letterSpacing:'0.22em'}}>Ref</span>
-        <span className="truncate flex-1 min-w-0" style={{fontFamily:mono,color:MUTED,fontSize:'10px',letterSpacing:'0.06em'}}>{meta.filename}</span>
-        {isDragActive&&<span className="italic shrink-0" style={{fontFamily:serif,color:REF_COLOR,fontSize:'11px'}}>drop to replace</span>}
+        {isDragActive
+          ?<span className="italic flex-1 min-w-0" style={{fontFamily:serif,color:REF_COLOR,fontSize:'11px'}}>drop to replace</span>
+          :<span className="truncate flex-1 min-w-0" style={{fontFamily:mono,color:MUTED,fontSize:'10px',letterSpacing:'0.06em'}}>{meta.filename}</span>}
+        {onUpload&&<button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{color:FAINT,padding:'0 2px',cursor:'pointer',flexShrink:0}} title="Replace ref track (or drag a new file)"><Upload className="w-3 h-3" strokeWidth={1.25}/></button>}
+        {onDelete&&<button onClick={onDelete} style={{color:FAINT,padding:'0 2px',cursor:'pointer',flexShrink:0}} title="Remove ref track"><X className="w-3 h-3" strokeWidth={1.25}/></button>}
       </div>
-      <Waveform blobLoader={blobLoader} meta={meta} playbackRate={speed} actions={waveActions}/>
+      <Waveform blobLoader={blobLoader} meta={meta} playbackRate={speed} actions={waveActions} accentColor={REF_COLOR} accentSoft="rgba(107,143,113,0.12)"/>
     </div>
   );
 }

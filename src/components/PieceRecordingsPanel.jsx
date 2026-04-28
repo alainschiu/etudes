@@ -1,6 +1,5 @@
 import React,{useState} from 'react';
 import Mic from 'lucide-react/dist/esm/icons/mic';
-import Square from 'lucide-react/dist/esm/icons/square';
 import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
@@ -15,13 +14,9 @@ const ROLLING_LIMIT = 10;
 export default function PieceRecordingsPanel({
   item,
   pieceRecordingMeta,
-  startPieceRecording,
-  stopPieceRecording,
   deletePieceRecording,
   lockPieceRecording,
   pieceRecordingItemId,
-  isRecording,
-  currentBpm,
   dayClosed,
   // cross-piece AB (passed from RepertoireView)
   globalAbA,
@@ -45,7 +40,6 @@ export default function PieceRecordingsPanel({
   const lockedCount=lockedDates.length;
 
   const isActiveRecording=pieceRecordingItemId===item.id;
-  const canRecord=!isRecording&&!pieceRecordingItemId&&!dayClosed;
 
   const isA=(date)=>globalAbA?.itemId===item.id&&globalAbA?.date===date;
   const isB=(date)=>globalAbB?.itemId===item.id&&globalAbB?.date===date;
@@ -96,6 +90,12 @@ export default function PieceRecordingsPanel({
 
       {open&&(<>
 
+      {/* ── Reference sub-label ─────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 mb-2" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>
+        <span className="uppercase shrink-0" style={{color:'#6B8F71'}}>Reference</span>
+        <span style={{flex:1,height:'1px',background:'rgba(107,143,113,0.25)'}}/>
+      </div>
+
       {/* ── Reference track ─────────────────────────────────────────────────── */}
       <RefTrackPlayer
         meta={refTrackMeta?.[item.id]}
@@ -104,36 +104,18 @@ export default function PieceRecordingsPanel({
         onDelete={()=>deleteRefTrack(item.id)}
       />
 
-      {/* ── Rec / Stop button ───────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between mb-2">
-        {isActiveRecording?(
-          <button onClick={stopPieceRecording} style={{display:'flex',alignItems:'center',gap:'6px',padding:'3px 10px',border:`1px solid #c0392b`,background:'rgba(192,57,43,0.1)',color:'#c0392b',cursor:'pointer',fontSize:'9px',letterSpacing:'0.28em'}}>
-            <Square className="w-2.5 h-2.5" strokeWidth={1.25} fill="currentColor"/>
-            <span className="uppercase animate-pulse">Stop</span>
-          </button>
-        ):(
-          <button onClick={()=>startPieceRecording(item.id,currentBpm,item.stage)} disabled={!canRecord} style={{display:'flex',alignItems:'center',gap:'6px',padding:'3px 10px',border:`1px solid ${canRecord?LINE_STR:LINE}`,background:'transparent',color:canRecord?TEXT:FAINT,cursor:canRecord?'pointer':'not-allowed',fontSize:'9px',letterSpacing:'0.28em'}}>
-            <span style={{width:'6px',height:'6px',borderRadius:'50%',background:canRecord?'#c0392b':FAINT,flexShrink:0,display:'inline-block'}}/>
-            <span className="uppercase">Rec</span>
-          </button>
-        )}
-        {/* Rolling limit warning */}
-        {unlockedCount>=ROLLING_LIMIT&&(
-          <span className="uppercase" style={{fontFamily:mono,color:WARM,fontSize:'8px',letterSpacing:'0.18em'}}>rack full — next rec auto-purges oldest</span>
-        )}
+      {/* ── Recordings sub-label ────────────────────────────────────────────── */}
+      <div className="flex items-center gap-2 mt-2 mb-2" style={{fontSize:'9px',letterSpacing:'0.28em'}}>
+        <span className="uppercase shrink-0" style={{color:FAINT}}>Recordings</span>
+        <span style={{flex:1,height:'1px',background:LINE_MED}}/>
+        {dates.length>0&&<span className="shrink-0 tabular-nums" style={{fontFamily:mono,color:DIM,letterSpacing:'0.08em'}}>{unlockedCount}/{ROLLING_LIMIT}</span>}
+        {lockedCount>0&&<span className="shrink-0 flex items-center gap-0.5" style={{color:WARM,fontFamily:mono}}><Lock className="w-2.5 h-2.5" strokeWidth={1.5}/>{lockedCount}</span>}
+        {unlockedCount>=ROLLING_LIMIT&&<span className="uppercase shrink-0" style={{color:WARM,fontSize:'8px',letterSpacing:'0.14em'}}>rack full</span>}
       </div>
 
-      {/* ── Active recording pill ───────────────────────────────────────────── */}
-      {isActiveRecording&&(
-        <div className="flex items-center gap-2 mb-2">
-          <span style={{width:'6px',height:'6px',borderRadius:'50%',background:'#c0392b',flexShrink:0}} className="animate-pulse"/>
-          <span className="uppercase" style={{fontFamily:mono,color:'#c0392b',fontSize:'9px',letterSpacing:'0.28em'}}>Recording</span>
-        </div>
-      )}
-
       {/* ── Empty state ─────────────────────────────────────────────────────── */}
-      {dates.length===0&&!isActiveRecording&&(
-        <div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No recordings yet.</div>
+      {dates.length===0&&(
+        <div className="italic mb-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No recordings yet.</div>
       )}
 
       {/* ── Compact ledger list ─────────────────────────────────────────────── */}
@@ -233,7 +215,7 @@ export default function PieceRecordingsPanel({
                     {entry?.stage&&<span style={{fontFamily:serif,fontStyle:'italic',color:FAINT,fontSize:'11px'}}>{entry.stage}</span>}
                     {(entry?.locked??false)&&<Lock className="w-2.5 h-2.5" strokeWidth={1.5} style={{color:WARM}}/>}
                   </div>
-                  <Waveform blobLoader={()=>idbGet('pieceRecordings',`${item.id}__${ab.date}`)} meta={entry}/>
+                  <Waveform blobLoader={()=>idbGet('pieceRecordings',`${item.id}__${ab.date}`)} meta={entry} accentColor={accent} accentSoft={soft}/>
                 </div>
               );
             })}

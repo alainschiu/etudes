@@ -127,7 +127,7 @@ export default function Etudes(){
                   </div>
                   <button onClick={closeRefBar} style={{color:FAINT}}><X className="w-4 h-4" strokeWidth={1.25}/></button>
                 </div>
-                <Waveform blobLoader={()=>idbGet('refTracks',s.refBarItemId)} meta={refMeta} playbackRate={refBarSpeed} actions={speedAction}/>
+                <Waveform blobLoader={()=>idbGet('refTracks',s.refBarItemId)} meta={refMeta} playbackRate={refBarSpeed} actions={speedAction} accentColor="#6B8F71" accentSoft="rgba(107,143,113,0.12)"/>
               </div>
             </div>
           </div>

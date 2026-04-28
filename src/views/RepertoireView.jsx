@@ -194,7 +194,7 @@ export default function RepertoireView(p){
               </button>
               {isBpmOpen(i.id)&&<BpmSparkline log={i.bpmLog} target={i.bpmTarget}/>}
             </div>)}
-            {pieceRecordingMeta&&<PieceRecordingsPanel item={i} pieceRecordingMeta={pieceRecordingMeta} startPieceRecording={startPieceRecording} stopPieceRecording={stopPieceRecording} deletePieceRecording={deletePieceRecording} lockPieceRecording={lockPieceRecording} pieceRecordingItemId={pieceRecordingItemId} isRecording={isRecording} currentBpm={currentBpm} dayClosed={dayClosed} globalAbA={globalAbA} globalAbB={globalAbB} setGlobalAbA={setGlobalAbA} setGlobalAbB={setGlobalAbB} refTrackMeta={refTrackMeta} uploadRefTrack={uploadRefTrack} deleteRefTrack={deleteRefTrack}/>}
+            {pieceRecordingMeta&&<PieceRecordingsPanel item={i} pieceRecordingMeta={pieceRecordingMeta} deletePieceRecording={deletePieceRecording} lockPieceRecording={lockPieceRecording} pieceRecordingItemId={pieceRecordingItemId} dayClosed={dayClosed} globalAbA={globalAbA} globalAbB={globalAbB} setGlobalAbA={setGlobalAbA} setGlobalAbB={setGlobalAbB} refTrackMeta={refTrackMeta} uploadRefTrack={uploadRefTrack} deleteRefTrack={deleteRefTrack}/>}
             <LogBookPanel item={i} updateItem={updateItem} addNoteLogEntry={addNoteLogEntry} deleteNoteLogEntry={deleteNoteLogEntry} updateNoteLogEntry={updateNoteLogEntry}/>
           </div>
           <div className="col-span-4 space-y-4 min-w-0">
