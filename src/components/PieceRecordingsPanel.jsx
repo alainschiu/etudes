@@ -1,29 +1,62 @@
 import React,{useState} from 'react';
-import {Mic,Square,Trash2,ChevronDown,ChevronUp} from 'lucide-react';
-import {SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,WARM_SOFT,serif,mono} from '../constants/theme.js';
+import {Mic,Square,Trash2,ChevronDown,ChevronUp,Lock,LockOpen} from 'lucide-react';
+import {TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,WARM_SOFT,serif,mono} from '../constants/theme.js';
 import {idbGet} from '../lib/storage.js';
 import {Waveform} from './shared.jsx';
 
-export default function PieceRecordingsPanel({item,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,pieceRecordingItemId,isRecording,currentBpm,dayClosed}){
+const ROLLING_LIMIT = 10;
+
+export default function PieceRecordingsPanel({
+  item,
+  pieceRecordingMeta,
+  startPieceRecording,
+  stopPieceRecording,
+  deletePieceRecording,
+  lockPieceRecording,
+  pieceRecordingItemId,
+  isRecording,
+  currentBpm,
+  dayClosed,
+  // cross-piece AB (passed from RepertoireView)
+  globalAbA,
+  globalAbB,
+  setGlobalAbA,
+  setGlobalAbB,
+}){
   const [open,setOpen]=useState(false);
-  const [abA,setAbA]=useState(null);
-  const [abB,setAbB]=useState(null);
   const [selected,setSelected]=useState(null);
 
-  const itemMeta=pieceRecordingMeta[item.id]||{};
-  const dates=Object.keys(itemMeta).sort().reverse();
+  const itemMeta=pieceRecordingMeta?.[item.id]||{};
+  const dates=Object.keys(itemMeta).sort().reverse(); // newest first
+
+  const unlockedDates=dates.filter(d=>!(itemMeta[d]?.locked??false));
+  const lockedDates=dates.filter(d=>(itemMeta[d]?.locked??false));
+  const unlockedCount=unlockedDates.length;
+  const lockedCount=lockedDates.length;
 
   const isActiveRecording=pieceRecordingItemId===item.id;
   const canRecord=!isRecording&&!pieceRecordingItemId&&!dayClosed;
 
-  const toggleA=(date)=>{if(abA===date){setAbA(null);return;}if(abB===date)setAbB(null);setAbA(date);};
-  const toggleB=(date)=>{if(abB===date){setAbB(null);return;}if(abA===date)setAbA(null);setAbB(date);};
+  const isA=(date)=>globalAbA?.itemId===item.id&&globalAbA?.date===date;
+  const isB=(date)=>globalAbB?.itemId===item.id&&globalAbB?.date===date;
+
+  const toggleA=(date)=>{
+    if(isA(date)){setGlobalAbA(null);return;}
+    // if this date was in B slot for this item, clear B
+    if(isB(date))setGlobalAbB(null);
+    setGlobalAbA({itemId:item.id,date,meta:itemMeta[date],title:item.title});
+  };
+  const toggleB=(date)=>{
+    if(isB(date)){setGlobalAbB(null);return;}
+    if(isA(date))setGlobalAbA(null);
+    setGlobalAbB({itemId:item.id,date,meta:itemMeta[date],title:item.title});
+  };
+
   const selectRow=(date)=>setSelected(p=>p===date?null:date);
 
-  const showAB=abA&&abB;
-  const previewDate=showAB?null:selected;
+  const showAB=globalAbA&&globalAbB;
+  const previewDate=selected;
   const previewEntry=previewDate?itemMeta[previewDate]:null;
-  const listHasBorder=dates.length>0;
 
   return (
     <div className="mb-6">
@@ -32,7 +65,18 @@ export default function PieceRecordingsPanel({item,pieceRecordingMeta,startPiece
       <button onClick={()=>setOpen(v=>!v)} className="w-full uppercase mb-2 flex items-center gap-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>
         <Mic className="w-3 h-3" strokeWidth={1.25}/>
         Recordings
-        {dates.length>0&&<span style={{fontFamily:mono,color:DIM,letterSpacing:'0.1em'}}>{String(dates.length).padStart(2,'0')}</span>}
+        {/* Slot counters */}
+        {dates.length>0&&(
+          <span className="flex items-center gap-2" style={{fontFamily:mono,letterSpacing:'0.08em'}}>
+            <span style={{color:DIM}}>{unlockedCount}/{ROLLING_LIMIT}</span>
+            {lockedCount>0&&(
+              <span className="flex items-center gap-0.5" style={{color:WARM}}>
+                <Lock className="w-2.5 h-2.5" strokeWidth={1.5}/>
+                <span>{lockedCount}</span>
+              </span>
+            )}
+          </span>
+        )}
         {isActiveRecording&&<span style={{width:'6px',height:'6px',borderRadius:'50%',background:'#c0392b',flexShrink:0,display:'inline-block'}} className="animate-pulse"/>}
         {open?<ChevronUp className="w-3 h-3 ml-auto" strokeWidth={1.25}/>:<ChevronDown className="w-3 h-3 ml-auto" strokeWidth={1.25}/>}
       </button>
@@ -52,6 +96,10 @@ export default function PieceRecordingsPanel({item,pieceRecordingMeta,startPiece
             <span className="uppercase">Rec</span>
           </button>
         )}
+        {/* Rolling limit warning */}
+        {unlockedCount>=ROLLING_LIMIT&&(
+          <span className="uppercase" style={{fontFamily:mono,color:WARM,fontSize:'8px',letterSpacing:'0.18em'}}>rack full — next rec auto-purges oldest</span>
+        )}
       </div>
 
       {/* ── Active recording pill ───────────────────────────────────────────── */}
@@ -69,12 +117,18 @@ export default function PieceRecordingsPanel({item,pieceRecordingMeta,startPiece
 
       {/* ── Compact ledger list ─────────────────────────────────────────────── */}
       {dates.length>0&&(
-        <div className="etudes-scroll" style={{border:`1px solid ${LINE_STR}`,overflowY:'auto',maxHeight:'204px'}}>
+        <div className="etudes-scroll" style={{border:`1px solid ${LINE_STR}`,overflowY:'auto',maxHeight:'240px'}}>
           {dates.map((date,idx)=>{
             const entry=itemMeta[date];
-            const isA=abA===date;
-            const isB=abB===date;
-            const isSel=selected===date&&!showAB;
+            const locked=entry?.locked??false;
+            const isSelRow=selected===date;
+            const isARow=isA(date);
+            const isBRow=isB(date);
+
+            // Left border: locked → WARM, A slot → IKB, B slot → WARM, selected → IKB, else transparent
+            const leftBorder=locked?WARM:isARow?IKB:isBRow?WARM:isSelRow?IKB:'transparent';
+            const rowBg=locked?`${WARM}08`:isARow?IKB_SOFT:isBRow?WARM_SOFT:isSelRow?IKB_SOFT:'transparent';
+
             return (
               <div
                 key={date}
@@ -82,31 +136,51 @@ export default function PieceRecordingsPanel({item,pieceRecordingMeta,startPiece
                 className="group flex items-center cursor-pointer"
                 style={{
                   borderBottom:idx<dates.length-1?`1px solid ${LINE}`:'none',
-                  borderLeft:`2px solid ${isSel?IKB:'transparent'}`,
-                  background:isSel?IKB_SOFT:'transparent',
+                  borderLeft:`2px solid ${leftBorder}`,
+                  background:rowBg,
+                  transition:'background 100ms',
                 }}
               >
+                {/* Lock toggle */}
+                <button
+                  onClick={(e)=>{e.stopPropagation();lockPieceRecording&&lockPieceRecording(item.id,date);}}
+                  title={locked?'Unlock recording':'Lock recording (exempt from auto-purge)'}
+                  style={{padding:'9px 6px 9px 8px',color:locked?WARM:FAINT,cursor:'pointer',flexShrink:0,transition:'color 120ms'}}
+                  onMouseEnter={e=>e.currentTarget.style.color=locked?MUTED:WARM}
+                  onMouseLeave={e=>e.currentTarget.style.color=locked?WARM:FAINT}
+                >
+                  {locked
+                    ?<Lock className="w-2.5 h-2.5" strokeWidth={1.5}/>
+                    :<LockOpen className="w-2.5 h-2.5" strokeWidth={1.5}/>
+                  }
+                </button>
+
                 {/* Index */}
-                <span style={{fontFamily:mono,color:isSel?IKB:DIM,fontSize:'9px',letterSpacing:'0.1em',padding:'9px 8px 9px 10px',minWidth:'32px',textAlign:'right',flexShrink:0}}>
+                <span style={{fontFamily:mono,color:isSelRow||isARow||isBRow?IKB:DIM,fontSize:'9px',letterSpacing:'0.1em',padding:'9px 6px 9px 2px',minWidth:'24px',textAlign:'right',flexShrink:0}}>
                   {String(idx+1).padStart(2,'0')}
                 </span>
                 {/* Date */}
-                <span style={{fontFamily:mono,color:isSel?TEXT:MUTED,fontSize:'10px',letterSpacing:'0.06em',padding:'9px 0 9px 8px',minWidth:'84px',flexShrink:0}}>
+                <span style={{fontFamily:mono,color:isSelRow?TEXT:MUTED,fontSize:'10px',letterSpacing:'0.06em',padding:'9px 0 9px 6px',minWidth:'80px',flexShrink:0}}>
                   {date}
                 </span>
                 {/* BPM */}
-                <span style={{fontFamily:mono,color:FAINT,fontSize:'9px',letterSpacing:'0.06em',padding:'9px 8px',minWidth:'44px',flexShrink:0}}>
-                  {entry.bpm?`↓ ${entry.bpm}`:'—'}
+                <span style={{fontFamily:mono,color:FAINT,fontSize:'9px',letterSpacing:'0.06em',padding:'9px 8px',minWidth:'40px',flexShrink:0}}>
+                  {entry?.bpm?`↓ ${entry.bpm}`:'—'}
                 </span>
                 {/* Stage */}
                 <span style={{fontFamily:serif,fontStyle:'italic',color:FAINT,fontSize:'11px',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',padding:'9px 4px'}}>
-                  {entry.stage||''}
+                  {entry?.stage||''}
                 </span>
                 {/* Controls */}
                 <div className="flex items-center gap-1.5 shrink-0 px-2" onClick={e=>e.stopPropagation()}>
-                  <button onClick={()=>toggleA(date)} style={{fontSize:'8px',letterSpacing:'0.18em',padding:'2px 6px',border:`1px solid ${isA?IKB:LINE_MED}`,background:isA?IKB_SOFT:'transparent',color:isA?IKB:FAINT,cursor:'pointer'}}>A</button>
-                  <button onClick={()=>toggleB(date)} style={{fontSize:'8px',letterSpacing:'0.18em',padding:'2px 6px',border:`1px solid ${isB?WARM:LINE_MED}`,background:isB?WARM_SOFT:'transparent',color:isB?WARM:FAINT,cursor:'pointer'}}>B</button>
-                  <button onClick={()=>deletePieceRecording(item.id,date)} className="opacity-0 group-hover:opacity-100 transition-opacity" style={{color:FAINT,cursor:'pointer',padding:'0 2px'}}>
+                  <button onClick={()=>toggleA(date)} style={{fontSize:'8px',letterSpacing:'0.18em',padding:'2px 6px',border:`1px solid ${isARow?IKB:LINE_MED}`,background:isARow?IKB_SOFT:'transparent',color:isARow?IKB:FAINT,cursor:'pointer'}}>A</button>
+                  <button onClick={()=>toggleB(date)} style={{fontSize:'8px',letterSpacing:'0.18em',padding:'2px 6px',border:`1px solid ${isBRow?WARM:LINE_MED}`,background:isBRow?WARM_SOFT:'transparent',color:isBRow?WARM:FAINT,cursor:'pointer'}}>B</button>
+                  <button
+                    onClick={()=>!locked&&deletePieceRecording(item.id,date)}
+                    title={locked?'Unlock before deleting':'Delete recording'}
+                    className={locked?'':'opacity-0 group-hover:opacity-100 transition-opacity'}
+                    style={{color:locked?LINE_STR:FAINT,cursor:locked?'not-allowed':'pointer',padding:'0 2px'}}
+                  >
                     <Trash2 className="w-3 h-3" strokeWidth={1.25}/>
                   </button>
                 </div>
@@ -124,46 +198,13 @@ export default function PieceRecordingsPanel({item,pieceRecordingMeta,startPiece
             <span style={{fontFamily:mono,color:MUTED,fontSize:'10px',letterSpacing:'0.06em'}}>{previewDate}</span>
             {previewEntry.bpm&&<span style={{fontFamily:mono,color:FAINT,fontSize:'9px',letterSpacing:'0.04em'}}>↓ {previewEntry.bpm}</span>}
             {previewEntry.stage&&<span style={{fontFamily:serif,fontStyle:'italic',color:FAINT,fontSize:'11px'}}>{previewEntry.stage}</span>}
+            {(previewEntry.locked??false)&&<Lock className="w-2.5 h-2.5" strokeWidth={1.5} style={{color:WARM}}/>}
           </div>
           <Waveform blobLoader={()=>idbGet('pieceRecordings',`${item.id}__${previewDate}`)} meta={previewEntry}/>
         </div>
       )}
 
-      {/* ── A / B comparison ────────────────────────────────────────────────── */}
-      {showAB&&(
-        <div style={{border:`1px solid ${LINE_STR}`,borderTop:listHasBorder?'none':`1px solid ${LINE_STR}`}}>
-          {/* A/B header bar */}
-          <div className="flex items-center gap-2 px-3 py-2" style={{borderBottom:`1px solid ${LINE}`}}>
-            <span className="uppercase" style={{fontFamily:mono,color:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>
-              <span style={{color:IKB}}>A</span>
-              <span style={{margin:'0 5px',color:DIM}}>—</span>
-              <span style={{color:WARM}}>B</span>
-              {' '}Comparison
-            </span>
-            <button onClick={()=>{setAbA(null);setAbB(null);}} className="ml-auto uppercase" style={{fontFamily:mono,color:DIM,fontSize:'8px',letterSpacing:'0.18em',cursor:'pointer'}}>clear</button>
-          </div>
-          {/* Two channels */}
-          <div className="flex">
-            {[{slot:'A',date:abA,accent:IKB,soft:IKB_SOFT},{slot:'B',date:abB,accent:WARM,soft:WARM_SOFT}].map(({slot,date,accent,soft},i)=>{
-              const entry=itemMeta[date];
-              return (
-                <div key={slot} className="flex-1 min-w-0 p-4" style={{borderRight:i===0?`1px solid ${LINE}`:'none',background:soft}}>
-                  <div className="flex items-baseline gap-2 mb-3">
-                    <span style={{fontFamily:mono,color:accent,fontSize:'10px',letterSpacing:'0.22em',fontWeight:600}}>{slot}</span>
-                    <span style={{fontFamily:mono,color:MUTED,fontSize:'10px',letterSpacing:'0.06em'}}>{date}</span>
-                    {entry.bpm&&<span style={{fontFamily:mono,color:FAINT,fontSize:'9px'}}>↓ {entry.bpm}</span>}
-                    {entry.stage&&<span style={{fontFamily:serif,fontStyle:'italic',color:FAINT,fontSize:'11px'}}>{entry.stage}</span>}
-                  </div>
-                  <Waveform blobLoader={()=>idbGet('pieceRecordings',`${item.id}__${date}`)} meta={entry}/>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
       </>)}
-
     </div>
   );
 }

@@ -3,12 +3,16 @@ import {idbPut,idbDel,idbGet} from '../lib/storage.js';
 import {computePeaks} from '../lib/media.js';
 import {todayDateStr} from '../lib/dates.js';
 
+const ROLLING_LIMIT = 10;
+const LOCKED_LIMIT  = 20;
+
 export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal,pieceRecordingMeta,setPieceRecordingMeta,setPieceRecordingItemId}){
   const mediaRecorderRef=useRef(null);
   const recordedChunksRef=useRef([]);
   const pieceMediaRecorderRef=useRef(null);
   const pieceChunksRef=useRef([]);
 
+  // ── Daily session recording ───────────────────────────────────────────────
   const startRecording=async()=>{
     if(dayClosed)return;
     const tk=todayDateStr();
@@ -36,6 +40,23 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
     }});
   };
 
+  // ── Helpers ───────────────────────────────────────────────────────────────
+
+  /** Apply FIFO: if unlocked entries exceed ROLLING_LIMIT, delete the oldest. */
+  const applyFifo=(itemId, entries)=>{
+    const updated={...entries};
+    const unlocked=Object.entries(updated)
+      .filter(([,v])=>!(v.locked??false))
+      .sort(([a],[b])=>a.localeCompare(b)); // oldest date first
+    if(unlocked.length>ROLLING_LIMIT){
+      const [oldestDate]=unlocked[0];
+      idbDel('pieceRecordings',`${itemId}__${oldestDate}`);
+      delete updated[oldestDate];
+    }
+    return updated;
+  };
+
+  // ── Piece recording ───────────────────────────────────────────────────────
   const startPieceRecording=async(itemId,bpm,stage)=>{
     const date=todayDateStr();
     const key=`${itemId}__${date}`;
@@ -50,7 +71,11 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
           const blob=new Blob(pieceChunksRef.current,{type:'audio/webm'});
           const peaks=await computePeaks(blob,120);
           await idbPut('pieceRecordings',key,blob);
-          setPieceRecordingMeta(m=>({...m,[itemId]:{...(m[itemId]||{}),[date]:{peaks,size:blob.size,ts:Date.now(),bpm:bpm||null,stage:stage||''}}}));
+          setPieceRecordingMeta(m=>{
+            const prev=m[itemId]||{};
+            const updated={...prev,[date]:{peaks,size:blob.size,ts:Date.now(),bpm:bpm||null,stage:stage||'',locked:false}};
+            return {...m,[itemId]:applyFifo(itemId,updated)};
+          });
           setPieceRecordingItemId(null);
           stream.getTracks().forEach(t=>t.stop());
         };
@@ -67,25 +92,51 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
   const stopPieceRecording=()=>{try{pieceMediaRecorderRef.current?.stop();}catch{}};
 
   const deletePieceRecording=(itemId,date)=>{
-    const key=`${itemId}__${date}`;
+    const entry=pieceRecordingMeta?.[itemId]?.[date];
+    if(entry?.locked){
+      setConfirmModal({message:'This recording is locked. Unlock it before deleting.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+      return;
+    }
+    const idbKey=`${itemId}__${date}`;
     setConfirmModal({message:`Delete the recording from ${date}?`,confirmLabel:'Delete',onConfirm:async()=>{
       setConfirmModal(null);
-      await idbDel('pieceRecordings',key);
+      await idbDel('pieceRecordings',idbKey);
       setPieceRecordingMeta(m=>{const c={...m};if(c[itemId]){c[itemId]={...c[itemId]};delete c[itemId][date];if(!Object.keys(c[itemId]).length)delete c[itemId];}return c;});
     }});
+  };
+
+  /** Toggle lock on a piece recording. Locked recordings are exempt from FIFO. */
+  const lockPieceRecording=(itemId,date)=>{
+    setPieceRecordingMeta(m=>{
+      const entry=m[itemId]?.[date];
+      if(!entry)return m;
+      const isCurrentlyLocked=entry.locked??false;
+      if(!isCurrentlyLocked){
+        const lockedCount=Object.values(m[itemId]||{}).filter(e=>e.locked??false).length;
+        if(lockedCount>=LOCKED_LIMIT){
+          setConfirmModal({message:`You can lock up to ${LOCKED_LIMIT} recordings per piece. Unlock one before locking another.`,confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+          return m;
+        }
+      }
+      return{...m,[itemId]:{...m[itemId],[date]:{...entry,locked:!isCurrentlyLocked}}};
+    });
   };
 
   const attachDailyToPiece=async(itemId,bpm,stage)=>{
     const date=todayDateStr();
     const blob=await idbGet('recordings',date);
     if(!blob)return;
-    const key=`${itemId}__${date}`;
+    const idbKey=`${itemId}__${date}`;
     const peaks=await computePeaks(blob,120);
-    await idbPut('pieceRecordings',key,blob);
-    setPieceRecordingMeta(m=>({...m,[itemId]:{...(m[itemId]||{}),[date]:{peaks,size:blob.size,ts:Date.now(),bpm:bpm||null,stage:stage||''}}}));
+    await idbPut('pieceRecordings',idbKey,blob);
+    setPieceRecordingMeta(m=>{
+      const prev=m[itemId]||{};
+      const updated={...prev,[date]:{peaks,size:blob.size,ts:Date.now(),bpm:bpm||null,stage:stage||'',locked:false}};
+      return {...m,[itemId]:applyFifo(itemId,updated)};
+    });
     await idbDel('recordings',date);
     setRecordingMeta(m=>{const c={...m};delete c[date];return c;});
   };
 
-  return {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording,attachDailyToPiece};
+  return {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,attachDailyToPiece};
 }

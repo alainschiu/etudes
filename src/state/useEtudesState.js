@@ -409,7 +409,7 @@ export default function useEtudesState(){
   const renameBookmark=(itemId,attachId,bmId,name)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,bookmarks:(x.bookmarks||[]).map(b=>b.id===bmId?{...b,name}:b)}:x)}));
 
   // ── Recording (delegated) ─────────────────────────────────────────────────
-  const {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording,attachDailyToPiece}=useRecording({dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal,pieceRecordingMeta,setPieceRecordingMeta,setPieceRecordingItemId});
+  const {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,attachDailyToPiece}=useRecording({dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal,pieceRecordingMeta,setPieceRecordingMeta,setPieceRecordingItemId});
 
   // ── Session / routine management ──────────────────────────────────────────
   const handleDragStart=(idx)=>setDragIdx(idx);
@@ -561,7 +561,7 @@ export default function useEtudesState(){
     addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,
     addBookmark,removeBookmark,renameBookmark,
     startRecording,stopRecording,deleteRecording,
-    pieceRecordingMeta,pieceRecordingItemId,startPieceRecording,stopPieceRecording,deletePieceRecording,attachDailyToPiece,
+    pieceRecordingMeta,pieceRecordingItemId,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,attachDailyToPiece,
     handleDragStart,handleDragOver,handleDrop,handleDragEnd,
     moveSession,hideSession,addSessionType,toggleSessionWarmup,
     removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,

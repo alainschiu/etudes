@@ -1,11 +1,12 @@
 import React, {useState, useMemo, useEffect} from 'react';
 import {Play, Pause, Plus, X, ChevronDown, ChevronUp, FileText, ArrowUp, ArrowDown, Crosshair, Pencil, Trash2, TrendingUp, Users, GripVertical, Search, Layers, Link as LinkIcon, Music, Guitar, Calendar, Check, BookOpen, Mic} from 'lucide-react';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, sans} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, sans, mono} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
 import {daysUntil, todayDateStr} from '../lib/dates.js';
+import {idbGet} from '../lib/storage.js';
 import {getItemTime, getSpotTime, displayTitle, formatByline, normalizeComposerKey, nextPerformance, mkSpotId} from '../lib/items.js';
 import {toRoman} from '../lib/music.js';
-import {DisplayHeader, StageLabels, PerformanceChip, ItemTimeEditor, MarkdownField} from '../components/shared.jsx';
+import {DisplayHeader, StageLabels, PerformanceChip, ItemTimeEditor, MarkdownField, Waveform} from '../components/shared.jsx';
 import {fmtSpotTime} from '../components/shared.jsx';
 import PieceRecordingsPanel from '../components/PieceRecordingsPanel.jsx';
 
@@ -47,10 +48,12 @@ const eInM={...eIn,fontFamily:'ui-monospace,monospace',fontSize:'13px'};
 const selectOnFocus=(e)=>e.currentTarget.select();
 
 export default function RepertoireView(p){
-  const {items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry}=p;
+  const {items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry}=p;
   const [search,setSearch]=useState('');const [filterType,setFilterType]=useState('');const [filterComposer,setFilterComposer]=useState('');const [filterStyle,setFilterStyle]=useState('');const [filterStatus,setFilterStatus]=useState('');const [filterInstrument,setFilterInstrument]=useState('');
   const [sortBy,setSortBy]=useState('');
   const [groupByCollection,setGroupByCollection]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(false);const [composerOpen,setComposerOpen]=useState(true);const [instrumentOpen,setInstrumentOpen]=useState(true);const [expandedId,setExpandedId]=useState(()=>expandedItemId||null);const [showMoreIds,setShowMoreIds]=useState({});
+  const [globalAbA,setGlobalAbA]=useState(null);
+  const [globalAbB,setGlobalAbB]=useState(null);
   const [spotsOpen,setSpotsOpen]=useState({});
   const isSpotsOpen=(id)=>spotsOpen[id]===true;
   const toggleSpots=(id)=>setSpotsOpen(p=>({...p,[id]:!p[id]}));
@@ -168,7 +171,7 @@ export default function RepertoireView(p){
               </button>
               {isBpmOpen(i.id)&&<BpmSparkline log={i.bpmLog} target={i.bpmTarget}/>}
             </div>)}
-            {pieceRecordingMeta&&<PieceRecordingsPanel item={i} pieceRecordingMeta={pieceRecordingMeta} startPieceRecording={startPieceRecording} stopPieceRecording={stopPieceRecording} deletePieceRecording={deletePieceRecording} pieceRecordingItemId={pieceRecordingItemId} isRecording={isRecording} currentBpm={currentBpm} dayClosed={dayClosed}/>}
+            {pieceRecordingMeta&&<PieceRecordingsPanel item={i} pieceRecordingMeta={pieceRecordingMeta} startPieceRecording={startPieceRecording} stopPieceRecording={stopPieceRecording} deletePieceRecording={deletePieceRecording} lockPieceRecording={lockPieceRecording} pieceRecordingItemId={pieceRecordingItemId} isRecording={isRecording} currentBpm={currentBpm} dayClosed={dayClosed} globalAbA={globalAbA} globalAbB={globalAbB} setGlobalAbA={setGlobalAbA} setGlobalAbB={setGlobalAbB}/>}
             <LogBookPanel item={i} updateItem={updateItem} addNoteLogEntry={addNoteLogEntry} deleteNoteLogEntry={deleteNoteLogEntry} updateNoteLogEntry={updateNoteLogEntry}/>
           </div>
           <div className="col-span-4 space-y-4 min-w-0">
@@ -189,7 +192,7 @@ export default function RepertoireView(p){
     </div>);
   };
 
-  return (<div className="flex max-w-6xl mx-auto">
+  return (<><div className="flex max-w-6xl mx-auto">
     <datalist id="rep-composer-list">{uniqueComposerNames.map(c=>(<option key={c} value={c}/>))}</datalist>
     <datalist id="rep-instrument-list">{uniqueInstrumentNames.map(c=>(<option key={c} value={c}/>))}</datalist>
     {sidebarOpen&&(<aside className="w-52 shrink-0 px-5 pt-8 pb-14 space-y-6" style={{borderRight:`1px solid ${LINE}`}}><div className="mb-4 flex justify-end"><button onClick={()=>setSidebarOpen(false)} className="group flex items-center gap-1" style={{color:DIM,cursor:'pointer',transition:'color 120ms'}} onMouseEnter={e=>e.currentTarget.style.color=MUTED} onMouseLeave={e=>e.currentTarget.style.color=DIM}><span className="opacity-0 group-hover:opacity-100 uppercase" style={{fontFamily:sans,fontSize:'8px',letterSpacing:'0.22em',transition:'opacity 120ms'}}>Collapse</span><ChevronDown className="w-3.5 h-3.5" strokeWidth={1.25}/></button></div><SidebarFacet title="Composers" icon={<Users className="w-3 h-3" strokeWidth={1.25}/>} open={composerOpen} setOpen={setComposerOpen} entries={allComposers} activeValue={filterComposer} onSelect={setFilterComposer} emptyText="No composers yet."/><SidebarFacet title="Instruments" icon={<Guitar className="w-3 h-3" strokeWidth={1.25}/>} open={instrumentOpen} setOpen={setInstrumentOpen} entries={allInstruments} activeValue={filterInstrument} onSelect={setFilterInstrument} emptyText="No instruments set."/></aside>)}
@@ -232,7 +235,45 @@ export default function RepertoireView(p){
         {items.length>0&&sorted.length===0&&(<div className="py-12 text-center"><div className="italic mb-3" style={{color:FAINT,fontFamily:serif,fontSize:'15px'}}>Nothing matches these filters.</div><button onClick={clearFilters} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Clear all filters</button></div>)}
       </div>
     </div>
-  </div>);
+  </div>
+  {/* ── Global A/B comparison bar ──────────────────────────────────────── */}
+  {globalAbA&&globalAbB&&(
+    <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:40,background:BG,borderTop:`1px solid ${LINE_STR}`,boxShadow:'0 -4px 24px rgba(0,0,0,0.5)'}}>
+      <div className="max-w-6xl mx-auto px-12">
+        {/* Header */}
+        <div className="flex items-center gap-3 py-2" style={{borderBottom:`1px solid ${LINE}`}}>
+          <span className="uppercase" style={{fontFamily:mono,color:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>
+            <span style={{color:IKB}}>A</span>
+            <span style={{margin:'0 5px',color:DIM}}>—</span>
+            <span style={{color:WARM}}>B</span>
+            {' '}Comparison
+          </span>
+          <span style={{color:DIM,fontSize:'9px',fontFamily:mono}}>·</span>
+          <span className="italic truncate" style={{fontFamily:serif,color:MUTED,fontSize:'12px',flex:1,minWidth:0}}>
+            <span style={{color:IKB}}>A</span> {globalAbA.title} <span style={{color:FAINT,fontSize:'10px'}}>{globalAbA.date}</span>
+            <span style={{margin:'0 8px',color:DIM}}>vs</span>
+            <span style={{color:WARM}}>B</span> {globalAbB.title} <span style={{color:FAINT,fontSize:'10px'}}>{globalAbB.date}</span>
+          </span>
+          <button onClick={()=>{setGlobalAbA(null);setGlobalAbB(null);}} className="uppercase shrink-0" style={{fontFamily:mono,color:DIM,fontSize:'8px',letterSpacing:'0.18em',cursor:'pointer'}}>clear</button>
+        </div>
+        {/* Two waveforms */}
+        <div className="flex gap-0 py-3">
+          {[{slot:'A',ab:globalAbA,accent:IKB,soft:IKB_SOFT},{slot:'B',ab:globalAbB,accent:WARM,soft:WARM_SOFT}].map(({slot,ab,accent,soft},i)=>(
+            <div key={slot} className="flex-1 min-w-0 px-4 py-2" style={{borderRight:i===0?`1px solid ${LINE}`:'none',background:soft}}>
+              <div className="flex items-baseline gap-2 mb-2">
+                <span style={{fontFamily:mono,color:accent,fontSize:'10px',letterSpacing:'0.22em',fontWeight:600}}>{slot}</span>
+                <span className="italic truncate" style={{fontFamily:serif,color:MUTED,fontSize:'12px'}}>{ab.title}</span>
+                <span style={{fontFamily:mono,color:FAINT,fontSize:'9px',letterSpacing:'0.06em'}}>{ab.date}</span>
+                {ab.meta?.bpm&&<span style={{fontFamily:mono,color:FAINT,fontSize:'9px'}}>↓ {ab.meta.bpm}</span>}
+              </div>
+              <Waveform blobLoader={()=>idbGet('pieceRecordings',`${ab.itemId}__${ab.date}`)} meta={ab.meta}/>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )}
+  </>);
 }
 
 function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry}){
