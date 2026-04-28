@@ -107,7 +107,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
   const [hoveredNoteId,setHoveredNoteId]=useState(null);
 
   // Sidebar open/close
-  const [sidebarOpen,setSidebarOpen]=useState(true);
+  const [sidebarOpen,setSidebarOpen]=useState(false);
 
   // Collapsible sidebar sections
   const [archivesOpen,setArchivesOpen]=useState(true);
