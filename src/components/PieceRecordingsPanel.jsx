@@ -5,7 +5,7 @@ import {idbGet} from '../lib/storage.js';
 import {Waveform} from './shared.jsx';
 
 export default function PieceRecordingsPanel({item,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,pieceRecordingItemId,isRecording,currentBpm,dayClosed}){
-  const [open,setOpen]=useState(true);
+  const [open,setOpen]=useState(false);
   const [abA,setAbA]=useState(null);
   const [abB,setAbB]=useState(null);
   const [selected,setSelected]=useState(null);
