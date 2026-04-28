@@ -57,6 +57,10 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
               </div>
             </div>
             <button onClick={signOut} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><CloudOff className="w-3 h-3" strokeWidth={1.25}/> Sign out</button>
+            <div className="pt-2 pb-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>
+              <span style={{color:MUTED}}>What syncs:</span> repertoire, practice history, notes, settings, and recording metadata.<br/>
+              <span style={{color:MUTED}}>Local only:</span> audio recordings and PDF scores — these stay on this device. Use Export → Backup to transfer them manually.
+            </div>
           </>
         ):signupSent?(
           <div className="py-4 space-y-4">
@@ -80,6 +84,9 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
             <button type="button" onClick={()=>{setAuthMode(m=>m==='signin'?'signup':'signin');setAuthError('');}} className="w-full text-center" style={{color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'12px'}}>
               {authMode==='signin'?'No account — create one':'Already have an account — sign in'}
             </button>
+            <div className="pt-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>
+              Sync covers repertoire, history, notes, and settings. Audio recordings and PDFs are local only — use Export → Backup to transfer them between devices.
+            </div>
           </form>
         )}
       </div>
@@ -125,6 +132,7 @@ export function SyncConflictModal({localCount,remoteCount,hasOverlap,onMerge,onK
       <div className="uppercase mb-4" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Sync — both devices have data</div>
       <p style={{fontFamily:serif,fontSize:'15px',lineHeight:1.7,fontWeight:300}}>This device has <span style={{color:TEXT}}>{localCount} {localCount===1?'piece':'pieces'}</span>. The cloud has <span style={{color:TEXT}}>{remoteCount} {remoteCount===1?'piece':'pieces'}</span> from another device.</p>
       <p className="mt-3" style={{fontFamily:serif,fontSize:'13px',lineHeight:1.6,fontWeight:300,color:MUTED,fontStyle:'italic'}}>{overlapNote}</p>
+      <p className="mt-3" style={{fontFamily:serif,fontSize:'11px',lineHeight:1.6,fontWeight:300,color:FAINT,fontStyle:'italic'}}>Audio recordings and PDFs are stored locally and are not affected by this choice.</p>
     </div>
     <div className="px-8 pb-6 flex flex-col gap-2" style={{borderTop:`1px solid ${LINE}`,paddingTop:'20px'}}>
       <button onClick={onMerge} className="w-full py-2.5 uppercase" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'}}>Merge — keep everything</button>
