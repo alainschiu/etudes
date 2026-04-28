@@ -71,7 +71,7 @@ const eInM={...eIn,fontFamily:'ui-monospace,monospace',fontSize:'13px'};
 const selectOnFocus=(e)=>e.currentTarget.select();
 
 export default function RepertoireView(p){
-  const {items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta,uploadRefTrack,deleteRefTrack}=p;
+  const {items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta,uploadRefTrack,deleteRefTrack,pdfUrlMap,localPieceRecordingIds,localRefTrackIds}=p;
   const [search,setSearch]=useState('');const [filterType,setFilterType]=useState('');const [filterComposer,setFilterComposer]=useState('');const [filterStyle,setFilterStyle]=useState('');const [filterStatus,setFilterStatus]=useState('');const [filterInstrument,setFilterInstrument]=useState('');
   const [sortBy,setSortBy]=useState('');
   const [groupByCollection,setGroupByCollection]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(false);const [composerOpen,setComposerOpen]=useState(true);const [instrumentOpen,setInstrumentOpen]=useState(true);const [expandedId,setExpandedId]=useState(()=>expandedItemId||null);const [showMoreIds,setShowMoreIds]=useState({});
@@ -118,6 +118,11 @@ export default function RepertoireView(p){
     const ld=lastPracticedLabel(i.id,history);const rel=relativeDay(ld);const hasSpots=(i.spots||[]).length>0;
     const perf=nextPerformance(i.performances);const hmf=!!(i.arranger);const showMore=showMoreIds[i.id]||hmf;
     const recCount=Object.keys(pieceRecordingMeta?.[i.id]||{}).length;
+    const hasPdfMeta=(i.pdfs||[]).length>0;
+    const hasLocalPdf=hasPdfMeta&&(i.pdfs||[]).some(p=>pdfUrlMap?.[p.libraryId]);
+    const hasLocalRec=recCount>0&&(localPieceRecordingIds?.has(i.id)??true);
+    const hasRefMeta=!!(refTrackMeta?.[i.id]);
+    const hasLocalRef=hasRefMeta&&(localRefTrackIds?.has(i.id)??true);
     const titleValue=i.title==='Untitled'?'':(i.title||'');
     const len=formatLength(i.lengthSecs);
     // Type-based field visibility
@@ -137,8 +142,9 @@ export default function RepertoireView(p){
           <div className="mt-1.5 flex items-center gap-4">
             <StageDots stage={i.stage}/>
             <div className="flex items-center gap-2.5 shrink-0">
-              {(i.pdfs||[]).length>0&&<span className="flex items-center gap-1" style={{color:FAINT,fontSize:'11px'}}><FileText className="w-3 h-3" strokeWidth={1.25}/>{i.pdfs.length}</span>}
-              {recCount>0&&<span className="flex items-center gap-1" style={{color:FAINT,fontSize:'11px'}}><Mic className="w-3 h-3" strokeWidth={1.25}/>{recCount}</span>}
+              {hasPdfMeta&&<span title={hasLocalPdf?undefined:'PDF not on this device'} className="flex items-center gap-1" style={{color:FAINT,fontSize:'11px',opacity:hasLocalPdf?1:0.4}}><FileText className="w-3 h-3" strokeWidth={1.25} style={hasLocalPdf?{}:{strokeDasharray:'2 1.5'}}/>{i.pdfs.length}</span>}
+              {recCount>0&&<span title={hasLocalRec?undefined:'Recording not on this device'} className="flex items-center gap-1" style={{color:FAINT,fontSize:'11px',opacity:hasLocalRec?1:0.4}}><Mic className="w-3 h-3" strokeWidth={1.25} style={hasLocalRec?{}:{strokeDasharray:'2 1.5'}}/>{recCount}</span>}
+              {hasRefMeta&&<span title={hasLocalRef?undefined:'Ref track not on this device'} className="flex items-center gap-1" style={{color:FAINT,fontSize:'11px',opacity:hasLocalRef?1:0.4}}><Music className="w-3 h-3" strokeWidth={1.25} style={hasLocalRef?{}:{strokeDasharray:'2 1.5'}}/></span>}
               {hasSpots&&<span className="flex items-center gap-1" style={{color:FAINT,fontSize:'11px'}}><Crosshair className="w-3 h-3" strokeWidth={1.25}/>{i.spots.length}</span>}
               {len&&<span className="tabular-nums" style={{color:FAINT,fontSize:'11px'}}>{len}</span>}
             </div>
@@ -204,7 +210,7 @@ export default function RepertoireView(p){
             <div className="p-3 space-y-2" style={{border:`1px solid ${LINE}`}}>
               <button onClick={()=>isActiveAny?stopItem():startItem(i.id)} disabled={dayClosed&&!isActiveAny} className="w-full uppercase px-3 py-2.5 flex items-center justify-center gap-2" style={isActiveWhole?{background:IKB,color:TEXT,border:`1px solid ${IKB}`,boxShadow:`0 0 15px ${IKB}60`,fontSize:'10px',letterSpacing:'0.22em'}:{background:'transparent',color:dayClosed?FAINT:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em',cursor:(dayClosed&&!isActiveAny)?'not-allowed':'pointer'}}>{isActiveAny?<><Pause className="w-3 h-3" strokeWidth={1.25}/> Pause</>:<><Play className="w-3 h-3" strokeWidth={1.25}/> {dayClosed?'Day closed':'Practice'}</>}</button>
               <div className="pt-1" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',alignItems:'center'}}>
-                <div><button onClick={()=>setPdfDrawerItemId(i.id)} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}><FileText className="w-3 h-3" strokeWidth={1.25}/> {(i.pdfs||[]).length>0?`Scores (${i.pdfs.length})`:'Scores'}</button></div>
+                <div><button onClick={()=>setPdfDrawerItemId(i.id)} title={hasPdfMeta&&!hasLocalPdf?'PDF not on this device — open to upload':undefined} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px ${hasPdfMeta&&!hasLocalPdf?'dashed':'solid'} ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em',opacity:hasPdfMeta&&!hasLocalPdf?0.55:1}}><FileText className="w-3 h-3" strokeWidth={1.25} style={hasPdfMeta&&!hasLocalPdf?{strokeDasharray:'2 1.5'}:{}}/> {hasPdfMeta?`Scores (${i.pdfs.length})`:'Scores'}</button></div>
                 <div className="flex justify-center">{(i.type==='piece'||i.type==='play')&&<button onClick={()=>updateItem(i.id,{type:i.type==='piece'?'play':'piece'})} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}>→ {i.type==='piece'?'Play':'Pieces'}</button>}</div>
                 <div className="flex justify-end"><button onClick={()=>{deleteItem(i.id);setExpandedId(null);}} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}><Trash2 className="w-3 h-3" strokeWidth={1.25}/> Delete</button></div>
               </div>

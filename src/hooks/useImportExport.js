@@ -9,10 +9,13 @@ import {migrateImport,migrateItems,migrateSessions,migrateRoutines,migrateHistor
 export default function useImportExport({
   todayKey,items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,loadedRoutineId,routines,
   dailyReflection,weekReflection,monthReflection,settings,freeNotes,recordingMeta,history,dayClosed,
+  pieceRecordingMeta,noteCategories,refTrackMeta,
   pdfUrlMap,todayHistoryEntry,
   setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
   setRoutines,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
   setRecordingMeta,setHistory,setDayClosed,setPdfUrlMap,
+  setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,
+  setLocalPieceRecordingIds,setLocalRefTrackIds,
   setActiveItemId,setActiveSpotId,setActiveSessionId,setIsResting,setExpandedItemId,setPdfDrawerItemId,
   setRestoreBusy,setExportMenu,setConfirmModal,
   importInputRef,
@@ -56,7 +59,9 @@ export default function useImportExport({
       setRestoreBusy(true);
       const pk=await idbAllKeys('pdfs');const pb={};for(const k of pk){const b=await idbGet('pdfs',k);if(b)pb[String(k)]=await blobToBase64(b);}
       const rk=await idbAllKeys('recordings');const rb={};for(const k of rk){const b=await idbGet('recordings',k);if(b)rb[String(k)]=await blobToBase64(b);}
-      const payload={app:'Etudes',appVersion:APP_VERSION,schemaVersion:SCHEMA_VERSION,exportedAt:new Date().toISOString(),state:{items:items.map(i=>{const {pdfUrl,...r}=i;return r;}),itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,loadedRoutineId,routines,dailyReflection,weekReflection,monthReflection,settings,freeNotes,recordingMeta,history,dayClosed,rolloverKeys:{day:lsGet(ROLLOVER_KEY,null),week:lsGet(WEEK_ROLLOVER_KEY,null),month:lsGet(MONTH_ROLLOVER_KEY,null)}},blobs:{pdfs:pb,recordings:rb}};
+      const prk=await idbAllKeys('pieceRecordings');const prb={};for(const k of prk){const b=await idbGet('pieceRecordings',k);if(b)prb[String(k)]=await blobToBase64(b);}
+      const rtk=await idbAllKeys('refTracks');const rtb={};for(const k of rtk){const b=await idbGet('refTracks',k);if(b)rtb[String(k)]={d:await blobToBase64(b),t:b.type||'audio/mpeg'};}
+      const payload={app:'Etudes',appVersion:APP_VERSION,schemaVersion:SCHEMA_VERSION,exportedAt:new Date().toISOString(),state:{items:items.map(i=>{const {pdfUrl,...r}=i;return r;}),itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,loadedRoutineId,routines,dailyReflection,weekReflection,monthReflection,settings,freeNotes,recordingMeta,pieceRecordingMeta,noteCategories,refTrackMeta,history,dayClosed,rolloverKeys:{day:lsGet(ROLLOVER_KEY,null),week:lsGet(WEEK_ROLLOVER_KEY,null),month:lsGet(MONTH_ROLLOVER_KEY,null)}},blobs:{pdfs:pb,recordings:rb,pieceRecordings:prb,refTracks:rtb}};
       const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
       triggerDownload(blob,`etudes-backup-${todayKey}.json`);setExportMenu(false);
     }catch(e){setConfirmModal({message:'Export failed: '+(e.message||'unknown error'),confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
@@ -68,15 +73,23 @@ export default function useImportExport({
       setRestoreBusy(true);
       const npb={};for(const [k,b] of Object.entries(data.blobs?.pdfs||{})){const bl=base64ToBlob(b,'application/pdf');if(bl)npb[k]=bl;}
       const nrb={};for(const [k,b] of Object.entries(data.blobs?.recordings||{})){const bl=base64ToBlob(b,'audio/webm');if(bl)nrb[k]=bl;}
+      const nprb={};for(const [k,b] of Object.entries(data.blobs?.pieceRecordings||{})){const bl=base64ToBlob(b,'audio/webm');if(bl)nprb[k]=bl;}
+      const nrtb={};for(const [k,v] of Object.entries(data.blobs?.refTracks||{})){const entry=typeof v==='object'?v:{d:v,t:'audio/mpeg'};const bl=base64ToBlob(entry.d,entry.t||'audio/mpeg');if(bl)nrtb[k]=bl;}
       Object.values(pdfUrlMap).forEach(u=>{try{URL.revokeObjectURL(u);}catch{}});
       for(const k of await idbAllKeys('pdfs'))await idbDel('pdfs',k);
       for(const k of await idbAllKeys('recordings'))await idbDel('recordings',k);
+      for(const k of await idbAllKeys('pieceRecordings'))await idbDel('pieceRecordings',k);
+      for(const k of await idbAllKeys('refTracks'))await idbDel('refTracks',k);
       const newUrl={};for(const [k,b] of Object.entries(npb)){await idbPut('pdfs',k,b);newUrl[k]=URL.createObjectURL(b);}
       for(const [k,b] of Object.entries(nrb)){await idbPut('recordings',k,b);}
+      for(const [k,b] of Object.entries(nprb)){await idbPut('pieceRecordings',k,b);}
+      for(const [k,b] of Object.entries(nrtb)){await idbPut('refTracks',k,b);}
       const st=data.state||{};
       const importedRecKeys=new Set(Object.keys(nrb));
       const reconciledMeta=Object.fromEntries(Object.entries(st.recordingMeta||{}).filter(([k])=>importedRecKeys.has(k)));
-      setItems(migrateItems(st.items||[]));setItemTimes(st.itemTimes||{});setWarmupTimeToday(st.warmupTimeToday||0);setRestToday(st.restToday||0);setWorkingOn(Array.isArray(st.workingOn)?st.workingOn:[]);setTodaySessions(migrateSessions(st.todaySessions||DEFAULT_SESSIONS));setLoadedRoutineId(st.loadedRoutineId||null);setRoutines(migrateRoutines(st.routines||[]));setDailyReflection(st.dailyReflection||'');setWeekReflection(st.weekReflection||{notes:'',goals:''});setMonthReflection(st.monthReflection||{notes:'',goals:''});setSettings(st.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setFreeNotes(Array.isArray(st.freeNotes)?st.freeNotes:[]);setRecordingMeta(reconciledMeta);setHistory(migrateHistory(st.history||[]));setDayClosed(!!st.dayClosed);setPdfUrlMap(newUrl);
+      setItems(migrateItems(st.items||[]));setItemTimes(st.itemTimes||{});setWarmupTimeToday(st.warmupTimeToday||0);setRestToday(st.restToday||0);setWorkingOn(Array.isArray(st.workingOn)?st.workingOn:[]);setTodaySessions(migrateSessions(st.todaySessions||DEFAULT_SESSIONS));setLoadedRoutineId(st.loadedRoutineId||null);setRoutines(migrateRoutines(st.routines||[]));setDailyReflection(st.dailyReflection||'');setWeekReflection(st.weekReflection||{notes:'',goals:''});setMonthReflection(st.monthReflection||{notes:'',goals:''});setSettings(st.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setFreeNotes(Array.isArray(st.freeNotes)?st.freeNotes:[]);setNoteCategories(Array.isArray(st.noteCategories)?st.noteCategories:[]);setRecordingMeta(reconciledMeta);setPieceRecordingMeta(st.pieceRecordingMeta||{});setRefTrackMeta(st.refTrackMeta||{});setHistory(migrateHistory(st.history||[]));setDayClosed(!!st.dayClosed);setPdfUrlMap(newUrl);
+      setLocalPieceRecordingIds(new Set(Object.keys(nprb).map(k=>k.split('__')[0])));
+      setLocalRefTrackIds(new Set(Object.keys(nrtb)));
       setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);setIsResting(false);setExpandedItemId(null);setPdfDrawerItemId(null);
       if(st.rolloverKeys?.day)lsSet(ROLLOVER_KEY,st.rolloverKeys.day);else lsSet(ROLLOVER_KEY,todayDateStr());
       if(st.rolloverKeys?.week)lsSet(WEEK_ROLLOVER_KEY,st.rolloverKeys.week);else lsSet(WEEK_ROLLOVER_KEY,getWeekStart(todayDateStr()));
@@ -95,8 +108,8 @@ export default function useImportExport({
         if(parsed.app!=='Etudes')throw new Error('Not an Études backup file.');
         if(typeof parsed.schemaVersion!=='number')throw new Error('Invalid backup file: missing schema version.');
         const m=migrateImport(parsed);const st=m.state||{};
-        const ic=(st.items||[]).length;const rc=(st.routines||[]).length;const hd=(st.history||[]).filter(h=>h.kind==='day'||!h.kind).length;const we=(st.history||[]).filter(h=>h.kind==='week').length;const me=(st.history||[]).filter(h=>h.kind==='month').length;const pc=Object.keys(m.blobs?.pdfs||{}).length;const rec=Object.keys(m.blobs?.recordings||{}).length;const nc=(st.freeNotes||[]).length;const es=m.exportedAt?m.exportedAt.slice(0,10):'unknown';
-        const sum=[`Replace all current data with this backup?`,``,`${ic} repertoire item${ic===1?'':'s'}`,`${rc} routine${rc===1?'':'s'}`,`${hd} day${hd===1?'':'s'} of practice history`,`${we} weekly · ${me} monthly reflections`,`${pc} PDF${pc===1?'':'s'} · ${rec} recording${rec===1?'':'s'} · ${nc} free note${nc===1?'':'s'}`,``,`Exported ${es} (schema v${m.schemaVersion||1})`,``,`This will overwrite everything and cannot be undone.`].join('\n');
+        const ic=(st.items||[]).length;const rc=(st.routines||[]).length;const hd=(st.history||[]).filter(h=>h.kind==='day'||!h.kind).length;const we=(st.history||[]).filter(h=>h.kind==='week').length;const me=(st.history||[]).filter(h=>h.kind==='month').length;const pc=Object.keys(m.blobs?.pdfs||{}).length;const rec=Object.keys(m.blobs?.recordings||{}).length;const prec=Object.keys(m.blobs?.pieceRecordings||{}).length;const rt=Object.keys(m.blobs?.refTracks||{}).length;const nc=(st.freeNotes||[]).length;const es=m.exportedAt?m.exportedAt.slice(0,10):'unknown';
+        const sum=[`Replace all current data with this backup?`,``,`${ic} repertoire item${ic===1?'':'s'}`,`${rc} routine${rc===1?'':'s'}`,`${hd} day${hd===1?'':'s'} of practice history`,`${we} weekly · ${me} monthly reflections`,`${pc} PDF${pc===1?'':'s'} · ${rec} day recording${rec===1?'':'s'} · ${prec} piece recording${prec===1?'':'s'} · ${rt} ref track${rt===1?'':'s'} · ${nc} free note${nc===1?'':'s'}`,``,`Exported ${es} (schema v${m.schemaVersion||1})`,``,`This will overwrite everything and cannot be undone.`].join('\n');
         setConfirmModal({message:sum,confirmLabel:'Replace everything',onConfirm:async()=>{setConfirmModal(null);await applyImport(m);}});
       }catch(err){setConfirmModal({message:'Could not read backup file: '+(err.message||'invalid format'),confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
     };

@@ -63,6 +63,8 @@ export default function useEtudesState(){
   const [history,setHistory]=useState(()=>migrateHistory(lsGet('etudes-history',[])));
   const [dayClosed,setDayClosed]=useState(()=>lsGet('etudes-dayClosed',false));
   const [pdfUrlMap,setPdfUrlMap]=useState({});
+  const [localPieceRecordingIds,setLocalPieceRecordingIds]=useState(()=>new Set());
+  const [localRefTrackIds,setLocalRefTrackIds]=useState(()=>new Set());
   const [pdfLibrary,setPdfLibrary]=useState(()=>lsGet('etudes-pdfLibrary',[]));
   const [trash,setTrash]=useState(null);
 
@@ -141,6 +143,8 @@ export default function useEtudesState(){
   setItems(prev=>prev.map(i=>{if(!i.pdfs||i.pdfs.length===0)return i;const f=i.pdfs.filter(p=>keySet.has(String(p.libraryId||p.id)));if(f.length===i.pdfs.length)return i;const d=f.some(p=>p.id===i.defaultPdfId)?i.defaultPdfId:(f[0]?.id||null);return {...i,pdfs:f,defaultPdfId:d};}));// Rebuild pdfLibrary from IDB keys that exist
   setPdfLibrary(prev=>{const kept=prev.filter(e=>keySet.has(String(e.id)));const existingIds=new Set(kept.map(e=>e.id));// Add any libraryIds that are in IDB but not in pdfLibrary (edge case from old data)
   return kept;});})();return()=>{cancelled=true;};},[]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{idbAllKeys('pieceRecordings').then(keys=>{setLocalPieceRecordingIds(new Set(keys.map(k=>String(k).split('__')[0])));});},[]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{idbAllKeys('refTracks').then(keys=>{setLocalRefTrackIds(new Set(keys.map(k=>String(k))));});},[]);// eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Rollover / history snapshot ───────────────────────────────────────────
   useEffect(()=>{if(!lsGet(WEEK_ROLLOVER_KEY,null))lsSet(WEEK_ROLLOVER_KEY,getWeekStart(todayDateStr()));if(!lsGet(MONTH_ROLLOVER_KEY,null))lsSet(MONTH_ROLLOVER_KEY,getMonthKey(todayDateStr()));},[]);
@@ -446,10 +450,13 @@ export default function useEtudesState(){
   const {exportLog,exportJson,importJsonFile,handleChipDrag,handleChipDragEnd}=useImportExport({
     todayKey,items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,loadedRoutineId,routines,
     dailyReflection,weekReflection,monthReflection,settings,freeNotes,recordingMeta,history,dayClosed,
+    pieceRecordingMeta,noteCategories,refTrackMeta,
     pdfUrlMap,todayHistoryEntry,
     setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
     setRoutines,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
     setRecordingMeta,setHistory,setDayClosed,setPdfUrlMap,
+    setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,
+    setLocalPieceRecordingIds,setLocalRefTrackIds,
     setActiveItemId,setActiveSpotId,setActiveSessionId,setIsResting,setExpandedItemId,setPdfDrawerItemId,
     setRestoreBusy,setExportMenu,setConfirmModal,importInputRef,
   });
@@ -570,6 +577,7 @@ export default function useEtudesState(){
     startRecording,stopRecording,deleteRecording,
     pieceRecordingMeta,pieceRecordingItemId,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,attachDailyToPiece,
     refTrackMeta,uploadRefTrack,deleteRefTrack,refBarItemId,setRefBarItemId,
+    localPieceRecordingIds,localRefTrackIds,
     handleDragStart,handleDragOver,handleDrop,handleDragEnd,
     moveSession,hideSession,addSessionType,toggleSessionWarmup,
     removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,
