@@ -22,6 +22,8 @@ export default function useEtudesState(){
   const [promptModal,setPromptModal]=useState(null);
   const [syncConflictModal,setSyncConflictModal]=useState(null);
   const pendingRemoteRef=useRef(null);
+  const applyingCloudRef=useRef(false);
+  const mountedRef=useRef(false);
   const [quickNoteOpen,setQuickNoteOpen]=useState(false);
   const [restoreBusy,setRestoreBusy]=useState(false);
   const [expandedItemId,setExpandedItemId]=useState(null);
@@ -82,7 +84,7 @@ export default function useEtudesState(){
   useEffect(()=>{lsSet('etudes-pieceRecordingMeta',pieceRecordingMeta);},[pieceRecordingMeta]);
   useEffect(()=>{lsSet('etudes-history',history);},[history]);
   useEffect(()=>{lsSet('etudes-dayClosed',dayClosed);},[dayClosed]);
-  useEffect(()=>{lsSet('etudes-localDirtyAt',Date.now());},[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
+  useEffect(()=>{if(!mountedRef.current){mountedRef.current=true;return;}if(applyingCloudRef.current)return;lsSet('etudes-localDirtyAt',Date.now());},[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
 
   // ── Active item / session tracking ────────────────────────────────────────
   const [activeItemId,setActiveItemId]=useState(null);
@@ -447,7 +449,7 @@ export default function useEtudesState(){
 
   // ── Cloud sync effects ─────────────────────────────────────────────────────
   const applyCloudStateRef=useRef(null);
-  applyCloudStateRef.current=(s)=>{if(!s)return;setItems(migrateItems(s.items||[]));setRoutines(migrateRoutines(s.routines||[]));setPrograms(s.programs||[]);setHistory(migrateHistory(s.history||[]));setSettings(s.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setDailyReflection(s.dailyReflection||'');setWeekReflection(s.weekReflection||{notes:'',goals:''});setMonthReflection(s.monthReflection||{notes:'',goals:''});setFreeNotes(s.freeNotes||[]);setRecordingMeta(s.recordingMeta||{});setWorkingOn(s.workingOn||[]);setTodaySessions([...migrateSessions(s.todaySessions||DEFAULT_SESSIONS).map(s=>({...s,itemIds:s.itemIds===null?[]:s.itemIds}))].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type)));setDayClosed(!!s.dayClosed);setLoadedRoutineId(s.loadedRoutineId||null);setWarmupTimeToday(s.warmupTimeToday||0);setItemTimes(s.itemTimes||{});setRestToday(s.restToday||0);};
+  applyCloudStateRef.current=(s)=>{if(!s)return;applyingCloudRef.current=true;setItems(migrateItems(s.items||[]));setRoutines(migrateRoutines(s.routines||[]));setPrograms(s.programs||[]);setHistory(migrateHistory(s.history||[]));setSettings(s.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setDailyReflection(s.dailyReflection||'');setWeekReflection(s.weekReflection||{notes:'',goals:''});setMonthReflection(s.monthReflection||{notes:'',goals:''});setFreeNotes(s.freeNotes||[]);setRecordingMeta(s.recordingMeta||{});setWorkingOn(s.workingOn||[]);setTodaySessions([...migrateSessions(s.todaySessions||DEFAULT_SESSIONS).map(s=>({...s,itemIds:s.itemIds===null?[]:s.itemIds}))].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type)));setDayClosed(!!s.dayClosed);setLoadedRoutineId(s.loadedRoutineId||null);setWarmupTimeToday(s.warmupTimeToday||0);setItemTimes(s.itemTimes||{});setRestToday(s.restToday||0);requestAnimationFrame(()=>{applyingCloudRef.current=false;});};
   // Load or first-run migration on sign-in
   useEffect(()=>{if(!user)return;(async()=>{try{setSyncStatus('syncing');const result=await loadFromCloud(user.id);
 
@@ -503,9 +505,9 @@ export default function useEtudesState(){
       localCount:localOnlyItems.length||localItems.length,
       remoteCount:remoteOnlyItems.length||remoteItems.length,
       hasOverlap,
-      onMerge:async()=>{const merged=mergeStates(syncStateRef.current,pendingRemoteRef.current);applyCloudStateRef.current(merged);await syncToCloud(user.id,merged);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
-      onKeepLocal:async()=>{await syncToCloud(user.id,syncStateRef.current);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
-      onKeepCloud:()=>{applyCloudStateRef.current(pendingRemoteRef.current);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
+      onMerge:async()=>{const merged=mergeStates(syncStateRef.current,pendingRemoteRef.current);applyCloudStateRef.current(merged);await syncToCloud(user.id,merged);lsSet('etudes-localDirtyAt',0);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
+      onKeepLocal:async()=>{await syncToCloud(user.id,syncStateRef.current);lsSet('etudes-localDirtyAt',0);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
+      onKeepCloud:()=>{applyCloudStateRef.current(pendingRemoteRef.current);lsSet(LS_CLOUD_SYNC_KEY,Date.now());lsSet('etudes-localDirtyAt',0);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
     });
   }catch{setSyncStatus('error');}})();},[user]);// eslint-disable-line
   // Debounced cold-state sync (5 s)
