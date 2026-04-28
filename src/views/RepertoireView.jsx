@@ -50,7 +50,7 @@ export default function RepertoireView(p){
   const {items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry}=p;
   const [search,setSearch]=useState('');const [filterType,setFilterType]=useState('');const [filterComposer,setFilterComposer]=useState('');const [filterStyle,setFilterStyle]=useState('');const [filterStatus,setFilterStatus]=useState('');const [filterInstrument,setFilterInstrument]=useState('');
   const [sortBy,setSortBy]=useState('');
-  const [groupByCollection,setGroupByCollection]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(true);const [composerOpen,setComposerOpen]=useState(true);const [instrumentOpen,setInstrumentOpen]=useState(true);const [expandedId,setExpandedId]=useState(()=>expandedItemId||null);const [showMoreIds,setShowMoreIds]=useState({});
+  const [groupByCollection,setGroupByCollection]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(false);const [composerOpen,setComposerOpen]=useState(true);const [instrumentOpen,setInstrumentOpen]=useState(true);const [expandedId,setExpandedId]=useState(()=>expandedItemId||null);const [showMoreIds,setShowMoreIds]=useState({});
   const [spotsOpen,setSpotsOpen]=useState({});
   const isSpotsOpen=(id)=>spotsOpen[id]===true;
   const toggleSpots=(id)=>setSpotsOpen(p=>({...p,[id]:!p[id]}));
