@@ -6,13 +6,14 @@ import UploadIcon from 'lucide-react/dist/esm/icons/upload';
 import Cloud from 'lucide-react/dist/esm/icons/cloud';
 import CloudOff from 'lucide-react/dist/esm/icons/cloud-off';
 import Loader from 'lucide-react/dist/esm/icons/loader';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, serif} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, serif} from '../constants/theme.js';
 import appPkg from '../../package.json';
 
 const SHORTCUTS=[{k:'Space',v:'Start / pause last practiced item'},{k:'R',v:'Toggle rest timer'},{k:'M',v:'Toggle metronome'},{k:'D',v:'Toggle tuning drone'},{k:'T',v:'Tap tempo'},{k:'L',v:'Log BPM to active item or spot'},{k:'N',v:'Quick note for active item'},{k:'1 – 4',v:'Jump to session on Today'},{k:'?',v:'Open Réglages'},{k:'Esc',v:'Close drawers and modals'}];
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
+const USER_GUIDE_URL='https://etudes.me/guide';
 
-export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExportTxt,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,syncStatus,lastSyncedAt,syncNow}){
+export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExportTxt,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,signInWithApple,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning}){
   const [tab,setTab]=useState('settings');
   const [authMode,setAuthMode]=useState('signin'); // 'signin'|'signup'
   const [authEmail,setAuthEmail]=useState('');
@@ -40,6 +41,13 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
       <div className="px-8 py-6 space-y-5">
         <div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Targets</div>
         {[{key:'dailyTarget',label:'Daily'},{key:'weeklyTarget',label:'Weekly'},{key:'monthlyTarget',label:'Monthly'}].map(f=>(<div key={f.key} className="flex items-baseline justify-between gap-4 pb-3" style={{borderBottom:`1px solid ${LINE}`}}><div><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>{f.label}</div><div className="text-xs italic mt-0.5" style={{color:FAINT,fontFamily:serif}}>minutes · warm-up excluded</div></div><input type="number" value={settings[f.key]} onChange={e=>setSettings({...settings,[f.key]:+e.target.value||0})} className="w-24 px-2 py-1 text-right font-mono text-lg tabular-nums focus:outline-none" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontWeight:300,boxSizing:'border-box'}}/></div>))}
+        <div className="uppercase pt-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Daily reminder</div>
+        <div className="flex items-center justify-between gap-4 pb-3" style={{borderBottom:`1px solid ${LINE}`}}>
+          <div><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Reminder</div><div className="text-xs italic mt-0.5" style={{color:FAINT,fontFamily:serif}}>no streaks · no consequences · opt-in</div></div>
+          <button onClick={async()=>{if(!settings.reminderEnabled){const {requestNotificationPermission}=await import('../lib/notifications.js');await requestNotificationPermission();}setSettings({...settings,reminderEnabled:!settings.reminderEnabled});}} className="uppercase px-3 py-1" style={{color:settings.reminderEnabled?TEXT:FAINT,border:`1px solid ${settings.reminderEnabled?IKB:LINE_STR}`,background:settings.reminderEnabled?IKB_SOFT:'transparent',fontSize:'9px',letterSpacing:'0.22em'}}>{settings.reminderEnabled?'On':'Off'}</button>
+        </div>
+        {settings.reminderEnabled&&(<div className="flex items-baseline justify-between gap-4 pb-3" style={{borderBottom:`1px solid ${LINE}`}}><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Time</div><input type="time" value={settings.reminderTime||'18:00'} onChange={e=>setSettings({...settings,reminderTime:e.target.value})} className="focus:outline-none font-mono" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontSize:'13px'}}/></div>)}
+        <div className="pt-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Appears once if you haven't opened Études that day. Requires browser notification permission. Resets each day regardless of whether you practiced.</div>
       </div>
     )}
     {tab==='sync'&&(
@@ -57,6 +65,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
               </div>
             </div>
             <button onClick={signOut} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><CloudOff className="w-3 h-3" strokeWidth={1.25}/> Sign out</button>
+            {syncPayloadWarning&&(<div className="px-3 py-2" style={{background:'rgba(184,150,104,0.12)',border:'1px solid rgba(184,150,104,0.3)'}}><div className="italic" style={{color:'#B89668',fontFamily:serif,fontSize:'11px',lineHeight:1.5}}>Your journal is growing large. Export a backup regularly to protect your data.</div></div>)}
             <div className="pt-2 pb-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>
               <span style={{color:MUTED}}>What syncs:</span> repertoire, practice history, notes, settings, and recording metadata.<br/>
               <span style={{color:MUTED}}>Local only:</span> audio recordings and PDF scores — these stay on this device. Use Export → Backup to transfer them manually.
@@ -69,8 +78,10 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
             <button type="button" onClick={()=>{setSignupSent(false);setAuthMode('signin');setAuthPassword('');}} className="w-full text-center mt-2" style={{color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'12px'}}>Back to sign in</button>
           </div>
         ):(
+          <div className="space-y-5">
+          {signInWithGoogle&&(<div className="space-y-2"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Continue with</div><button type="button" onClick={signInWithGoogle} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Google</button><div className="flex items-center gap-3 py-1"><span style={{flex:1,height:'1px',background:LINE_STR}}/><span className="uppercase" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>or</span><span style={{flex:1,height:'1px',background:LINE_STR}}/></div></div>)}
           <form onSubmit={handleAuth} className="space-y-5">
-            <div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Sign in to sync across devices</div>
+            <div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Sign in with email</div>
               <div className="space-y-4 overflow-hidden">
                 <input type="email" value={authEmail} onChange={e=>{setAuthEmail(e.target.value);setAuthError('');}} placeholder="Email" required className="w-full pb-1.5 focus:outline-none min-w-0" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'15px',fontWeight:300,boxSizing:'border-box'}}/>
                 <input type="password" value={authPassword} onChange={e=>{setAuthPassword(e.target.value);setAuthError('');}} placeholder="Password" required className="w-full pb-1.5 focus:outline-none min-w-0" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'15px',fontWeight:300,boxSizing:'border-box'}}/>
@@ -88,12 +99,18 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
               Sync covers repertoire, history, notes, and settings. Audio recordings and PDFs are local only — use Export → Backup to transfer them between devices.
             </div>
           </form>
+          </div>
         )}
       </div>
     )}
     {tab==='export'&&(
       <div className="px-8 py-6 space-y-5">
-        <div><div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Journal export</div><div className="flex gap-2"><button onClick={()=>{onExportMd();onClose();}} className="flex-1 uppercase py-2.5 flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><Download className="w-3 h-3" strokeWidth={1.25}/> .md</button><button onClick={()=>{onExportTxt();onClose();}} className="flex-1 uppercase py-2.5 flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><Download className="w-3 h-3" strokeWidth={1.25}/> .txt</button></div></div>
+        <div>
+          <div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Journal export</div>
+          <button onClick={()=>{onExportMd();onClose();}} className="w-full uppercase py-3 flex items-center justify-center gap-2 mb-2" style={{color:TEXT,background:IKB,fontSize:'10px',letterSpacing:'0.28em'}}><Download className="w-3 h-3" strokeWidth={1.25}/> Export .md — Markdown journal</button>
+          <button onClick={()=>{onExportTxt();onClose();}} className="w-full uppercase py-2.5 flex items-center justify-center gap-2" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><Download className="w-3 h-3" strokeWidth={1.25}/> Export .txt — plain text</button>
+          <div className="mt-2 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.5}}>You can also drag the .md chip in the header to your desktop (Chromium only).</div>
+        </div>
         <div><div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Backup & restore</div><div className="text-xs italic mb-3" style={{color:FAINT,fontFamily:serif,lineHeight:1.5}}>Full backup includes all data, PDFs, and recordings in a single .json file.</div><div className="flex gap-2"><button onClick={onExportJson} className="flex-1 uppercase py-2.5 flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'10px',letterSpacing:'0.22em'}}><Archive className="w-3 h-3" strokeWidth={1.25}/> Backup</button><button onClick={()=>{onClose();setTimeout(onImportClick,100);}} className="flex-1 uppercase py-2.5 flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><UploadIcon className="w-3 h-3" strokeWidth={1.25}/> Restore</button></div></div>
       </div>
     )}
@@ -113,7 +130,18 @@ export function SettingsModal({settings,setSettings,storageMode,onExportMd,onExp
         </div>
         <div className="flex items-baseline justify-between gap-4 pt-3">
           <div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>User Guide</div>
-          <a href="#" target="_blank" rel="noopener noreferrer" className="uppercase shrink-0" style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em'}}>Link pending →</a>
+          <a
+            href={USER_GUIDE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="uppercase shrink-0"
+            style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em',cursor:'pointer'}}
+            onClick={(e)=>{
+              e.stopPropagation();
+              const w=window.open(USER_GUIDE_URL,'_blank','noopener,noreferrer');
+              if(w)e.preventDefault();
+            }}
+          >etudes.me/guide →</a>
         </div>
       </div>
     )}

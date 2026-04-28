@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Études — User Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=EB+Garamond:ital,wght@0,400;1,400&family=Inter:wght@300;400;500&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #111010;
+    --surface:  #1A1918;
+    --surface2: #24221F;
+    --text:     #F4EEE3;
+    --muted:    #C8C1B3;
+    --faint:    #8C8578;
+    --dim:      #5E594F;
+    --line:     rgba(244,238,227,0.08);
+    --line-med: rgba(244,238,227,0.16);
+    --line-str: #3A3732;
+    --ikb:      #002FA7;
+    --ikb-soft: rgba(0,47,167,0.12);
+    --link:     #6BA3FF;
+    --warm:     #B89668;
+    --warm-soft:rgba(184,150,104,0.12);
+    --serif:    'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+    --serif-text:'EB Garamond', Georgia, serif;
+    --sans:     'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono:     'JetBrains Mono', ui-monospace, monospace;
+    --sidebar-w: 252px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* ── Layout ─────────────────────────────────────────────────── */
+  .layout {
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── Sidebar ────────────────────────────────────────────────── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: var(--surface);
+    border-right: 1px solid var(--line);
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--line-str); border-radius: 2px; }
+
+  .sidebar-header {
+    padding: 28px 24px 20px;
+    border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
+  }
+
+  .sidebar-brand {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    display: block;
+    text-decoration: none;
+    line-height: 1.2;
+  }
+
+  .sidebar-brand-sub {
+    display: block;
+    font-family: var(--sans);
+    font-size: 9px;
+    font-weight: 400;
+    font-style: normal;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-top: 5px;
+  }
+
+  .sidebar-nav {
+    padding: 16px 0 40px;
+    flex: 1;
+  }
+
+  .nav-category {
+    padding: 18px 24px 6px;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .nav-category:not(:first-child) {
+    border-top: 1px solid var(--line);
+    margin-top: 10px;
+  }
+
+  .nav-link {
+    display: block;
+    padding: 6px 24px;
+    font-size: 12px;
+    color: var(--faint);
+    text-decoration: none;
+    transition: color 0.15s, background 0.15s;
+    line-height: 1.4;
+  }
+
+  .nav-link:hover {
+    color: var(--muted);
+    background: var(--line);
+  }
+
+  .nav-link.active,
+  .nav-link:target {
+    color: var(--link);
+  }
+
+  .nav-num {
+    display: inline-block;
+    width: 18px;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--dim);
+    flex-shrink: 0;
+  }
+
+  /* ── Main content ───────────────────────────────────────────── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    min-width: 0;
+  }
+
+  .content {
+    max-width: 740px;
+    padding: 80px 64px 120px;
+  }
+
+  /* ── Page header ────────────────────────────────────────────── */
+  .page-header {
+    margin-bottom: 80px;
+    padding-bottom: 48px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .page-eyebrow {
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 16px;
+  }
+
+  .page-title {
+    font-family: var(--serif);
+    font-size: 72px;
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .page-subtitle {
+    margin-top: 20px;
+    font-family: var(--serif-text);
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.75;
+    color: var(--muted);
+    max-width: 520px;
+  }
+
+  .ikb-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background: var(--ikb);
+    border-radius: 50%;
+    margin-right: 10px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+  }
+
+  /* ── Section ────────────────────────────────────────────────── */
+  .section {
+    padding-top: 72px;
+    padding-bottom: 56px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .section:last-child {
+    border-bottom: none;
+  }
+
+  .section-eyebrow {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 14px;
+  }
+
+  .section-num {
+    font-family: var(--mono);
+    color: var(--dim);
+    margin-right: 8px;
+  }
+
+  .section-title {
+    font-family: var(--serif);
+    font-size: 44px;
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--text);
+    margin-bottom: 32px;
+  }
+
+  .section-lead {
+    font-family: var(--serif-text);
+    font-size: 17px;
+    font-weight: 400;
+    line-height: 1.8;
+    color: var(--muted);
+    margin-bottom: 28px;
+    max-width: 600px;
+  }
+
+  /* ── Category divider ───────────────────────────────────────── */
+  .category-divider {
+    padding-top: 96px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--line-med);
+    margin-bottom: 0;
+  }
+
+  .category-divider-label {
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.36em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  .category-divider-title {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 300;
+    font-style: italic;
+    letter-spacing: -0.01em;
+    color: var(--faint);
+    margin-top: 8px;
+  }
+
+  /* ── Body text ──────────────────────────────────────────────── */
+  p {
+    font-family: var(--serif-text);
+    font-size: 16px;
+    font-weight: 400;
+    line-height: 1.8;
+    color: var(--muted);
+    margin-bottom: 18px;
+    max-width: 600px;
+  }
+
+  p strong {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  p em {
+    font-style: italic;
+    color: var(--text);
+  }
+
+  p a {
+    color: var(--link);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(107,163,255,0.3);
+  }
+
+  p a:hover {
+    border-bottom-color: var(--link);
+  }
+
+  /* ── Subsection heading ─────────────────────────────────────── */
+  h3 {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-top: 40px;
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  h3:first-child { margin-top: 0; }
+
+  h4 {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--text);
+    margin-top: 32px;
+    margin-bottom: 12px;
+  }
+
+  /* ── Inline detail list ─────────────────────────────────────── */
+  .detail-list {
+    list-style: none;
+    margin-bottom: 24px;
+    max-width: 600px;
+  }
+
+  .detail-list li {
+    font-family: var(--serif-text);
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--muted);
+    padding: 7px 0;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+  }
+
+  .detail-list li:first-child {
+    border-top: 1px solid var(--line);
+  }
+
+  .detail-list .term {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--faint);
+    min-width: 120px;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .detail-list .def {
+    flex: 1;
+  }
+
+  .detail-list .def em {
+    font-style: italic;
+    color: var(--text);
+  }
+
+  /* ── Key badge ──────────────────────────────────────────────── */
+  kbd {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--muted);
+    background: var(--surface2);
+    border: 1px solid var(--line-str);
+    padding: 2px 7px;
+    border-radius: 3px;
+    letter-spacing: 0.04em;
+    vertical-align: middle;
+    line-height: 1.6;
+  }
+
+  /* ── Shortcut table ─────────────────────────────────────────── */
+  .shortcut-table {
+    width: 100%;
+    max-width: 600px;
+    border-collapse: collapse;
+    margin-bottom: 24px;
+  }
+
+  .shortcut-table thead th {
+    font-family: var(--sans);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--dim);
+    text-align: left;
+    padding: 0 0 10px;
+    border-bottom: 1px solid var(--line-med);
+  }
+
+  .shortcut-table tbody tr {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .shortcut-table tbody td {
+    padding: 10px 0;
+    font-family: var(--serif-text);
+    font-size: 15px;
+    color: var(--muted);
+    vertical-align: middle;
+  }
+
+  .shortcut-table tbody td:first-child {
+    width: 80px;
+  }
+
+  /* ── Note callout ───────────────────────────────────────────── */
+  .callout {
+    border-left: 2px solid var(--ikb);
+    padding: 14px 20px;
+    background: var(--ikb-soft);
+    margin: 24px 0;
+    max-width: 600px;
+  }
+
+  .callout p {
+    margin-bottom: 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  .callout-warm {
+    border-left-color: var(--warm);
+    background: var(--warm-soft);
+  }
+
+  /* ── Stage chips ────────────────────────────────────────────── */
+  .stage-flow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin: 20px 0 28px;
+  }
+
+  .stage-chip {
+    font-family: var(--sans);
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border: 1px solid var(--line-str);
+    padding: 4px 12px;
+    background: var(--surface);
+  }
+
+  .stage-chip.active {
+    color: var(--text);
+    border-color: var(--ikb);
+    background: var(--ikb-soft);
+    text-decoration-color: var(--ikb);
+  }
+
+  .stage-arrow {
+    color: var(--dim);
+    font-size: 12px;
+  }
+
+  /* ── Data key pills ─────────────────────────────────────────── */
+  .data-keys {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0 24px;
+  }
+
+  .data-key {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--faint);
+    background: var(--surface2);
+    border: 1px solid var(--line-str);
+    padding: 4px 10px;
+  }
+
+  /* ── Waveform illustration ──────────────────────────────────── */
+  .waveform-demo {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 36px;
+    margin: 20px 0;
+    padding: 0 4px;
+  }
+
+  .waveform-demo span {
+    display: inline-block;
+    width: 3px;
+    background: var(--ikb);
+    border-radius: 1px;
+    opacity: 0.7;
+  }
+
+  /* ── Metronome beat viz ─────────────────────────────────────── */
+  .beat-viz {
+    display: flex;
+    align-items: flex-end;
+    gap: 4px;
+    height: 32px;
+    margin: 16px 0 24px;
+  }
+
+  .beat-viz .beat {
+    width: 3px;
+    background: var(--text);
+    border-radius: 1px;
+    opacity: 0.8;
+  }
+
+  .beat-viz .sub {
+    width: 2px;
+    background: var(--faint);
+    border-radius: 1px;
+    opacity: 0.5;
+  }
+
+  /* ── Inline color swatch ────────────────────────────────────── */
+  .swatch {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 5px;
+    border: 1px solid var(--line-med);
+  }
+
+  /* ── Responsive ─────────────────────────────────────────────── */
+  @media (max-width: 860px) {
+    .sidebar {
+      display: none;
+    }
+    .main {
+      margin-left: 0;
+    }
+    .content {
+      padding: 48px 28px 80px;
+    }
+    .page-title {
+      font-size: 52px;
+    }
+    .section-title {
+      font-size: 34px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+  <!-- ── Sidebar ───────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <a href="#top" class="sidebar-brand">
+        Études
+        <span class="sidebar-brand-sub">User Guide</span>
+      </a>
+    </div>
+    <nav class="sidebar-nav">
+
+      <div class="nav-category">I · Foundations</div>
+      <a class="nav-link" href="#introduction"><span class="nav-num">01</span>Introduction</a>
+      <a class="nav-link" href="#getting-started"><span class="nav-num">02</span>Getting Started</a>
+      <a class="nav-link" href="#seven-views"><span class="nav-num">03</span>The Seven Views</a>
+
+      <div class="nav-category">II · Practice</div>
+      <a class="nav-link" href="#today"><span class="nav-num">04</span>Today</a>
+      <a class="nav-link" href="#timer"><span class="nav-num">05</span>The Timer</a>
+      <a class="nav-link" href="#routines"><span class="nav-num">06</span>Routines</a>
+      <a class="nav-link" href="#metronome"><span class="nav-num">07</span>Metronome</a>
+      <a class="nav-link" href="#tuning"><span class="nav-num">08</span>Tuning &amp; Drone</a>
+
+      <div class="nav-category">III · Library</div>
+      <a class="nav-link" href="#repertoire"><span class="nav-num">09</span>Repertoire</a>
+      <a class="nav-link" href="#spots"><span class="nav-num">10</span>Spots</a>
+      <a class="nav-link" href="#pdf-scores"><span class="nav-num">11</span>PDF Scores</a>
+      <a class="nav-link" href="#tempo-history"><span class="nav-num">12</span>Tempo History</a>
+      <a class="nav-link" href="#reference-track"><span class="nav-num">13</span>Reference Track</a>
+      <a class="nav-link" href="#programs"><span class="nav-num">14</span>Programs</a>
+
+      <div class="nav-category">IV · Recording</div>
+      <a class="nav-link" href="#daily-recording"><span class="nav-num">15</span>Daily Recording</a>
+      <a class="nav-link" href="#rolling-archive"><span class="nav-num">16</span>Rolling Archive</a>
+      <a class="nav-link" href="#ab-comparison"><span class="nav-num">17</span>A/B Comparison</a>
+
+      <div class="nav-category">V · Archive</div>
+      <a class="nav-link" href="#notes"><span class="nav-num">18</span>Notes</a>
+      <a class="nav-link" href="#logs"><span class="nav-num">19</span>Logs</a>
+      <a class="nav-link" href="#log-drawer"><span class="nav-num">20</span>The Log Drawer</a>
+      <a class="nav-link" href="#week-view"><span class="nav-num">21</span>Week View</a>
+      <a class="nav-link" href="#month-view"><span class="nav-num">22</span>Month View</a>
+
+      <div class="nav-category">VI · Account &amp; Sync</div>
+      <a class="nav-link" href="#account"><span class="nav-num">23</span>Account</a>
+      <a class="nav-link" href="#cloud-sync"><span class="nav-num">24</span>Cloud Sync</a>
+      <a class="nav-link" href="#conflict-resolution"><span class="nav-num">25</span>Conflict Resolution</a>
+
+      <div class="nav-category">VII · Reference</div>
+      <a class="nav-link" href="#export"><span class="nav-num">26</span>Export</a>
+      <a class="nav-link" href="#keyboard-shortcuts"><span class="nav-num">27</span>Keyboard Shortcuts</a>
+      <a class="nav-link" href="#data-privacy"><span class="nav-num">28</span>Data &amp; Privacy</a>
+
+    </nav>
+  </aside>
+
+  <!-- ── Main ──────────────────────────────────────────────────── -->
+  <main class="main" id="top">
+    <div class="content">
+
+      <!-- Page header -->
+      <header class="page-header">
+        <div class="page-eyebrow"><span class="ikb-dot"></span>Documentation</div>
+        <h1 class="page-title">Guide</h1>
+        <p class="page-subtitle">A complete reference for Études — a practice journal for musicians. Twenty-eight sections, organized from first use to the underlying data model.</p>
+      </header>
+
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!-- I. FOUNDATIONS                                         -->
+      <!-- ══════════════════════════════════════════════════════ -->
+
+      <div class="category-divider" id="foundations">
+        <div class="category-divider-label">Part I</div>
+        <div class="category-divider-title">Foundations</div>
+      </div>
+
+      <!-- 01 · Introduction -->
+      <section class="section" id="introduction">
+        <div class="section-eyebrow"><span class="section-num">01</span>Foundations</div>
+        <h2 class="section-title">Introduction</h2>
+        <p class="section-lead">Études is a practice journal for musicians. Not a tracker, not a platform — a journal, the kind bound in cloth, left open on a music stand.</p>
+
+        <h3>Three questions</h3>
+        <p>Every day Études answers three questions, in order. <em>What will I practice?</em> — intention, set before playing. <em>What am I practicing, right now?</em> — attention, held while playing. <em>What did it mean?</em> — reflection, written after. Everything else is in service of these three moments or it does not belong.</p>
+
+        <h3>Measurement and meaning</h3>
+        <p>Études must count time — or it is just a notebook. It must also let time mean something — or it is just a stopwatch. The timer is present but never the point. The ring closes but does not celebrate. The log accumulates but does not rank. Numbers appear in monospace; words appear in serif. That typographic hierarchy is the philosophical hierarchy.</p>
+
+        <h3>What Études does not do</h3>
+        <p>No streaks that punish rest. No gamification. No notifications. No AI-generated practice plans. No sentiment analysis of journal entries. No comparative metrics. No social features. No onboarding carousels. These omissions are deliberate.</p>
+
+        <h3>Local by default</h3>
+        <p>All data lives on the device — <em>localStorage</em> for journal state, IndexedDB for audio and PDFs. An optional cloud backup via Supabase is available when signed in. Audio recordings and PDF scores remain local always, regardless of sync status.</p>
+
+        <div class="callout">
+          <p>The North Star: <em>"A quiet, literate place where practice is taken seriously — and the tool gets out of the way."</em> Every decision in Études is measured against this sentence.</p>
+        </div>
+      </section>
+
+
+      <!-- 02 · Getting Started -->
+      <section class="section" id="getting-started">
+        <div class="section-eyebrow"><span class="section-num">02</span>Foundations</div>
+        <h2 class="section-title">Getting Started</h2>
+        <p class="section-lead">Études requires no account and no configuration to begin. Open it, and the journal is ready.</p>
+
+        <h3>Setting targets</h3>
+        <p>Open Settings (the gear icon in the header) and set a daily minute target. Weekly and monthly targets are optional — they drive the rings on those views. Targets do nothing until they are met, at which point accumulated time quietly shifts to IKB blue. No alarm, no modal, no congratulation.</p>
+
+        <h3>The footer bar</h3>
+        <p>The footer is always present. Left: the active timer readout and today's total. Centre: play/pause, rest, recording, and quick-note controls. Right: the metronome, tuning/drone, and a keyboard-shortcut reference. The footer is the one surface that spans all views.</p>
+
+        <h3>Navigation</h3>
+        <p>Seven tabs run along the left side of the header: Today, Week, Month, Repertoire, Routines, Programs, Logs, Notes. Each answers a different question at a different time scale. Press <kbd>Esc</kbd> to close any open drawer or modal. Press <kbd>?</kbd> to open the keyboard help panel.</p>
+
+        <h3>First steps</h3>
+        <ul class="detail-list">
+          <li><span class="term">Add a piece</span><span class="def">Go to Repertoire and use the <em>Add</em> controls to create the first item — a technique exercise, a piece, or a study topic.</span></li>
+          <li><span class="term">Start a session</span><span class="def">Return to Today and press play next to the item. The timer begins. The rest of the interface recedes.</span></li>
+          <li><span class="term">Close the day</span><span class="def">When practice is finished, press <em>Close the day</em>. Write a reflection. The session archives automatically at midnight regardless — closing is optional but recommended.</span></li>
+        </ul>
+      </section>
+
+
+      <!-- 03 · The Seven Views -->
+      <section class="section" id="seven-views">
+        <div class="section-eyebrow"><span class="section-num">03</span>Foundations</div>
+        <h2 class="section-title">The Seven Views</h2>
+        <p class="section-lead">The navigation is the product's mental model. Each view answers exactly one question. Seven is the ceiling.</p>
+
+        <ul class="detail-list">
+          <li><span class="term">Today</span><span class="def">What am I practicing right now? The active surface: session stack, timer, recording, reflection.</span></li>
+          <li><span class="term">Week</span><span class="def">What did I do this week, and what comes next? Bar chart, ring, weekly reflection, past days.</span></li>
+          <li><span class="term">Month</span><span class="def">What have I been doing with my time? Calendar with intensity rails, monthly ring, monthly reflection.</span></li>
+          <li><span class="term">Repertoire</span><span class="def">What am I working on, as a musician? The full library with stages, time totals, notes, scores, recordings.</span></li>
+          <li><span class="term">Routines</span><span class="def">How do I want to practice deliberately? Named arrangements loaded onto Today when needed.</span></li>
+          <li><span class="term">Logs</span><span class="def">What did I do, exactly, on each past day? The scrollable archive of session cards.</span></li>
+          <li><span class="term">Notes</span><span class="def">What have I been thinking about, independent of any session? Free prose, tags, wiki links.</span></li>
+        </ul>
+
+        <p>Programs — concert program planning — is an additional view that sits outside the temporal spine. It is for performance planning, not practice.</p>
+      </section>
+
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!-- II. PRACTICE                                           -->
+      <!-- ══════════════════════════════════════════════════════ -->
+
+      <div class="category-divider" id="practice">
+        <div class="category-divider-label">Part II</div>
+        <div class="category-divider-title">Practice</div>
+      </div>
+
+      <!-- 04 · Today -->
+      <section class="section" id="today">
+        <div class="section-eyebrow"><span class="section-num">04</span>Practice</div>
+        <h2 class="section-title">Today</h2>
+        <p class="section-lead">Today is the active surface. It is where practice happens, not where it is planned. The session stack, the timer, the recording, and the daily reflection all live here.</p>
+
+        <h3>Session stack</h3>
+        <p>A day is an ordered list of sessions. Each session has a type — Technique (I), Pieces (II), Play (III), or Study (IV) — and contains the items to work through. Sessions can be reordered with the ↑↓ arrows or a drag handle, collapsed when not in use, and re-added from the <em>Add session</em> control at the bottom.</p>
+
+        <h3>Free mode and prescribed mode</h3>
+        <p>In free mode (the default), each session shows all repertoire items of its type. The musician decides what to work on in the moment. In prescribed mode, a loaded routine replaces the stack with a specific arrangement — sessions in a fixed order, with pinned pieces, intentions carried from the routine, and optional targets. Free mode can be restored at any time without affecting the saved routine.</p>
+
+        <h3>The four session types</h3>
+        <ul class="detail-list">
+          <li><span class="term">I · Technique</span><span class="def">Scales, exercises, finger-independence studies, warm-ups, and preparatory material.</span></li>
+          <li><span class="term">II · Pieces</span><span class="def">Composed repertoire with composer, notes, stage, optional PDF score, and reference recording.</span></li>
+          <li><span class="term">III · Play</span><span class="def">Blues, tunes learned by ear, improvisational material — anything worked out by listening rather than reading.</span></li>
+          <li><span class="term">IV · Study</span><span class="def">Score analysis, silent study, listening practice, theoretical work. No clock pressure implied.</span></li>
+        </ul>
+
+        <h3>Warm-up</h3>
+        <p>Any item can be marked as a warm-up using the ◔ toggle. Warm-up time accumulates separately from practice time and is excluded from the daily target and streak calculation. A small clock icon marks warm-up items in the session. The warm-up total is visible but subordinate — excluded from all rings and targets.</p>
+
+        <h3>Adding pieces</h3>
+        <p>The <em>+</em> icon in each session adds an existing piece from the repertoire. The <em>FilePlus</em> icon creates a new repertoire item inline. Either control is only visible on hover to keep the surface uncluttered during active practice.</p>
+
+        <h3>Pinning — the Working On rail</h3>
+        <p>Pinning an item from its expanded panel places it in the <em>Working on</em> rail at the top of Today. Pinned items persist across sessions and are surfaced as a reminder of ongoing work. They are not the same as routine pieces — they carry across all days regardless of what is loaded. Unpin from the same control.</p>
+
+        <h3>Closing the day</h3>
+        <p>Press <em>Close the day</em> to finalize and lock the timer. A prompt appears for any final reflection. Once closed, timer edits are locked until midnight or until the day is explicitly reopened. Reflections remain editable after closing. The day closes automatically at midnight regardless — the manual close is a deliberate act of ending, not a technical requirement.</p>
+
+        <h3><em>Journal du jour</em></h3>
+        <p>A single free-text reflection field at the bottom of Today. Written after practice, not before. It asks: <em>How did today feel? What surprised you?</em> This becomes the daily reflection in the archive. There are no prompts, no scoring, no analysis.</p>
+      </section>
+
+
+      <!-- 05 · The Timer -->
+      <section class="section" id="timer">
+        <div class="section-eyebrow"><span class="section-num">05</span>Practice</div>
+        <h2 class="section-title">The Timer</h2>
+        <p class="section-lead">One item is active at a time. Pressing play on a different item transfers the clock. No overlap, no ambiguity.</p>
+
+        <h3>How time accumulates</h3>
+        <p>Seconds accumulate into per-item, per-section, and total-today counters simultaneously. The footer shows the active item's running total, the current section total, and the daily total in monospace. Lifetime per-item time is stored separately from session time and never resets.</p>
+
+        <h3>Rest</h3>
+        <p>The rest toggle (<kbd>R</kbd>) pauses the practice clock and starts a separate rest counter. Rest time is tracked as <em>restToday</em>, shown in the footer as a secondary readout. It does not contaminate practice totals. Press <kbd>R</kbd> again, or press play on any item, to resume.</p>
+
+        <h3>Targets</h3>
+        <p>A daily target lives in Settings. Per-session and per-item targets can be set inline on Today by hovering over the time display — a small <em>+ target</em> chip appears. Once set, the target reads as <em>/ 20′</em> next to the accumulated time. When time meets or exceeds the target, the number quietly shifts to IKB blue. No alarm. No completion state. A missed target is indistinguishable from no target at all — by design.</p>
+
+        <h3>Started date</h3>
+        <p>The first time an item accumulates any practice time, its <em>started</em> date is set automatically to that day. It can be overridden manually in Repertoire. Items with no practice time show no started date.</p>
+
+        <h3>Day rollover</h3>
+        <p>At midnight, yesterday's totals, per-item breakdowns, and daily reflection archive to a <em>HistoryEntry</em>. Today's session counters reset. Loaded routines, pinned items, and targets carry forward. The rollover is checked once per minute — if the app is not open at midnight, the rollover runs on the next open.</p>
+      </section>
+
+
+      <!-- 06 · Routines -->
+      <section class="section" id="routines">
+        <div class="section-eyebrow"><span class="section-num">06</span>Practice</div>
+        <h2 class="section-title">Routines</h2>
+        <p class="section-lead">Routines are named arrangements of sessions, composed deliberately. They are the score; each day is the performance.</p>
+
+        <h3>Creating a routine</h3>
+        <p>In the Routines tab, press <em>New</em> to create a blank routine or <em>From Today</em> to capture the current session arrangement. Give it a name — an italic serif label that will appear on Today when loaded. Add sessions and pin pieces to each session from the repertoire. Each session carries its own optional intention line and optional minute target.</p>
+
+        <h3>Intentions</h3>
+        <p>Each session within a routine can carry an intention — a phrase, a focus, a note-to-self. <em>Left hand only, mm. 24–48. Slow.</em> Intentions exist only inside routines. They do not appear on Today's interface — they are written before the day, for the day, not displayed during it.</p>
+
+        <h3>Loading onto Today</h3>
+        <p>Press <em>Load</em> on any routine to replace Today's session stack with that routine's arrangement. An IKB-underlined italic routine name appears at the top of Today. Per-piece targets set in the routine propagate into Today on load. A <em>Free mode</em> button returns to the default arrangement at any time.</p>
+
+        <h3>The key distinction</h3>
+        <p>Editing the session stack on Today — adding a piece, removing one, changing a target — never alters the saved routine. The routine is a template. Today is a performance of it. They are separate. One day's deviations do not bleed backward into the plan.</p>
+
+        <h3>Managing routines</h3>
+        <p>Each routine can be renamed, expanded to reveal its sessions, and deleted. Sessions within a routine can be reordered. Pieces within a session can be reordered by drag. A <em>Loaded on today</em> badge marks the currently active routine.</p>
+      </section>
+
+
+      <!-- 07 · Metronome -->
+      <section class="section" id="metronome">
+        <div class="section-eyebrow"><span class="section-num">07</span>Practice</div>
+        <h2 class="section-title">Métronome</h2>
+        <p class="section-lead">A full-featured metronome built into the footer. Toggle with <kbd>M</kbd>. Tap tempo with <kbd>T</kbd>.</p>
+
+        <h3>Tempo</h3>
+        <p>BPM ranges from 40 to 240. Adjust via the slider or by typing directly into the BPM field. Italian tempo presets — Larghetto, Andante, Andantino, Moderato, Allegretto, Allegro, Vivace, Presto — appear as small clickable labels below the slider. Each name covers its traditional range; clicking snaps to the midpoint.</p>
+
+        <h3>Time signature</h3>
+        <ul class="detail-list">
+          <li><span class="term">Beats per bar</span><span class="def">1 through 12. The first beat of each bar receives a distinct click accent.</span></li>
+          <li><span class="term">Note value</span><span class="def">The beat unit: half, quarter, eighth, or sixteenth.</span></li>
+          <li><span class="term">Subdivision</span><span class="def">Quarter (no subdivision), eighth, triplet, or sixteenth. Subdivisions sound at reduced volume and appear as shorter marks in the footer visualizer.</span></li>
+        </ul>
+
+        <h3>The footer visualizer</h3>
+        <p>While the metronome runs, the footer renders a minimal beat display: tall marks for beats, shorter marks for subdivisions. A quiet oscilloscope. The active beat illuminates briefly on each tick.</p>
+
+        <div class="beat-viz" aria-hidden="true">
+          <div class="beat" style="height:28px;"></div>
+          <div class="sub" style="height:14px;"></div>
+          <div class="sub" style="height:14px;"></div>
+          <div class="beat" style="height:22px;opacity:0.5"></div>
+          <div class="sub" style="height:14px;"></div>
+          <div class="sub" style="height:14px;"></div>
+          <div class="beat" style="height:22px;opacity:0.5"></div>
+          <div class="sub" style="height:14px;"></div>
+          <div class="sub" style="height:14px;"></div>
+          <div class="beat" style="height:22px;opacity:0.5"></div>
+          <div class="sub" style="height:14px;"></div>
+          <div class="sub" style="height:14px;"></div>
+        </div>
+
+        <h3>Sound profiles</h3>
+        <p>Three options: <em>Click</em> (sharp, classic), <em>Wood</em> (softer woodblock), <em>Beep</em> (electronic). Volume adjustable independently of the main system volume.</p>
+
+        <h3>Accelerando</h3>
+        <p>Enable accel to ramp tempo automatically. Set a target BPM, a step size in BPM, and an interval (every N beats or every N bars). The metronome increments tempo by the step at each interval until the target is reached, then holds. Useful for systematic tempo development on difficult passages.</p>
+
+        <h3>Tap tempo</h3>
+        <p>Press <kbd>T</kbd> (or the on-screen <em>Tap</em> button) repeatedly in time. After two taps, the average interval is computed and set as BPM. Continue tapping to refine. The tap tempo is disabled while typing in any text field.</p>
+
+        <h3>Logging BPM to tempo history</h3>
+        <p>When the metronome is running and an item is active, press <kbd>L</kbd> (or the <em>log</em> control in the footer) to stamp the current BPM onto that item's tempo history. This is the only way BPM entries are created — no auto-capture. Two or more entries render as a sparkline in Repertoire. See <a href="#tempo-history">Tempo History</a>.</p>
+      </section>
+
+
+      <!-- 08 · Tuning & Drone -->
+      <section class="section" id="tuning">
+        <div class="section-eyebrow"><span class="section-num">08</span>Practice</div>
+        <h2 class="section-title">Tuning &amp; Drone</h2>
+        <p class="section-lead">A configurable drone for intonation practice, accessible from the footer. Toggle with <kbd>D</kbd>.</p>
+
+        <h3>Reference pitch</h3>
+        <p>Three A= presets: <strong>440 Hz</strong> (modern standard), <strong>432 Hz</strong> (alternative tuning), <strong>415 Hz</strong> (Baroque). All other notes derive from the selected reference. Switch freely while the drone is playing.</p>
+
+        <h3>Temperament</h3>
+        <ul class="detail-list">
+          <li><span class="term">Equal</span><span class="def">The modern standard. All semitones equally spaced. The only temperament in which all keys are equally usable.</span></li>
+          <li><span class="term">Just</span><span class="def">Pure ratios relative to the root. Thirds and fifths are acoustically clean in the home key. Other keys deviate significantly.</span></li>
+          <li><span class="term">Meantone ¼</span><span class="def">Quarter-comma meantone. Third-comma pure major thirds. Characteristic of Renaissance and early Baroque keyboard music.</span></li>
+        </ul>
+
+        <h3>Cent offsets</h3>
+        <p>For Just and Meantone temperaments, the panel displays cent offsets from equal for each pitch class relative to the selected root. These are informational — they reflect the theoretical derivation of the temperament, not a tuner reading.</p>
+
+        <h3>Drone note</h3>
+        <p>Select an octave, a root, and a specific note within the octave. The selected drone plays as a sustained tone. Volume is adjustable. Use the drone for sustained intonation work — a tonic pedal, a dominant, an open-string reference. No pitch detection is performed.</p>
+      </section>
+
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!-- III. LIBRARY                                           -->
+      <!-- ══════════════════════════════════════════════════════ -->
+
+      <div class="category-divider" id="library">
+        <div class="category-divider-label">Part III</div>
+        <div class="category-divider-title">Library</div>
+      </div>
+
+      <!-- 09 · Repertoire -->
+      <section class="section" id="repertoire">
+        <div class="section-eyebrow"><span class="section-num">09</span>Library</div>
+        <h2 class="section-title">Répertoire</h2>
+        <p class="section-lead">The atemporal view. The library of everything being worked on — pieces, technique studies, play material, and study topics — with their full histories, stages, and metadata.</p>
+
+        <h3>Adding items</h3>
+        <p>The <em>Add</em> row at the top of Repertoire shows four controls — one per session type. Roman numerals (I–IV) mark the type. Clicking one opens an inline form: title, composer (for pieces), and a status selector. The item appears in the list immediately.</p>
+
+        <h3>The stage arc</h3>
+        <p>Pieces move through four learning stages. Each stage is a clickable label in the expanded item view. Moving forward advances the stage; clicking the current stage offers a step back.</p>
+
+        <div class="stage-flow" aria-label="Stage progression">
+          <span class="stage-chip">Queued</span>
+          <span class="stage-arrow">→</span>
+          <span class="stage-chip">Learning</span>
+          <span class="stage-arrow">→</span>
+          <span class="stage-chip active">Polishing</span>
+          <span class="stage-arrow">→</span>
+          <span class="stage-chip">Maintenance</span>
+          <span class="stage-arrow">→</span>
+          <span class="stage-chip">Retired</span>
+        </div>
+
+        <p><em>Queued</em> — acquired, not yet begun. <em>Learning</em> — actively working through the piece. <em>Polishing</em> — the notes are secure; refining interpretation. <em>Maintenance</em> — in the rotation to keep performance-ready. <em>Retired</em> — no longer actively practiced, but kept in the archive.</p>
+
+        <h3>Metadata fields</h3>
+        <ul class="detail-list">
+          <li><span class="term">Title</span><span class="def">Work title. Leave blank for a movement of a collection — the movement field becomes the display title.</span></li>
+          <li><span class="term">Movement</span><span class="def">Movement or part name. e.g. <em>I. Prélude</em>. Used when the work is part of a collection.</span></li>
+          <li><span class="term">Collection</span><span class="def">The larger work. e.g. <em>Suite Bergamasque, WTC I</em>. Enables grouping by collection in the list.</span></li>
+          <li><span class="term">Catalog</span><span class="def">Opus, BWV, K, or other catalog number. e.g. <em>Op. 110, BWV 846</em>.</span></li>
+          <li><span class="term">Composer</span><span class="def">Last name or full name. Used in byline display, sorting, and filtering.</span></li>
+          <li><span class="term">Instrument</span><span class="def">Piano, violin, voice, etc. Appears in the sidebar filter.</span></li>
+          <li><span class="term">Length</span><span class="def">Piece duration in <em>m:ss</em> or decimal minutes. Used in Programs for total duration calculation.</span></li>
+          <li><span class="term">Tempo target</span><span class="def">A target BPM, shown in the expanded view alongside the tempo history sparkline.</span></li>
+          <li><span class="term">Started</span><span class="def">Auto-set on first practice. Manually editable. Shows as a relative date in the list.</span></li>
+          <li><span class="term">Reference</span><span class="def">A URL to an external recording or score. Opens in a new tab. Not embedded.</span></li>
+          <li><span class="term">Tags</span><span class="def">Free-form labels. e.g. <em>technique, lesson, audition</em>. Used for filtering and in Notes cross-references.</span></li>
+        </ul>
+
+        <h3>Collections and grouping</h3>
+        <p>Items sharing the same <em>Collection</em> value can be grouped using the <em>Group</em> control. The collection name appears as a row header; its movements indent beneath it with a count badge. The total practice time across all movements is shown in the collection header.</p>
+
+        <h3>Sorting and filtering</h3>
+        <p>Sort by: composer, title, stage, type, last practiced, time invested, or piece length. Filter by type and stage. A full-text search covers titles, composers, and tags. Empty filter results offer a <em>Clear all filters</em> action. The sidebar shows composers and instruments as collapsible filter shortcuts.</p>
+
+        <h3>Item deletion</h3>
+        <p>Deleting an item that has accumulated practice time or appears in any history entry requires confirmation. The confirmation states clearly what will be lost. Fresh items (no time, no history) delete silently.</p>
+      </section>
+
+
+      <!-- 10 · Spots -->
+      <section class="section" id="spots">
+        <div class="section-eyebrow"><span class="section-num">10</span>Library</div>
+        <h2 class="section-title">Spots</h2>
+        <p class="section-lead">A spot is a named section within a piece — a passage, a chord progression, a technical figure — that warrants its own practice log and tempo target.</p>
+
+        <h3>Adding spots</h3>
+        <p>In a piece's expanded view in Repertoire, press <em>Add spot</em>. Give it a name — <em>mm. 24–48</em>, <em>LH octave run</em>, <em>Coda</em>. Each spot is independently timed when active in Today. Per-spot time accumulates separately from the main piece total.</p>
+
+        <h3>Per-spot fields</h3>
+        <ul class="detail-list">
+          <li><span class="term">Name</span><span class="def">A short label for the passage. Appears in Today, the footer, and the log drawer.</span></li>
+          <li><span class="term">Note</span><span class="def">A persistent annotation — fingering, a teacher's comment, a harmonic observation. Not tied to any session.</span></li>
+          <li><span class="term">Tempo target</span><span class="def">A BPM goal for this specific passage. Shown in the spot row.</span></li>
+        </ul>
+
+        <h3>Log to spot</h3>
+        <p>When a spot is active in Today and the metronome is running, press <kbd>L</kbd> to log the current BPM directly to that spot's tempo history — rather than to the parent piece. The footer's log control appends <em>→ spot name</em> when a spot is active to make the target clear.</p>
+
+        <h3>Spots in Today and Logs</h3>
+        <p>Active spots appear in the Today session item, indented below their parent piece. In the log drawer, spot practice time is shown beneath the piece, with the spot name in a smaller italic label. Spots carry a persistent note across all sessions.</p>
+      </section>
+
+
+      <!-- 11 · PDF Scores -->
+      <section class="section" id="pdf-scores">
+        <div class="section-eyebrow"><span class="section-num">11</span>Library</div>
+        <h2 class="section-title">PDF Scores</h2>
+        <p class="section-lead">A PDF score can be attached to any piece in Repertoire. It opens in a side drawer with a notes column alongside it.</p>
+
+        <h3>Attaching a score</h3>
+        <p>In a piece's expanded view, press the PDF icon to attach a file. The score is stored in IndexedDB keyed by the item's ID. It persists across page reloads. Scores are device-local — they are not included in cloud sync and will not appear on other devices.</p>
+
+        <h3>The score drawer</h3>
+        <p>Opening a score expands a right-side panel. The PDF renders with standard page navigation. Alongside the score, a notes column provides space for markings, fingerings, and annotations. Notes in this column are attached to the piece and persist independently of session logs.</p>
+
+        <h3>Accessing scores</h3>
+        <p>The PDF icon appears in Today's session items and in the Repertoire expanded view. A tooltip indicates when a score is not available on the current device. Scores opened from Today do not interrupt the timer.</p>
+      </section>
+
+
+      <!-- 12 · Tempo History -->
+      <section class="section" id="tempo-history">
+        <div class="section-eyebrow"><span class="section-num">12</span>Library</div>
+        <h2 class="section-title">Tempo History</h2>
+        <p class="section-lead">A sparse, manually-assembled log of BPM marks for each piece. Two or more marks render as a compact sparkline in Repertoire.</p>
+
+        <h3>How it works</h3>
+        <p>When the metronome is running and a piece is active, press <kbd>L</kbd> to stamp the current BPM as a timestamped entry in that piece's <em>bpmLog</em>. This is the only way entries are created. No auto-capture. Each stamp records the BPM and the date.</p>
+
+        <h3>The sparkline</h3>
+        <p>In the Repertoire list, pieces with two or more BPM entries show a compact line chart in the expanded view. The earliest entry appears as a number on the left; the most recent entry on the right. No axis, no labels, no tooltip. The shape of the line tells the story — rising steadily, plateaued, recently jumped.</p>
+
+        <h3>Design intent</h3>
+        <p>The tempo history is intentionally sparse and manually triggered. It records meaningful tempo milestones — the day a difficult passage became secure, the week the final tempo was approached — not every session's starting tempo. Auto-capture was considered and rejected: the log is for landmarks, not surveillance.</p>
+      </section>
+
+
+      <!-- 13 · Reference Track -->
+      <section class="section" id="reference-track">
+        <div class="section-eyebrow"><span class="section-num">13</span>Library</div>
+        <h2 class="section-title">Reference Track</h2>
+        <p class="section-lead">Each piece can carry a URL to an external recording — a reference performance, a teacher's recording, a score video.</p>
+
+        <h3>Attaching a reference</h3>
+        <p>In a piece's expanded view in Repertoire, paste a URL into the <em>Reference</em> field. Any URL is accepted — Spotify, YouTube, a personal cloud link, a library database entry. No validation, no embedding.</p>
+
+        <h3>Opening the reference</h3>
+        <p>A small music note icon appears alongside the piece in Today and Repertoire when a reference URL is set. Clicking opens the URL in a new browser tab. The reference never plays inside Études — it opens externally, intentionally. Études is not a player.</p>
+
+        <h3>What it is not</h3>
+        <p>There is no in-app audio embed, no YouTube iframe, no streaming. The reference field is a text link. It opens in a new tab. This is the ceiling, and it is sufficient.</p>
+      </section>
+
+
+      <!-- 14 · Programs -->
+      <section class="section" id="programs">
+        <div class="section-eyebrow"><span class="section-num">14</span>Library</div>
+        <h2 class="section-title">Programs</h2>
+        <p class="section-lead">Programs are concert set lists — an ordered collection of pieces with a performance date and a total duration. They are for planning what to perform, not how to practice.</p>
+
+        <h3>Creating a program</h3>
+        <p>Press <em>New</em> in the Programs tab. Name the program — the name appears in italic serif and can be edited inline by double-clicking. Set a performance date in YYYY-MM-DD format.</p>
+
+        <h3>Adding pieces</h3>
+        <p>Only items of type <em>piece</em> can be added to a program. Use the <em>Add piece</em> picker to search and add from the repertoire. Pieces can be reordered by dragging. The total program duration updates automatically from individual piece lengths set in Repertoire — so keeping the <em>Length</em> field accurate matters here.</p>
+
+        <h3>Programs vs. Routines</h3>
+        <p>Routines describe how to practice. Programs describe what to perform. A routine might include technique exercises and warm-ups; a program would never. Programs have performance dates; routines do not. They answer different questions and live in different tabs.</p>
+      </section>
+
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!-- IV. RECORDING                                          -->
+      <!-- ══════════════════════════════════════════════════════ -->
+
+      <div class="category-divider" id="recording">
+        <div class="category-divider-label">Part IV</div>
+        <div class="category-divider-title">Recording</div>
+      </div>
+
+      <!-- 15 · Daily Recording -->
+      <section class="section" id="daily-recording">
+        <div class="section-eyebrow"><span class="section-num">15</span>Recording</div>
+        <h2 class="section-title">Daily Recording</h2>
+        <p class="section-lead">One take per day. A stratum of the journal equal to the written reflection. The constraint is the feature.</p>
+
+        <h3>Recording</h3>
+        <p>Press the microphone icon in the footer to begin recording. The footer indicator turns red; the label reads <em>Recording in progress…</em> Press <em>Stop</em> to end. The take is processed immediately and rendered as a waveform on Today.</p>
+
+        <h3>The waveform</h3>
+        <p>Recordings are rendered as 60-bucket amplitude waveforms — a visual trace of the take, playable inline. The waveform appears on Today and in the log drawer for past days. It is not a spectrum analyser or a pitch display. It is a shape.</p>
+
+        <div class="waveform-demo" aria-hidden="true">
+          <span style="height:8px"></span><span style="height:12px"></span><span style="height:18px"></span><span style="height:14px"></span><span style="height:22px"></span><span style="height:28px"></span><span style="height:24px"></span><span style="height:30px"></span><span style="height:26px"></span><span style="height:32px"></span><span style="height:28px"></span><span style="height:22px"></span><span style="height:30px"></span><span style="height:34px"></span><span style="height:28px"></span><span style="height:24px"></span><span style="height:20px"></span><span style="height:26px"></span><span style="height:30px"></span><span style="height:22px"></span><span style="height:18px"></span><span style="height:24px"></span><span style="height:20px"></span><span style="height:16px"></span><span style="height:14px"></span><span style="height:18px"></span><span style="height:22px"></span><span style="height:16px"></span><span style="height:12px"></span><span style="height:10px"></span>
+        </div>
+
+        <h3>Replacing and deleting</h3>
+        <p>Recording a second take on the same day replaces the first — a confirmation prompt appears before overwriting. Past-day recordings can be deleted from the log drawer with a confirmation. Deletion is permanent; recordings are stored locally in IndexedDB and cannot be recovered once removed.</p>
+
+        <h3>Attaching to a piece</h3>
+        <p>From the footer recording panel, a <em>Attach to piece in routine</em> dropdown lets a daily recording be associated with a specific piece from today's session. This links the recording to the piece in its Rolling Archive. See <a href="#rolling-archive">Rolling Archive</a>.</p>
+
+        <h3>Storage note</h3>
+        <p>Recordings are stored as audio blobs in IndexedDB, keyed by date. They are not included in cloud sync — they remain on the device that recorded them. IndexedDB storage is subject to browser quota; a warning appears if the device approaches its limit.</p>
+      </section>
+
+
+      <!-- 16 · Rolling Archive -->
+      <section class="section" id="rolling-archive">
+        <div class="section-eyebrow"><span class="section-num">16</span>Recording</div>
+        <h2 class="section-title">Rolling Archive</h2>
+        <p class="section-lead">Each piece maintains its own recording rack — a slot-based archive of up to ten unlocked takes, with an independent set of locked recordings preserved indefinitely.</p>
+
+        <h3>The ten-slot rack</h3>
+        <p>Each piece holds a maximum of ten unlocked recordings. When an eleventh is added, the oldest unlocked recording is deleted automatically — first in, first out. This is the rolling window. It keeps the archive from growing without bound while preserving a recent history of the piece's development.</p>
+
+        <h3>Locking a recording</h3>
+        <p>Any recording can be locked using the lock icon in the recording row. A locked recording is exempt from FIFO deletion. Locked rows carry a warm gold left border and a tinted background. Up to twenty recordings per piece can be locked simultaneously. A <em>rack full</em> warning appears when all ten unlocked slots are occupied — add another take and the oldest unlocked one will be removed.</p>
+
+        <ul class="detail-list">
+          <li><span class="term">Unlocked</span><span class="def">Subject to FIFO. Maximum 10 per piece. Automatically removed when capacity is exceeded.</span></li>
+          <li><span class="term">Locked</span><span class="def">Exempt from FIFO. Maximum 20 per piece. Deletable only by explicitly unlocking and then deleting.</span></li>
+        </ul>
+
+        <h3>The rack header</h3>
+        <p>At the top of the recording panel, a count reads <em>N / 10</em> for unlocked slots and a lock icon with a count for locked recordings. The proportion of filled slots gives a quick sense of how much of the recent archive is used.</p>
+
+        <h3>Recording from Today vs. Repertoire</h3>
+        <p>Piece recordings can be attached from two places: the footer's <em>Attach to piece</em> control during or after a daily recording, or the recording icon directly on a piece in Repertoire. Either path adds the take to the piece's Rolling Archive. The take must originate from a microphone capture — there is no way to import audio files.</p>
+      </section>
+
+
+      <!-- 17 · A/B Comparison -->
+      <section class="section" id="ab-comparison">
+        <div class="section-eyebrow"><span class="section-num">17</span>Recording</div>
+        <h2 class="section-title">A/B Comparison</h2>
+        <p class="section-lead">Select any two recordings to compare them side by side — either within the same piece or across two different pieces.</p>
+
+        <h3>Within the same piece</h3>
+        <p>In a piece's recording panel, each row carries an <em>A</em> and <em>B</em> button. Assign one recording to A and another to B. When both slots are filled with recordings from the same piece, a two-column comparison view opens inline within the panel — two waveforms, two playback controls, side by side. The single-recording preview is suppressed while the A/B view is active.</p>
+
+        <h3>Across two pieces</h3>
+        <p>Assigning A to a recording in one piece and B to a recording in a different piece produces a cross-piece comparison. A sticky bar appears at the bottom of the Repertoire view, spanning the full width, with both waveforms and the respective piece names shown. This bar persists while navigating between pieces in Repertoire, making it possible to compare a current piece against a historical reference recording of another work.</p>
+
+        <h3>Clearing the comparison</h3>
+        <p>A <em>clear</em> control in the comparison bar (or at the top of the panel for same-piece comparisons) dismisses the comparison and returns to single-recording playback.</p>
+      </section>
+
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!-- V. ARCHIVE                                             -->
+      <!-- ══════════════════════════════════════════════════════ -->
+
+      <div class="category-divider" id="archive-part">
+        <div class="category-divider-label">Part V</div>
+        <div class="category-divider-title">Reflection &amp; Archive</div>
+      </div>
+
+      <!-- 18 · Notes -->
+      <section class="section" id="notes">
+        <div class="section-eyebrow"><span class="section-num">18</span>Archive</div>
+        <h2 class="section-title">Notes</h2>
+        <p class="section-lead">A commonplace book, independent of any session. Pedagogy, philosophy, quotes from teachers, half-formed ideas. Things that do not belong to any single day.</p>
+
+        <h3>Creating notes</h3>
+        <p>Press <em>New</em> in the notes list to create a blank note. Notes have a title (edited inline at the top of the editor) and a free-form body written in Markdown. Each note is timestamped on creation.</p>
+
+        <h3>Markdown</h3>
+        <p>The editor supports standard Markdown: <strong>bold</strong>, <em>italic</em>, headings, lists, and horizontal rules. An <em>Edit</em> / <em>Preview</em> toggle switches between the raw text and the rendered view. In Preview mode, all formatting is applied. Markdown formatting characters do not appear in Preview.</p>
+
+        <h3>Wiki links</h3>
+        <p>Type <code>[[Note Title]]</code> to create a link to another note by name. In Preview mode, wiki links render as clickable internal links that navigate directly to the referenced note. In Edit mode, hold <kbd>Ctrl</kbd> or <kbd>Cmd</kbd> and click to follow the link without leaving the editor.</p>
+
+        <h3>Tags</h3>
+        <p>Type <code>#tag</code> anywhere in a note's body to attach a tag. Tags appear in the sidebar as filter shortcuts. Searching for <code>#tag</code> in the search field narrows the list to tagged notes. Tags are case-insensitive and contain no spaces — multi-word tags use hyphens by convention.</p>
+
+        <h3>Folders</h3>
+        <p>Notes can be organized into folders created from the sidebar. A note belongs to one folder at a time; the folder name appears above the note title in the editor. The <em>No folder</em> label indicates an uncategorized note.</p>
+
+        <h3>Built-in categories</h3>
+        <p>Two categories are automatically populated: <em>Daily Reflections</em> (the journal entries from Today, viewable but not editable here) and <em>Repertoire Logs</em> (per-piece notes attached during sessions). These are read-only in the Notes view — they exist for reference and cross-linking.</p>
+
+        <h3>External links</h3>
+        <p>In Edit mode, hold <kbd>Ctrl</kbd> or <kbd>Cmd</kbd> and click any Markdown link to open it externally. In Preview mode, external links open in a new tab directly. Internal wiki links always navigate within the app.</p>
+
+        <h3>Search</h3>
+        <p>The search field covers note titles, body text, and dates. Matches highlight inline. The <em>Clear</em> control returns to the full list. The sidebar collapses by default to give the editor maximum space.</p>
+      </section>
+
+
+      <!-- 19 · Logs -->
+      <section class="section" id="logs">
+        <div class="section-eyebrow"><span class="section-num">19</span>Archive</div>
+        <h2 class="section-title">Logs</h2>
+        <p class="section-lead">The archive. A scrollable gallery of past sessions — one card per entry — organized by date and searchable by content. Like flipping pages.</p>
+
+        <h3>Card types</h3>
+        <p>Three card types occupy the same horizontal gallery. Daily cards show a single session. Weekly cards summarize seven days. Monthly cards summarize a full calendar month. All three are the same size; a two-pixel top accent differentiates them at a glance.</p>
+
+        <ul class="detail-list">
+          <li><span class="term">Daily</span><span class="def">Dark grey accent. Shows date, practice time, a reflection preview, and a recording indicator.</span></li>
+          <li><span class="term">Weekly</span><span class="def">Light grey accent. Shows week range, total minutes, and a dot row for each day practiced.</span></li>
+          <li><span class="term">Monthly</span><span class="def">IKB blue accent. Shows month and year, total minutes, and a mini calendar grid with dots for practiced days.</span></li>
+        </ul>
+
+        <h3>Dot indicators</h3>
+        <p>On weekly cards, each day practiced is represented by a dot. Days where the daily target was met are shown in a darker shade of IKB; days practiced below target in a lighter shade. Days with no practice show no dot. On monthly cards, the same logic applies within the mini calendar grid — a small snapshot of the month's pattern.</p>
+
+        <h3>Searching and filtering</h3>
+        <p>The search field covers reflection text, piece titles, composer names, spots, and per-piece notes. Type to narrow in real time. The filter row lets the list show only daily, weekly, or monthly entries. A count below the filter shows matching entries. <em>Clear</em> returns to the full archive.</p>
+
+        <h3>Opening a day</h3>
+        <p>Clicking any card opens the Log Drawer — the canonical day-review surface. See <a href="#log-drawer">The Log Drawer</a>.</p>
+      </section>
+
+
+      <!-- 20 · The Log Drawer -->
+      <section class="section" id="log-drawer">
+        <div class="section-eyebrow"><span class="section-num">20</span>Archive</div>
+        <h2 class="section-title">The Log Drawer</h2>
+        <p class="section-lead">The single surface for reviewing a past day. Opened from Week, Month, or Logs — wherever a day is clicked, the same drawer appears.</p>
+
+        <h3>Contents</h3>
+        <ul class="detail-list">
+          <li><span class="term">Date &amp; total</span><span class="def">The full date, the day's total practice minutes, and the warm-up total if present.</span></li>
+          <li><span class="term">Waveform</span><span class="def">The daily recording waveform if a take was made that day, with inline playback and a delete control.</span></li>
+          <li><span class="term">Items by section</span><span class="def">Practice items grouped by session type (Technique, Pieces, Play, Study), each with its per-item minutes. Spots are shown indented beneath their parent piece.</span></li>
+          <li><span class="term">Reflection</span><span class="def">The daily journal entry, rendered as written. Not editable from the drawer — edits to past reflections are made by reopening the day.</span></li>
+        </ul>
+
+        <h3>For weekly and monthly entries</h3>
+        <p>Opening a weekly or monthly card from Logs shows the two reflection fields (<em>Notes, observations, wins</em> and <em>Goals for next period</em>) for that period. No per-item breakdown — those live in the individual daily drawers.</p>
+
+        <h3>Past-day recordings</h3>
+        <p>Audio from past days plays inline from the drawer. A delete control removes the recording permanently with a confirmation. The waveform disappears from the drawer on deletion. The session log is unaffected.</p>
+      </section>
+
+
+      <!-- 21 · Week View -->
+      <section class="section" id="week-view">
+        <div class="section-eyebrow"><span class="section-num">21</span>Archive</div>
+        <h2 class="section-title">Week View</h2>
+        <p class="section-lead">Retrospective and prospective in equal measure. What happened this week, and what comes next?</p>
+
+        <h3>The bar chart</h3>
+        <p>Seven day bars show relative practice minutes for each day of the current week. Bars scale to the tallest day. Days with no practice show no bar. Hovering over any day highlights the full week context. Clicking a day opens the Log Drawer for that day.</p>
+
+        <h3>The activity ring</h3>
+        <p>An IKB SVG ring shows cumulative weekly minutes against the weekly target set in Settings. The ring fills clockwise. When the weekly target is reached, the ring completes silently. No animation spike, no congratulation text.</p>
+
+        <h3>Navigating past weeks</h3>
+        <p>Arrow controls flank the week date range label. Navigate backward to review previous weeks. Past weeks show their date range — <em>20 – 26 Apr</em> — not the month name. Hovering a past week in the calendar highlights all seven day cells for that week. Click any highlighted day to open its log drawer.</p>
+
+        <h3>Weekly reflection</h3>
+        <p>Two fields below the chart: <em>Notes, observations, wins</em> and <em>Goals for next week</em>. Written at the end of or start of a week. Saved automatically. Past weeks' reflections are read-only.</p>
+      </section>
+
+
+      <!-- 22 · Month View -->
+      <section class="section" id="month-view">
+        <div class="section-eyebrow"><span class="section-num">22</span>Archive</div>
+        <h2 class="section-title">Month View</h2>
+        <p class="section-lead">The view that makes patterns visible. A full calendar, a ring, and two fields of reflection.</p>
+
+        <h3>The calendar</h3>
+        <p>A standard month grid. Each practiced day carries an IKB intensity rail — a small vertical bar whose opacity reflects the proportion of the daily target met. Days with heavy practice glow deeper blue. Days with light practice show a faint trace. Rest days show no rail. Hovering any day highlights its cell and reveals a minute total.</p>
+
+        <h3>The activity ring</h3>
+        <p>The monthly ring fills against the monthly target in Settings. It reads the same as the weekly ring — IKB, 180px, clockwise fill — but represents the full month's accumulated time. The quarter label (Q1, Q2, Q3, Q4) appears as a small eyebrow to orient the month in the year.</p>
+
+        <h3>Navigating past months</h3>
+        <p>Arrow controls adjacent to the month name navigate backward through previous months. Past months are read-only except for the reflection fields. Click any practiced day to open the Log Drawer.</p>
+
+        <h3>Monthly reflection</h3>
+        <p>Two fields: <em>Notes, observations, wins</em> and <em>Goals for next month</em>. Written at the month's end or beginning. Past months' reflections are readable and editable retroactively — a month's meaning can clarify in retrospect.</p>
+      </section>
+
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!-- VI. ACCOUNT & SYNC                                     -->
+      <!-- ══════════════════════════════════════════════════════ -->
+
+      <div class="category-divider" id="sync-part">
+        <div class="category-divider-label">Part VI</div>
+        <div class="category-divider-title">Account &amp; Sync</div>
+      </div>
+
+      <!-- 23 · Account -->
+      <section class="section" id="account">
+        <div class="section-eyebrow"><span class="section-num">23</span>Sync</div>
+        <h2 class="section-title">Account</h2>
+        <p class="section-lead">An account is optional. Études works fully offline and without authentication. An account enables cloud backup and cross-device access to journal data.</p>
+
+        <h3>Signing in and up</h3>
+        <p>Open Settings and scroll to the <em>Account</em> section. Enter an email address and password to sign in or create an account. Authentication is handled by Supabase. There are no OAuth providers, no social login, no public profile. The account exists only to hold a private backup of the journal state.</p>
+
+        <h3>What changes with an account</h3>
+        <p>Once signed in, the journal syncs to the cloud automatically when local data changes. A <em>Sync now</em> button in Settings triggers an immediate sync. The last sync timestamp appears below the button. Nothing else changes — the interface is identical, the data model is identical, the experience is identical.</p>
+
+        <h3>Signing out</h3>
+        <p>Signing out stops all cloud sync. Local data remains on the device unchanged. The cloud backup is retained and will be available on the next sign-in, from the same or a different device.</p>
+
+        <div class="callout callout-warm">
+          <p>Audio recordings and PDF scores are <strong>never synced to the cloud</strong>. They are stored in IndexedDB, which is strictly local. Moving to a new device requires re-recording or re-attaching scores manually.</p>
+        </div>
+      </section>
+
+
+      <!-- 24 · Cloud Sync -->
+      <section class="section" id="cloud-sync">
+        <div class="section-eyebrow"><span class="section-num">24</span>Sync</div>
+        <h2 class="section-title">Cloud Sync</h2>
+        <p class="section-lead">When signed in, the full journal state serialises to a single row in Supabase, keyed by user ID. Sync is automatic, incremental, and silent.</p>
+
+        <h3>What syncs</h3>
+        <ul class="detail-list">
+          <li><span class="term">Items</span><span class="def">All repertoire items — pieces, technique, play material, study — with full metadata, stages, tags, and tempo history.</span></li>
+          <li><span class="term">History</span><span class="def">All daily, weekly, and monthly HistoryEntries — practice minutes, per-item breakdowns, and reflections.</span></li>
+          <li><span class="term">Routines</span><span class="def">All named arrangements with their sessions, intentions, piece assignments, and targets.</span></li>
+          <li><span class="term">Programs</span><span class="def">All concert programs with their piece lists and performance dates.</span></li>
+          <li><span class="term">Notes</span><span class="def">All free-form notes, including titles, bodies, folders, and tags.</span></li>
+          <li><span class="term">Settings</span><span class="def">Daily, weekly, and monthly targets.</span></li>
+          <li><span class="term">Item times</span><span class="def">Lifetime accumulated practice time per item.</span></li>
+          <li><span class="term">Recording metadata</span><span class="def">Waveform peak data and timestamps for daily and piece recordings. Audio blobs are not synced.</span></li>
+        </ul>
+
+        <h3>What does not sync</h3>
+        <p>Audio recordings (IndexedDB blobs), PDF scores (IndexedDB blobs), and the active session state on Today (which resets daily by design). These remain on the recording device only.</p>
+
+        <h3>Dirty tracking</h3>
+        <p>A <em>localDirtyAt</em> timestamp in localStorage records the moment of any local mutation. A <em>lastCloudSyncAt</em> timestamp records the last confirmed successful cloud write. On sign-in, if <em>localDirtyAt</em> is more recent than <em>lastCloudSyncAt</em>, the app treats local data as dirty and initiates a sync — either automatically or by presenting the conflict resolution modal if cloud data is also present.</p>
+
+        <h3>Sync status</h3>
+        <p>The Settings panel shows one of three states: idle (a cloud icon), <em>Syncing…</em> (a spinning loader), or <em>Sync error</em> (a cloud-off icon in muted red). A sync error means the last attempt failed — usually a network issue. Press <em>Sync now</em> to retry.</p>
+      </section>
+
+
+      <!-- 25 · Conflict Resolution -->
+      <section class="section" id="conflict-resolution">
+        <div class="section-eyebrow"><span class="section-num">25</span>Sync</div>
+        <h2 class="section-title">Conflict Resolution</h2>
+        <p class="section-lead">When two devices each have data — one worked offline, the other synced separately — the journal must choose how to reconcile them. A modal presents three options.</p>
+
+        <h3>When a conflict occurs</h3>
+        <p>A conflict is detected when signing in with local data present and cloud data also present, and neither is a clean superset of the other. The Sync conflict modal appears with a summary: <em>"This device has N pieces. The cloud has M pieces from another device."</em></p>
+
+        <h3>The three options</h3>
+        <ul class="detail-list">
+          <li><span class="term">Merge</span><span class="def">Combine both sources. Items, routines, programs, and history entries are unioned by ID. When the same item ID exists on both sides, the local version wins. Notes and settings follow the same rule. This is the safest option when both devices have unique data.</span></li>
+          <li><span class="term">Use this device</span><span class="def">The local data is authoritative. The cloud is overwritten with the local state. Data present only on the cloud is lost.</span></li>
+          <li><span class="term">Use cloud</span><span class="def">The cloud data is authoritative. Local changes since the last sync are discarded. The local state is replaced with the cloud state.</span></li>
+        </ul>
+
+        <h3>The merge strategy in detail</h3>
+        <p>Arrays (items, routines, programs, history) are merged by ID — a Map keyed by item ID or date key receives all remote entries, then all local entries override. Local wins on any same-key collision. Object maps (itemTimes, pieceRecordingMeta) are merged key-by-key, local winning per key. The workingOn set is unioned. Scalar fields (settings, targets) take the remote value as a base, with local settings merged on top.</p>
+
+        <div class="callout">
+          <p>After any resolution, the merged or selected state is written back to the cloud immediately. The dirty flag clears and sync resumes normally.</p>
+        </div>
+      </section>
+
+
+      <!-- ══════════════════════════════════════════════════════ -->
+      <!-- VII. REFERENCE                                         -->
+      <!-- ══════════════════════════════════════════════════════ -->
+
+      <div class="category-divider" id="reference-part">
+        <div class="category-divider-label">Part VII</div>
+        <div class="category-divider-title">Reference</div>
+      </div>
+
+      <!-- 26 · Export -->
+      <section class="section" id="export">
+        <div class="section-eyebrow"><span class="section-num">26</span>Reference</div>
+        <h2 class="section-title">Export</h2>
+        <p class="section-lead">The musician owns their practice in readable form at all times. Études exports the full journal as a single Markdown file.</p>
+
+        <h3>The drag chip</h3>
+        <p>A small <em>.md</em> chip in the header can be dragged to the desktop. On Chromium-based browsers, this produces a Markdown file immediately via the <em>DownloadURL</em> data-transfer format. On Firefox and Safari, the export falls back to a text blob. The Settings panel offers explicit <em>Export .md</em> and <em>Export .txt</em> buttons as reliable alternatives.</p>
+
+        <h3>What the export contains</h3>
+        <p>The complete repertoire with all metadata. Every daily, weekly, and monthly history entry with reflections. All notes. Routine and program definitions. The export is plain text, readable without Études, importable into any Markdown tool. It is not a backup in the technical sense — it does not include audio or PDF binaries.</p>
+
+        <h3>JSON export</h3>
+        <p>A <em>Export JSON</em> option in Settings produces a machine-readable snapshot of the full application state. This can be re-imported using <em>Import</em> in the same panel. JSON export preserves the full data model including recording metadata keys, though audio blobs must be re-attached separately.</p>
+
+        <div class="callout callout-warm">
+          <p>A future version will export the journal as a zip of individual Markdown files with YAML frontmatter — one file per session, one per note. This form honors the paper metaphor more faithfully and is the intended export format.</p>
+        </div>
+      </section>
+
+
+      <!-- 27 · Keyboard Shortcuts -->
+      <section class="section" id="keyboard-shortcuts">
+        <div class="section-eyebrow"><span class="section-num">27</span>Reference</div>
+        <h2 class="section-title">Keyboard Shortcuts</h2>
+        <p class="section-lead">Silent by default. Press <kbd>?</kbd> anywhere to open the help panel. All shortcuts are disabled while typing in any text field.</p>
+
+        <h3>Playback &amp; Timer</h3>
+        <table class="shortcut-table">
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Space</kbd></td><td>Play or pause the most recently active item</td></tr>
+            <tr><td><kbd>R</kbd></td><td>Toggle rest — starts or stops the rest counter</td></tr>
+            <tr><td><kbd>1</kbd></td><td>Jump to Technique session (I)</td></tr>
+            <tr><td><kbd>2</kbd></td><td>Jump to Pieces session (II)</td></tr>
+            <tr><td><kbd>3</kbd></td><td>Jump to Play session (III)</td></tr>
+            <tr><td><kbd>4</kbd></td><td>Jump to Study session (IV)</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Footer Tools</h3>
+        <table class="shortcut-table">
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>M</kbd></td><td>Toggle the metronome on or off</td></tr>
+            <tr><td><kbd>T</kbd></td><td>Tap tempo — press repeatedly in time to set BPM</td></tr>
+            <tr><td><kbd>L</kbd></td><td>Log current BPM to the active item's tempo history (or to active spot)</td></tr>
+            <tr><td><kbd>D</kbd></td><td>Toggle the tuning &amp; drone panel</td></tr>
+            <tr><td><kbd>N</kbd></td><td>Open the quick-note field</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Navigation &amp; UI</h3>
+        <table class="shortcut-table">
+          <thead><tr><th>Key</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td><kbd>Esc</kbd></td><td>Close any open drawer, modal, or panel</td></tr>
+            <tr><td><kbd>?</kbd></td><td>Open the keyboard shortcut help panel</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+
+      <!-- 28 · Data & Privacy -->
+      <section class="section" id="data-privacy">
+        <div class="section-eyebrow"><span class="section-num">28</span>Reference</div>
+        <h2 class="section-title">Data &amp; Privacy</h2>
+        <p class="section-lead">All journal data lives on the device. No telemetry, no analytics, no third-party data sharing. What is practiced here is private.</p>
+
+        <h3>localStorage</h3>
+        <p>Application state is stored as JSON in <em>localStorage</em> under the following keys:</p>
+
+        <div class="data-keys">
+          <span class="data-key">etudes-items</span>
+          <span class="data-key">etudes-history</span>
+          <span class="data-key">etudes-settings</span>
+          <span class="data-key">etudes-routines</span>
+          <span class="data-key">etudes-programs</span>
+          <span class="data-key">etudes-notes</span>
+          <span class="data-key">etudes-noteCategories</span>
+          <span class="data-key">etudes-itemTimes</span>
+          <span class="data-key">etudes-recordingMeta</span>
+          <span class="data-key">etudes-pieceRecordingMeta</span>
+          <span class="data-key">etudes-workingOn</span>
+          <span class="data-key">etudes-todaySessions</span>
+          <span class="data-key">etudes-loadedRoutineId</span>
+          <span class="data-key">etudes-dayClosed</span>
+          <span class="data-key">etudes-localDirtyAt</span>
+          <span class="data-key">etudes-lastCloudSyncAt</span>
+        </div>
+
+        <h3>IndexedDB</h3>
+        <p>Audio blobs (daily recordings and piece recordings) and PDF files are stored in IndexedDB. Audio is keyed by date string (daily recordings) or by a composite of item ID and timestamp (piece recordings). PDFs are keyed by item ID. IndexedDB storage is subject to browser quota — typically several hundred MB to several GB depending on the device and browser. A storage warning appears in Settings if the estimate approaches the limit.</p>
+
+        <h3>Cloud storage</h3>
+        <p>When signed in, journal state is upserted to a Supabase <em>user_state</em> table, keyed by user ID, protected by Row Level Security. The Supabase project is private. No data is accessible to any other user or shared externally. Audio and PDF data are never transmitted.</p>
+
+        <h3>Data portability</h3>
+        <p>The full journal is exportable at any time as Markdown or JSON from the Settings panel. The export contains everything in localStorage. It can be imported back into Études or read independently. Études makes no claim to the data within it — the journal belongs to the person who keeps it.</p>
+
+        <h3>Schema migrations</h3>
+        <p>When the application schema version increments, a migration runs automatically on load. Migrations are additive where possible — they add new fields with safe defaults rather than removing existing data. The current schema version is stored in Settings and visible in the bottom of the Settings panel.</p>
+
+        <div class="callout">
+          <p>To clear all data: open the browser's DevTools, navigate to Application → Storage, and clear localStorage and IndexedDB for this origin. This is irreversible and removes everything, including audio recordings not backed up to the cloud.</p>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </main><!-- /main -->
+
+</div><!-- /layout -->
+
+<script>
+  // Highlight active nav link on scroll
+  (function() {
+    const links = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('section[id]');
+
+    function onScroll() {
+      let current = '';
+      sections.forEach(s => {
+        if (window.scrollY >= s.offsetTop - 120) current = s.id;
+      });
+      links.forEach(l => {
+        l.classList.toggle('active', l.getAttribute('href') === '#' + current);
+      });
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  })();
+</script>
+
+</body>
+</html>

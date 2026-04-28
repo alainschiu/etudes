@@ -62,6 +62,11 @@ export async function loadFromCloud(userId) {
   }
 }
 
+export function measureSyncPayload(state) {
+  try { return Math.round(JSON.stringify(state).length / 1024); }
+  catch { return 0; }
+}
+
 export async function syncToCloud(userId, state) {
   try {
     const {error} = await supabase

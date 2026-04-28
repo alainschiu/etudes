@@ -1,4 +1,5 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
+import DevToolsBar from '../dev/DevToolsBar.jsx';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
 import X from 'lucide-react/dist/esm/icons/x';
@@ -130,6 +131,7 @@ export default function Footer({metronome,setMetronome,metroExpanded,setMetroExp
   const todayRec=recordingMeta?.[todayKey];
 
   return (<footer className="shrink-0" style={{borderTop:`1px solid ${LINE_MED}`,background:BG}}>
+    <DevToolsBar/>
     {droneExpanded&&<DronePanel drone={drone} setDrone={setDrone} toggleDrone={toggleDrone} setDroneExpanded={setDroneExpanded}/>}
     {recExpanded&&(
       <div className="px-10 py-6" style={{borderBottom:`1px solid ${LINE}`,background:SURFACE}}>

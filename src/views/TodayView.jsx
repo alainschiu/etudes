@@ -32,6 +32,7 @@ import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
 import {todayDateStr, daysUntil} from '../lib/dates.js';
 import {getItemTime, displayTitle, formatByline, nextPerformance, getParentBucket} from '../lib/items.js';
+import {getEmbedInfo} from '../lib/media.js';
 import {toRoman} from '../lib/music.js';
 import {DisplayHeader, TargetEdit, TimeWithTarget, ItemTimeEditor, ItemPickerPopup, PerformanceChip, SpotsBlock, Waveform, MarkdownField} from '../components/shared.jsx';
 import {idbGet} from '../lib/storage.js';
@@ -118,6 +119,13 @@ export default function TodayView(p){
       {dayClosed&&<div className="py-2 flex items-center justify-between" style={{borderBottom:`1px solid ${LINE}`}}><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em',color:FAINT}}>Session total <span style={{textTransform:'none',letterSpacing:0,fontFamily:serif,fontStyle:'italic'}}>incl. rest</span></span><span className="font-mono tabular-nums" style={{fontSize:'11px',fontWeight:300,color:MUTED}}>{Math.floor((effectiveTotalToday+(restToday||0))/60)}′</span></div>}
       {warmupMin>0&&(<div className="py-2.5 flex items-center gap-3" style={{borderBottom:`1px solid ${LINE}`}}><span style={{color:WARM,fontSize:'13px',lineHeight:1,width:'18px',textAlign:'center'}}>◔</span><span className="uppercase" style={{color:WARM,fontSize:'10px',letterSpacing:'0.28em'}}>Warm-up today</span><span className="font-mono tabular-nums" style={{color:WARM,fontSize:'11px',fontWeight:300}}>{warmupMin}′</span><span className="italic ml-auto" style={{color:FAINT,fontFamily:serif,fontSize:'11px'}}>excluded from target & streak</span></div>)}
 
+      {items.length===0&&(
+        <div className="mt-10 px-6 py-8 text-center" style={{border:`1px dashed ${LINE_STR}`}}>
+          <div className="italic mb-2" style={{color:MUTED,fontFamily:serif,fontSize:'16px'}}>Start here.</div>
+          <div style={{color:FAINT,fontSize:'12px',lineHeight:1.7}}>Add a piece in <button onClick={()=>setView('repertoire')} style={{color:IKB,textDecoration:'underline',cursor:'pointer'}}>Répertoire</button>, then press play next to it on this page.</div>
+        </div>
+      )}
+
       <div className="mt-8" style={{borderTop:`1px solid ${LINE_STR}`}}>
         {todaySessions.map((session,idx)=>{
           const type=session.type;const sessionItems=getSessionItems(session);const prescribed=session.itemIds!==null;
@@ -133,6 +141,7 @@ export default function TodayView(p){
                 <span className="tabular-nums shrink-0" style={{color:DIM,fontFamily:serif,fontStyle:'italic',fontSize:'11px',minWidth:'16px'}}>{toRoman(idx+1)}</span>
                 {isWarmup&&<span className="shrink-0" style={{color:WARM,fontSize:'13px',lineHeight:1}} title="Warm-up · excluded from target">◔</span>}
                 <span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em',fontFamily:sans}}>{SECTION_CONFIG[type].label}</span>
+                {session.intention&&<span className="italic truncate" style={{color:DIM,fontFamily:serif,fontSize:'11px',letterSpacing:0,maxWidth:'200px'}} title={session.intention}>— {session.intention}</span>}
                 {isCollapsed&&<span style={{color:FAINT,fontSize:'9px',letterSpacing:'0.15em'}}>· {sessionItems.length} piece{sessionItems.length===1?'':'s'}</span>}
               </div>
               {/* Right: hover controls → fixed time col → fixed target col → chevron */}
@@ -202,6 +211,7 @@ export default function TodayView(p){
                   {(()=>{const todayEntry=pieceRecordingMeta?.[item.id]?.[todayKey];if(!todayEntry)return null;const bkey=`${item.id}__${todayKey}`;return(<Waveform key={todayEntry.ts} compact blobLoader={()=>idbGet('pieceRecordings',bkey)} meta={todayEntry}/>);})()}
                   <div><div className="uppercase mb-1.5 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><MessageSquarePlus className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Today</div><MarkdownField value={item.todayNote||''} onChange={v=>updateItem(item.id,{todayNote:v})} placeholder="What happened in this session?" minHeight={80} style={{background:SURFACE2,border:`1px solid ${IKB}40`}} showDeepLinkHint/></div>
                   {item.type==='piece'&&<SpotsBlock item={item} itemTimes={itemTimes} activeItemId={activeItemId} activeSpotId={activeSpotId} startItem={(id,sid)=>startItem(id,sid,session.id)} stopItem={stopItem} addSpot={addSpot} updateSpot={updateSpot} deleteSpot={deleteSpot} editSpotTime={editSpotTime} dayClosed={dayClosed}/>}
+                  {item.referenceUrl&&(()=>{const embed=getEmbedInfo(item.referenceUrl);return(<div><div className="uppercase mb-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}>Reference</div>{embed?.type==='youtube'?(<div style={{position:'relative',paddingBottom:'56.25%',height:0,overflow:'hidden',background:SURFACE2,borderRadius:2}}><iframe src={embed.src} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allowFullScreen loading="lazy" title="Reference"/></div>):embed?.type==='spotify'?(<iframe src={embed.src} width="100%" height={embed.compact?152:352} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Reference"/>):embed?.type==='apple'?(<iframe src={embed.src} width="100%" height={175} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay *; encrypted-media *; fullscreen *" loading="lazy" title="Reference"/>):(<a href={item.referenceUrl} target="_blank" rel="noopener noreferrer" className="uppercase flex items-center gap-1" style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em'}}>Open reference ↗</a>)}</div>);})()}
                   <div><div className="uppercase mb-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}>Notes <span style={{color:DIM,letterSpacing:'0.2em'}}>· persistent</span></div><MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={80} style={{background:SURFACE2}} showDeepLinkHint/></div>
                   <div className="flex items-center gap-2 text-xs flex-wrap">
                     <button onClick={()=>{setExpandedItemId(item.id);setView('repertoire');}} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Edit in Repertoire</button>

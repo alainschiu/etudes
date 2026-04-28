@@ -28,6 +28,7 @@ import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
 import {daysUntil, todayDateStr} from '../lib/dates.js';
 import {idbGet} from '../lib/storage.js';
 import {getItemTime, getSpotTime, displayTitle, formatByline, normalizeComposerKey, nextPerformance, mkSpotId} from '../lib/items.js';
+import {getEmbedInfo} from '../lib/media.js';
 import {toRoman} from '../lib/music.js';
 import {DisplayHeader, StageLabels, PerformanceChip, ItemTimeEditor, MarkdownField, Waveform} from '../components/shared.jsx';
 import {fmtSpotTime} from '../components/shared.jsx';
@@ -170,6 +171,7 @@ export default function RepertoireView(p){
               <LengthEditorRow i={i} updateItem={updateItem}/>
               {showBpmTarget&&<EditorRow label="Tempo target" icon={<TrendingUp className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/>}><input type="number" min="40" max="300" value={i.bpmTarget??''} onChange={e=>{const v=e.target.value;const n=parseInt(v,10);updateItem(i.id,{bpmTarget:Number.isFinite(n)&&n>0?n:null});}} placeholder="— bpm" style={eInM}/></EditorRow>}
               <EditorRow label="Reference" icon={<Music className="w-3 h-3" strokeWidth={1.25}/>}><div className="flex items-center gap-3"><input type="text" value={i.referenceUrl||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{referenceUrl:e.target.value})} placeholder="paste a link" style={{...eIn,fontSize:'13px'}}/>{i.referenceUrl&&<a href={i.referenceUrl} target="_blank" rel="noopener noreferrer" className="uppercase flex items-center gap-1 shrink-0" style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em'}}><LinkIcon className="w-3 h-3" strokeWidth={1.25}/> Open ↗</a>}</div></EditorRow>
+              {(()=>{if(!i.referenceUrl)return null;const embed=getEmbedInfo(i.referenceUrl);if(!embed)return null;return(<div className="flex items-start gap-3 py-3" style={{borderBottom:`1px solid ${LINE}`}}><div className="w-36 shrink-0"/><div className="flex-1">{embed.type==='youtube'?(<div style={{position:'relative',paddingBottom:'56.25%',height:0,overflow:'hidden',background:SURFACE2,borderRadius:2}}><iframe src={embed.src} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allowFullScreen loading="lazy" title="Reference"/></div>):embed.type==='spotify'?(<iframe src={embed.src} width="100%" height={embed.compact?152:352} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="eager" title="Reference"/>):(<iframe src={embed.src} width="100%" height={175} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay *; encrypted-media *; fullscreen *" loading="eager" title="Reference"/>)}</div></div>);})()}
               {showPerformances&&(<EditorRow label="Performances" icon={<Calendar className="w-3 h-3" strokeWidth={1.25}/>}>
                 <div className="space-y-2">
                   {(i.performances||[]).length===0&&<div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No dates set.</div>}

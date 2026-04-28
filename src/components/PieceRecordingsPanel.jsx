@@ -9,7 +9,8 @@ import {TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,WARM_SOFT,
 import {idbGet} from '../lib/storage.js';
 import {Waveform,RefTrackPlayer} from './shared.jsx';
 
-const ROLLING_LIMIT = 10;
+const ROLLING_LIMIT   = 10;
+const ROLLING_WARN_AT = 7;
 
 export default function PieceRecordingsPanel({
   item,
@@ -92,8 +93,8 @@ export default function PieceRecordingsPanel({
 
       {/* ── Reference sub-label ─────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 mb-2" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>
-        <span className="uppercase shrink-0" style={{color:'#6B8F71'}}>Reference</span>
-        <span style={{flex:1,height:'1px',background:'rgba(107,143,113,0.25)'}}/>
+        <span className="uppercase shrink-0">Reference</span>
+        <span style={{flex:1,height:'1px',background:'rgba(244,238,227,0.16)'}}/>
       </div>
 
       {/* ── Reference track ─────────────────────────────────────────────────── */}
@@ -110,7 +111,12 @@ export default function PieceRecordingsPanel({
         <span style={{flex:1,height:'1px',background:LINE_MED}}/>
         {dates.length>0&&<span className="shrink-0 tabular-nums" style={{fontFamily:mono,color:DIM,letterSpacing:'0.08em'}}>{unlockedCount}/{ROLLING_LIMIT}</span>}
         {lockedCount>0&&<span className="shrink-0 flex items-center gap-0.5" style={{color:WARM,fontFamily:mono}}><Lock className="w-2.5 h-2.5" strokeWidth={1.5}/>{lockedCount}</span>}
-        {unlockedCount>=ROLLING_LIMIT&&<span className="uppercase shrink-0" style={{color:WARM,fontSize:'8px',letterSpacing:'0.14em'}}>rack full</span>}
+        {unlockedCount>=ROLLING_LIMIT&&<span className="uppercase shrink-0" style={{color:WARM,fontSize:'8px',letterSpacing:'0.14em'}}>rack full — next take deletes oldest</span>}
+        {unlockedCount>=9&&unlockedCount<ROLLING_LIMIT&&<span className="uppercase shrink-0" style={{color:WARM,fontSize:'8px',letterSpacing:'0.14em'}}>{ROLLING_LIMIT-unlockedCount} slot{ROLLING_LIMIT-unlockedCount===1?'':'s'} left</span>}
+        {unlockedCount>=ROLLING_WARN_AT&&unlockedCount<9&&<span className="uppercase shrink-0" style={{color:FAINT,fontSize:'8px',letterSpacing:'0.14em'}}>lock takes to keep them</span>}
+        {unlockedCount>=ROLLING_WARN_AT&&lockPieceRecording&&(
+          <button onClick={e=>{e.stopPropagation();const oldest=unlockedDates[unlockedDates.length-1];if(oldest)lockPieceRecording(item.id,oldest);}} className="shrink-0 uppercase" style={{color:WARM,fontSize:'7px',letterSpacing:'0.14em',marginLeft:'4px',border:`1px solid ${WARM}40`,padding:'1px 5px'}}>Lock oldest</button>
+        )}
       </div>
 
       {/* ── Empty state ─────────────────────────────────────────────────────── */}

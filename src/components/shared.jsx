@@ -41,6 +41,8 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
   const scrubbingRef=useRef(false);
   const wasPlayingRef=useRef(false);
   const playbackRateRef=useRef(playbackRate);
+  const wactxRef=useRef(null);
+  const gainRef=useRef(null);
   const uid=useRef(`wf${Math.random().toString(36).slice(2,7)}`).current;
   const load=blobLoader||(()=>idbGet('recordings',date));
 
@@ -61,12 +63,30 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
     a.onloadedmetadata=()=>{setDuration(a.duration||0);};
     a.ontimeupdate=()=>{if(!scrubbingRef.current)setProgress(a.duration?a.currentTime/a.duration:0);};
     a.onended=()=>{setPlaying(false);setProgress(0);};
+    try{
+      const ctx=new(window.AudioContext||window.webkitAudioContext)();
+      const src=ctx.createMediaElementSource(a);
+      const gain=ctx.createGain();
+      gain.gain.setValueAtTime(1,ctx.currentTime);
+      src.connect(gain);gain.connect(ctx.destination);
+      wactxRef.current=ctx;gainRef.current=gain;
+    }catch{}
     audioRef.current=a;return a;
   };
 
-  const play=async()=>{const a=await ensure();if(!a)return;a.play().then(()=>setPlaying(true)).catch(()=>{});};
-  const pause=()=>{if(audioRef.current){audioRef.current.pause();setPlaying(false);}};
-  const rewind=()=>{if(audioRef.current){audioRef.current.pause();audioRef.current.currentTime=0;}setPlaying(false);setProgress(0);};
+  const _rampDown=(then)=>{
+    const ctx=wactxRef.current,g=gainRef.current;
+    if(ctx&&g){g.gain.cancelScheduledValues(ctx.currentTime);g.gain.setValueAtTime(g.gain.value,ctx.currentTime);g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.05);setTimeout(()=>{then();g.gain.setValueAtTime(1,ctx.currentTime);},65);}
+    else then();
+  };
+  const play=async()=>{
+    const a=await ensure();if(!a)return;
+    const ctx=wactxRef.current,g=gainRef.current;
+    if(ctx&&g){if(ctx.state==='suspended')await ctx.resume();g.gain.cancelScheduledValues(ctx.currentTime);g.gain.setValueAtTime(0,ctx.currentTime);g.gain.linearRampToValueAtTime(1,ctx.currentTime+0.05);}
+    a.play().then(()=>setPlaying(true)).catch(()=>{});
+  };
+  const pause=()=>{if(!audioRef.current)return;_rampDown(()=>{audioRef.current?.pause();setPlaying(false);});};
+  const rewind=()=>{if(!audioRef.current)return;_rampDown(()=>{const a=audioRef.current;if(a){a.pause();a.currentTime=0;}setPlaying(false);setProgress(0);});};
 
   // Real scrubbing: mousedown starts drag, mousemove tracks, mouseup commits
   const onScrubStart=async(e)=>{
@@ -105,7 +125,7 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
     document.addEventListener('mouseup',onUp);
   };
 
-  useEffect(()=>()=>{if(audioRef.current)audioRef.current.pause();if(urlRef.current)URL.revokeObjectURL(urlRef.current);},[]);
+  useEffect(()=>()=>{if(audioRef.current)audioRef.current.pause();if(urlRef.current)URL.revokeObjectURL(urlRef.current);try{wactxRef.current?.close();}catch{}},[]);
 
   // 2-pass smooth + normalize for display
   const rawPeaks=meta?.peaks||[];

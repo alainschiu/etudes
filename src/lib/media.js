@@ -29,3 +29,14 @@ export async function computePeaks(blob,buckets=120){
   }catch{return[];}
 }
 export function triggerDownload(b,fn){const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=fn;document.body.appendChild(a);a.click();setTimeout(()=>{document.body.removeChild(a);URL.revokeObjectURL(u);},100);}
+
+/** Returns embed info for YouTube, Spotify, or Apple Music URLs, or null for anything else. */
+export function getEmbedInfo(url){
+  if(!url)return null;
+  const yt=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([\w-]+)/);
+  if(yt)return{type:'youtube',src:`https://www.youtube.com/embed/${yt[1]}`};
+  const sp=url.match(/open\.spotify\.com\/(?:intl-[\w-]+\/)?(track|album|playlist|episode)\/([\w]+)/);
+  if(sp)return{type:'spotify',src:`https://open.spotify.com/embed/${sp[1]}/${sp[2]}?utm_source=generator`,compact:sp[1]==='track'||sp[1]==='episode'};
+  if(/music\.apple\.com/.test(url))return{type:'apple',src:url.replace('music.apple.com','embed.music.apple.com')};
+  return null;
+}

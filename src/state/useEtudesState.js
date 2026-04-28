@@ -7,6 +7,8 @@ import {todayDateStr,shiftDate,getWeekStart,getMonthKey} from '../lib/dates.js';
 import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,mkNoteLogId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem,calcStreak} from '../lib/items.js';
 import {migrateItems,migrateSessions,migrateRoutines,migrateHistory} from '../lib/migrations.js';
 import {buildCompositeDailyReflection,parseTagsFromBody} from '../lib/notes.js';
+import {checkAndSendReminder} from '../lib/notifications.js';
+import {measureSyncPayload} from '../lib/sync.js';
 import useMetronome from '../hooks/useMetronome.js';
 import useRecording from '../hooks/useRecording.js';
 import useImportExport from '../hooks/useImportExport.js';
@@ -91,6 +93,32 @@ export default function useEtudesState(){
   useEffect(()=>{lsSet('etudes-dayClosed',dayClosed);},[dayClosed]);
   useEffect(()=>{if(!mountedRef.current){mountedRef.current=true;return;}if(applyingCloudRef.current)return;lsSet('etudes-localDirtyAt',Date.now());},[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
 
+  // Dev-only: listen for seed-complete event to refresh state without a page reload
+  useEffect(()=>{
+    if(!import.meta.env.DEV)return;
+    function onSeedComplete(){
+      const r=JSON.parse(localStorage.getItem('etudes-routines')||'[]');
+      const p=JSON.parse(localStorage.getItem('etudes-programs')||'[]');
+      const n=JSON.parse(localStorage.getItem('etudes-freeNotes')||'[]');
+      const it=JSON.parse(localStorage.getItem('etudes-items')||'[]');
+      console.log('[dev] seed-complete received — items:',it.length,'routines:',r.length,'programs:',p.length,'notes:',n.length);
+      applyingCloudRef.current=true;
+      setItems(migrateItems(it));
+      setRoutines(migrateRoutines(r));
+      setPrograms(p);
+      setHistory(migrateHistory(lsGet('etudes-history',[])));
+      setFreeNotes(n);
+      setNoteCategories(lsGet('etudes-noteCategories',[]));
+      setPieceRecordingMeta(lsGet('etudes-pieceRecordingMeta',{}));
+      setRefTrackMeta(lsGet('etudes-refTrackMeta',{}));
+      setRecordingMeta(lsGet('etudes-recordingMeta',{}));
+      setSettings(lsGet('etudes-settings',{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400}));
+      requestAnimationFrame(()=>{applyingCloudRef.current=false;});
+    }
+    window.addEventListener('etudes-dev-seed-complete',onSeedComplete);
+    return()=>window.removeEventListener('etudes-dev-seed-complete',onSeedComplete);
+  },[]);
+
   // ── Active item / session tracking ────────────────────────────────────────
   const [activeItemId,setActiveItemId]=useState(null);
   const [activeSpotId,setActiveSpotId]=useState(null);
@@ -106,7 +134,7 @@ export default function useEtudesState(){
   // ── Sub-hooks ─────────────────────────────────────────────────────────────
   const metro=useMetronome();
   const {metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,handleTap}=metro;
-  const {user,signIn,signUp,signOut}=useSupabaseAuth();
+  const {user,signIn,signUp,signOut,signInWithGoogle,signInWithApple}=useSupabaseAuth();
   const userRef=useRef(null);
   useEffect(()=>{userRef.current=user;},[user]);
   const [syncStatus,setSyncStatus]=useState('idle'); // 'idle'|'syncing'|'error'
@@ -148,11 +176,13 @@ export default function useEtudesState(){
 
   // ── Rollover / history snapshot ───────────────────────────────────────────
   useEffect(()=>{if(!lsGet(WEEK_ROLLOVER_KEY,null))lsSet(WEEK_ROLLOVER_KEY,getWeekStart(todayDateStr()));if(!lsGet(MONTH_ROLLOVER_KEY,null))lsSet(MONTH_ROLLOVER_KEY,getMonthKey(todayDateStr()));},[]);
-  const rolloverRef=useRef({totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection});
-  useEffect(()=>{rolloverRef.current={totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection};});
+  const rolloverRef=useRef({totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection,settings});
+  useEffect(()=>{rolloverRef.current={totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection,settings};});
 
   // ── Cloud sync state ──────────────────────────────────────────────────────
   const coldState=useMemo(()=>({items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday}),[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
+  const syncPayloadKB=useMemo(()=>measureSyncPayload(coldState),[coldState]);
+  const syncPayloadWarning=syncPayloadKB>500;
   const syncStateRef=useRef({});
   useEffect(()=>{syncStateRef.current={...coldState,itemTimes,restToday};});
   const doSync=useCallback(async()=>{if(!userRef.current)return;setSyncStatus('syncing');const ok=await syncToCloud(userRef.current.id,syncStateRef.current);if(ok){const now=Date.now();setLastSyncedAt(now);lsSet('etudes-localDirtyAt',0);setSyncStatus('idle');}else{setSyncStatus('error');}},[]);// eslint-disable-line
@@ -175,7 +205,7 @@ export default function useEtudesState(){
       if(lw&&lw!==cw){const we=shiftDate(lw,6);if((wr.notes||'').trim()||(wr.goals||'').trim()){const e={kind:'week',weekStart:lw,weekEnd:we,notes:wr.notes||'',goals:wr.goals||''};setHistory(h=>{const i=h.findIndex(x=>x.kind==='week'&&x.weekStart===lw);if(i>=0){const c=[...h];c[i]=e;return c;}return [...h,e];});}setWeekReflection({notes:'',goals:''});lsSet(WEEK_ROLLOVER_KEY,cw);}
       if(lm&&lm!==cm){if((mr.notes||'').trim()||(mr.goals||'').trim()){const e={kind:'month',month:lm,notes:mr.notes||'',goals:mr.goals||''};setHistory(h=>{const i=h.findIndex(x=>x.kind==='month'&&x.month===lm);if(i>=0){const c=[...h];c[i]=e;return c;}return [...h,e];});}setMonthReflection({notes:'',goals:''});lsSet(MONTH_ROLLOVER_KEY,cm);}
     };
-    check();const iv=setInterval(check,60000);return()=>clearInterval(iv);
+    check();const iv=setInterval(()=>{check();checkAndSendReminder(rolloverRef.current.settings,rolloverRef.current.totalToday);},60000);return()=>clearInterval(iv);
   },[]);// eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Item timer ────────────────────────────────────────────────────────────
@@ -435,7 +465,7 @@ export default function useEtudesState(){
   const addItemToSession=(sid,iid)=>setTodaySessions(p=>p.map(s=>s.id===sid?{...s,itemIds:[...(s.itemIds||[]),iid]}:s));
   const setSessionTarget=(sid,v)=>setTodaySessions(p=>p.map(s=>s.id===sid?{...s,target:v}:s));
   const setItemTarget=(sid,iid,v)=>setTodaySessions(p=>p.map(s=>{if(s.id!==sid)return s;const nt={...(s.itemTargets||{})};if(v===null||v===undefined)delete nt[iid];else nt[iid]=v;return {...s,itemTargets:nt};}));
-  const loadRoutine=(r)=>{setTodaySessions(r.sessions.map((s,i)=>({id:`s-${s.type}-${Date.now()}-${i}`,type:s.type,itemIds:Array.isArray(s.itemIds)?[...s.itemIds]:[],target:typeof s.target==='number'?s.target:null,itemTargets:s.itemTargets?{...s.itemTargets}:{},isWarmup:!!s.isWarmup})));setLoadedRoutineId(r.id);};
+  const loadRoutine=(r)=>{setTodaySessions(r.sessions.map((s,i)=>({id:`s-${s.type}-${Date.now()}-${i}`,type:s.type,itemIds:Array.isArray(s.itemIds)?[...s.itemIds]:[],intention:s.intention||'',target:typeof s.target==='number'?s.target:null,itemTargets:s.itemTargets?{...s.itemTargets}:{},isWarmup:!!s.isWarmup})));setLoadedRoutineId(r.id);};
   const resetToFree=()=>{setTodaySessions(DEFAULT_SESSIONS.map(s=>({...s,id:`${s.id}-${Date.now()}`,itemTargets:{}})));setLoadedRoutineId(null);};
   const saveRoutine=(name)=>{const nr={id:`r-${Date.now()}`,name,sessions:todaySessions.map(s=>({type:s.type,intention:'',itemIds:Array.isArray(s.itemIds)?[...s.itemIds]:items.filter(i=>i.type===s.type&&i.stage!=='queued').map(i=>i.id),target:s.target??null,itemTargets:{...(s.itemTargets||{})},isWarmup:!!s.isWarmup}))};setRoutines(p=>[...p,nr]);};
   const updateLoadedRoutine=()=>{if(!loadedRoutineId)return;setRoutines(p=>p.map(r=>r.id!==loadedRoutineId?r:{...r,sessions:todaySessions.map(s=>({type:s.type,intention:(r.sessions.find(rs=>rs.type===s.type)||{}).intention||'',itemIds:Array.isArray(s.itemIds)?[...s.itemIds]:[],target:s.target??null,itemTargets:{...(s.itemTargets||{})},isWarmup:!!s.isWarmup}))}));};
@@ -587,6 +617,6 @@ export default function useEtudesState(){
     exportLog,exportJson,importJsonFile,
     handleChipDrag,handleChipDragEnd,
     handleTap,
-    user,signIn,signUp,signOut,syncStatus,lastSyncedAt,syncNow:doSync,
+    user,signIn,signUp,signOut,signInWithGoogle,signInWithApple,syncStatus,lastSyncedAt,syncNow:doSync,syncPayloadWarning,
   };
 }

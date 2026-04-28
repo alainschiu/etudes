@@ -45,4 +45,4 @@ export function migrateItems(items){return (items||[]).map(i=>{
 });}
 export function migrateSessions(sessions){return (sessions||[]).map(s=>({id:s.id,type:s.type,itemIds:s.itemIds===undefined?null:s.itemIds,target:typeof s.target==='number'?s.target:null,itemTargets:s.itemTargets&&typeof s.itemTargets==='object'?s.itemTargets:{},isWarmup:!!s.isWarmup}));}
 export function migrateRoutines(routines){return (routines||[]).map(r=>({...r,sessions:(r.sessions||[]).map(s=>({type:s.type,intention:s.intention||'',itemIds:Array.isArray(s.itemIds)?s.itemIds:[],target:typeof s.target==='number'?s.target:null,itemTargets:s.itemTargets&&typeof s.itemTargets==='object'?s.itemTargets:{},isWarmup:!!s.isWarmup}))}));}
-export function migrateHistory(h){return (h||[]).map(x=>({...x,kind:x.kind||'day'}));}
+export function migrateHistory(h){const arr=Array.isArray(h)?h:(h&&typeof h==='object'?Object.values(h):[]);return arr.map(x=>({...x,kind:x.kind||'day'}));}

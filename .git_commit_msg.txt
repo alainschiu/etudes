@@ -1,0 +1,10 @@
+feat(ref-track): per-item reference audio player (R2 archive + T3 practice bar)
+
+- New refTracks IDB store (DB v3) + refTrackMeta in localStorage
+- RefTrackPlayer shared component: drag-and-drop or click upload, waveform
+  scrubbing, varispeed slider 50-100% (pitch-independent via preservesPitch),
+  replace and delete controls
+- R2: ref track pinned at top of PieceRecordingsPanel as ground-truth row
+- T3: fixed bottom practice bar in TodayView; triggered by music icon in item
+  rows, survives scroll/session switching, same visual language as A/B bar
+- Waveform gains playbackRate prop applied live to HTMLAudioElement
