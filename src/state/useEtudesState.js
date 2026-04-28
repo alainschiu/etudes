@@ -59,6 +59,7 @@ export default function useEtudesState(){
   const [pieceRecordingMeta,setPieceRecordingMeta]=useState(()=>lsGet('etudes-pieceRecordingMeta',{}));
   const [pieceRecordingItemId,setPieceRecordingItemId]=useState(null);
   const [refTrackMeta,setRefTrackMeta]=useState(()=>lsGet('etudes-refTrackMeta',{}));
+  const [refBarItemId,setRefBarItemId]=useState(null);
   const [history,setHistory]=useState(()=>migrateHistory(lsGet('etudes-history',[])));
   const [dayClosed,setDayClosed]=useState(()=>lsGet('etudes-dayClosed',false));
   const [pdfUrlMap,setPdfUrlMap]=useState({});
@@ -568,7 +569,7 @@ export default function useEtudesState(){
     addBookmark,removeBookmark,renameBookmark,
     startRecording,stopRecording,deleteRecording,
     pieceRecordingMeta,pieceRecordingItemId,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,attachDailyToPiece,
-    refTrackMeta,uploadRefTrack,deleteRefTrack,
+    refTrackMeta,uploadRefTrack,deleteRefTrack,refBarItemId,setRefBarItemId,
     handleDragStart,handleDragOver,handleDrop,handleDragEnd,
     moveSession,hideSession,addSessionType,toggleSessionWarmup,
     removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,

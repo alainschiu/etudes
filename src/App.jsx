@@ -22,6 +22,7 @@ import {BG,SURFACE,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM
 import {SECTION_CONFIG,APP_VERSION} from './constants/config.js';
 import {getItemTime,displayTitle,formatByline} from './lib/items.js';
 import {DisplayHeader,Ring,StageLabels,Waveform,ItemPickerPopup,TargetEdit,TimeWithTarget,ItemTimeEditor,fmtSpotTime,PerformanceChip,SpotRow,SpotsBlock,Tooltip} from './components/shared.jsx';
+import {idbGet} from './lib/storage.js';
 import TodayView from './views/TodayView.jsx';
 import WeekView from './views/WeekView.jsx';
 import MonthView from './views/MonthView.jsx';
@@ -42,6 +43,10 @@ export default function Etudes(){
   const s=useEtudesState();
   const [clockTime,setClockTime]=useState(()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;});
   useEffect(()=>{const tick=()=>{const n=new Date();setClockTime(`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`);};const id=setInterval(tick,10000);return()=>clearInterval(id);},[]);
+  const [refBarVisible,setRefBarVisible]=useState(false);
+  const [refBarSpeed,setRefBarSpeed]=useState(1.0);
+  useEffect(()=>{if(s.refBarItemId){setRefBarSpeed(1.0);const id=requestAnimationFrame(()=>setRefBarVisible(true));return()=>cancelAnimationFrame(id);}else{setRefBarVisible(false);};},[s.refBarItemId]);
+  const closeRefBar=()=>{setRefBarVisible(false);setTimeout(()=>s.setRefBarItemId(null),280);};
   const {view,setView,showSettings,setShowSettings,showHelp,setShowHelp,exportMenu,setExportMenu,confirmModal,setConfirmModal,promptModal,setPromptModal,syncConflictModal,quickNoteOpen,setQuickNoteOpen,restoreBusy,expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,logDrawerDate,logDrawerEntry,editingTimeItemId,setEditingTimeItemId,dragIdx,dragOverIdx,storageMode,storageQuotaHit,setStorageQuotaHit,items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,setTodaySessions,loadedRoutineId,routines,setRoutines,programs,setPrograms,dailyReflection,setDailyReflection,weekReflection,setWeekReflection,monthReflection,setMonthReflection,settings,setSettings,freeNotes,setFreeNotes,noteCategories,setNoteCategories,recordingMeta,history,dayClosed,trash,activeItemId,activeSpotId,activeSessionId,activeItem,activeSpot,activeIsWarmup,isResting,isRecording,recExpanded,setRecExpanded,metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,sessionRefs,reflectionRef,importInputRef,totalToday,effectiveTotalToday,sectionTimes,weekActualSeconds,monthActualSeconds,streak,todayKey,pdfItem,loadedRoutine,todayHistoryEntry,fmt,fmtMin,updateItem,addItem,startItem,stopItem,toggleWorking,toggleRest,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,moveSpot,addPerformance,updatePerformance,deletePerformance,closeDay,reopenDay,endDay,deleteItem,undoDelete,dismissTrash,logTempo,addQuickNote,pdfLibrary,pdfUrlMap,addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,addBookmark,removeBookmark,renameBookmark,startRecording,stopRecording,deleteRecording,handleDragStart,handleDragOver,handleDrop,handleDragEnd,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,openLogEntry,closeLogDrawer,resolveDayEntry,exportLog,exportJson,importJsonFile,handleChipDrag,handleChipDragEnd,handleTap,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,saveFreeNote,seedTestNotes}=s;
 
   const commonProps={items,history,settings,itemTimes,fmt,fmtMin,recordingMeta};
@@ -67,7 +72,7 @@ export default function Etudes(){
       </header>
       <div className="flex-1 flex overflow-hidden">
         <main className="flex-1 overflow-auto etudes-scroll">
-          {view==='today'&&<TodayView {...{...commonProps,view,setView,todaySessions,setTodaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,totalToday,effectiveTotalToday,warmupTimeToday,restToday,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,deleteRecording,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,isRecording,currentBpm:metronome.bpm,refTrackMeta:s.refTrackMeta}}/>}
+          {view==='today'&&<TodayView {...{...commonProps,view,setView,todaySessions,setTodaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,totalToday,effectiveTotalToday,warmupTimeToday,restToday,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,deleteRecording,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,isRecording,currentBpm:metronome.bpm,refTrackMeta:s.refTrackMeta,refBarItemId:s.refBarItemId,setRefBarItemId:s.setRefBarItemId}}/>}
           {view==='week'&&<WeekView {...{...commonProps,weekActualSeconds,weekReflection,setWeekReflection,effectiveTotalToday,warmupTimeToday,openLogEntry,streak}}/>}
           {view==='month'&&<MonthView {...{...commonProps,monthActualSeconds,monthReflection,setMonthReflection,openLogEntry,effectiveTotalToday,streak}}/>}
           {view==='repertoire'&&<RepertoireView {...{...commonProps,setItems:s.setItems,updateItem,deleteItem,setPdfDrawerItemId,activeItemId,activeSpotId,startItem,stopItem,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta:s.pieceRecordingMeta,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,deletePieceRecording:s.deletePieceRecording,lockPieceRecording:s.lockPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,isRecording,currentBpm:metronome.bpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta:s.refTrackMeta,uploadRefTrack:s.uploadRefTrack,deleteRefTrack:s.deleteRefTrack}}/>}
@@ -96,6 +101,38 @@ export default function Etudes(){
           </aside>
         )}
       </div>
+      {/* ── Reference track pull-up bar ───────────────────────────────────── */}
+      {s.refBarItemId&&(()=>{
+        const refMeta=s.refTrackMeta?.[s.refBarItemId];if(!refMeta)return null;
+        const refItem=items.find(i=>i.id===s.refBarItemId);
+        const speedAction=(
+          <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'6px 14px',border:`1px solid ${LINE_MED}`,marginLeft:'-1px'}}>
+            <input type="range" min="0.25" max="1" step="0.01" value={refBarSpeed} onChange={e=>setRefBarSpeed(parseFloat(e.target.value))} style={{width:'140px',accentColor:'#6B8F71',cursor:'pointer'}} title={`Speed: ${Math.round(refBarSpeed*100)}%`}/>
+            <span className="tabular-nums" style={{fontFamily:mono,color:FAINT,fontSize:'9px',minWidth:'32px'}}>{Math.round(refBarSpeed*100)}%</span>
+          </div>
+        );
+        return(
+          <div style={{overflow:'hidden',maxHeight:refBarVisible?'280px':'0',transition:'max-height 280ms cubic-bezier(0.32,0.72,0,1)'}}>
+            <div style={{transform:refBarVisible?'translateY(0)':'translateY(100%)',transition:'transform 280ms cubic-bezier(0.32,0.72,0,1)',background:'#1a211a',borderTop:`1px solid rgba(107,143,113,0.3)`}}>
+              <div style={{display:'flex',justifyContent:'center',paddingTop:'8px',cursor:'pointer'}} onClick={closeRefBar}>
+                <div style={{width:'32px',height:'3px',borderRadius:'2px',background:'rgba(107,143,113,0.35)'}}/>
+              </div>
+              <div className="px-10 py-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div>
+                    <div className="uppercase flex items-center gap-2" style={{color:'#6B8F71',fontSize:'10px',letterSpacing:'0.32em'}}>
+                      Reference for
+                      {refItem&&<span className="normal-case italic" style={{fontFamily:serif,fontSize:'13px',letterSpacing:0,color:MUTED,marginLeft:'4px'}}>{refItem.title}{refItem.movement&&` — ${refItem.movement}`}</span>}
+                    </div>
+                  </div>
+                  <button onClick={closeRefBar} style={{color:FAINT}}><X className="w-4 h-4" strokeWidth={1.25}/></button>
+                </div>
+                <Waveform blobLoader={()=>idbGet('refTracks',s.refBarItemId)} meta={refMeta} playbackRate={refBarSpeed} actions={speedAction}/>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       <Footer {...{metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,streak,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,attachDailyToPiece:s.attachDailyToPiece,todaySessions,items}}/>
       {trash&&<UndoToast item={trash.item} onUndo={undoDelete} onDismiss={dismissTrash}/>}
       {showSettings&&<SettingsModal settings={settings} setSettings={setSettings} storageMode={storageMode} onExportMd={()=>exportLog('md')} onExportTxt={()=>exportLog('txt')} onExportJson={exportJson} onImportClick={()=>importInputRef.current?.click()} onClose={()=>setShowSettings(false)} user={s.user} signIn={s.signIn} signUp={s.signUp} signOut={s.signOut} syncStatus={s.syncStatus} lastSyncedAt={s.lastSyncedAt} syncNow={s.syncNow}/>}

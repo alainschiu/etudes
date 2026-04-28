@@ -184,7 +184,6 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
 }
 
 const REF_COLOR='#6B8F71';
-const REF_SOFT='rgba(107,143,113,0.12)';
 
 export function RefTrackPlayer({meta,blobLoader,onUpload,onDelete}){
   const [speed,setSpeed]=useState(1.0);
@@ -198,69 +197,51 @@ export function RefTrackPlayer({meta,blobLoader,onUpload,onDelete}){
     try{const peaks=await computePeaks(file);await onUpload(file,peaks);}
     finally{setUploading(false);}
   };
-
-  const handleFile=async(e)=>{
-    const file=e.target.files?.[0];
-    e.target.value='';
-    await processFile(file);
-  };
-
-  const onDragOver=(e)=>{
-    if(!onUpload)return;
-    e.preventDefault();e.stopPropagation();
-    setDragOver(true);
-  };
+  const handleFile=async(e)=>{const file=e.target.files?.[0];e.target.value='';await processFile(file);};
+  const onDragOver=(e)=>{if(!onUpload)return;e.preventDefault();e.stopPropagation();setDragOver(true);};
   const onDragLeave=(e)=>{e.preventDefault();setDragOver(false);};
-  const onDrop=async(e)=>{
-    e.preventDefault();e.stopPropagation();
-    setDragOver(false);
-    if(!onUpload)return;
-    const file=e.dataTransfer.files?.[0];
-    await processFile(file);
-  };
+  const onDrop=async(e)=>{e.preventDefault();e.stopPropagation();setDragOver(false);if(!onUpload)return;const file=e.dataTransfer.files?.[0];await processFile(file);};
 
   const canDrop=!!onUpload&&!uploading;
   const isDragActive=dragOver&&canDrop;
+  const btnBase={display:'flex',alignItems:'center',gap:'6px',padding:'6px 12px',border:`1px solid ${LINE_MED}`,background:'transparent',cursor:'pointer'};
+
+  // ── Upload / empty state ────────────────────────────────────────────────
+  if(!meta){
+    if(!onUpload)return null;
+    return(
+      <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
+        style={{border:`1px dashed ${isDragActive?REF_COLOR:LINE_MED}`,background:isDragActive?'rgba(107,143,113,0.08)':'transparent',padding:'10px 14px',marginBottom:'10px',transition:'background 120ms,border-color 120ms'}}>
+        <input ref={fileRef} type="file" accept="audio/*" style={{display:'none'}} onChange={handleFile}/>
+        {isDragActive
+          ?<span className="italic" style={{fontFamily:serif,color:REF_COLOR,fontSize:'12px'}}>drop to attach</span>
+          :<button onClick={()=>fileRef.current?.click()} disabled={uploading} className="uppercase flex items-center gap-1.5" style={{color:uploading?FAINT:MUTED,fontSize:'9px',letterSpacing:'0.18em',cursor:uploading?'wait':'pointer'}}>{uploading?'processing…':<><Upload className="w-3 h-3" strokeWidth={1.25}/> add reference · mp3 wav flac m4a</>}</button>}
+      </div>
+    );
+  }
+
+  // ── Player state ────────────────────────────────────────────────────────
+  const waveActions=(
+    <>
+      <div style={{display:'flex',alignItems:'center',gap:'6px',padding:'6px 10px',border:`1px solid ${LINE_MED}`,marginLeft:'-1px'}}>
+        <input type="range" min="0.25" max="1" step="0.05" value={speed} onChange={e=>setSpeed(parseFloat(e.target.value))} style={{width:'56px',accentColor:REF_COLOR,cursor:'pointer'}} title={`Speed: ${Math.round(speed*100)}%`}/>
+        <span className="tabular-nums" style={{fontFamily:mono,color:FAINT,fontSize:'9px',minWidth:'28px'}}>{Math.round(speed*100)}%</span>
+      </div>
+      {onUpload&&<button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{...btnBase,color:FAINT}} title="Replace ref track (or drag a new file)"><Upload className="w-3.5 h-3.5" strokeWidth={1.25}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Replace</span></button>}
+      {onDelete&&<button onClick={onDelete} style={{...btnBase,color:FAINT}} title="Remove ref track"><X className="w-3.5 h-3.5" strokeWidth={1.25}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.22em'}}>Delete</span></button>}
+    </>
+  );
 
   return(
-    <div
-      onDragOver={canDrop?onDragOver:undefined}
-      onDragLeave={canDrop?onDragLeave:undefined}
-      onDrop={canDrop?onDrop:undefined}
-      style={{
-        background:isDragActive?`rgba(107,143,113,0.22)`:REF_SOFT,
-        borderLeft:`2px solid ${isDragActive?REF_COLOR:REF_COLOR}`,
-        border:isDragActive?`1.5px dashed ${REF_COLOR}`:`1.5px solid transparent`,
-        borderLeft:`2px solid ${REF_COLOR}`,
-        padding:'8px 10px 10px',
-        marginBottom:'10px',
-        transition:'background 120ms',
-      }}>
+    <div onDragOver={canDrop?onDragOver:undefined} onDragLeave={canDrop?onDragLeave:undefined} onDrop={canDrop?onDrop:undefined}
+      style={{border:`1px solid ${isDragActive?REF_COLOR:LINE_STR}`,background:isDragActive?'rgba(107,143,113,0.08)':'transparent',padding:'12px 14px 14px',marginBottom:'10px',transition:'border-color 120ms,background 120ms'}}>
       <input ref={fileRef} type="file" accept="audio/*" style={{display:'none'}} onChange={handleFile}/>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="uppercase shrink-0" style={{fontFamily:mono,color:REF_COLOR,fontSize:'8px',letterSpacing:'0.28em'}}>Ref</span>
-        {isDragActive?(
-          <span className="italic flex-1" style={{fontFamily:serif,color:REF_COLOR,fontSize:'11px'}}>drop to attach</span>
-        ):meta?(
-          <>
-            <span className="italic truncate flex-1 min-w-0" style={{fontFamily:serif,color:MUTED,fontSize:'11px'}}>{meta.filename}</span>
-            <span className="tabular-nums shrink-0" style={{fontFamily:mono,color:FAINT,fontSize:'9px'}}>{Math.round(speed*100)}%</span>
-            <input type="range" min="0.25" max="1" step="0.05" value={speed}
-              onChange={e=>setSpeed(parseFloat(e.target.value))}
-              className="shrink-0" style={{width:'60px',accentColor:REF_COLOR,cursor:'pointer'}}
-              title={`Speed: ${Math.round(speed*100)}%`}/>
-            {onUpload&&<button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{color:FAINT,padding:'0 2px',cursor:'pointer'}} title="Replace ref track (or drag a new file)"><Upload className="w-3 h-3" strokeWidth={1.25}/></button>}
-            {onDelete&&<button onClick={onDelete} style={{color:FAINT,padding:'0 2px',cursor:'pointer'}} title="Remove ref track"><X className="w-3 h-3" strokeWidth={1.25}/></button>}
-          </>
-        ):onUpload?(
-          <button onClick={()=>fileRef.current?.click()} disabled={uploading}
-            className="uppercase flex items-center gap-1.5"
-            style={{color:uploading?FAINT:MUTED,fontSize:'9px',letterSpacing:'0.18em',cursor:uploading?'wait':'pointer'}}>
-            {uploading?'processing…':<><Upload className="w-3 h-3" strokeWidth={1.25}/> add reference · mp3 wav flac m4a</>}
-          </button>
-        ):null}
+      <div className="flex items-baseline gap-3 mb-3">
+        <span className="uppercase shrink-0" style={{fontFamily:mono,color:REF_COLOR,fontSize:'9px',letterSpacing:'0.22em'}}>Ref</span>
+        <span className="truncate flex-1 min-w-0" style={{fontFamily:mono,color:MUTED,fontSize:'10px',letterSpacing:'0.06em'}}>{meta.filename}</span>
+        {isDragActive&&<span className="italic shrink-0" style={{fontFamily:serif,color:REF_COLOR,fontSize:'11px'}}>drop to replace</span>}
       </div>
-      {!isDragActive&&meta&&<Waveform blobLoader={blobLoader} meta={meta} compact playbackRate={speed}/>}
+      <Waveform blobLoader={blobLoader} meta={meta} playbackRate={speed} actions={waveActions}/>
     </div>
   );
 }
