@@ -216,7 +216,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
       {/* ── Header — offset to align with main content column ── */}
       <div className="mb-6" style={{paddingLeft:sidebarOpen?'249px':'40px'}}>
         <div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em',fontFamily:sans}}>Notes</div>
-        <h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'56px',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
+        <h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'72px',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
       </div>
 
       {/* ── Two-column body — bounded height, both columns scroll independently ── */}

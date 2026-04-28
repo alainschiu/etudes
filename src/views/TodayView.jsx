@@ -1,4 +1,4 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {Play, Pause, Plus, FilePlus, X, ChevronDown, ChevronUp, Settings, Target, Trash2, FileText, ArrowUp, ArrowDown, EyeOff, Bookmark, RotateCcw, GripVertical, Lock, Unlock, Crosshair, Pencil, Check, MapPin, Calendar, Coffee, Music, MessageSquarePlus, Mic, Square} from 'lucide-react';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, sans} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
@@ -22,6 +22,16 @@ export default function TodayView(p){
   const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm}=p;
   const today=new Date();const todayKey=todayDateStr();
   const [routineMenu,setRoutineMenu]=useState(false);const [addMenu,setAddMenu]=useState(false);const [pickerSessionId,setPickerSessionId]=useState(null);const [quickAdd,setQuickAdd]=useState(null);const [confirmClose,setConfirmClose]=useState(false);
+  // Click-outside to collapse expanded item panel
+  useEffect(()=>{
+    if(!expandedItemId)return;
+    const handler=(e)=>{
+      const el=document.querySelector(`[data-today-item="${expandedItemId}"]`);
+      if(el&&!el.contains(e.target))setExpandedItemId(null);
+    };
+    document.addEventListener('mousedown',handler);
+    return()=>document.removeEventListener('mousedown',handler);
+  },[expandedItemId]);
   const handleFilePlus=(type,session)=>{const ni=addItem(type);updateItem(ni.id,{stage:'learning'});if(session.itemIds!==null)addItemToSession(session.id,ni.id);setCollapsedSessions(prev=>{const next=new Set(prev);next.delete(session.id);return next;});setQuickAdd({itemId:ni.id,sessionId:session.id});};
 
   const piecePlayTypes=(t)=>(t==='piece'||t==='play')?['piece','play']:[t];
@@ -124,7 +134,7 @@ export default function TodayView(p){
               const perf=nextPerformance(item.performances);
               // When collapsed, show a compact active strip
               if(isCollapsed&&isActiveAny){return(<div key={`${session.id}-${item.id}`} style={{borderBottom:`1px solid ${LINE}`,background:IKB_SOFT}}><div className="py-2.5 px-2 flex items-center gap-4"><button onClick={e=>{e.stopPropagation();if(isActiveAny)stopItem();else startItem(item.id,null,session.id);}} className="shrink-0" style={{color:IKB,filter:`drop-shadow(0 0 6px ${IKB})`}}><Pause className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/></button><span style={{fontFamily:sans,fontWeight:300,fontSize:'14px',color:TEXT,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{displayTitle(item)}</span></div></div>);}
-              return (<div key={`${session.id}-${item.id}`} style={{borderBottom:`1px solid ${LINE}`}}>
+              return (<div key={`${session.id}-${item.id}`} data-today-item={item.id} style={{borderBottom:`1px solid ${LINE}`}}>
                 <div onClick={()=>{if(!isEditingTime)setExpandedItemId(expanded?null:item.id);}} className="group py-2.5 px-2 flex items-center gap-4 cursor-pointer" style={{background:isActiveAny?IKB_SOFT:'transparent'}}>
                   <button onClick={e=>{e.stopPropagation();if(isActiveAny)stopItem();else startItem(item.id,null,session.id);}} disabled={dayClosed&&!isActiveAny} className="shrink-0" style={{color:isActiveWhole?IKB:(isActiveAny?MUTED:(dayClosed?FAINT:TEXT)),filter:isActiveWhole?`drop-shadow(0 0 6px ${IKB})`:'none',cursor:(dayClosed&&!isActiveAny)?'not-allowed':'pointer'}}>{isActiveAny?<Pause className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>}</button>
                   {(()=>{const isPieceRec=pieceRecordingItemId===item.id;const blocked=(dayClosed&&!isPieceRec)||(pieceRecordingItemId&&!isPieceRec)||isRecording;return(<button onClick={e=>{e.stopPropagation();isPieceRec?stopPieceRecording():startPieceRecording(item.id,currentBpm,item.stage);}} disabled={!!blocked} className="shrink-0" title={isPieceRec?'Stop recording':'Record this piece'} style={{color:isPieceRec?'#A93226':blocked?DIM:FAINT,cursor:blocked?'not-allowed':'pointer'}}>{isPieceRec?<Square className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor" style={{animation:'pulse 1s infinite'}}/>:<Mic className="w-3.5 h-3.5" strokeWidth={1.25}/>}</button>);})()}
@@ -159,15 +169,13 @@ export default function TodayView(p){
                 </div>
                 {expanded&&(<div className="px-6 py-5 space-y-4" style={{background:SURFACE,borderTop:`1px solid ${LINE}`}}>
                   {quickAdd?.itemId===item.id&&(<div className="space-y-3 pb-4" style={{borderBottom:`1px solid ${LINE}`}}><input autoFocus value={item.title==='Untitled'?'':item.title} onChange={e=>updateItem(item.id,{title:e.target.value})} placeholder="Title" onKeyDown={e=>{if(e.key==='Escape')setQuickAdd(null);}} className="w-full focus:outline-none pb-0.5" style={{background:'transparent',color:TEXT,fontFamily:sans,fontWeight:300,fontSize:'15px',borderBottom:`1px solid ${LINE_MED}`}}/><input value={item.composer||''} onChange={e=>updateItem(item.id,{composer:e.target.value})} placeholder="Composer" onKeyDown={e=>{if(e.key==='Enter'||e.key==='Escape')setQuickAdd(null);}} className="w-full focus:outline-none pb-0.5" style={{background:'transparent',color:TEXT,fontFamily:sans,fontWeight:300,fontSize:'13px',borderBottom:`1px solid ${LINE_MED}`}}/><div className="flex justify-end"><button onClick={()=>setQuickAdd(null)} className="uppercase flex items-center gap-1.5 px-3 py-1" style={{color:IKB,border:`1px solid ${IKB}40`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}><Check className="w-3 h-3" strokeWidth={1.25}/> Done</button></div></div>)}
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="truncate" style={{fontSize:'13px'}}>{displayTitle(item)}{formatByline(item)?` · ${formatByline(item)}`:''}</div>
-                    <button onClick={()=>{setExpandedItemId(item.id);setView('repertoire');}} className="shrink-0 uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Edit in Repertoire</button>
-                  </div>
-                  <div><div className="uppercase mb-1.5 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><MessageSquarePlus className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Today</div><MarkdownField value={item.todayNote||''} onChange={v=>updateItem(item.id,{todayNote:v})} placeholder="What happened in this session?" minHeight={80} style={{background:SURFACE2,border:`1px solid ${IKB}40`}} showDeepLinkHint/></div>
+                  {/* Recording — shown first if present */}
                   {(()=>{const todayEntry=pieceRecordingMeta?.[item.id]?.[todayKey];if(!todayEntry)return null;const bkey=`${item.id}__${todayKey}`;return(<Waveform key={todayEntry.ts} compact blobLoader={()=>idbGet('pieceRecordings',bkey)} meta={todayEntry}/>);})()}
+                  <div><div className="uppercase mb-1.5 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><MessageSquarePlus className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Today</div><MarkdownField value={item.todayNote||''} onChange={v=>updateItem(item.id,{todayNote:v})} placeholder="What happened in this session?" minHeight={80} style={{background:SURFACE2,border:`1px solid ${IKB}40`}} showDeepLinkHint/></div>
                   {item.type==='piece'&&<SpotsBlock item={item} itemTimes={itemTimes} activeItemId={activeItemId} activeSpotId={activeSpotId} startItem={(id,sid)=>startItem(id,sid,session.id)} stopItem={stopItem} addSpot={addSpot} updateSpot={updateSpot} deleteSpot={deleteSpot} editSpotTime={editSpotTime} dayClosed={dayClosed}/>}
                   <div><div className="uppercase mb-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}>Notes <span style={{color:DIM,letterSpacing:'0.2em'}}>· persistent</span></div><MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={80} style={{background:SURFACE2}} showDeepLinkHint/></div>
                   <div className="flex items-center gap-2 text-xs flex-wrap">
+                    <button onClick={()=>{setExpandedItemId(item.id);setView('repertoire');}} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Edit in Repertoire</button>
                     <button onClick={()=>toggleWorking(item.id)} className="ml-auto px-3 py-1 uppercase" style={workingOn.includes(item.id)?{background:IKB,color:TEXT,border:`1px solid ${IKB}`,fontSize:'10px',letterSpacing:'0.22em'}:{background:'transparent',color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>{workingOn.includes(item.id)?'★ En cours':'Pin'}</button>
                   </div>
                 </div>)}

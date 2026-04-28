@@ -134,6 +134,7 @@ export function Waveform({date,meta,compact=false,blobLoader,actions}){
           {playing?<Pause className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>}
         </button>
         <div className="flex-1" style={{minWidth:0}}>{svgMarkup(20)}</div>
+        {duration>0&&<span className="tabular-nums shrink-0" style={{fontFamily:mono,color:FAINT,fontSize:'10px',letterSpacing:'0.04em'}}>{fmtT(Math.round(progress*duration))} / {fmtT(duration)}</span>}
       </div>
     );
   }
