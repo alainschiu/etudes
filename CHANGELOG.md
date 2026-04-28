@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.95.5 — 2026-04-28
+
+### Notes view — layout fixes & sidebar improvements
+
+- **Sidebar alignment** — categories sidebar now starts level with the note list (below the search bar); the header ("NOTES" eyebrow + italic `h1`) is lifted above the two-column flex row and offset to align with the content column
+- **Note list scroll** — note list is now bounded to the viewport height (`calc(100vh - 310px)`) with its own `overflow-y-auto` scrollbar; sidebar and note list bottom edges align
+- **Sidebar collapse toggle** — sidebar can now be collapsed via a "Collapse" chevron button (top-right of sidebar); a **Filter** button appears in the search bar to restore it; mirrors the Repertoire view pattern
+- **Collapse affordance** — the collapse chevron (`w-3.5`) shows "Collapse" label on hover with `120ms` fade
+
+### Repertoire view — sidebar collapse affordance
+
+- Collapse chevron enlarged to `w-3.5`; "Collapse" label fades in on hover, matching Notes view
+
+### Notes view — link fixes
+
+- **Wiki links in preview mode** — `[[title]]` links are now clickable in preview (ReactMarkdown) mode: body is pre-processed to convert `[[text]]` → `[text](wiki://text)`, intercepted in the custom `a` renderer and routed through `handleWikiClick`
+- **External links in edit mode** — **Ctrl/Cmd+Click** on any markdown link `[text](url)` or bare `https://` URL in the CodeMirror editor now opens it in a new tab; trailing punctuation stripped from captured URLs
+- **External link protocol guard** — links written without a protocol (e.g. `google.com`) auto-prepend `https://` in preview mode
+
+### Repertoire view — button rename
+
+- "Facets" sidebar toggle renamed to **"Filter"** for clarity
+
 ## v0.95.4 — 2026-04-28
 
 ### Week & Month views — temporal navigation

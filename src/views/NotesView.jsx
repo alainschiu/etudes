@@ -106,6 +106,9 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
   const [editingCatName,setEditingCatName]=useState('');
   const [hoveredNoteId,setHoveredNoteId]=useState(null);
 
+  // Sidebar open/close
+  const [sidebarOpen,setSidebarOpen]=useState(true);
+
   // Collapsible sidebar sections
   const [archivesOpen,setArchivesOpen]=useState(true);
   const [foldersOpen,setFoldersOpen]=useState(true);
@@ -209,9 +212,29 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
     :activeCategoryId;
 
   return (
-    <div className="max-w-6xl mx-auto px-0 py-14 flex h-full">
+    <div className="max-w-6xl mx-auto px-0 pt-14 pb-8">
+      {/* ── Header — offset to align with main content column ── */}
+      <div className="mb-6" style={{paddingLeft:sidebarOpen?'249px':'40px'}}>
+        <div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em',fontFamily:sans}}>Notes</div>
+        <h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'56px',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
+      </div>
+
+      {/* ── Two-column body — bounded height, both columns scroll independently ── */}
+      <div className="flex" style={{height:'calc(100vh - 310px)'}}>
       {/* ── Left sidebar ── */}
-      <aside className="w-52 shrink-0 px-5 py-0 flex flex-col" style={{borderRight:`1px solid ${LINE}`}}>
+      {sidebarOpen&&(<aside className="w-52 shrink-0 px-5 flex flex-col overflow-y-auto etudes-scroll" style={{borderRight:`1px solid ${LINE}`,paddingTop:'80px'}}>
+        <div className="flex justify-end mb-2" style={{marginTop:'-12px'}}>
+          <button
+            onClick={()=>setSidebarOpen(false)}
+            className="group flex items-center gap-1"
+            style={{color:DIM,cursor:'pointer',transition:'color 120ms'}}
+            onMouseEnter={e=>e.currentTarget.style.color=MUTED}
+            onMouseLeave={e=>e.currentTarget.style.color=DIM}
+          >
+            <span className="opacity-0 group-hover:opacity-100 uppercase" style={{fontFamily:sans,fontSize:'8px',letterSpacing:'0.22em',transition:'opacity 120ms'}}>Collapse</span>
+            <ChevronDown className="w-3.5 h-3.5" strokeWidth={1.25}/>
+          </button>
+        </div>
 
         {/* All notes */}
         <button
@@ -337,25 +360,24 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
             </button>
           </div>
         )}
-      </aside>
+      </aside>)}
 
       {/* ── Main content ── */}
-      <div className="flex-1 min-w-0 px-10">
-        {/* Header — dynamic title */}
-        <div className="mb-8">
-          <div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em',fontFamily:sans}}>Notes</div>
-          <h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'56px',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
-        </div>
-
+      <div className={`flex-1 min-w-0 ${sidebarOpen?'px-10':'px-12'} flex flex-col min-h-0`}>
         {/* Standard category views */}
-        {activeCategoryId==='__daily'&&<DailyReflectionsView history={history||[]}/>}
-        {activeCategoryId==='__repertoire'&&<RepertoireLogsView items={items||[]}/>}
+        {activeCategoryId==='__daily'&&<div className="overflow-y-auto etudes-scroll flex-1 min-h-0"><DailyReflectionsView history={history||[]}/></div>}
+        {activeCategoryId==='__repertoire'&&<div className="overflow-y-auto etudes-scroll flex-1 min-h-0"><RepertoireLogsView items={items||[]}/></div>}
 
         {/* Free notes list + editor */}
         {!isStdView&&(
-          <>
-            {/* Search bar — single bottom border */}
-            <div className="flex items-center gap-3 mb-5 py-2" style={{borderBottom:`1px solid ${LINE_STR}`}}>
+          <div className="flex flex-col flex-1 min-h-0">
+            {/* Search bar — Filter toggle + search — single bottom border */}
+            <div className="flex items-center gap-3 mb-5 py-2 shrink-0" style={{borderBottom:`1px solid ${LINE_STR}`}}>
+              {!sidebarOpen&&(
+                <button onClick={()=>setSidebarOpen(true)} className="uppercase flex items-center gap-1.5 px-3 py-1.5 shrink-0" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>
+                  <BookOpen className="w-3 h-3" strokeWidth={1.25}/> Filter
+                </button>
+              )}
               <Search className="w-3.5 h-3.5 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
               <input
                 type="text"
@@ -368,9 +390,9 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
               {(query||tagSearch)&&<button onClick={()=>{setQuery('');setTagSearch('');}} className="uppercase" style={{color:MUTED,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Clear</button>}
             </div>
 
-            <div className="flex gap-0">
+            <div className="flex gap-0 flex-1 min-h-0">
               {/* Note list — with New button + count at top */}
-              <div className="w-72 shrink-0 pr-8">
+              <div className="w-72 shrink-0 pr-8 flex flex-col min-h-0">
                 <div className="flex items-center justify-between mb-3">
                   <span className="uppercase" style={{color:FAINT,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>
                     {filtered.length} note{filtered.length!==1?'s':''}
@@ -385,7 +407,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
                     <Plus className="w-3 h-3" strokeWidth={1.25}/> New
                   </button>
                 </div>
-                <div style={{borderTop:`1px solid ${LINE}`}}>
+                <div className="overflow-y-auto etudes-scroll flex-1 min-h-0" style={{borderTop:`1px solid ${LINE}`}}>
                   {freeNotes.length===0&&<div className="italic py-4" style={{color:FAINT,fontFamily:serif,fontSize:'13px'}}>No notes yet.</div>}
                   {freeNotes.length>0&&filtered.length===0&&<div className="italic py-4" style={{color:FAINT,fontFamily:serif,fontSize:'13px'}}>No notes match.</div>}
                   {filtered.map((n,idx)=>{
@@ -416,7 +438,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
               </div>
 
               {/* Note editor */}
-              <div className="flex-1 min-w-0 pl-8" style={{borderLeft:`1px solid ${LINE}`}}>
+              <div className="flex-1 min-w-0 pl-8 overflow-y-auto etudes-scroll" style={{borderLeft:`1px solid ${LINE}`}}>
                 {activeNote?(
                   <NoteEditor
                     note={activeNote}
@@ -433,8 +455,9 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
                 )}
               </div>
             </div>
-          </>
+          </div>
         )}
+      </div>
       </div>
     </div>
   );
@@ -543,10 +566,20 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
               li:({children})=><li style={{marginBottom:'0.25em'}}>{children}</li>,
               blockquote:({children})=><blockquote style={{borderLeft:`2px solid ${IKB}40`,paddingLeft:'1em',margin:'0.8em 0',color:MUTED,fontStyle:'italic'}}>{children}</blockquote>,
               hr:()=><hr style={{border:'none',borderTop:`1px solid ${LINE}`,margin:'1.5em 0'}}/>,
-              a:({href,children})=><a href={href} target="_blank" rel="noopener noreferrer" style={{color:IKB,borderBottom:`1px solid ${IKB}40`}}>{children}</a>,
+              a:({href,children})=>{
+                // Internal wiki links (pre-processed from [[text]] → wiki://text)
+                if(href?.startsWith('wiki://')){
+                  const raw=decodeURIComponent(href.slice(7));
+                  return <span onClick={()=>handleWikiClick(raw)} style={{color:IKB,borderBottom:`1px solid ${IKB}40`,cursor:'pointer'}}>{children}</span>;
+                }
+                // External links — ensure protocol present, open in new tab
+                const url=href&&!href.match(/^https?:\/\/|^mailto:|^#/)? `https://${href}`:href;
+                return <a href={url} target="_blank" rel="noopener noreferrer" style={{color:IKB,borderBottom:`1px solid ${IKB}40`}}>{children}</a>;
+              },
               code:({children})=><code style={{fontFamily:'ui-monospace,monospace',fontSize:'0.85em',background:'rgba(244,238,227,0.06)',padding:'1px 5px',borderRadius:'2px'}}>{children}</code>,
             }}>
-              {note.body}
+              {/* Pre-process [[wiki links]] → [text](wiki://text) so ReactMarkdown can render them */}
+              {note.body.replace(/\[\[([^\]\n]+)\]\]/g,(_,t)=>`[${t}](wiki://${encodeURIComponent(t)})`)}
             </ReactMarkdown>
           ):(
             <span className="italic" style={{color:FAINT}}>No content yet.</span>

@@ -131,7 +131,36 @@ function createWikiLinkPlugin(clickRef) {
     {
       decorations: (v) => v.decorations,
       eventHandlers: {
-        mousedown: (e) => {
+        mousedown: (e, view) => {
+          // Ctrl/Cmd+click → open external markdown link or bare URL in new tab
+          if (e.ctrlKey || e.metaKey) {
+            const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
+            if (pos != null) {
+              const doc = view.state.doc.toString();
+              let m;
+              // [text](https://...) links
+              const mdLinkRe = /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g;
+              while ((m = mdLinkRe.exec(doc)) !== null) {
+                if (pos >= m.index && pos < m.index + m[0].length) {
+                  window.open(m[2], '_blank', 'noopener,noreferrer');
+                  e.preventDefault();
+                  return true;
+                }
+              }
+              // bare https?:// URLs
+              const bareUrlRe = /https?:\/\/[^\s)\]>"',]+/g;
+              while ((m = bareUrlRe.exec(doc)) !== null) {
+                if (pos >= m.index && pos < m.index + m[0].length) {
+                  // strip trailing punctuation that may be captured
+                  const url = m[0].replace(/[.,;:!?]+$/, '');
+                  window.open(url, '_blank', 'noopener,noreferrer');
+                  e.preventDefault();
+                  return true;
+                }
+              }
+            }
+          }
+          // Wiki link click (no modifier needed)
           const wl = e.target?.closest?.('.cm-wikilink');
           if (wl && clickRef?.current) {
             const raw = (wl.textContent || '').replace(/^\[\[|\]\]$/g, '');
