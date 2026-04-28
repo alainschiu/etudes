@@ -174,7 +174,7 @@ const TARGET_PIECE_INDEX = 0; // 0 = first piece; change index to target another
     console.log(`  [${i+1}/10] ${date}  ${duration}s  BPM ${bpms[i]}  stage: ${stages[i]}  idb: ${idbOk>i?'✓':'✗'}`);
   }
 
-  // ── 7. Patch localStorage ─────────────────────────────────────────────────
+  // ── 7. Patch pieceRecordingMeta in localStorage ──────────────────────────
   const merged = { ...existingMeta };
   merged[piece.id] = { ...(merged[piece.id] || {}), ...metaPatch };
   localStorage.setItem('etudes-pieceRecordingMeta', JSON.stringify(merged));
@@ -183,7 +183,7 @@ const TARGET_PIECE_INDEX = 0; // 0 = first piece; change index to target another
   console.log(`\n💾 localStorage write: etudes-pieceRecordingMeta now has ${savedCount} date(s) for this piece`);
 
   // ── 8. IDB read-back verification ────────────────────────────────────────
-  console.log('🔍 Verifying IDB blobs…');
+  console.log('🔍 Verifying pieceRecordings IDB blobs…');
   let verified = 0;
   for (const date of dates) {
     const key  = `${piece.id}__${date}`;
@@ -193,11 +193,30 @@ const TARGET_PIECE_INDEX = 0; // 0 = first piece; change index to target another
   }
   console.log(`   ${verified}/10 blobs confirmed in IndexedDB`);
 
-  if (idbFail > 0 || verified < 10 || savedCount < 10) {
+  // ── 9. Seed one reference track ──────────────────────────────────────────
+  console.log('\n⏳ Seeding reference track…');
+  const refBlob  = makeSineWav(8, 440); // 8-second A440 tone
+  const refPeaks = await computePeaks(refBlob, 120);
+  let refOk = false;
+  try {
+    await idbPut('refTracks', piece.id, refBlob);
+    refOk = true;
+  } catch (e) {
+    console.error('  ❌ refTracks IDB write failed:', e);
+  }
+  if (refOk) {
+    const existingRefMeta = JSON.parse(localStorage.getItem('etudes-refTrackMeta') || '{}');
+    existingRefMeta[piece.id] = { peaks: refPeaks, filename: 'seed-reference.wav' };
+    localStorage.setItem('etudes-refTrackMeta', JSON.stringify(existingRefMeta));
+    console.log(`  ✓ refTracks IDB blob written, etudes-refTrackMeta updated`);
+  }
+
+  if (idbFail > 0 || verified < 10 || savedCount < 10 || !refOk) {
     console.error('\n❌ Seed incomplete — see warnings above.');
   } else {
-    console.log(`\n✅ All done! Reload the page → Repertoire → expand "${piece.title}" to see 10 recordings.`);
+    console.log(`\n✅ All done! Reload the page → Repertoire → expand "${piece.title}" to see 10 recordings + 1 ref track.`);
     console.log('   Test A/B by clicking the A and B buttons on any two rows in the recording list.');
+    console.log('   Export a backup (Réglages → Export) — should include pieceRecordings + refTracks blobs.');
   }
 
 })();
