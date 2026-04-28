@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.95.6 — 2026-04-28
+
+### Logs view — unified card layout & visual differentiation
+
+- **Unified card shell** — all three card types (Daily / Weekly / Monthly) now share identical border (`1px solid LINE`), padding (`p-6`), background (`transparent`), and hover state (`background → SURFACE`, `120ms` transition); no more three different border weights
+- **2 px top accent** — sole visual differentiator per type: Daily = `IKB` blue, Weekly = `DIM` neutral, Monthly = `LINE_STR` near-invisible — subtle enough not to dominate
+- **Date as hero** — all cards promote their primary date/period to `52px` italic serif with a unified structure:
+  - Daily: month name as `13px MUTED italic` prefix line + day number at `52px`
+  - Weekly: month context prefix line + day-range hero (`21 — 27`); cross-month weeks show abbreviated months as prefix (`Mar — Apr`)
+  - Monthly: month name at `52px`
+- **Minutes demoted** — daily card's `36px IKB` minutes block and its divider removed; replaced by a right-aligned `11px mono MUTED` badge in the eyebrow row
+- **Eyebrow consistency** — all type labels (`DAILY`, `WEEKLY REFLECTION`, `MONTHLY REFLECTION`) now use `FAINT 10px uppercase 0.28em` tracking; no more `IKB` on eyebrow labels
+
 ## v0.95.5 — 2026-04-28
 
 ### Notes view — layout fixes & sidebar improvements
