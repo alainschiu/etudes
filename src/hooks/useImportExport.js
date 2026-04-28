@@ -76,10 +76,15 @@ export default function useImportExport({
       const nprb={};for(const [k,b] of Object.entries(data.blobs?.pieceRecordings||{})){const bl=base64ToBlob(b,'audio/webm');if(bl)nprb[k]=bl;}
       const nrtb={};for(const [k,v] of Object.entries(data.blobs?.refTracks||{})){const entry=typeof v==='object'?v:{d:v,t:'audio/mpeg'};const bl=base64ToBlob(entry.d,entry.t||'audio/mpeg');if(bl)nrtb[k]=bl;}
       Object.values(pdfUrlMap).forEach(u=>{try{URL.revokeObjectURL(u);}catch{}});
+      // Always restore pdfs + daily recordings (present in all backup versions)
       for(const k of await idbAllKeys('pdfs'))await idbDel('pdfs',k);
       for(const k of await idbAllKeys('recordings'))await idbDel('recordings',k);
-      for(const k of await idbAllKeys('pieceRecordings'))await idbDel('pieceRecordings',k);
-      for(const k of await idbAllKeys('refTracks'))await idbDel('refTracks',k);
+      // Only clear+restore newer stores if the backup actually contains them
+      // (old backups omit these; clearing without restoring would destroy existing local data)
+      const hasPieceRec=data.blobs?.pieceRecordings!==undefined;
+      const hasRefTracks=data.blobs?.refTracks!==undefined;
+      if(hasPieceRec){for(const k of await idbAllKeys('pieceRecordings'))await idbDel('pieceRecordings',k);}
+      if(hasRefTracks){for(const k of await idbAllKeys('refTracks'))await idbDel('refTracks',k);}
       const newUrl={};for(const [k,b] of Object.entries(npb)){await idbPut('pdfs',k,b);newUrl[k]=URL.createObjectURL(b);}
       for(const [k,b] of Object.entries(nrb)){await idbPut('recordings',k,b);}
       for(const [k,b] of Object.entries(nprb)){await idbPut('pieceRecordings',k,b);}
@@ -87,9 +92,16 @@ export default function useImportExport({
       const st=data.state||{};
       const importedRecKeys=new Set(Object.keys(nrb));
       const reconciledMeta=Object.fromEntries(Object.entries(st.recordingMeta||{}).filter(([k])=>importedRecKeys.has(k)));
-      setItems(migrateItems(st.items||[]));setItemTimes(st.itemTimes||{});setWarmupTimeToday(st.warmupTimeToday||0);setRestToday(st.restToday||0);setWorkingOn(Array.isArray(st.workingOn)?st.workingOn:[]);setTodaySessions(migrateSessions(st.todaySessions||DEFAULT_SESSIONS));setLoadedRoutineId(st.loadedRoutineId||null);setRoutines(migrateRoutines(st.routines||[]));setDailyReflection(st.dailyReflection||'');setWeekReflection(st.weekReflection||{notes:'',goals:''});setMonthReflection(st.monthReflection||{notes:'',goals:''});setSettings(st.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setFreeNotes(Array.isArray(st.freeNotes)?st.freeNotes:[]);setNoteCategories(Array.isArray(st.noteCategories)?st.noteCategories:[]);setRecordingMeta(reconciledMeta);setPieceRecordingMeta(st.pieceRecordingMeta||{});setRefTrackMeta(st.refTrackMeta||{});setHistory(migrateHistory(st.history||[]));setDayClosed(!!st.dayClosed);setPdfUrlMap(newUrl);
-      setLocalPieceRecordingIds(new Set(Object.keys(nprb).map(k=>k.split('__')[0])));
-      setLocalRefTrackIds(new Set(Object.keys(nrtb)));
+      setItems(migrateItems(st.items||[]));setItemTimes(st.itemTimes||{});setWarmupTimeToday(st.warmupTimeToday||0);setRestToday(st.restToday||0);setWorkingOn(Array.isArray(st.workingOn)?st.workingOn:[]);setTodaySessions(migrateSessions(st.todaySessions||DEFAULT_SESSIONS));setLoadedRoutineId(st.loadedRoutineId||null);setRoutines(migrateRoutines(st.routines||[]));setDailyReflection(st.dailyReflection||'');setWeekReflection(st.weekReflection||{notes:'',goals:''});setMonthReflection(st.monthReflection||{notes:'',goals:''});setSettings(st.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setFreeNotes(Array.isArray(st.freeNotes)?st.freeNotes:[]);
+      if(st.noteCategories!==undefined)setNoteCategories(Array.isArray(st.noteCategories)?st.noteCategories:[]);
+      setRecordingMeta(reconciledMeta);
+      if(hasPieceRec)setPieceRecordingMeta(st.pieceRecordingMeta||{});
+      if(hasRefTracks)setRefTrackMeta(st.refTrackMeta||{});
+      setHistory(migrateHistory(st.history||[]));setDayClosed(!!st.dayClosed);setPdfUrlMap(newUrl);
+      if(hasPieceRec)setLocalPieceRecordingIds(new Set(Object.keys(nprb).map(k=>k.split('__')[0])));
+      else idbAllKeys('pieceRecordings').then(keys=>setLocalPieceRecordingIds(new Set(keys.map(k=>String(k).split('__')[0]))));
+      if(hasRefTracks)setLocalRefTrackIds(new Set(Object.keys(nrtb)));
+      else idbAllKeys('refTracks').then(keys=>setLocalRefTrackIds(new Set(keys.map(k=>String(k)))));
       setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);setIsResting(false);setExpandedItemId(null);setPdfDrawerItemId(null);
       if(st.rolloverKeys?.day)lsSet(ROLLOVER_KEY,st.rolloverKeys.day);else lsSet(ROLLOVER_KEY,todayDateStr());
       if(st.rolloverKeys?.week)lsSet(WEEK_ROLLOVER_KEY,st.rolloverKeys.week);else lsSet(WEEK_ROLLOVER_KEY,getWeekStart(todayDateStr()));
