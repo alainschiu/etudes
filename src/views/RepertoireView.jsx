@@ -120,9 +120,9 @@ export default function RepertoireView(p){
     const recCount=Object.keys(pieceRecordingMeta?.[i.id]||{}).length;
     const hasPdfMeta=(i.pdfs||[]).length>0;
     const hasLocalPdf=hasPdfMeta&&(i.pdfs||[]).some(p=>pdfUrlMap?.[p.libraryId]);
-    const hasLocalRec=recCount>0&&(localPieceRecordingIds?.has(i.id)??true);
+    const hasLocalRec=recCount>0&&(localPieceRecordingIds?.has(String(i.id))??true);
     const hasRefMeta=!!(refTrackMeta?.[i.id]);
-    const hasLocalRef=hasRefMeta&&(localRefTrackIds?.has(i.id)??true);
+    const hasLocalRef=hasRefMeta&&(localRefTrackIds?.has(String(i.id))??true);
     const titleValue=i.title==='Untitled'?'':(i.title||'');
     const len=formatLength(i.lengthSecs);
     // Type-based field visibility
