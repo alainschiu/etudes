@@ -139,10 +139,10 @@ export default function useEtudesState(){
 
   // ── PDF loading ───────────────────────────────────────────────────────────
   // pdfUrlMap is keyed by libraryId (IDB key); attachments reference libraryId
-  useEffect(()=>{let cancelled=false;const urls=[];(async()=>{const keys=await idbAllKeys('pdfs');if(cancelled)return;const keySet=new Set(keys.map(k=>String(k)));const urlsById={};for(const key of keys){const blob=await idbGet('pdfs',key);if(cancelled)return;if(blob){const u=URL.createObjectURL(blob);urlsById[String(key)]=u;urls.push(u);}}if(cancelled){urls.forEach(u=>URL.revokeObjectURL(u));return;}setPdfUrlMap(urlsById);// Remove attachments whose libraryId no longer exists in IDB
-  setItems(prev=>prev.map(i=>{if(!i.pdfs||i.pdfs.length===0)return i;const f=i.pdfs.filter(p=>keySet.has(String(p.libraryId||p.id)));if(f.length===i.pdfs.length)return i;const d=f.some(p=>p.id===i.defaultPdfId)?i.defaultPdfId:(f[0]?.id||null);return {...i,pdfs:f,defaultPdfId:d};}));// Rebuild pdfLibrary from IDB keys that exist
-  setPdfLibrary(prev=>{const kept=prev.filter(e=>keySet.has(String(e.id)));const existingIds=new Set(kept.map(e=>e.id));// Add any libraryIds that are in IDB but not in pdfLibrary (edge case from old data)
-  return kept;});})();return()=>{cancelled=true;};},[]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>{let cancelled=false;const urls=[];(async()=>{const keys=await idbAllKeys('pdfs');if(cancelled)return;const keySet=new Set(keys.map(k=>String(k)));const urlsById={};for(const key of keys){const blob=await idbGet('pdfs',key);if(cancelled)return;if(blob){const u=URL.createObjectURL(blob);urlsById[String(key)]=u;urls.push(u);}}if(cancelled){urls.forEach(u=>URL.revokeObjectURL(u));return;}setPdfUrlMap(urlsById);// pdfUrlMap drives "local vs remote-only" UI — do NOT strip item attachments here;
+  // missing libraryIds show as dashed icons in Repertoire instead.
+  // Rebuild pdfLibrary to only entries whose blobs exist in IDB
+  setPdfLibrary(prev=>prev.filter(e=>keySet.has(String(e.id))));})();return()=>{cancelled=true;};},[]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{idbAllKeys('pieceRecordings').then(keys=>{setLocalPieceRecordingIds(new Set(keys.map(k=>String(k).split('__')[0])));});},[]);// eslint-disable-line react-hooks/exhaustive-deps
   useEffect(()=>{idbAllKeys('refTracks').then(keys=>{setLocalRefTrackIds(new Set(keys.map(k=>String(k))));});},[]);// eslint-disable-line react-hooks/exhaustive-deps
 
