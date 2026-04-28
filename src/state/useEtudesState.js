@@ -58,6 +58,7 @@ export default function useEtudesState(){
   const [recordingMeta,setRecordingMeta]=useState(()=>lsGet('etudes-recordingMeta',{}));
   const [pieceRecordingMeta,setPieceRecordingMeta]=useState(()=>lsGet('etudes-pieceRecordingMeta',{}));
   const [pieceRecordingItemId,setPieceRecordingItemId]=useState(null);
+  const [refTrackMeta,setRefTrackMeta]=useState(()=>lsGet('etudes-refTrackMeta',{}));
   const [history,setHistory]=useState(()=>migrateHistory(lsGet('etudes-history',[])));
   const [dayClosed,setDayClosed]=useState(()=>lsGet('etudes-dayClosed',false));
   const [pdfUrlMap,setPdfUrlMap]=useState({});
@@ -82,6 +83,7 @@ export default function useEtudesState(){
   useEffect(()=>{lsSet('etudes-noteCategories',noteCategories);},[noteCategories]);
   useEffect(()=>{lsSet('etudes-recordingMeta',recordingMeta);},[recordingMeta]);
   useEffect(()=>{lsSet('etudes-pieceRecordingMeta',pieceRecordingMeta);},[pieceRecordingMeta]);
+  useEffect(()=>{lsSet('etudes-refTrackMeta',refTrackMeta);},[refTrackMeta]);
   useEffect(()=>{lsSet('etudes-history',history);},[history]);
   useEffect(()=>{lsSet('etudes-dayClosed',dayClosed);},[dayClosed]);
   useEffect(()=>{if(!mountedRef.current){mountedRef.current=true;return;}if(applyingCloudRef.current)return;lsSet('etudes-localDirtyAt',Date.now());},[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
@@ -411,6 +413,10 @@ export default function useEtudesState(){
   // ── Recording (delegated) ─────────────────────────────────────────────────
   const {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,attachDailyToPiece}=useRecording({dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal,pieceRecordingMeta,setPieceRecordingMeta,setPieceRecordingItemId});
 
+  // ── Reference track management ─────────────────────────────────────────────
+  const uploadRefTrack=async(itemId,file,peaks)=>{await idbPut('refTracks',itemId,file);setRefTrackMeta(m=>({...m,[itemId]:{peaks,filename:file.name}}));};
+  const deleteRefTrack=(itemId)=>{idbDel('refTracks',itemId);setRefTrackMeta(m=>{const c={...m};delete c[itemId];return c;});};
+
   // ── Session / routine management ──────────────────────────────────────────
   const handleDragStart=(idx)=>setDragIdx(idx);
   const handleDragOver=(e,idx)=>{e.preventDefault();if(idx!==dragOverIdx)setDragOverIdx(idx);};
@@ -562,6 +568,7 @@ export default function useEtudesState(){
     addBookmark,removeBookmark,renameBookmark,
     startRecording,stopRecording,deleteRecording,
     pieceRecordingMeta,pieceRecordingItemId,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,attachDailyToPiece,
+    refTrackMeta,uploadRefTrack,deleteRefTrack,
     handleDragStart,handleDragOver,handleDrop,handleDragEnd,
     moveSession,hideSession,addSessionType,toggleSessionWarmup,
     removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,

@@ -28,12 +28,12 @@ import Music from 'lucide-react/dist/esm/icons/music';
 import MessageSquarePlus from 'lucide-react/dist/esm/icons/message-square-plus';
 import Mic from 'lucide-react/dist/esm/icons/mic';
 import Square from 'lucide-react/dist/esm/icons/square';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, sans} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, sans, mono} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
 import {todayDateStr, daysUntil} from '../lib/dates.js';
 import {getItemTime, displayTitle, formatByline, nextPerformance, getParentBucket} from '../lib/items.js';
 import {toRoman} from '../lib/music.js';
-import {DisplayHeader, TargetEdit, TimeWithTarget, ItemTimeEditor, ItemPickerPopup, PerformanceChip, SpotsBlock, Waveform, MarkdownField} from '../components/shared.jsx';
+import {DisplayHeader, TargetEdit, TimeWithTarget, ItemTimeEditor, ItemPickerPopup, PerformanceChip, SpotsBlock, Waveform, MarkdownField, RefTrackPlayer} from '../components/shared.jsx';
 import {idbGet} from '../lib/storage.js';
 
 function AnalogClock({size=40}){
@@ -47,9 +47,10 @@ function AnalogClock({size=40}){
 }
 
 export default function TodayView(p){
-  const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm}=p;
+  const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm,refTrackMeta}=p;
   const today=new Date();const todayKey=todayDateStr();
   const [routineMenu,setRoutineMenu]=useState(false);const [addMenu,setAddMenu]=useState(false);const [pickerSessionId,setPickerSessionId]=useState(null);const [quickAdd,setQuickAdd]=useState(null);const [confirmClose,setConfirmClose]=useState(false);
+  const [activeRefItemId,setActiveRefItemId]=useState(null);
   // Click-outside to collapse expanded item panel
   useEffect(()=>{
     if(!expandedItemId)return;
@@ -93,7 +94,7 @@ export default function TodayView(p){
   const hiddenTypes=TYPES.filter(t=>!todaySessions.some(s=>s.type===t));
 
   return (
-    <div className="max-w-3xl mx-auto px-12 py-14">
+    <><div className="max-w-3xl mx-auto px-12 py-14">
       <DisplayHeader eyebrow={`${today.toLocaleDateString('en-US',{weekday:'long'})} · ${today.toLocaleDateString('en-US',{month:'long',day:'numeric'})}`} title="Today" titleRight={<AnalogClock size={40}/>} right={
         <div className="flex items-center gap-5">
           <div className="flex items-end gap-5">
@@ -166,6 +167,7 @@ export default function TodayView(p){
                 <div onClick={()=>{if(!isEditingTime)setExpandedItemId(expanded?null:item.id);}} className="group py-2.5 px-2 flex items-center gap-4 cursor-pointer" style={{background:isActiveAny?IKB_SOFT:'transparent'}}>
                   <button onClick={e=>{e.stopPropagation();if(isActiveAny)stopItem();else startItem(item.id,null,session.id);}} disabled={dayClosed&&!isActiveAny} className="shrink-0" style={{color:isActiveWhole?IKB:(isActiveAny?MUTED:(dayClosed?FAINT:TEXT)),filter:isActiveWhole?`drop-shadow(0 0 6px ${IKB})`:'none',cursor:(dayClosed&&!isActiveAny)?'not-allowed':'pointer'}}>{isActiveAny?<Pause className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>}</button>
                   {(()=>{const isPieceRec=pieceRecordingItemId===item.id;const blocked=(dayClosed&&!isPieceRec)||(pieceRecordingItemId&&!isPieceRec)||isRecording;return(<button onClick={e=>{e.stopPropagation();isPieceRec?stopPieceRecording():startPieceRecording(item.id,currentBpm,item.stage);}} disabled={!!blocked} className="shrink-0" title={isPieceRec?'Stop recording':'Record this piece'} style={{color:isPieceRec?'#A93226':blocked?DIM:FAINT,cursor:blocked?'not-allowed':'pointer'}}>{isPieceRec?<Square className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor" style={{animation:'pulse 1s infinite'}}/>:<Mic className="w-3.5 h-3.5" strokeWidth={1.25}/>}</button>);})()}
+                  {refTrackMeta?.[item.id]&&(<button onClick={e=>{e.stopPropagation();setActiveRefItemId(p=>p===item.id?null:item.id);}} className="shrink-0" title="Reference track" style={{color:activeRefItemId===item.id?'#6B8F71':FAINT,cursor:'pointer'}}><Music className="w-3.5 h-3.5" strokeWidth={1.25}/></button>)}
                   <div className="flex-1 min-w-0">
                     {/* Title + byline on one line */}
                     <div style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
@@ -234,5 +236,25 @@ export default function TodayView(p){
       </div>
       <div className="mt-16"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Reflection</div><h3 className="text-4xl mb-6 leading-none" style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,letterSpacing:'-0.015em'}}>Journal du jour</h3><MarkdownField value={dailyReflection||''} onChange={setDailyReflection} placeholder="How did today feel? What surprised you?" minHeight={176} style={{background:SURFACE,fontSize:'16px'}} showDeepLinkHint/><div ref={reflectionRef}/></div>
     </div>
+    {/* ── Reference track practice bar (T3) ──────────────────────────────── */}
+    {(()=>{
+      if(!activeRefItemId)return null;
+      const refMeta=refTrackMeta?.[activeRefItemId];
+      if(!refMeta)return null;
+      const refItem=items.find(i=>i.id===activeRefItemId);
+      return(
+        <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:40,background:BG,borderTop:`2px solid #6B8F71`,boxShadow:'0 -4px 24px rgba(0,0,0,0.5)'}}>
+          <div className="max-w-3xl mx-auto px-12 py-3">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="uppercase shrink-0" style={{fontFamily:mono,color:'#6B8F71',fontSize:'8px',letterSpacing:'0.28em'}}>Ref</span>
+              {refItem&&<span className="italic truncate flex-1 min-w-0" style={{fontFamily:serif,color:MUTED,fontSize:'13px'}}>{refItem.title}{refItem.movement&&` — ${refItem.movement}`}</span>}
+              <button onClick={()=>setActiveRefItemId(null)} style={{color:DIM,cursor:'pointer'}} title="Close ref bar"><X className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
+            </div>
+            <RefTrackPlayer meta={refMeta} blobLoader={()=>idbGet('refTracks',activeRefItemId)}/>
+          </div>
+        </div>
+      );
+    })()}
+    </>
   );
 }

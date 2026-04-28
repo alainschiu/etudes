@@ -8,7 +8,7 @@ import Lock from 'lucide-react/dist/esm/icons/lock';
 import LockOpen from 'lucide-react/dist/esm/icons/lock-open';
 import {TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,WARM_SOFT,serif,mono} from '../constants/theme.js';
 import {idbGet} from '../lib/storage.js';
-import {Waveform} from './shared.jsx';
+import {Waveform,RefTrackPlayer} from './shared.jsx';
 
 const ROLLING_LIMIT = 10;
 
@@ -28,6 +28,10 @@ export default function PieceRecordingsPanel({
   globalAbB,
   setGlobalAbA,
   setGlobalAbB,
+  // reference track
+  refTrackMeta,
+  uploadRefTrack,
+  deleteRefTrack,
 }){
   const [open,setOpen]=useState(false);
   const [selected,setSelected]=useState(null);
@@ -91,6 +95,14 @@ export default function PieceRecordingsPanel({
       </button>
 
       {open&&(<>
+
+      {/* ── Reference track ─────────────────────────────────────────────────── */}
+      <RefTrackPlayer
+        meta={refTrackMeta?.[item.id]}
+        blobLoader={()=>idbGet('refTracks',item.id)}
+        onUpload={(file,peaks)=>uploadRefTrack(item.id,file,peaks)}
+        onDelete={()=>deleteRefTrack(item.id)}
+      />
 
       {/* ── Rec / Stop button ───────────────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-2">

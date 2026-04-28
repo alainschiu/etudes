@@ -1,4 +1,5 @@
 import React, {useState, useEffect, useRef} from 'react';
+import {computePeaks} from '../lib/media.js';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Play from 'lucide-react/dist/esm/icons/play';
@@ -15,6 +16,7 @@ import Pencil from 'lucide-react/dist/esm/icons/pencil';
 import Check from 'lucide-react/dist/esm/icons/check';
 import Music from 'lucide-react/dist/esm/icons/music';
 import Calendar from 'lucide-react/dist/esm/icons/calendar';
+import Upload from 'lucide-react/dist/esm/icons/upload';
 import {MarkdownEditor} from './MarkdownEditor.jsx';
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, serif, serifText, sans, mono, LINK} from '../constants/theme.js';
 import {STAGES} from '../constants/config.js';
@@ -28,7 +30,7 @@ export function Ring({value,max,maxSize=180}){const pct=Math.min(100,(value/max)
 
 export function StageLabels({stage,onChange,compact=false}){const ai=STAGES.findIndex(s=>s.key===stage);return (<div className={`flex ${compact?'gap-4':'gap-5'} flex-wrap`}>{STAGES.map((s,i)=>{const a=i===ai;return (<button key={s.key} onClick={(e)=>{e.stopPropagation();onChange(s.key);}} className="transition pb-1.5" style={{color:a?TEXT:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:compact?'12px':'15px',fontWeight:300,borderBottom:a?`1px solid ${IKB}`:`1px solid transparent`}}>{s.label}</button>);})}</div>);}
 
-export function Waveform({date,meta,compact=false,blobLoader,actions}){
+export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRate=1.0}){
   const [playing,setPlaying]=useState(false);
   const [progress,setProgress]=useState(0);
   const [duration,setDuration]=useState(0);
@@ -38,8 +40,14 @@ export function Waveform({date,meta,compact=false,blobLoader,actions}){
   const svgRef=useRef(null);
   const scrubbingRef=useRef(false);
   const wasPlayingRef=useRef(false);
+  const playbackRateRef=useRef(playbackRate);
   const uid=useRef(`wf${Math.random().toString(36).slice(2,7)}`).current;
   const load=blobLoader||(()=>idbGet('recordings',date));
+
+  useEffect(()=>{
+    playbackRateRef.current=playbackRate;
+    if(audioRef.current){audioRef.current.playbackRate=playbackRate;audioRef.current.preservesPitch=true;}
+  },[playbackRate]);
 
   useEffect(()=>{if(!meta)return;load().then(b=>setBlobAvailable(!!b));},[date,meta]);
 
@@ -48,6 +56,8 @@ export function Waveform({date,meta,compact=false,blobLoader,actions}){
     const b=await load();if(!b)return null;
     urlRef.current=URL.createObjectURL(b);
     const a=new Audio(urlRef.current);
+    a.playbackRate=playbackRateRef.current;
+    a.preservesPitch=true;
     a.onloadedmetadata=()=>{setDuration(a.duration||0);};
     a.ontimeupdate=()=>{if(!scrubbingRef.current)setProgress(a.duration?a.currentTime/a.duration:0);};
     a.onended=()=>{setPlaying(false);setProgress(0);};
@@ -169,6 +179,88 @@ export function Waveform({date,meta,compact=false,blobLoader,actions}){
         {duration>0&&<span className="ml-auto tabular-nums" style={{fontFamily:mono,color:FAINT,fontSize:'11px',letterSpacing:'0.04em'}}>{fmtT(progress*duration)} / {fmtT(duration)}</span>}
       </div>
       {svgMarkup(40)}
+    </div>
+  );
+}
+
+const REF_COLOR='#6B8F71';
+const REF_SOFT='rgba(107,143,113,0.12)';
+
+export function RefTrackPlayer({meta,blobLoader,onUpload,onDelete}){
+  const [speed,setSpeed]=useState(1.0);
+  const [uploading,setUploading]=useState(false);
+  const [dragOver,setDragOver]=useState(false);
+  const fileRef=useRef(null);
+
+  const processFile=async(file)=>{
+    if(!file||!file.type.startsWith('audio/'))return;
+    setUploading(true);
+    try{const peaks=await computePeaks(file);await onUpload(file,peaks);}
+    finally{setUploading(false);}
+  };
+
+  const handleFile=async(e)=>{
+    const file=e.target.files?.[0];
+    e.target.value='';
+    await processFile(file);
+  };
+
+  const onDragOver=(e)=>{
+    if(!onUpload)return;
+    e.preventDefault();e.stopPropagation();
+    setDragOver(true);
+  };
+  const onDragLeave=(e)=>{e.preventDefault();setDragOver(false);};
+  const onDrop=async(e)=>{
+    e.preventDefault();e.stopPropagation();
+    setDragOver(false);
+    if(!onUpload)return;
+    const file=e.dataTransfer.files?.[0];
+    await processFile(file);
+  };
+
+  const canDrop=!!onUpload&&!uploading;
+  const isDragActive=dragOver&&canDrop;
+
+  return(
+    <div
+      onDragOver={canDrop?onDragOver:undefined}
+      onDragLeave={canDrop?onDragLeave:undefined}
+      onDrop={canDrop?onDrop:undefined}
+      style={{
+        background:isDragActive?`rgba(107,143,113,0.22)`:REF_SOFT,
+        borderLeft:`2px solid ${isDragActive?REF_COLOR:REF_COLOR}`,
+        border:isDragActive?`1.5px dashed ${REF_COLOR}`:`1.5px solid transparent`,
+        borderLeft:`2px solid ${REF_COLOR}`,
+        padding:'8px 10px 10px',
+        marginBottom:'10px',
+        transition:'background 120ms',
+      }}>
+      <input ref={fileRef} type="file" accept="audio/*" style={{display:'none'}} onChange={handleFile}/>
+      <div className="flex items-center gap-2 mb-2">
+        <span className="uppercase shrink-0" style={{fontFamily:mono,color:REF_COLOR,fontSize:'8px',letterSpacing:'0.28em'}}>Ref</span>
+        {isDragActive?(
+          <span className="italic flex-1" style={{fontFamily:serif,color:REF_COLOR,fontSize:'11px'}}>drop to attach</span>
+        ):meta?(
+          <>
+            <span className="italic truncate flex-1 min-w-0" style={{fontFamily:serif,color:MUTED,fontSize:'11px'}}>{meta.filename}</span>
+            <span className="tabular-nums shrink-0" style={{fontFamily:mono,color:FAINT,fontSize:'9px'}}>{Math.round(speed*100)}%</span>
+            <input type="range" min="0.5" max="1" step="0.05" value={speed}
+              onChange={e=>setSpeed(parseFloat(e.target.value))}
+              className="shrink-0" style={{width:'60px',accentColor:REF_COLOR,cursor:'pointer'}}
+              title={`Speed: ${Math.round(speed*100)}%`}/>
+            {onUpload&&<button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{color:FAINT,padding:'0 2px',cursor:'pointer'}} title="Replace ref track (or drag a new file)"><Upload className="w-3 h-3" strokeWidth={1.25}/></button>}
+            {onDelete&&<button onClick={onDelete} style={{color:FAINT,padding:'0 2px',cursor:'pointer'}} title="Remove ref track"><X className="w-3 h-3" strokeWidth={1.25}/></button>}
+          </>
+        ):onUpload?(
+          <button onClick={()=>fileRef.current?.click()} disabled={uploading}
+            className="uppercase flex items-center gap-1.5"
+            style={{color:uploading?FAINT:MUTED,fontSize:'9px',letterSpacing:'0.18em',cursor:uploading?'wait':'pointer'}}>
+            {uploading?'processing…':<><Upload className="w-3 h-3" strokeWidth={1.25}/> add reference · mp3 wav flac m4a</>}
+          </button>
+        ):null}
+      </div>
+      {!isDragActive&&meta&&<Waveform blobLoader={blobLoader} meta={meta} compact playbackRate={speed}/>}
     </div>
   );
 }
