@@ -54,8 +54,11 @@ export default function PieceRecordingsPanel({
 
   const selectRow=(date)=>setSelected(p=>p===date?null:date);
 
-  const showAB=globalAbA&&globalAbB;
-  const previewDate=selected;
+  // In-panel A/B: both slots set AND both belong to this piece
+  const showLocalAB=!!(globalAbA&&globalAbB&&globalAbA.itemId===item.id&&globalAbB.itemId===item.id);
+
+  // Single-click preview only when A/B panel is not active for this piece
+  const previewDate=showLocalAB?null:selected;
   const previewEntry=previewDate?itemMeta[previewDate]:null;
 
   return (
@@ -190,8 +193,38 @@ export default function PieceRecordingsPanel({
         </div>
       )}
 
-      {/* ── Single preview ──────────────────────────────────────────────────── */}
-      {previewDate&&previewEntry&&(
+      {/* ── Local A/B comparison (same piece) ──────────────────────────────── */}
+      {showLocalAB&&(
+        <div style={{border:`1px solid ${LINE_STR}`,borderTop:'none'}}>
+          <div className="flex items-center gap-2 px-3 py-1.5" style={{borderBottom:`1px solid ${LINE}`,background:`${IKB}06`}}>
+            <span style={{fontFamily:mono,fontSize:'8px',letterSpacing:'0.22em',color:IKB}}>A</span>
+            <span style={{fontFamily:mono,fontSize:'8px',letterSpacing:'0.12em',color:DIM}}>—</span>
+            <span style={{fontFamily:mono,fontSize:'8px',letterSpacing:'0.22em',color:WARM}}>B</span>
+            <span className="uppercase" style={{fontFamily:mono,fontSize:'8px',letterSpacing:'0.18em',color:FAINT,marginLeft:'4px'}}>Comparison</span>
+            <button onClick={()=>{setGlobalAbA(null);setGlobalAbB(null);}} className="ml-auto uppercase" style={{fontFamily:mono,fontSize:'7px',letterSpacing:'0.18em',color:DIM,cursor:'pointer'}}>clear</button>
+          </div>
+          <div className="flex">
+            {[{slot:'A',ab:globalAbA,accent:IKB,soft:IKB_SOFT},{slot:'B',ab:globalAbB,accent:WARM,soft:WARM_SOFT}].map(({slot,ab,accent,soft},i)=>{
+              const entry=itemMeta[ab.date];
+              return (
+                <div key={slot} className="flex-1 min-w-0 p-3" style={{borderRight:i===0?`1px solid ${LINE}`:'none',background:soft}}>
+                  <div className="flex items-baseline gap-2 mb-2">
+                    <span style={{fontFamily:mono,color:accent,fontSize:'10px',letterSpacing:'0.22em',fontWeight:600}}>{slot}</span>
+                    <span style={{fontFamily:mono,color:MUTED,fontSize:'10px',letterSpacing:'0.06em'}}>{ab.date}</span>
+                    {entry?.bpm&&<span style={{fontFamily:mono,color:FAINT,fontSize:'9px'}}>↓ {entry.bpm}</span>}
+                    {entry?.stage&&<span style={{fontFamily:serif,fontStyle:'italic',color:FAINT,fontSize:'11px'}}>{entry.stage}</span>}
+                    {(entry?.locked??false)&&<Lock className="w-2.5 h-2.5" strokeWidth={1.5} style={{color:WARM}}/>}
+                  </div>
+                  <Waveform blobLoader={()=>idbGet('pieceRecordings',`${item.id}__${ab.date}`)} meta={entry}/>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Single preview (no A/B active for this piece) ──────────────────── */}
+      {!showLocalAB&&previewDate&&previewEntry&&(
         <div style={{border:`1px solid ${LINE_STR}`,borderTop:'none',padding:'12px 14px 14px'}}>
           <div className="flex items-baseline gap-3 mb-3">
             <span style={{fontFamily:mono,color:IKB,fontSize:'9px',letterSpacing:'0.22em'}}>PREVIEW</span>
