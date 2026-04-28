@@ -15,13 +15,27 @@ export function mergeStates(local, remote) {
     return Array.from(map.values());
   };
   const mergeObj = (localObj={}, remoteObj={}) => ({...remoteObj, ...localObj});
+  const historyKey = x =>
+    x.kind === 'week'  ? `week:${x.weekStart}` :
+    x.kind === 'month' ? `month:${x.month}` :
+                         `day:${x.date}`;
+  const mergeHistory = (localH, remoteH) => {
+    // Tolerate either side being a plain object (legacy corrupt state) or array
+    const toArr = v => Array.isArray(v) ? v : (v && typeof v === 'object' ? Object.values(v) : []);
+    const map = new Map();
+    toArr(remoteH).forEach(x => map.set(historyKey(x), x));
+    toArr(localH).forEach(x => map.set(historyKey(x), x)); // local wins on same key
+    return Array.from(map.values());
+  };
   return {
     ...remote,                                               // scalar fields: remote wins
     items:     mergeById(local.items,    remote.items),
     routines:  mergeById(local.routines, remote.routines),
     programs:  mergeById(local.programs, remote.programs),
-    history:   mergeObj(local.history,   remote.history),   // local wins per date
-    itemTimes: mergeObj(local.itemTimes, remote.itemTimes), // local wins per item
+    history:   mergeHistory(local.history, remote.history), // local wins per date
+    itemTimes:         mergeObj(local.itemTimes,         remote.itemTimes),
+    pieceRecordingMeta:mergeObj(local.pieceRecordingMeta,remote.pieceRecordingMeta),
+    refTrackMeta:      mergeObj(local.refTrackMeta,      remote.refTrackMeta),
     workingOn: [...new Set([...(local.workingOn||[]), ...(remote.workingOn||[])])],
   };
 }
