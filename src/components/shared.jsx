@@ -245,7 +245,7 @@ export function RefTrackPlayer({meta,blobLoader,onUpload,onDelete}){
           <>
             <span className="italic truncate flex-1 min-w-0" style={{fontFamily:serif,color:MUTED,fontSize:'11px'}}>{meta.filename}</span>
             <span className="tabular-nums shrink-0" style={{fontFamily:mono,color:FAINT,fontSize:'9px'}}>{Math.round(speed*100)}%</span>
-            <input type="range" min="0.5" max="1" step="0.05" value={speed}
+            <input type="range" min="0.25" max="1" step="0.05" value={speed}
               onChange={e=>setSpeed(parseFloat(e.target.value))}
               className="shrink-0" style={{width:'60px',accentColor:REF_COLOR,cursor:'pointer'}}
               title={`Speed: ${Math.round(speed*100)}%`}/>
