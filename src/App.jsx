@@ -49,9 +49,11 @@ const tabs=[{id:'today',label:'Today'},{id:'week',label:'Week'},{id:'month',labe
 export default function Etudes(){
   const s=useEtudesState();
   const isMobile=useIsMobile();
-  console.log('[etudes] isMobile=',isMobile);
   if(isMobile) return <MobileShell s={s}/>;
+  return <DesktopShell s={s}/>;
+}
 
+function DesktopShell({s}){
   const [clockTime,setClockTime]=useState(()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;});
   useEffect(()=>{const tick=()=>{const n=new Date();setClockTime(`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`);};const id=setInterval(tick,10000);return()=>clearInterval(id);},[]);
   const [refBarVisible,setRefBarVisible]=useState(false);
