@@ -1,4 +1,4 @@
-import React,{useState,useEffect,Suspense,lazy} from 'react';
+import React,{useState,useEffect,Suspense,lazy,useMemo} from 'react';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
 import Plus from 'lucide-react/dist/esm/icons/plus';
@@ -36,11 +36,21 @@ import UndoToast from './components/UndoToast.jsx';
 import {SettingsModal,HelpModal,ConfirmModal,PromptModal,SyncConflictModal} from './components/modals.jsx';
 const PdfDrawer = lazy(() => import('./components/PdfDrawer.jsx'));
 import useEtudesState from './state/useEtudesState.js';
+import MobileShell from './mobile/MobileShell.jsx';
+
+function useIsMobile(){
+  const [mobile,setMobile]=useState(()=>window.matchMedia('(max-width:767px)').matches);
+  useEffect(()=>{const mq=window.matchMedia('(max-width:767px)');const h=e=>setMobile(e.matches);mq.addEventListener('change',h);return()=>mq.removeEventListener('change',h);},[]);
+  return mobile;
+}
 
 const tabs=[{id:'today',label:'Today'},{id:'week',label:'Week'},{id:'month',label:'Month'},{id:'repertoire',label:'Repertoire'},{id:'programs',label:'Programs'},{id:'routines',label:'Routines'},{id:'logs',label:'Logs'},{id:'notes',label:'Notes'}];
 
 export default function Etudes(){
   const s=useEtudesState();
+  const isMobile=useIsMobile();
+  if(isMobile) return <MobileShell s={s}/>;
+
   const [clockTime,setClockTime]=useState(()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;});
   useEffect(()=>{const tick=()=>{const n=new Date();setClockTime(`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`);};const id=setInterval(tick,10000);return()=>clearInterval(id);},[]);
   const [refBarVisible,setRefBarVisible]=useState(false);
