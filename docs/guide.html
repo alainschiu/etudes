@@ -708,7 +708,7 @@
       <section class="section" id="seven-views">
         <div class="section-eyebrow"><span class="section-num">03</span>Foundations</div>
         <h2 class="section-title">The Seven Views</h2>
-        <p class="section-lead">The navigation is the product's mental model. Each view answers exactly one question. Seven is the ceiling.</p>
+        <p class="section-lead">The navigation is the product's mental model. Each view answers exactly one question. Seven is the ceiling of the practice spine; Programs is an eighth view, deliberately outside it.</p>
 
         <ul class="detail-list">
           <li><span class="term">Today</span><span class="def">What am I practicing right now? The active surface: session stack, timer, recording, reflection.</span></li>
@@ -1297,7 +1297,7 @@
         </ul>
 
         <h3>What does not sync</h3>
-        <p>Audio recordings (IndexedDB blobs), PDF scores (IndexedDB blobs), and the active session state on Today (which resets daily by design). These remain on the recording device only.</p>
+        <p>Audio recordings (IndexedDB blobs), PDF scores (IndexedDB blobs), and the active session state on Today (which resets daily by design). These remain on the recording device only. <strong>A musician who records a take on one device will not find that audio on another</strong> — the waveform shape and timestamp do sync, so the log shows the recording existed, but the audio file itself does not. Études shows a "Recording on another device" placeholder in place of the waveform on non-originating devices. To transfer audio between devices, use Export → Backup.</p>
 
         <h3>Dirty tracking</h3>
         <p>A <em>localDirtyAt</em> timestamp in localStorage records the moment of any local mutation. A <em>lastCloudSyncAt</em> timestamp records the last confirmed successful cloud write. On sign-in, if <em>localDirtyAt</em> is more recent than <em>lastCloudSyncAt</em>, the app treats local data as dirty and initiates a sync — either automatically or by presenting the conflict resolution modal if cloud data is also present.</p>

@@ -669,7 +669,7 @@
         <p>Études must count time — or it is just a notebook. It must also let time mean something — or it is just a stopwatch. The timer is present but never the point. The ring closes but does not celebrate. The log accumulates but does not rank. Numbers appear in monospace; words appear in serif. That typographic hierarchy is the philosophical hierarchy.</p>
 
         <h3>What Études does not do</h3>
-        <p>No streaks that punish rest. No gamification. No notifications. No AI-generated practice plans. No sentiment analysis of journal entries. No comparative metrics. No social features. No onboarding carousels. These omissions are deliberate.</p>
+        <p>No streaks that punish rest. No gamification. No AI-generated practice plans. No sentiment analysis of journal entries. No comparative metrics. No social features. No onboarding carousels. These omissions are deliberate. An optional daily reminder — not a streak mechanic, carrying no consequence for being ignored — is available in Settings.</p>
 
         <h3>Local by default</h3>
         <p>All data lives on the device — <em>localStorage</em> for journal state, IndexedDB for audio and PDFs. An optional cloud backup via Supabase is available when signed in. Audio recordings and PDF scores remain local always, regardless of sync status.</p>
@@ -693,7 +693,7 @@
         <p>The footer is always present. Left: the active timer readout and today's total. Centre: play/pause, rest, recording, and quick-note controls. Right: the metronome, tuning/drone, and a keyboard-shortcut reference. The footer is the one surface that spans all views.</p>
 
         <h3>Navigation</h3>
-        <p>Seven tabs run along the left side of the header: Today, Week, Month, Repertoire, Routines, Programs, Logs, Notes. Each answers a different question at a different time scale. Press <kbd>Esc</kbd> to close any open drawer or modal. Press <kbd>?</kbd> to open the keyboard help panel.</p>
+        <p>Eight tabs run along the header. Seven form the temporal practice spine — Today, Week, Month, Répertoire, Routines, Logs, Notes — each answering a different question at a different time scale. Programs is an eighth view, outside the spine, for concert performance planning. Press <kbd>Esc</kbd> to close any open drawer or modal. Press <kbd>?</kbd> to open the keyboard help panel.</p>
 
         <h3>First steps</h3>
         <ul class="detail-list">
@@ -708,7 +708,7 @@
       <section class="section" id="seven-views">
         <div class="section-eyebrow"><span class="section-num">03</span>Foundations</div>
         <h2 class="section-title">The Seven Views</h2>
-        <p class="section-lead">The navigation is the product's mental model. Each view answers exactly one question. Seven is the ceiling.</p>
+        <p class="section-lead">The navigation is the product's mental model. Each view answers exactly one question. Seven is the ceiling of the practice spine; Programs is an eighth view, deliberately outside it.</p>
 
         <ul class="detail-list">
           <li><span class="term">Today</span><span class="def">What am I practicing right now? The active surface: session stack, timer, recording, reflection.</span></li>
@@ -803,7 +803,7 @@
         <p>In the Routines tab, press <em>New</em> to create a blank routine or <em>From Today</em> to capture the current session arrangement. Give it a name — an italic serif label that will appear on Today when loaded. Add sessions and pin pieces to each session from the repertoire. Each session carries its own optional intention line and optional minute target.</p>
 
         <h3>Intentions</h3>
-        <p>Each session within a routine can carry an intention — a phrase, a focus, a note-to-self. <em>Left hand only, mm. 24–48. Slow.</em> Intentions exist only inside routines. They do not appear on Today's interface — they are written before the day, for the day, not displayed during it.</p>
+        <p>Each session within a routine can carry an intention — a phrase, a focus, a note-to-self. <em>Left hand only, mm. 24–48. Slow.</em> When a routine is loaded onto Today, the intention for each session appears as a quiet italic caption in the session header — read-only, unobtrusive. It is there to inform, not to instruct.</p>
 
         <h3>Loading onto Today</h3>
         <p>Press <em>Load</em> on any routine to replace Today's session stack with that routine's arrangement. An IKB-underlined italic routine name appears at the top of Today. Per-piece targets set in the routine propagate into Today on load. A <em>Free mode</em> button returns to the default arrangement at any time.</p>
@@ -1020,7 +1020,7 @@
         <p>A small music note icon appears alongside the piece in Today and Repertoire when a reference URL is set. Clicking opens the URL in a new browser tab. The reference never plays inside Études — it opens externally, intentionally. Études is not a player.</p>
 
         <h3>What it is not</h3>
-        <p>There is no in-app audio embed, no YouTube iframe, no streaming. The reference field is a text link. It opens in a new tab. This is the ceiling, and it is sufficient.</p>
+        <p>YouTube references embed inline when the URL is a YouTube link — an iframe player appears in the expanded item panel in Today and Répertoire. All other URLs open in a new tab. The reference field is otherwise a plain text link.</p>
       </section>
 
 
@@ -1054,7 +1054,7 @@
       <section class="section" id="daily-recording">
         <div class="section-eyebrow"><span class="section-num">15</span>Recording</div>
         <h2 class="section-title">Daily Recording</h2>
-        <p class="section-lead">One take per day. A stratum of the journal equal to the written reflection. The constraint is the feature.</p>
+        <p class="section-lead">One take per day. A stratum of the journal equal to the written reflection. This is a deliberate implementation choice: it frames the daily record as a single document rather than a collection. If you practice multiple pieces and want to capture each separately, use the piece recording controls in Répertoire — those are independent of the daily take and unlimited by day.</p>
 
         <h3>Recording</h3>
         <p>Press the microphone icon in the footer to begin recording. The footer indicator turns red; the label reads <em>Recording in progress…</em> Press <em>Stop</em> to end. The take is processed immediately and rendered as a waveform on Today.</p>
@@ -1087,7 +1087,7 @@
         <p>Each piece holds a maximum of ten unlocked recordings. When an eleventh is added, the oldest unlocked recording is deleted automatically — first in, first out. This is the rolling window. It keeps the archive from growing without bound while preserving a recent history of the piece's development.</p>
 
         <h3>Locking a recording</h3>
-        <p>Any recording can be locked using the lock icon in the recording row. A locked recording is exempt from FIFO deletion. Locked rows carry a warm gold left border and a tinted background. Up to twenty recordings per piece can be locked simultaneously. A <em>rack full</em> warning appears when all ten unlocked slots are occupied — add another take and the oldest unlocked one will be removed.</p>
+        <p>Any recording can be locked using the lock icon in the recording row. A locked recording is exempt from FIFO deletion. Locked rows carry a warm gold left border and a tinted background. Up to twenty recordings per piece can be locked simultaneously. A soft warning appears at seven unlocked slots — lock the takes you want to keep before the rack fills. At nine slots a harder warning appears. When all ten unlocked slots are occupied, adding another take immediately and silently deletes the oldest unlocked one. Lock proactively; do not wait for the rack to fill.</p>
 
         <ul class="detail-list">
           <li><span class="term">Unlocked</span><span class="def">Subject to FIFO. Maximum 10 per piece. Automatically removed when capacity is exceeded.</span></li>
@@ -1273,7 +1273,7 @@
         <p>Signing out stops all cloud sync. Local data remains on the device unchanged. The cloud backup is retained and will be available on the next sign-in, from the same or a different device.</p>
 
         <div class="callout callout-warm">
-          <p>Audio recordings and PDF scores are <strong>never synced to the cloud</strong>. They are stored in IndexedDB, which is strictly local. Moving to a new device requires re-recording or re-attaching scores manually.</p>
+          <p>Audio recordings and PDF scores are <strong>never synced to the cloud</strong>. They are stored in IndexedDB, which is strictly local. <strong>A musician who records a take on one device and opens Études on another will not find that recording there.</strong> The waveform shape and timestamp metadata do sync — so the history log shows that a recording existed — but the audio file itself does not. Moving to a new device requires re-recording or re-attaching scores manually. Use Export → Backup to transfer a full snapshot including audio blobs.</p>
         </div>
       </section>
 
@@ -1297,7 +1297,7 @@
         </ul>
 
         <h3>What does not sync</h3>
-        <p>Audio recordings (IndexedDB blobs), PDF scores (IndexedDB blobs), and the active session state on Today (which resets daily by design). These remain on the recording device only.</p>
+        <p>Audio recordings (IndexedDB blobs), PDF scores (IndexedDB blobs), and the active session state on Today (which resets daily by design). These remain on the recording device only. <strong>A musician who records a take on one device will not find that audio on another</strong> — the waveform shape and timestamp do sync, so the log shows the recording existed, but the audio file itself does not. Études shows a "Recording on another device" placeholder in place of the waveform on non-originating devices. To transfer audio between devices, use Export → Backup.</p>
 
         <h3>Dirty tracking</h3>
         <p>A <em>localDirtyAt</em> timestamp in localStorage records the moment of any local mutation. A <em>lastCloudSyncAt</em> timestamp records the last confirmed successful cloud write. On sign-in, if <em>localDirtyAt</em> is more recent than <em>lastCloudSyncAt</em>, the app treats local data as dirty and initiates a sync — either automatically or by presenting the conflict resolution modal if cloud data is also present.</p>
