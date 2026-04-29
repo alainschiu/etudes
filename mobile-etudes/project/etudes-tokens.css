@@ -1,0 +1,347 @@
+/* =========================================================================
+   Études — Colors & Type
+   A quiet, literate palette. Ink on ivory; a single restrained accent.
+   ========================================================================= */
+
+/* ---------- Webfonts ------------------------------------------------------
+   We use Google Fonts as the nearest faithful substitutes for the
+   classical book serif, grotesque metadata face, and monospace seen in
+   the product. See README → Typography for the aspirational originals.
+--------------------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500;1,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+:root {
+  /* ---------- Ink & Paper (dark / primary surface) ---------------------- */
+  --ink-000: #0B0A08;   /* deepest background, near-black with warmth     */
+  --ink-050: #111010;   /* app background                                  */
+  --ink-100: #1A1918;   /* raised surface / card                           */
+  --ink-200: #24221F;   /* hairline-adjacent fill                          */
+  --ink-300: #2E2B27;   /* divider / hairline on dark                      */
+  --ink-400: #3A3732;   /* inset border                                    */
+
+  /* ---------- Ivory (foreground on dark) -------------------------------- */
+  --ivory-100: #F4EEE3; /* primary text                                    */
+  --ivory-200: #E7E0D2; /* display (slightly softer than pure white)       */
+  --ivory-300: #C8C1B3; /* secondary text                                  */
+  --ivory-400: #8C8578; /* tertiary / small-caps metadata                  */
+  --ivory-500: #5E594F; /* quaternary / rest-state glyphs                  */
+  --ivory-600: #403C36; /* disabled                                        */
+
+  /* ---------- Paper (light / inverted surface) -------------------------- */
+  --paper-000: #FBF7EE; /* base paper                                      */
+  --paper-050: #F5EFE2; /* aged paper                                      */
+  --paper-100: #EDE5D3; /* deeper fold                                     */
+  --paper-200: #D9CFB8; /* hairline on paper                               */
+
+  /* ---------- Inkwell (foreground on paper) ----------------------------- */
+  --inkwell-900: #141311;
+  --inkwell-700: #2A2722;
+  --inkwell-500: #5E594F;
+  --inkwell-300: #8C8578;
+
+  /* ---------- Accent — IKB (International Klein Blue) ------------------- */
+  /* A single pure ultramarine. Pop against ink, rare on paper.           */
+  --accent-500: #002FA7;  /* IKB — base                                   */
+  --accent-400: #1A48C4;  /* hover on dark                                */
+  --accent-600: #001E7A;  /* pressed / deep                               */
+  --accent-100: #0C1C5C;  /* accent wash / fill on ink                    */
+  --accent-050: #07123A;  /* accent tint background                       */
+
+  /* ---------- Semantic (used sparingly; no alarm) ----------------------- */
+  --semantic-rest:    #7A8F6A;   /* sage — rest, break, done               */
+  --semantic-warn:    #B89668;   /* brass — attention, overdue             */
+  --semantic-record:  #A35B5B;   /* oxblood — recording, critical          */
+
+  /* ---------- Layering ------------------------------------------------- */
+  --hairline:        rgba(244, 238, 227, 0.08);
+  --hairline-strong: rgba(244, 238, 227, 0.16);
+  --hairline-paper:  rgba(20, 19, 17, 0.12);
+  --scrim:           rgba(11, 10, 8, 0.72);
+
+  /* ---------- Radii, spacing, elevation -------------------------------- */
+  --radius-xs: 2px;
+  --radius-sm: 3px;    /* most buttons/inputs — hairline aesthetic         */
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 10px;   /* cards, rare                                     */
+
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-7:  32px;
+  --space-8:  40px;
+  --space-9:  56px;
+  --space-10: 72px;
+  --space-11: 96px;
+  --space-12: 128px;
+
+  /* Études avoids shadows. These exist only for rare lifted overlays.    */
+  --elev-0: none;
+  --elev-1: 0 1px 0 0 var(--hairline-strong);              /* hairline top */
+  --elev-2: 0 0 0 1px var(--hairline) inset;                /* inset      */
+  --elev-overlay: 0 24px 48px -16px rgba(0,0,0,0.55), 0 0 0 1px var(--hairline-strong);
+
+  /* ---------- Type families -------------------------------------------- */
+  /* Display / editorial serif — italic is the signature voice.           */
+  --font-serif-display: 'Cormorant Garamond', 'GT Sectra', 'Tiempos Headline', 'EB Garamond', Georgia, serif;
+
+  /* Reading serif — journal body, quotes, long-form.                     */
+  --font-serif-text:    'EB Garamond', 'Tiempos Text', 'Source Serif Pro', Georgia, serif;
+
+  /* Grotesque / metadata — small caps, labels, nav, UI chrome.           */
+  --font-sans:          'Inter', 'Söhne', 'Graphik', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Monospace — timers, durations, BPM, tabular data.                    */
+  --font-mono:          'JetBrains Mono', 'Berkeley Mono', 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* ---------- Type scale ----------------------------------------------- */
+  --fs-display-xl:  88px;   /* hero ("Études", "Practice with intent")    */
+  --fs-display-lg:  64px;
+  --fs-display-md:  44px;   /* screen title ("Today")                     */
+  --fs-display-sm:  32px;
+  --fs-h1:          28px;
+  --fs-h2:          22px;
+  --fs-h3:          18px;
+  --fs-body:        15px;
+  --fs-body-sm:     13px;
+  --fs-meta:        11px;   /* small caps labels                          */
+  --fs-meta-xs:     10px;
+
+  --lh-tight:   1.05;
+  --lh-display: 1.1;
+  --lh-snug:    1.25;
+  --lh-body:    1.55;
+  --lh-prose:   1.7;
+
+  --tracking-caps:   0.14em;  /* small-caps labels                         */
+  --tracking-wide:   0.04em;
+  --tracking-tight: -0.01em;  /* display                                   */
+}
+
+/* =========================================================================
+   Baseline
+   ========================================================================= */
+html, body {
+  background: var(--ink-050);
+  color: var(--ivory-100);
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'liga', 'calt', 'kern';
+}
+
+/* Paper mode — invert surfaces for light reading contexts (marketing,
+   printable views). Apply by setting class="paper" on any ancestor.     */
+.paper {
+  background: var(--paper-000);
+  color: var(--inkwell-900);
+}
+
+/* =========================================================================
+   Semantic type classes
+   ========================================================================= */
+
+/* Editorial display — italic serif is the voice of Études. */
+.display-xl,
+.display-lg,
+.display-md,
+.display-sm {
+  font-family: var(--font-serif-display);
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-display);
+  color: var(--ivory-200);
+}
+.display-xl { font-size: var(--fs-display-xl); line-height: var(--lh-tight); }
+.display-lg { font-size: var(--fs-display-lg); }
+.display-md { font-size: var(--fs-display-md); }
+.display-sm { font-size: var(--fs-display-sm); }
+
+/* Standing headings — upright serif, used for section titles in long-form. */
+.h1, .h2, .h3 {
+  font-family: var(--font-serif-display);
+  font-weight: 500;
+  line-height: var(--lh-snug);
+  letter-spacing: var(--tracking-tight);
+  color: var(--ivory-100);
+}
+.h1 { font-size: var(--fs-h1); }
+.h2 { font-size: var(--fs-h2); }
+.h3 { font-size: var(--fs-h3); }
+
+/* Reading prose — journal entries, quotes, long-form. */
+.prose {
+  font-family: var(--font-serif-text);
+  font-size: 17px;
+  line-height: var(--lh-prose);
+  color: var(--ivory-200);
+}
+.prose em, .prose i { font-style: italic; }
+
+/* Body UI text. */
+.p  { font-family: var(--font-sans); font-size: var(--fs-body);    line-height: var(--lh-body); color: var(--ivory-100); }
+.p-sm { font-family: var(--font-sans); font-size: var(--fs-body-sm); line-height: var(--lh-body); color: var(--ivory-300); }
+
+/* Metadata / small caps labels — the brand's signature rhythm element. */
+.meta,
+.label-caps {
+  font-family: var(--font-sans);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--ivory-400);
+}
+.meta-xs {
+  font-family: var(--font-sans);
+  font-size: var(--fs-meta-xs);
+  font-weight: 500;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--ivory-500);
+}
+
+/* Tabular numerics — all durations, counts, BPM readouts. */
+.num,
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum', 'zero';
+  letter-spacing: 0;
+  color: var(--ivory-200);
+}
+.num-lg { font-family: var(--font-mono); font-size: 28px; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; color: var(--ivory-100); }
+.num-md { font-family: var(--font-mono); font-size: 18px; font-variant-numeric: tabular-nums; color: var(--ivory-200); }
+.num-sm { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ivory-300); }
+
+/* Code / technical strings. */
+.code {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--ivory-200);
+  background: var(--ink-100);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
+}
+
+/* Links — the accent appears here, used sparingly. */
+.link {
+  color: var(--accent-400);
+  text-decoration: none;
+  border-bottom: 1px solid var(--hairline-strong);
+  transition: color 120ms ease, border-color 120ms ease;
+}
+.link:hover { color: var(--ivory-100); border-bottom-color: var(--ivory-300); }
+
+/* =========================================================================
+   Common primitives
+   ========================================================================= */
+.hairline         { border-top: 1px solid var(--hairline); }
+.hairline-strong  { border-top: 1px solid var(--hairline-strong); }
+.divider-vert     { width: 1px; background: var(--hairline); align-self: stretch; }
+
+/* Pill buttons — the canonical Études button. Hairline, not filled. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 12px;
+  font-family: var(--font-sans);
+  font-size: var(--fs-meta);
+  font-weight: 500;
+  letter-spacing: var(--tracking-caps);
+  text-transform: uppercase;
+  color: var(--ivory-200);
+  background: transparent;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: color 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+.btn:hover   { color: var(--ivory-100); border-color: var(--ivory-400); }
+.btn:active  { color: var(--ivory-300); border-color: var(--ivory-500); transform: translateY(0.5px); }
+
+.btn-primary {
+  background: var(--ivory-100);
+  color: var(--ink-050);
+  border-color: var(--ivory-100);
+}
+.btn-primary:hover  { background: var(--ivory-200); border-color: var(--ivory-200); }
+.btn-primary:active { background: var(--ivory-300); border-color: var(--ivory-300); }
+
+.btn-ghost {
+  border-color: transparent;
+  color: var(--ivory-300);
+}
+.btn-ghost:hover { color: var(--ivory-100); border-color: var(--hairline-strong); }
+
+/* Input — hairline underline, no box. */
+.input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--hairline-strong);
+  color: var(--ivory-100);
+  font-family: var(--font-serif-text);
+  font-size: 17px;
+  padding: 8px 0;
+  outline: none;
+  transition: border-color 150ms ease;
+}
+.input:focus { border-bottom-color: var(--ivory-300); }
+.input::placeholder { color: var(--ivory-500); font-style: italic; }
+
+/* Textarea — journal entry style. */
+.textarea {
+  width: 100%;
+  min-height: 120px;
+  background: var(--ink-100);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+  color: var(--ivory-100);
+  font-family: var(--font-serif-text);
+  font-size: 17px;
+  line-height: var(--lh-prose);
+  padding: 16px 18px;
+  outline: none;
+  resize: vertical;
+  transition: border-color 150ms ease;
+}
+.textarea:focus { border-color: var(--hairline-strong); }
+.textarea::placeholder { color: var(--ivory-500); font-style: italic; }
+
+/* Card — flat, hairline-bordered, no shadow. */
+.card {
+  background: var(--ink-100);
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-sm);
+}
+
+/* =========================================================================
+   Focus — a single consistent ring in the accent color.
+   ========================================================================= */
+:focus-visible {
+  outline: 1px solid var(--accent-500);
+  outline-offset: 2px;
+}
+
+/* =========================================================================
+   Motion — brief, eased, never bouncy.
+   ========================================================================= */
+:root {
+  --ease-out:   cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-in:    cubic-bezier(0.6, 0, 0.8, 0.3);
+  --ease-inout: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast:   120ms;
+  --dur-base:   200ms;
+  --dur-slow:   360ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
