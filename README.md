@@ -63,4 +63,4 @@ public/
 
 ## Deployment
 
-Deployed via Cloudflare Pages. Production branch: `master`. Build command: `npm run build`. Output: `dist`.
+Deployed via Cloudflare Pages. Production branch: `main`. Build command: `npm run build`. Output: `dist`.
