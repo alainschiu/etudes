@@ -49,6 +49,8 @@ const tabs=[{id:'today',label:'Today'},{id:'week',label:'Week'},{id:'month',labe
 export default function Etudes(){
   const s=useEtudesState();
   const isMobile=useIsMobile();
+  // DEBUG: force mobile for testing
+  return <MobileShell s={s}/>;
   if(isMobile) return <MobileShell s={s}/>;
   return <DesktopShell s={s}/>;
 }
