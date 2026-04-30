@@ -1,5 +1,26 @@
 # Update Log
 
+## v0.96.0 — 2026-04-30
+
+- **Works offline** — the app installs as a PWA and caches all assets; loads instantly on repeat visits with no network connection needed
+- **Mobile bottom navigation** — on phones, a fixed bottom tab bar replaces the desktop header tabs; eight tabs with icons; respects iPhone home indicator
+- **Mobile header** — compact 44px bar with logotype and settings icon on small screens; full desktop header unchanged
+- **Mobile footer** — on phones, the footer shows a live session timer and icon buttons for Rest, Record, Metronome, and Drone
+- **Répertoire on mobile** — the Composers/Instruments filter panel slides in as a full-screen overlay instead of pushing the layout
+- **PDF viewer on mobile** — score viewer fills the full screen; spots and bookmarks panel slides below the PDF
+- **Apple Sign-In** — sign in with Apple alongside Google and email
+
+## v0.95.7 — 2026-04-28
+
+- **Google Sign-In** — one-click OAuth via Google alongside email/password
+- **Embeds** — paste a YouTube, Spotify, or Apple Music link into Répertoire's Reference field and an inline player appears below it; also works in Today view
+- **Daily reminder** — optional push notification at a chosen time; toggle and time picker in Settings → Settings
+- **Export as primary action** — Export .md is now a full-width button in Settings → Export; secondary formats remain
+- **Intention in Today** — when a routine is loaded, each session shows its practice intention in dim italic below the section header
+- **Recording archive** — piece recordings use a FIFO rolling archive (10 slots); soft warning at 7, hard warning at 9; recordings can be locked to exempt them from the rolling limit (max 20 locked)
+- **Cross-device placeholder** — when a recording or PDF exists on another device, the entry shows a dashed-stroke placeholder instead of an empty gap
+- **Sync payload warning** — a banner in Settings → Sync appears when the cloud backup exceeds 500 KB, suggesting an export before the limit is reached
+
 ## v0.95.6 — 2026-04-28
 
 - **Logs view** — unified card shell across Daily / Weekly / Monthly: identical border, padding, background, and hover state; 2px top accent as the sole type differentiator (IKB / DIM / LINE_STR); date promoted to 52px italic serif hero; minutes demoted to right-aligned mono badge; eyebrow labels unified to FAINT 10px uppercase
