@@ -25,8 +25,7 @@ import {getItemTime,displayTitle,formatByline} from './lib/items.js';
 import {DisplayHeader,Ring,StageLabels,Waveform,ItemPickerPopup,TargetEdit,TimeWithTarget,ItemTimeEditor,fmtSpotTime,PerformanceChip,SpotRow,SpotsBlock,Tooltip} from './components/shared.jsx';
 import {idbGet} from './lib/storage.js';
 import TodayView from './views/TodayView.jsx';
-import WeekView from './views/WeekView.jsx';
-import MonthView from './views/MonthView.jsx';
+import ReviewView from './views/ReviewView.jsx';
 import RepertoireView from './views/RepertoireView.jsx';
 import RoutinesView from './views/RoutinesView.jsx';
 import {LogsView,LogDrawer} from './views/LogsView.jsx';
@@ -38,11 +37,12 @@ import {SettingsModal,HelpModal,ConfirmModal,PromptModal,SyncConflictModal} from
 const PdfDrawer = lazy(() => import('./components/PdfDrawer.jsx'));
 import useEtudesState from './state/useEtudesState.js';
 
-const tabs=[{id:'today',label:'Today'},{id:'week',label:'Week'},{id:'month',label:'Month'},{id:'repertoire',label:'Repertoire'},{id:'programs',label:'Programs'},{id:'routines',label:'Routines'},{id:'logs',label:'Logs'},{id:'notes',label:'Notes'}];
+const tabs=[{id:'today',label:'Today'},{id:'review',label:'Review'},{id:'repertoire',label:'Répertoire'},{id:'routines',label:'Routines'},{id:'logs',label:'Logs'},{id:'notes',label:'Notes'},{id:'programs',label:'Programs'}];
 
 export default function Etudes(){
   const {isMobile}=useViewport();
   const s=useEtudesState();
+  const [selectedProgramId,setSelectedProgramId]=useState(null);
   const [clockTime,setClockTime]=useState(()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;});
   useEffect(()=>{const tick=()=>{const n=new Date();setClockTime(`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`);};const id=setInterval(tick,10000);return()=>clearInterval(id);},[]);
   const [refBarVisible,setRefBarVisible]=useState(false);
@@ -88,13 +88,12 @@ export default function Etudes(){
       <div className="flex-1 flex overflow-hidden">
         <main className="flex-1 overflow-auto etudes-scroll">
           {view==='today'&&<TodayView {...{...commonProps,view,setView,todaySessions,setTodaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,totalToday,effectiveTotalToday,warmupTimeToday,restToday,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,deleteRecording,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,isRecording,currentBpm:metronome.bpm,refTrackMeta:s.refTrackMeta,refBarItemId:s.refBarItemId,setRefBarItemId:s.setRefBarItemId}}/>}
-          {view==='week'&&<WeekView {...{...commonProps,weekActualSeconds,weekReflection,setWeekReflection,effectiveTotalToday,warmupTimeToday,openLogEntry}}/>}
-          {view==='month'&&<MonthView {...{...commonProps,monthActualSeconds,monthReflection,setMonthReflection,openLogEntry,effectiveTotalToday}}/>}
+          {view==='review'&&<ReviewView {...{...commonProps,weekActualSeconds,weekReflection,setWeekReflection,monthActualSeconds,monthReflection,setMonthReflection,effectiveTotalToday,warmupTimeToday,openLogEntry}}/>}
           {view==='repertoire'&&<RepertoireView {...{...commonProps,setItems:s.setItems,updateItem,deleteItem,setPdfDrawerItemId,activeItemId,activeSpotId,startItem,stopItem,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta:s.pieceRecordingMeta,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,deletePieceRecording:s.deletePieceRecording,lockPieceRecording:s.lockPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,isRecording,currentBpm:metronome.bpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta:s.refTrackMeta,uploadRefTrack:s.uploadRefTrack,deleteRefTrack:s.deleteRefTrack,pdfUrlMap:s.pdfUrlMap,localPieceRecordingIds:s.localPieceRecordingIds,localRefTrackIds:s.localRefTrackIds}}/>}
-          {view==='programs'&&<ProgramsView items={items} programs={programs} setPrograms={setPrograms}/>}
+          {view==='programs'&&<ProgramsView items={items} programs={programs} setPrograms={setPrograms} selectedProgramId={selectedProgramId} setSelectedProgramId={setSelectedProgramId} setView={setView}/>}
           {view==='routines'&&<RoutinesView {...{routines,setRoutines,loadRoutine,setPromptModal,todaySessions,setView,items,loadedRoutineId}}/>}
           {view==='logs'&&<LogsView {...{...commonProps,openLogEntry,freeNotes}}/>}
-          {view==='notes'&&<NotesView {...{freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes}}/>}
+          {view==='notes'&&<NotesView {...{freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes,programs,setSelectedProgramId}}/>}
         </main>
         {view==='today'&&!isMobile&&(
           <aside className="w-72 shrink-0 overflow-auto etudes-scroll" style={{borderLeft:`1px solid ${LINE_MED}`,background:BG}}>

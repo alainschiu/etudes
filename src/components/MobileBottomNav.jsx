@@ -1,7 +1,6 @@
 import React from 'react';
 import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days';
 import BarChart2 from 'lucide-react/dist/esm/icons/bar-chart-2';
-import CalendarRange from 'lucide-react/dist/esm/icons/calendar-range';
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import ListMusic from 'lucide-react/dist/esm/icons/list-music';
 import Repeat from 'lucide-react/dist/esm/icons/repeat';
@@ -11,13 +10,12 @@ import {TEXT,FAINT,IKB,IKB_SOFT,LINE_MED,BG,sans} from '../constants/theme.js';
 
 const ICONS={
   today:CalendarDays,
-  week:BarChart2,
-  month:CalendarRange,
+  review:BarChart2,
   repertoire:BookOpen,
-  programs:ListMusic,
   routines:Repeat,
   logs:ScrollText,
   notes:StickyNote,
+  programs:ListMusic,
 };
 
 export default function MobileBottomNav({tabs,view,setView}){
