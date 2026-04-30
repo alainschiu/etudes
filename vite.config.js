@@ -9,6 +9,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       manifest: false, // use existing public/site.webmanifest
       workbox: {
+        clientsClaim: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
