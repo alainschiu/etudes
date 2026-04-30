@@ -1,7 +1,5 @@
 import {mkSpotId,mkPerfId,mkAttachId} from './items.js';
 
-export const SCHEMA_VERSION=8;
-
 export const IMPORT_MIGRATIONS=[
   {from:1,to:2,migrate:(d)=>{const s=d.state||{};const items=(s.items||[]).map(i=>({...i,instrument:typeof i.instrument==='string'?i.instrument:'',spots:Array.isArray(i.spots)?i.spots:[]}));return {...d,schemaVersion:2,state:{...s,items}};}},
   {from:2,to:3,migrate:(d)=>{const s=d.state||{};const items=(s.items||[]).map(i=>({...i,spots:Array.isArray(i.spots)?i.spots.map(sp=>({...sp,note:typeof sp.note==='string'?sp.note:'',bpmLog:Array.isArray(sp.bpmLog)?sp.bpmLog:[]})):[]}));return {...d,schemaVersion:3,state:{...s,items}};}},

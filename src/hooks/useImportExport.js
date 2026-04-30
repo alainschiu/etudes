@@ -185,7 +185,7 @@ function generateNoteFile(note,todayKey){
   return lines.join('\n');
 }
 
-function generateRepertoireFile(item,todayKey){
+function generateRepertoireFile(item,todayKey,itemTimes){
   const lines=[];
   lines.push(`---`);
   lines.push(`type: ${item.type}`);
@@ -198,7 +198,7 @@ function generateRepertoireFile(item,todayKey){
   lines.push(`catalog: ${item.catalog||'null'}`);
   lines.push(`stage: ${item.stage||'queued'}`);
   lines.push(`started: ${item.startedDate||'null'}`);
-  const lifeTime=0;
+  const lifeTime=Math.round((itemTimes?.[item.id]||0)/60);
   lines.push(`time_invested: ${lifeTime}`);
   lines.push(`tempo_target: ${item.bpmTarget||'null'}`);
   lines.push(`bpm_log:`);
@@ -368,7 +368,7 @@ export default function useImportExport({
     const repUsedSlugs=new Set();
     for(const item of(items||[])){
       const sl=itemSlug(item,repUsedSlugs);
-      zip.file(`${root}repertoire/${sl}.md`,generateRepertoireFile(item,todayKey));
+      zip.file(`${root}repertoire/${sl}.md`,generateRepertoireFile(item,todayKey,itemTimes));
     }
 
     // Programs (audience already stripped above)
