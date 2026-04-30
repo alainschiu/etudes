@@ -31,11 +31,13 @@ A practice journal for musicians. Track daily sessions, time focused work, organ
 ## Development
 
 ```bash
-npm install
-npm run dev        # http://localhost:5173
+npm install           # uses .npmrc legacy-peer-deps=true automatically
+npm run dev           # http://localhost:5173
 npm run build
 npm run preview
 ```
+
+> **Note:** `vite-plugin-pwa@1.2.0` has a peer dependency on Vite ≤ 7; the project uses Vite 8. `.npmrc` sets `legacy-peer-deps=true` to resolve this for both local installs and CI (`npm clean-install`).
 
 ## Sync setup (optional)
 
@@ -70,3 +72,5 @@ public/
 ## Deployment
 
 Deployed via Cloudflare Pages. Production branch: `main`. Build command: `npm run build`. Output: `dist`.
+
+The `.npmrc` at the project root ensures `npm clean-install` (used by Cloudflare) accepts the `vite-plugin-pwa` peer dependency without `--legacy-peer-deps` needing to be set manually in the dashboard.
