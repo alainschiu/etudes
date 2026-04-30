@@ -1026,18 +1026,31 @@
 
       <!-- 14 · Programs -->
       <section class="section" id="programs">
-        <div class="section-eyebrow"><span class="section-num">14</span>Library</div>
+        <div class="section-eyebrow"><span class="section-num">14</span>Programs</div>
         <h2 class="section-title">Programs</h2>
-        <p class="section-lead">Programs are concert set lists — an ordered collection of pieces with a performance date and a total duration. They are for planning what to perform, not how to practice.</p>
+        <p class="section-lead">Programs is a private salon journal — the record of musical thought taking its most intentional public form, however intimate that public may be. A program is a curatorial act: an argument about which pieces belong together, in what order, for what reason. The order is part of the meaning.</p>
 
         <h3>Creating a program</h3>
-        <p>Press <em>New</em> in the Programs tab. Name the program — the name appears in italic serif and can be edited inline by double-clicking. Set a performance date in YYYY-MM-DD format.</p>
+        <p>Press <em>New program</em> at the top right of the Programs view. A new program opens in the editor. Give it a name — in italic serif, the title, not an event label. Set a date, a venue if relevant, and optionally a private note on who was there (audience field — never exported, never shown outside this editor).</p>
 
-        <h3>Adding pieces</h3>
-        <p>Only items of type <em>piece</em> can be added to a program. Use the <em>Add piece</em> picker to search and add from the repertoire. Pieces can be reordered by dragging. The total program duration updates automatically from individual piece lengths set in Repertoire — so keeping the <em>Length</em> field accurate matters here.</p>
+        <h3>Intention and reflection</h3>
+        <p>Above the piece list: an <em>Intention</em> field. Write before the performance: why these pieces, why this order, what you want to say. The intention field locks once the performance date has passed — you can read what you intended, but not revise it. This is deliberate.</p>
+        <p>Below the piece list: a <em>Reflection</em> field. Only writable after the performance date. Shows a dash for future programs. <em>What the evening meant. What the room held. Whether the argument landed.</em></p>
+
+        <h3>The piece list</h3>
+        <p>Only items of type <em>piece</em> can be added to a program. Use the <em>Add piece</em> picker to search by title or composer. Pieces can be reordered by dragging — the order is the argument. Each piece row has an inline annotation field: a single line for a marginal note on that piece, such as <em>attacca</em>, <em>long pause before</em>, or <em>the pivot</em>. Total duration calculates from piece length fields.</p>
+
+        <h3>Program notes</h3>
+        <p>A free markdown field below the reflection, always writable. For program notes, quotes, ideas, and anything belonging to this program's world.</p>
+
+        <h3>Wiki-links</h3>
+        <p>Programs are addressable from the Notes knowledge base. A note can reference a program as <code>[[Program Name]]</code> — when resolved, it navigates to that program's editor. From a program's notes field, <code>[[Note Title]]</code> links back to Notes.</p>
+
+        <h3>Privacy</h3>
+        <p>The <em>audience</em> field is a private memory. It is visible only in the program editor and is never included in any export, list, summary, or <code>_data.json</code>.</p>
 
         <h3>Programs vs. Routines</h3>
-        <p>Routines describe how to practice. Programs describe what to perform. A routine might include technique exercises and warm-ups; a program would never. Programs have performance dates; routines do not. They answer different questions and live in different tabs.</p>
+        <p>Routines describe how to practice. Programs hold the record of performance — private, reflective, permanent. A routine is a score; a program is a journal entry. They live in different tabs and serve different moments.</p>
       </section>
 
 
@@ -1208,43 +1221,28 @@
       </section>
 
 
-      <!-- 21 · Week View -->
+      <!-- 21 · Review (merged Week + Month) -->
       <section class="section" id="week-view">
         <div class="section-eyebrow"><span class="section-num">21</span>Archive</div>
-        <h2 class="section-title">Week View</h2>
-        <p class="section-lead">Retrospective and prospective in equal measure. What happened this week, and what comes next?</p>
+        <h2 class="section-title">Review</h2>
+        <p class="section-lead">A single temporal surface with two scales: Week and Month. A selector at the top of the view switches between them. The last-used scale is remembered across sessions.</p>
 
-        <h3>The bar chart</h3>
-        <p>Seven day bars show relative practice minutes for each day of the current week. Bars scale to the tallest day. Days with no practice show no bar. Hovering over any day highlights the full week context. Clicking a day opens the Log Drawer for that day.</p>
+        <h3>Week scale</h3>
+        <p>Seven day bars show relative practice minutes for each day of the current week. Bars scale to the tallest day. Clicking a day opens the Log Drawer for that day. An IKB ring shows cumulative weekly minutes against the weekly target. Two reflection fields below the chart: <em>Notes, observations, wins</em> and <em>Goals for next week</em>. Past weeks are navigable with arrow controls and are read-only.</p>
 
-        <h3>The activity ring</h3>
-        <p>An IKB SVG ring shows cumulative weekly minutes against the weekly target set in Settings. The ring fills clockwise. When the weekly target is reached, the ring completes silently. No animation spike, no congratulation text.</p>
+        <h3>Month scale</h3>
+        <p>A standard month grid. Each practiced day carries an IKB intensity rail — a small vertical bar whose opacity reflects relative practice intensity. Clicking a practiced day opens the Log Drawer. A monthly ring fills against the monthly target. Two reflection fields: <em>Notes, observations, wins</em> and <em>Goals for next month</em>. Past months are navigable and their reflections are readable and editable retroactively.</p>
 
-        <h3>Navigating past weeks</h3>
-        <p>Arrow controls flank the week date range label. Navigate backward to review previous weeks. Past weeks show their date range — <em>20 – 26 Apr</em> — not the month name. Hovering a past week in the calendar highlights all seven day cells for that week. Click any highlighted day to open its log drawer.</p>
-
-        <h3>Weekly reflection</h3>
-        <p>Two fields below the chart: <em>Notes, observations, wins</em> and <em>Goals for next week</em>. Written at the end of or start of a week. Saved automatically. Past weeks' reflections are read-only.</p>
+        <h3>Scale selector</h3>
+        <p>Two quiet words — <em>Week</em> and <em>Month</em> — in the view header. The active word carries a thin IKB underline. No border, no filled pill.</p>
       </section>
 
 
-      <!-- 22 · Month View -->
+      <!-- 22 · Month View (redirects to Review) -->
       <section class="section" id="month-view">
         <div class="section-eyebrow"><span class="section-num">22</span>Archive</div>
-        <h2 class="section-title">Month View</h2>
-        <p class="section-lead">The view that makes patterns visible. A full calendar, a ring, and two fields of reflection.</p>
-
-        <h3>The calendar</h3>
-        <p>A standard month grid. Each practiced day carries an IKB intensity rail — a small vertical bar whose opacity reflects the proportion of the daily target met. Days with heavy practice glow deeper blue. Days with light practice show a faint trace. Rest days show no rail. Hovering any day highlights its cell and reveals a minute total.</p>
-
-        <h3>The activity ring</h3>
-        <p>The monthly ring fills against the monthly target in Settings. It reads the same as the weekly ring — IKB, 180px, clockwise fill — but represents the full month's accumulated time. The quarter label (Q1, Q2, Q3, Q4) appears as a small eyebrow to orient the month in the year.</p>
-
-        <h3>Navigating past months</h3>
-        <p>Arrow controls adjacent to the month name navigate backward through previous months. Past months are read-only except for the reflection fields. Click any practiced day to open the Log Drawer.</p>
-
-        <h3>Monthly reflection</h3>
-        <p>Two fields: <em>Notes, observations, wins</em> and <em>Goals for next month</em>. Written at the month's end or beginning. Past months' reflections are readable and editable retroactively — a month's meaning can clarify in retrospect.</p>
+        <h2 class="section-title">Month scale</h2>
+        <p class="section-lead">See <a href="#week-view">Review</a> — Week and Month are both part of the Review tab, selectable via the scale toggle.</p>
       </section>
 
 
@@ -1297,7 +1295,7 @@
         </ul>
 
         <h3>What does not sync</h3>
-        <p>Audio recordings (IndexedDB blobs), PDF scores (IndexedDB blobs), and the active session state on Today (which resets daily by design). These remain on the recording device only. <strong>A musician who records a take on one device will not find that audio on another</strong> — the waveform shape and timestamp do sync, so the log shows the recording existed, but the audio file itself does not. Études shows a "Recording on another device" placeholder in place of the waveform on non-originating devices. To transfer audio between devices, use Export → Backup.</p>
+        <p>Audio recordings (IndexedDB blobs), PDF scores (IndexedDB blobs), and the active session state on Today (which resets daily by design). These remain on the recording device only. <strong>A musician who records a take on one device will not find that audio on another</strong> — the waveform shape and timestamp do sync, so the log shows the recording existed, but the audio file itself does not. Recordings are stored on the device where they were made. Back up using <em>Export journal</em>.</p>
 
         <h3>Dirty tracking</h3>
         <p>A <em>localDirtyAt</em> timestamp in localStorage records the moment of any local mutation. A <em>lastCloudSyncAt</em> timestamp records the last confirmed successful cloud write. On sign-in, if <em>localDirtyAt</em> is more recent than <em>lastCloudSyncAt</em>, the app treats local data as dirty and initiates a sync — either automatically or by presenting the conflict resolution modal if cloud data is also present.</p>
@@ -1345,20 +1343,25 @@
       <section class="section" id="export">
         <div class="section-eyebrow"><span class="section-num">26</span>Reference</div>
         <h2 class="section-title">Export</h2>
-        <p class="section-lead">The musician owns their practice in readable form at all times. Études exports the full journal as a single Markdown file.</p>
-
-        <h3>The drag chip</h3>
-        <p>A small <em>.md</em> chip in the header can be dragged to the desktop. On Chromium-based browsers, this produces a Markdown file immediately via the <em>DownloadURL</em> data-transfer format. On Firefox and Safari, the export falls back to a text blob. The Settings panel offers explicit <em>Export .md</em> and <em>Export .txt</em> buttons as reliable alternatives.</p>
+        <p class="section-lead">The musician owns their practice in readable form at all times. <em>Export journal</em> in Settings produces a ZIP archive of the complete journal.</p>
 
         <h3>What the export contains</h3>
-        <p>The complete repertoire with all metadata. Every daily, weekly, and monthly history entry with reflections. All notes. Routine and program definitions. The export is plain text, readable without Études, importable into any Markdown tool. It is not a backup in the technical sense — it does not include audio or PDF binaries.</p>
+        <p>A dated ZIP archive: <code>études-export-YYYY-MM-DD.zip</code>. Inside: <code>journal/</code> with one Markdown file per daily log and one per weekly and monthly reflection; <code>notes/</code> with one Markdown file per note; <code>repertoire/</code> with one Markdown file per item; <code>programs/</code> with one Markdown file per program; <code>recordings/</code> with audio files; <code>scores/</code> with PDF scores; and <code>_data.json</code> with the full machine-readable state.</p>
 
-        <h3>JSON export</h3>
-        <p>A <em>Export JSON</em> option in Settings produces a machine-readable snapshot of the full application state. This can be re-imported using <em>Import</em> in the same panel. JSON export preserves the full data model including recording metadata keys, though audio blobs must be re-attached separately.</p>
+        <h3>Markdown format</h3>
+        <p>Every <code>.md</code> file begins with YAML frontmatter — type, date, and key metadata — followed by a human-readable body. The files are readable in any text editor, Markdown viewer, or Obsidian vault without the app. Wiki links (<code>[[Title]]</code>) are preserved verbatim in note and program bodies.</p>
 
-        <div class="callout callout-warm">
-          <p>A future version will export the journal as a zip of individual Markdown files with YAML frontmatter — one file per session, one per note. This form honors the paper metaphor more faithfully and is the intended export format.</p>
-        </div>
+        <h3>Audio formats</h3>
+        <p>Recordings are in the format the browser's MediaRecorder produces: WebM/Opus on Chrome and Android, MP4/AAC on Safari and iOS. Both are widely supported — VLC plays either. Audio files may be large if there are many recordings.</p>
+
+        <h3>Privacy</h3>
+        <p>The <em>audience</em> field on program records — the private memory of who was present — is never included in any exported file, including <code>_data.json</code>. It stays in the app only.</p>
+
+        <h3>Platform delivery</h3>
+        <p>On iOS PWA and Android, the share sheet opens with the ZIP file. On desktop, the file downloads directly. If the share sheet is dismissed, no fallback download occurs — this is intentional.</p>
+
+        <h3>JSON backup</h3>
+        <p>A separate <em>Backup</em> option in Settings produces a machine-readable JSON snapshot that can be re-imported using <em>Restore</em>. This is a full data backup including blob references. Use it to migrate to a new device.</p>
       </section>
 
 
