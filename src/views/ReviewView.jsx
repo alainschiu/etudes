@@ -13,10 +13,10 @@ export default function ReviewView(props){
   };
 
   return (
-    <div>
-      {/* Scale toggle — two quiet words, IKB underline on active */}
+    <div className="max-w-4xl mx-auto px-12 pt-14 pb-14">
+      {/* Scale toggle — two quiet words, IKB underline on active — part of the heading area */}
       <div
-        className="flex items-center gap-6 px-12 pt-10 pb-0"
+        className="flex items-center gap-6 mb-3"
         style={{fontFamily:sans,fontSize:'11px',letterSpacing:'0.22em',textTransform:'uppercase'}}
       >
         <button
@@ -37,8 +37,8 @@ export default function ReviewView(props){
         </button>
       </div>
 
-      {scale==='week'&&<WeekView {...props}/>}
-      {scale==='month'&&<MonthView {...props}/>}
+      {scale==='week'&&<WeekView {...props} nested/>}
+      {scale==='month'&&<MonthView {...props} nested/>}
     </div>
   );
 }

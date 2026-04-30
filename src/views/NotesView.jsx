@@ -237,18 +237,10 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
     :activeCategoryId;
 
   return (
-    <div className="max-w-6xl mx-auto px-0 pt-14 pb-8">
-      {/* ── Header — offset to align with main content column ── */}
-      <div className="mb-6" style={{paddingLeft:sidebarOpen?'249px':'40px'}}>
-        <div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em',fontFamily:sans}}>Notes</div>
-        <h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'clamp(32px,6vw,56px)',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
-      </div>
-
-      {/* ── Two-column body — bounded height, both columns scroll independently ── */}
-      <div className="flex" style={{height:'calc(100vh - 310px)'}}>
-      {/* ── Left sidebar ── */}
-      {sidebarOpen&&(<aside className="w-52 shrink-0 px-5 flex flex-col overflow-y-auto etudes-scroll" style={{borderRight:`1px solid ${LINE}`,paddingTop:'80px'}}>
-        <div className="flex justify-end mb-2" style={{marginTop:'-12px'}}>
+    <div className="flex max-w-6xl mx-auto h-full">
+      {/* ── Left sidebar — identical structure to Répertoire ── */}
+      {sidebarOpen&&(<aside className="w-52 shrink-0 px-5 pt-8 pb-14 flex flex-col overflow-y-auto etudes-scroll" style={{borderRight:`1px solid ${LINE}`}}>
+        <div className="flex justify-end mb-2">
           <button
             onClick={()=>setSidebarOpen(false)}
             className="group flex items-center gap-1"
@@ -387,8 +379,19 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
         )}
       </aside>)}
 
-      {/* ── Main content ── */}
-      <div className={`flex-1 min-w-0 ${sidebarOpen?'px-10':'px-12'} flex flex-col min-h-0`}>
+      {/* ── Main content column — matches Répertoire structure ── */}
+      <div className={`flex-1 min-w-0 ${sidebarOpen?'px-10':'px-12'} pt-14 pb-14 flex flex-col min-h-0`}>
+        {/* Filter button — above heading, only when sidebar closed (identical to Répertoire) */}
+        <div className="flex items-center gap-2 mb-3">
+          {!sidebarOpen&&<button onClick={()=>setSidebarOpen(true)} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}><BookOpen className="w-3 h-3" strokeWidth={1.25}/> Filter</button>}
+        </div>
+
+        {/* Heading — inside content column, no paddingLeft hack */}
+        <div className="mb-6">
+          <div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em',fontFamily:sans}}>Notes</div>
+          <h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'clamp(32px,6vw,56px)',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
+        </div>
+
         {/* Standard category views */}
         {activeCategoryId==='__daily'&&<div className="overflow-y-auto etudes-scroll flex-1 min-h-0"><DailyReflectionsView history={history||[]}/></div>}
         {activeCategoryId==='__repertoire'&&<div className="overflow-y-auto etudes-scroll flex-1 min-h-0"><RepertoireLogsView items={items||[]}/></div>}
@@ -396,13 +399,8 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
         {/* Free notes list + editor */}
         {!isStdView&&(
           <div className="flex flex-col flex-1 min-h-0">
-            {/* Search bar — Filter toggle + search — single bottom border */}
+            {/* Search bar — single bottom border */}
             <div className="flex items-center gap-3 mb-5 py-2 shrink-0" style={{borderBottom:`1px solid ${LINE_STR}`}}>
-              {!sidebarOpen&&(
-                <button onClick={()=>setSidebarOpen(true)} className="uppercase flex items-center gap-1.5 px-3 py-1.5 shrink-0" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>
-                  <BookOpen className="w-3 h-3" strokeWidth={1.25}/> Filter
-                </button>
-              )}
               <Search className="w-3.5 h-3.5 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
               <input
                 type="text"
@@ -484,7 +482,6 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
             </div>
           </div>
         )}
-      </div>
       </div>
     </div>
   );

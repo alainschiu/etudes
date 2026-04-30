@@ -94,7 +94,7 @@ export default function TodayView(p){
   const hiddenTypes=TYPES.filter(t=>!todaySessions.some(s=>s.type===t));
 
   return (
-    <div className="max-w-3xl mx-auto px-12 py-14">
+    <div className="max-w-4xl mx-auto px-12 py-14">
       <DisplayHeader eyebrow={`${today.toLocaleDateString('en-US',{weekday:'long'})} · ${today.toLocaleDateString('en-US',{month:'long',day:'numeric'})}`} title="Today" titleRight={<AnalogClock size={40}/>} right={
         <div className="flex items-center gap-5">
           <div className="flex items-end gap-5">

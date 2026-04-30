@@ -33,7 +33,7 @@ export default function RoutinesView({routines,setRoutines,loadRoutine,setPrompt
   const removeItemFromRoutineSession=(rid,sidx,itemId)=>setRoutines(routines.map(r=>{if(r.id!==rid)return r;return{...r,sessions:r.sessions.map((s,i)=>{if(i!==sidx)return s;const nt={...(s.itemTargets||{})};delete nt[itemId];return{...s,itemIds:(s.itemIds||[]).filter(x=>x!==itemId),itemTargets:nt};})};}));
   const moveItemInRoutineSession=(rid,sidx,itemIdx,dir)=>setRoutines(routines.map(r=>{if(r.id!==rid)return r;return{...r,sessions:r.sessions.map((s,i)=>{if(i!==sidx)return s;const ids=[...(s.itemIds||[])];const ni=itemIdx+dir;if(ni<0||ni>=ids.length)return s;[ids[itemIdx],ids[ni]]=[ids[ni],ids[itemIdx]];return{...s,itemIds:ids};})};}));
 
-  return (<div className="max-w-3xl mx-auto px-12 py-14">
+  return (<div className="max-w-4xl mx-auto px-12 py-14">
     <DisplayHeader eyebrow="Arrangements" title="Routines" right={<div className="flex items-end gap-3"><button onClick={createNew} className="uppercase flex items-center gap-2 px-3 py-2" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> New</button><button onClick={createFromToday} className="uppercase flex items-center gap-2 px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> From Today</button></div>}/>
     <div className="text-sm italic mb-8" style={{color:MUTED,fontFamily:serif,lineHeight:1.7,fontWeight:300}}>Named arrangements of sessions with specific pieces pinned and optional target times. Load one on Today to replace your current setup.</div>
     <div style={{borderTop:`1px solid ${LINE_STR}`}}>

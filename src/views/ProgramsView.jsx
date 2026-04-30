@@ -8,7 +8,7 @@ import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical';
 import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,serif,serifText,sans,mono} from '../constants/theme.js';
 import {displayTitle,formatByline} from '../lib/items.js';
 import {resolveWikiLink} from '../lib/notes.js';
-import {MarkdownField} from '../components/shared.jsx';
+import {MarkdownField,DisplayHeader} from '../components/shared.jsx';
 import {MarkdownEditor} from '../components/MarkdownEditor.jsx';
 
 function mkId(){return Math.random().toString(36).slice(2,10);}
@@ -114,7 +114,7 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
   };
 
   return(
-    <div className="max-w-2xl mx-auto px-12 py-10">
+    <div className="max-w-4xl mx-auto px-12 py-14">
       {/* Back */}
       <button onClick={onBack} className="flex items-center gap-2 mb-8 uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans}}>
         <ChevronLeft className="w-3 h-3" strokeWidth={1.5}/> All programs
@@ -338,13 +338,8 @@ function ProgramsList({programs,items,onSelect,onNew}){
   },[programs]);
 
   return(
-    <div className="max-w-2xl mx-auto px-12 py-10">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-10">
-        <div>
-          <div className="uppercase mb-2" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.32em',color:DIM}}>Programs</div>
-          <h1 style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,fontSize:'clamp(32px,6vw,56px)',letterSpacing:'-0.02em',lineHeight:1,color:TEXT}}>Programs</h1>
-        </div>
+    <div className="max-w-4xl mx-auto px-12 py-14">
+      <DisplayHeader eyebrow="Programs" title="Programs" right={
         <button
           onClick={onNew}
           className="uppercase flex items-center gap-2 px-4 py-2 shrink-0"
@@ -352,7 +347,7 @@ function ProgramsList({programs,items,onSelect,onNew}){
         >
           <Plus className="w-3 h-3" strokeWidth={1.25}/> New program
         </button>
-      </div>
+      }/>
 
       {sorted.length===0&&(
         <div className="py-20 text-center">
