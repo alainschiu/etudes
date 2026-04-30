@@ -5,7 +5,7 @@ import {useSupabaseAuth} from '../lib/useSupabaseAuth.js';
 import {loadFromCloud,syncToCloud,mergeStates,LS_CLOUD_SYNC_KEY} from '../lib/sync.js';
 import {todayDateStr,shiftDate,getWeekStart,getMonthKey} from '../lib/dates.js';
 import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,mkNoteLogId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem} from '../lib/items.js';
-import {migrateItems,migrateSessions,migrateRoutines,migrateHistory} from '../lib/migrations.js';
+import {migrateItems,migrateSessions,migrateRoutines,migrateHistory,migratePrograms} from '../lib/migrations.js';
 import {buildCompositeDailyReflection,parseTagsFromBody} from '../lib/notes.js';
 import {checkAndSendReminder} from '../lib/notifications.js';
 import {measureSyncPayload} from '../lib/sync.js';
@@ -50,7 +50,7 @@ export default function useEtudesState(){
   const [todaySessions,setTodaySessions]=useState(()=>{const raw=migrateSessions(lsGet('etudes-todaySessions',DEFAULT_SESSIONS)).map(s=>({...s,itemIds:s.itemIds===null?[]:s.itemIds}));return [...raw].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type));});
   const [loadedRoutineId,setLoadedRoutineId]=useState(()=>lsGet('etudes-loadedRoutineId',null));
   const [routines,setRoutines]=useState(()=>migrateRoutines(lsGet('etudes-routines',[])));
-  const [programs,setPrograms]=useState(()=>lsGet('etudes-programs',[]));
+  const [programs,setPrograms]=useState(()=>migratePrograms(lsGet('etudes-programs',[])));
   const [dailyReflection,setDailyReflection]=useState(()=>lsGet('etudes-dailyReflection',''));
   const [weekReflection,setWeekReflection]=useState(()=>lsGet('etudes-weekReflection',{notes:'',goals:''}));
   const [monthReflection,setMonthReflection]=useState(()=>lsGet('etudes-monthReflection',{notes:'',goals:''}));

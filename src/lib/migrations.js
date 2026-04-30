@@ -33,6 +33,16 @@ export const IMPORT_MIGRATIONS=[
 ];
 export function migrateImport(data){let c=data;let v=c.schemaVersion||1;for(const m of IMPORT_MIGRATIONS){if(m.from===v){c=m.migrate(c);v=m.to;c.schemaVersion=v;}}return c;}
 
+export function migratePrograms(programs){
+  return (programs||[]).map(p=>({
+    venue:null,audience:null,itemNotes:{},intention:null,
+    reflection:null,body:null,
+    ...p,
+    // itemNotes re-checked after spread to guard against corrupted non-object values
+    itemNotes:(p.itemNotes&&typeof p.itemNotes==='object')?p.itemNotes:{},
+  }));
+}
+
 export function migrateItems(items){return (items||[]).map(i=>{
   let stage=i.stage;if(stage==='reading')stage='learning';if(stage==='performance')stage='maintenance';
   let rawPdfs=Array.isArray(i.pdfs)?i.pdfs:null;
