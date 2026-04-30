@@ -1,5 +1,11 @@
 # Changelog
 
+## v0.96.0 — 2026-04-30 (patch fixes)
+
+- **`package.json` version sync** — Settings modal reads `appPkg.version` from `package.json` directly (not from `constants/config.js`); `package.json` was still at `0.95.7` while the footer badge showed `0.96.0` — both now read `0.96.0`
+- **PWA `clientsClaim`** — added `clientsClaim: true` to Workbox config so the newly activated service worker immediately takes control of all open tabs; without it the new SW was installed in the background but waited for a full tab close/reopen before serving updated assets
+- **Cloudflare CI fix (`.npmrc`)** — `vite-plugin-pwa@1.2.0` peer-depends on Vite ≤ 7 but the project uses Vite 8; Cloudflare's `npm clean-install` (strict mode) was rejecting this and failing every build since `9a11483`; `.npmrc` with `legacy-peer-deps=true` fixes it for both local installs and CI without touching the build command
+
 ## v0.96.0 — 2026-04-30
 
 ### Phase 2 — Mobile PWA Redesign
