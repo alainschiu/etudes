@@ -1,4 +1,5 @@
 import React, {useState, useMemo, useEffect} from 'react';
+import useViewport from '../hooks/useViewport.js';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
 import Plus from 'lucide-react/dist/esm/icons/plus';
@@ -72,6 +73,7 @@ const eInM={...eIn,fontFamily:'ui-monospace,monospace',fontSize:'13px'};
 const selectOnFocus=(e)=>e.currentTarget.select();
 
 export default function RepertoireView(p){
+  const {isMobile}=useViewport();
   const {items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta,uploadRefTrack,deleteRefTrack,pdfUrlMap,localPieceRecordingIds,localRefTrackIds}=p;
   const [search,setSearch]=useState('');const [filterType,setFilterType]=useState('');const [filterComposer,setFilterComposer]=useState('');const [filterStyle,setFilterStyle]=useState('');const [filterStatus,setFilterStatus]=useState('');const [filterInstrument,setFilterInstrument]=useState('');
   const [sortBy,setSortBy]=useState('');
@@ -226,8 +228,18 @@ export default function RepertoireView(p){
   return (<><div className="flex max-w-6xl mx-auto">
     <datalist id="rep-composer-list">{uniqueComposerNames.map(c=>(<option key={c} value={c}/>))}</datalist>
     <datalist id="rep-instrument-list">{uniqueInstrumentNames.map(c=>(<option key={c} value={c}/>))}</datalist>
-    {sidebarOpen&&(<aside className="w-52 shrink-0 px-5 pt-8 pb-14 space-y-6" style={{borderRight:`1px solid ${LINE}`}}><div className="mb-4 flex justify-end"><button onClick={()=>setSidebarOpen(false)} className="group flex items-center gap-1" style={{color:DIM,cursor:'pointer',transition:'color 120ms'}} onMouseEnter={e=>e.currentTarget.style.color=MUTED} onMouseLeave={e=>e.currentTarget.style.color=DIM}><span className="opacity-0 group-hover:opacity-100 uppercase" style={{fontFamily:sans,fontSize:'8px',letterSpacing:'0.22em',transition:'opacity 120ms'}}>Collapse</span><ChevronDown className="w-3.5 h-3.5" strokeWidth={1.25}/></button></div><SidebarFacet title="Composers" icon={<Users className="w-3 h-3" strokeWidth={1.25}/>} open={composerOpen} setOpen={setComposerOpen} entries={allComposers} activeValue={filterComposer} onSelect={setFilterComposer} emptyText="No composers yet."/><SidebarFacet title="Instruments" icon={<Guitar className="w-3 h-3" strokeWidth={1.25}/>} open={instrumentOpen} setOpen={setInstrumentOpen} entries={allInstruments} activeValue={filterInstrument} onSelect={setFilterInstrument} emptyText="No instruments set."/></aside>)}
-    <div className={`flex-1 min-w-0 ${sidebarOpen?'px-10':'px-12'} py-14`}>
+    {sidebarOpen&&(isMobile?(
+      <div className="fixed inset-0 z-50 flex" style={{background:'rgba(0,0,0,0.55)'}} onClick={()=>setSidebarOpen(false)}>
+        <aside className="w-72 h-full overflow-auto etudes-scroll px-5 pt-8 pb-14 space-y-6" style={{background:BG,borderRight:`1px solid ${LINE}`}} onClick={e=>e.stopPropagation()}>
+          <div className="mb-4 flex justify-end"><button onClick={()=>setSidebarOpen(false)} style={{color:DIM}}><X className="w-4 h-4" strokeWidth={1.25}/></button></div>
+          <SidebarFacet title="Composers" icon={<Users className="w-3 h-3" strokeWidth={1.25}/>} open={composerOpen} setOpen={setComposerOpen} entries={allComposers} activeValue={filterComposer} onSelect={setFilterComposer} emptyText="No composers yet."/>
+          <SidebarFacet title="Instruments" icon={<Guitar className="w-3 h-3" strokeWidth={1.25}/>} open={instrumentOpen} setOpen={setInstrumentOpen} entries={allInstruments} activeValue={filterInstrument} onSelect={setFilterInstrument} emptyText="No instruments set."/>
+        </aside>
+      </div>
+    ) : (
+      <aside className="w-52 shrink-0 px-5 pt-8 pb-14 space-y-6" style={{borderRight:`1px solid ${LINE}`}}><div className="mb-4 flex justify-end"><button onClick={()=>setSidebarOpen(false)} className="group flex items-center gap-1" style={{color:DIM,cursor:'pointer',transition:'color 120ms'}} onMouseEnter={e=>e.currentTarget.style.color=MUTED} onMouseLeave={e=>e.currentTarget.style.color=DIM}><span className="opacity-0 group-hover:opacity-100 uppercase" style={{fontFamily:sans,fontSize:'8px',letterSpacing:'0.22em',transition:'opacity 120ms'}}>Collapse</span><ChevronDown className="w-3.5 h-3.5" strokeWidth={1.25}/></button></div><SidebarFacet title="Composers" icon={<Users className="w-3 h-3" strokeWidth={1.25}/>} open={composerOpen} setOpen={setComposerOpen} entries={allComposers} activeValue={filterComposer} onSelect={setFilterComposer} emptyText="No composers yet."/><SidebarFacet title="Instruments" icon={<Guitar className="w-3 h-3" strokeWidth={1.25}/>} open={instrumentOpen} setOpen={setInstrumentOpen} entries={allInstruments} activeValue={filterInstrument} onSelect={setFilterInstrument} emptyText="No instruments set."/></aside>
+    ))}
+    <div className={`flex-1 min-w-0 ${isMobile?'px-4 py-8':(sidebarOpen?'px-10':'px-12')+' py-14'}`}>
       <div className="flex items-center gap-2 mb-3">{!sidebarOpen&&<button onClick={()=>setSidebarOpen(true)} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}><Users className="w-3 h-3" strokeWidth={1.25}/> Filter</button>}</div>
       <DisplayHeader eyebrow="Library" title="Repertoire"/>
       <div className="mb-5" style={{borderTop:`1px solid ${LINE_STR}`}}>
@@ -269,7 +281,7 @@ export default function RepertoireView(p){
   </div>
   {/* ── Global A/B comparison bar (cross-piece only) ──────────────────── */}
   {globalAbA&&globalAbB&&globalAbA.itemId!==globalAbB.itemId&&(
-    <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:40,background:BG,borderTop:`1px solid ${LINE_STR}`,boxShadow:'0 -4px 24px rgba(0,0,0,0.5)'}}>
+    <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:40,background:BG,borderTop:`1px solid ${LINE_STR}`,boxShadow:'0 -4px 24px rgba(0,0,0,0.5)',paddingBottom:isMobile?'56px':undefined}}>
       <div className="max-w-6xl mx-auto px-12">
         {/* Header */}
         <div className="flex items-center gap-3 py-2" style={{borderBottom:`1px solid ${LINE}`}}>

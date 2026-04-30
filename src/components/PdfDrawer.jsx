@@ -1,4 +1,5 @@
 import React,{useState,useEffect,useRef,useCallback} from 'react';
+import useViewport from '../hooks/useViewport.js';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Upload from 'lucide-react/dist/esm/icons/upload';
 import Plus from 'lucide-react/dist/esm/icons/plus';
@@ -31,6 +32,7 @@ export default function PdfDrawer({
   addSpot,updateSpot,deleteSpot,editSpotTime,
   jumpToPageRef,
 }){
+  const {isMobile}=useViewport();
   const [activePdfId,setActivePdfId]=useState(pdfItem.defaultPdfId||pdfItem.pdfs?.[0]?.id||null);
   const [dragOver,setDragOver]=useState(false);
   const [renamingId,setRenamingId]=useState(null);
@@ -171,7 +173,7 @@ export default function PdfDrawer({
   const eIn={background:'transparent',color:TEXT,border:'none',outline:'none',fontFamily:mono,fontSize:'11px'};
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{padding:expanded?0:'24px',background:'rgba(0,0,0,0.85)',backdropFilter:'blur(8px)'}}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{padding:(isMobile||expanded)?0:'24px',background:'rgba(0,0,0,0.85)',backdropFilter:'blur(8px)'}}>
       <div className="absolute inset-0" onClick={onClose}/>
       <div className="relative w-full h-full flex flex-col" style={{maxWidth:expanded?'100%':'112rem',background:BG,border:expanded?'none':`1px solid ${LINE_STR}`,boxShadow:expanded?'none':'0 20px 60px rgba(0,0,0,0.8)'}}>
 
@@ -285,7 +287,7 @@ export default function PdfDrawer({
         )}
 
         {/* Main body: viewer + sidebar */}
-        <div className="flex-1 flex overflow-hidden" style={{userSelect:dragging?'none':'auto'}}>
+        <div className="flex-1 flex overflow-hidden" style={{userSelect:dragging?'none':'auto',flexDirection:isMobile?'column':'row'}}>
 
           {/* PDF viewer area */}
           <div className="flex-1 relative overflow-hidden"
@@ -339,7 +341,7 @@ export default function PdfDrawer({
           />
 
           {/* Sidebar */}
-          <div style={{width:sidebarW,flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderLeft:`1px solid ${LINE_MED}`}}>
+          <div style={isMobile?{height:'240px',flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderTop:`1px solid ${LINE_MED}`}:{width:sidebarW,flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderLeft:`1px solid ${LINE_MED}`}}>
             {/* Sidebar tabs */}
             <div className="flex items-center shrink-0" style={{borderBottom:`1px solid ${LINE}`}}>
               {[{id:'spots',icon:<Crosshair className="w-3 h-3" strokeWidth={1.25}/>,label:'Spots'},

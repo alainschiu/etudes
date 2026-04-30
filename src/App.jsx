@@ -1,4 +1,6 @@
 import React,{useState,useEffect,Suspense,lazy} from 'react';
+import useViewport from './hooks/useViewport.js';
+import MobileBottomNav from './components/MobileBottomNav.jsx';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
 import Plus from 'lucide-react/dist/esm/icons/plus';
@@ -40,6 +42,7 @@ import useEtudesState from './state/useEtudesState.js';
 const tabs=[{id:'today',label:'Today'},{id:'week',label:'Week'},{id:'month',label:'Month'},{id:'repertoire',label:'Repertoire'},{id:'programs',label:'Programs'},{id:'routines',label:'Routines'},{id:'logs',label:'Logs'},{id:'notes',label:'Notes'}];
 
 export default function Etudes(){
+  const {isMobile}=useViewport();
   const s=useEtudesState();
   const [clockTime,setClockTime]=useState(()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;});
   useEffect(()=>{const tick=()=>{const n=new Date();setClockTime(`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`);};const id=setInterval(tick,10000);return()=>clearInterval(id);},[]);
@@ -56,20 +59,33 @@ export default function Etudes(){
       <style>{`.etudes-scroll::-webkit-scrollbar{height:4px;width:4px}.etudes-scroll::-webkit-scrollbar-track{background:transparent}.etudes-scroll::-webkit-scrollbar-thumb{background:rgba(244,238,227,0.15);border-radius:0}.etudes-scroll::-webkit-scrollbar-thumb:hover{background:rgba(244,238,227,0.32)}.etudes-scroll{scrollbar-width:thin;scrollbar-color:rgba(244,238,227,0.15) transparent}.drag-ghost{opacity:0.35}.target-hover-reveal{opacity:0;transition:opacity 0.15s}.group:hover .target-hover-reveal{opacity:1}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}.toast-enter{animation:slideUp 0.25s ease-out}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield;appearance:textfield}`}</style>
       {storageQuotaHit&&(<div className="shrink-0 px-10 py-2 flex items-center gap-3" style={{background:'#3D1A00',borderBottom:`1px solid rgba(201,126,74,0.4)`}}><span style={{color:WARM,fontSize:'11px',letterSpacing:'0.12em'}}>⚠ Storage full — new data is kept in memory only and will be lost when the tab closes. Export a backup to preserve your session.</span><button onClick={()=>setStorageQuotaHit(false)} style={{color:WARM,marginLeft:'auto',opacity:0.7,fontSize:'11px'}}>✕</button></div>)}
       <header className="shrink-0" style={{borderBottom:`1px solid ${LINE_MED}`}}>
-        <div className="flex items-center px-10 h-16">
-          <div className="flex items-baseline gap-3"><div className="w-1.5 h-1.5 rounded-full" style={{background:IKB}}/><span className="text-3xl tracking-tight" style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,letterSpacing:'-0.01em'}}>Études</span><span className="text-xs uppercase tracking-widest ml-2" style={{color:FAINT,fontWeight:300,fontSize:'10px',letterSpacing:'0.28em'}}>a practice journal</span></div>
-          <div className="ml-auto flex items-center gap-5 relative">
-            <span className="tabular-nums" style={{fontFamily:mono,color:MUTED,fontSize:'13px',letterSpacing:'0.04em'}}>{clockTime}</span>
-            <div draggable onDragStart={handleChipDrag} onDragEnd={handleChipDragEnd} onClick={()=>exportLog('md')} className="uppercase flex items-center gap-2 cursor-pointer select-none px-2 py-1 transition" style={{color:MUTED,fontSize:'10px',letterSpacing:'0.25em',border:`1px dashed ${LINE_MED}`}} title="Click to download .md — or drag to desktop (Chromium)"><FileText className="w-3 h-3" strokeWidth={1.25}/> .md</div>
-            <Tooltip shortcut="?" label="Réglages"><button onClick={()=>setShowSettings(true)} className="uppercase flex items-center gap-2 transition" style={{color:MUTED,fontSize:'10px',letterSpacing:'0.25em'}}><Settings className="w-3 h-3" strokeWidth={1.25}/> Réglages</button></Tooltip>
-            <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)importJsonFile(f);e.target.value='';}}/>
+        {isMobile?(
+          <div className="flex items-center px-4 h-11">
+            <div className="flex items-baseline gap-2"><div className="w-1.5 h-1.5 rounded-full" style={{background:IKB}}/><span style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'20px',letterSpacing:'-0.01em'}}>Études</span></div>
+            <div className="ml-auto flex items-center gap-3">
+              <Tooltip shortcut="?" label="Réglages"><button onClick={()=>setShowSettings(true)} style={{color:MUTED,display:'flex',alignItems:'center',padding:'6px'}}><Settings className="w-5 h-5" strokeWidth={1.25}/></button></Tooltip>
+              <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)importJsonFile(f);e.target.value='';}}/>
+            </div>
           </div>
-        </div>
-        {storageMode==='memory'&&(<div className="px-10 py-2 flex items-center justify-center" style={{borderTop:`1px dashed ${LINE_MED}`,background:SURFACE}}><span className="uppercase tabular-nums" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.28em'}}>Storage unavailable · this session will not be saved</span></div>)}
-        <nav className="flex px-10" style={{borderTop:`1px solid ${LINE}`}}>
-          {tabs.map(t=>(<button key={t.id} onClick={()=>setView(t.id)} className="relative py-3.5 mr-10 uppercase transition" style={{color:view===t.id?TEXT:FAINT,fontWeight:400,fontSize:'10px',letterSpacing:'0.28em'}}>{t.label}{view===t.id&&<span className="absolute bottom-0 left-0 right-0" style={{height:'1px',background:IKB}}/>}</button>))}
-        </nav>
+        ):(
+          <>
+          <div className="flex items-center px-10 h-16">
+            <div className="flex items-baseline gap-3"><div className="w-1.5 h-1.5 rounded-full" style={{background:IKB}}/><span className="text-3xl tracking-tight" style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,letterSpacing:'-0.01em'}}>Études</span><span className="text-xs uppercase tracking-widest ml-2" style={{color:FAINT,fontWeight:300,fontSize:'10px',letterSpacing:'0.28em'}}>a practice journal</span></div>
+            <div className="ml-auto flex items-center gap-5 relative">
+              <span className="tabular-nums" style={{fontFamily:mono,color:MUTED,fontSize:'13px',letterSpacing:'0.04em'}}>{clockTime}</span>
+              <div draggable onDragStart={handleChipDrag} onDragEnd={handleChipDragEnd} onClick={()=>exportLog('md')} className="uppercase flex items-center gap-2 cursor-pointer select-none px-2 py-1 transition" style={{color:MUTED,fontSize:'10px',letterSpacing:'0.25em',border:`1px dashed ${LINE_MED}`}} title="Click to download .md — or drag to desktop (Chromium)"><FileText className="w-3 h-3" strokeWidth={1.25}/> .md</div>
+              <Tooltip shortcut="?" label="Réglages"><button onClick={()=>setShowSettings(true)} className="uppercase flex items-center gap-2 transition" style={{color:MUTED,fontSize:'10px',letterSpacing:'0.25em'}}><Settings className="w-3 h-3" strokeWidth={1.25}/> Réglages</button></Tooltip>
+              <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)importJsonFile(f);e.target.value='';}}/>
+            </div>
+          </div>
+          {storageMode==='memory'&&(<div className="px-10 py-2 flex items-center justify-center" style={{borderTop:`1px dashed ${LINE_MED}`,background:SURFACE}}><span className="uppercase tabular-nums" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.28em'}}>Storage unavailable · this session will not be saved</span></div>)}
+          <nav className="flex px-10" style={{borderTop:`1px solid ${LINE}`}}>
+            {tabs.map(t=>(<button key={t.id} onClick={()=>setView(t.id)} className="relative py-3.5 mr-10 uppercase transition" style={{color:view===t.id?TEXT:FAINT,fontWeight:400,fontSize:'10px',letterSpacing:'0.28em'}}>{t.label}{view===t.id&&<span className="absolute bottom-0 left-0 right-0" style={{height:'1px',background:IKB}}/>}</button>))}
+          </nav>
+          </>
+        )}
       </header>
+      {isMobile&&storageMode==='memory'&&(<div className="shrink-0 px-4 py-1.5 flex items-center justify-center" style={{background:SURFACE,borderBottom:`1px dashed ${LINE_MED}`}}><span className="uppercase tabular-nums" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.28em'}}>Storage unavailable · session will not be saved</span></div>)}
       <div className="flex-1 flex overflow-hidden">
         <main className="flex-1 overflow-auto etudes-scroll">
           {view==='today'&&<TodayView {...{...commonProps,view,setView,todaySessions,setTodaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,totalToday,effectiveTotalToday,warmupTimeToday,restToday,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,deleteRecording,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,isRecording,currentBpm:metronome.bpm,refTrackMeta:s.refTrackMeta,refBarItemId:s.refBarItemId,setRefBarItemId:s.setRefBarItemId}}/>}
@@ -81,7 +97,7 @@ export default function Etudes(){
           {view==='logs'&&<LogsView {...{...commonProps,openLogEntry,freeNotes}}/>}
           {view==='notes'&&<NotesView {...{freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes}}/>}
         </main>
-        {view==='today'&&(
+        {view==='today'&&!isMobile&&(
           <aside className="w-72 shrink-0 overflow-auto etudes-scroll" style={{borderLeft:`1px solid ${LINE_MED}`,background:BG}}>
             <div className="p-8">
               <div className="flex items-baseline justify-between mb-5"><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>En cours</div><div className="tabular-nums" style={{color:DIM,fontSize:'10px'}}>{workingOn.length}</div></div>
@@ -133,7 +149,8 @@ export default function Etudes(){
           </div>
         );
       })()}
-      <Footer {...{metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,streak,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,attachDailyToPiece:s.attachDailyToPiece,todaySessions,items}}/>
+      {isMobile&&<MobileBottomNav tabs={tabs} view={view} setView={setView}/>}
+      <Footer {...{isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,streak,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,attachDailyToPiece:s.attachDailyToPiece,todaySessions,items}}/>
       {trash&&<UndoToast item={trash.item} onUndo={undoDelete} onDismiss={dismissTrash}/>}
       {showSettings&&<SettingsModal settings={settings} setSettings={setSettings} storageMode={storageMode} onExportMd={()=>exportLog('md')} onExportTxt={()=>exportLog('txt')} onExportJson={exportJson} onImportClick={()=>importInputRef.current?.click()} onClose={()=>setShowSettings(false)} user={s.user} signIn={s.signIn} signUp={s.signUp} signOut={s.signOut} signInWithGoogle={s.signInWithGoogle} signInWithApple={s.signInWithApple} syncStatus={s.syncStatus} lastSyncedAt={s.lastSyncedAt} syncNow={s.syncNow} syncPayloadWarning={s.syncPayloadWarning}/>}
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
@@ -143,7 +160,7 @@ export default function Etudes(){
       {promptModal&&<PromptModal {...promptModal} onCancel={()=>setPromptModal(null)}/>}
       {syncConflictModal&&<SyncConflictModal {...syncConflictModal}/>}
       {restoreBusy&&<div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}}><div className="px-6 py-4 flex items-center gap-3" style={{background:SURFACE,border:`1px solid ${LINE_STR}`}}><div className="w-2 h-2 rounded-full animate-pulse" style={{background:IKB,boxShadow:`0 0 8px ${IKB}`}}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Working — do not close</span></div></div>}
-      <div className="fixed bottom-3 right-4 pointer-events-none" style={{zIndex:10}}><span className="tabular-nums" style={{color:DIM,fontSize:'10px',letterSpacing:'0.18em',fontFamily:mono}}>v{APP_VERSION}</span></div>
+      {!isMobile&&<div className="fixed bottom-3 right-4 pointer-events-none" style={{zIndex:10}}><span className="tabular-nums" style={{color:DIM,fontSize:'10px',letterSpacing:'0.18em',fontFamily:mono}}>v{APP_VERSION}</span></div>}
     </div>
   );
 }

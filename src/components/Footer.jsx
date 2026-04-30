@@ -90,7 +90,7 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
 
 function AccelProgress({metronome}){if(!metronome.accel.enabled)return null;const s=metronome.bpm;const tgt=metronome.accel.targetBpm;const r=s>=tgt;const pct=r?100:Math.min(100,((s-60)/Math.max(1,tgt-60))*100);const u=metronome.accel.unit||'bar';return (<div className="mt-3 flex items-center gap-3"><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Accel</span><div className="flex-1 h-px relative" style={{background:LINE_MED}}><div className="absolute inset-y-0 left-0" style={{background:r?WARM:IKB,width:`${pct}%`,height:'1px'}}/></div><span className="tabular-nums shrink-0" style={{color:r?WARM:MUTED,fontSize:'10px'}}>{r?`▲ ${tgt}`:`${s} → ${tgt} · +${metronome.accel.stepBpm}/${metronome.accel.every}${u[0]}`}</span></div>);}
 
-export default function Footer({metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,attachDailyToPiece,todaySessions,items}){
+export default function Footer({isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,attachDailyToPiece,todaySessions,items}){
   const [quickNoteText,setQuickNoteText]=useState('');
   const [attachTarget,setAttachTarget]=useState('');
   // Recording elapsed timer (covers both daily and piece recording)
@@ -227,6 +227,37 @@ export default function Footer({metronome,setMetronome,metroExpanded,setMetroExp
 
     {quickNoteOpen&&activeItemId&&(<div className="px-10 py-3 flex items-center gap-3" style={{borderBottom:`1px solid ${LINE}`,background:SURFACE}}><MessageSquarePlus className="w-3.5 h-3.5 shrink-0" strokeWidth={1.25} style={{color:IKB}}/><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Note {activeSpot&&<span style={{color:IKB,marginLeft:'6px'}}>· {activeSpot.label}</span>}</span><input autoFocus value={quickNoteText} onChange={e=>setQuickNoteText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submit();else if(e.key==='Escape'){setQuickNoteText('');setQuickNoteOpen(false);}}} onBlur={submit} placeholder="Jot a quick note for this session…" className="flex-1 text-sm focus:outline-none" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_MED}`,fontFamily:serif,fontSize:'14px',paddingBottom:'2px'}}/><span className="uppercase shrink-0" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>Enter to save · Esc to cancel</span></div>)}
 
+    {isMobile?(
+      /* ── Mobile footer bar ──────────────────────────────────────────────── */
+      <div style={{display:'flex',alignItems:'stretch',minHeight:'52px',paddingLeft:'12px',paddingRight:'12px',gap:'8px'}}>
+        {/* Timer block — full-width left */}
+        <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',minWidth:0}}>
+          <div className="uppercase flex items-center gap-1" style={{color:activeItem?IKB:FAINT,fontSize:'9px',letterSpacing:'0.22em',lineHeight:1}}>
+            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${(activeItemId||isResting)?'animate-pulse':''}`} style={{background:activeItemId?IKB:(isResting?MUTED:DIM)}}/>
+            {activeSpot?<span className="italic truncate" style={{fontFamily:serif,fontSize:'9px'}}>{activeSpot.label}</span>:statusLabel}
+          </div>
+          <div className="flex items-baseline gap-2 mt-0.5">
+            <span className="tabular-nums" style={{fontFamily:mono,color:statusColor,fontWeight:300,fontSize:'22px',lineHeight:1}}>{fmt(statusSec)}</span>
+            {activeItemId&&<button onClick={stopItem} className="uppercase px-2.5 py-1 shrink-0" style={{border:`1px solid ${LINE_STR}`,color:TEXT,fontSize:'9px',letterSpacing:'0.18em',minHeight:'32px'}}>Stop</button>}
+          </div>
+        </div>
+        {/* Icon cluster — right side */}
+        <div style={{display:'flex',alignItems:'center',gap:'4px',flexShrink:0}}>
+          <button onClick={toggleRest} disabled={dayClosed&&!isResting} style={{minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${isResting?IKB:'transparent'}`,color:isResting?IKB:((dayClosed&&!isResting)?FAINT:MUTED),background:isResting?IKB_SOFT:'transparent',cursor:(dayClosed&&!isResting)?'not-allowed':'pointer'}}>
+            <Coffee className="w-4 h-4" strokeWidth={1.25}/>
+          </button>
+          <button onClick={handleRecordClick} disabled={dayClosed&&!anyRecording} style={{minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${anyRecording?'#A93226':'transparent'}`,color:anyRecording?'#A93226':((dayClosed&&!anyRecording)?FAINT:MUTED),background:anyRecording?'rgba(169,50,38,0.08)':'transparent',cursor:(dayClosed&&!anyRecording)?'not-allowed':'pointer'}}>
+            {anyRecording?<Square className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>:<Mic className="w-4 h-4" strokeWidth={1.25}/>}
+          </button>
+          <button onClick={()=>setMetroExpanded(x=>!x)} style={{minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${metronome.running?IKB:'transparent'}`,color:metronome.running?IKB:MUTED,background:metronome.running?IKB_SOFT:'transparent'}}>
+            <MetronomeIcon size={16}/>
+          </button>
+          <button onClick={()=>setDroneExpanded(x=>!x)} style={{minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${drone.running?IKB:'transparent'}`,color:drone.running?IKB:MUTED,background:drone.running?IKB_SOFT:'transparent'}}>
+            <Waves className="w-4 h-4" strokeWidth={1.25}/>
+          </button>
+        </div>
+      </div>
+    ):(
     <div className="h-16 flex items-stretch px-10 gap-6">
       {/* ── Unified stat grid: 3 cols share label-row + value-row baselines ── */}
       <div className="flex items-stretch flex-1 min-w-0 gap-0" style={{paddingTop:'10px',paddingBottom:'8px'}}>
@@ -278,5 +309,6 @@ export default function Footer({metronome,setMetronome,metroExpanded,setMetroExp
         {canLog&&(<Tooltip shortcut="L" label={activeSpotId?'Log to spot':'Log BPM'}><button onClick={logTempo} className="uppercase flex items-center gap-1 px-2 py-1 shrink-0" style={{color:IKB,border:`1px solid ${IKB}`,fontSize:'9px',letterSpacing:'0.22em',background:IKB_SOFT}}><TrendingUp className="w-3 h-3" strokeWidth={1.25}/> {activeSpotId?'log→spot':'log'}</button></Tooltip>)}
       </div>
     </div>
+    )}
   </footer>);
 }
