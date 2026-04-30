@@ -107,9 +107,17 @@ function SidebarSection({label,open,onToggle,count,children}){
 }
 
 // ── Main NotesView ────────────────────────────────────────────────────────
-export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes}){
+export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes,programs,setSelectedProgramId,requestedNoteId,setRequestedNoteId}){
   const [activeCategoryId,setActiveCategoryId]=useState('__all');
   const [activeNoteId,setActiveNoteId]=useState(freeNotes[0]?.id);
+
+  // Consume external navigation requests (e.g. from Programs body wiki-links)
+  useEffect(()=>{
+    if(requestedNoteId){
+      setActiveNoteId(requestedNoteId);
+      if(setRequestedNoteId)setRequestedNoteId(null);
+    }
+  },[requestedNoteId]);
   const [query,setQuery]=useState('');
   const [tagSearch,setTagSearch]=useState('');
   const [addingCategory,setAddingCategory]=useState(false);
@@ -210,8 +218,13 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
     }else if(resolved.type==='spot'){
       if(setExpandedItemId)setExpandedItemId(resolved.target.itemId);
       if(setView)setView('repertoire');
+    }else if(resolved.type==='program'){
+      if(setSelectedProgramId)setSelectedProgramId(resolved.target);
+      if(setView)setView('programs');
+    }else if(resolved.type==='note'){
+      setActiveNoteId(resolved.target);
     }
-  },[history,openLogEntry,setExpandedItemId,setView]);
+  },[history,openLogEntry,setExpandedItemId,setView,setSelectedProgramId]);
 
   const isStdView=activeCategoryId==='__daily'||activeCategoryId==='__repertoire';
 
@@ -461,6 +474,8 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
                     onWikiLinkClick={handleWikiLinkClick}
                     items={items||[]}
                     history={history||[]}
+                    programs={programs||[]}
+                    notes={freeNotes||[]}
                   />
                 ):(
                   <div className="italic" style={{color:FAINT,fontFamily:serif}}>Select or create a note.</div>
@@ -476,13 +491,13 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
 }
 
 // ── Note editor ───────────────────────────────────────────────────────────
-function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLinkClick, items, history}){
+function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLinkClick, items, history, programs, notes}){
   const [catOpen,setCatOpen]=useState(false);
   const [viewMode,setViewMode]=useState(false);
   const handleWikiClick=useCallback((rawText)=>{
-    const resolved=resolveWikiLink(rawText,items,history);
+    const resolved=resolveWikiLink(rawText,items,history,programs,notes);
     if(resolved)onWikiLinkClick?.(resolved);
-  },[items,history,onWikiLinkClick]);
+  },[items,history,programs,notes,onWikiLinkClick]);
 
   return (
     <div>

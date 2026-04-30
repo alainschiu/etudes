@@ -21,11 +21,13 @@ export function scoreMatch(querySlug,candidateSlug){
 // ── Wiki-link resolution ───────────────────────────────────────────────────
 
 // Returns {type, target} or null.
-// type: 'day' | 'item' | 'spot'
+// type: 'day' | 'item' | 'spot' | 'program' | 'note'
 // target for 'day': date string
 // target for 'item': item id
 // target for 'spot': {itemId, spotId}
-export function resolveWikiLink(rawText, items, history){
+// target for 'program': program id
+// target for 'note': note id
+export function resolveWikiLink(rawText, items, history, programs, notes){
   const text=(rawText||'').trim();
 
   // Date pattern: YYYY-MM-DD
@@ -76,6 +78,27 @@ export function resolveWikiLink(rawText, items, history){
     if(score>bestScore){bestScore=score;bestItem=item;}
   }
   if(bestScore>=1&&bestItem)return {type:'item',target:bestItem.id};
+
+  // Program name lookup
+  if(Array.isArray(programs)&&programs.length>0){
+    let bestProg=null;let bestProgScore=0;
+    for(const prog of programs){
+      const sc=scoreMatch(query,slugify(prog.name||''));
+      if(sc>bestProgScore){bestProgScore=sc;bestProg=prog;}
+    }
+    if(bestProgScore>=2&&bestProg)return {type:'program',target:bestProg.id};
+  }
+
+  // Note title lookup
+  if(Array.isArray(notes)&&notes.length>0){
+    let bestNote=null;let bestNoteScore=0;
+    for(const note of notes){
+      const sc=scoreMatch(query,slugify(note.title||''));
+      if(sc>bestNoteScore){bestNoteScore=sc;bestNote=note;}
+    }
+    if(bestNoteScore>=2&&bestNote)return {type:'note',target:bestNote.id};
+  }
+
   return null;
 }
 

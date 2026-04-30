@@ -1,11 +1,15 @@
 import React,{useState,useMemo,useCallback} from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
 import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
 import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical';
-import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,serif,serifText,sans,mono} from '../constants/theme.js';
+import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,serif,serifText,sans,mono} from '../constants/theme.js';
 import {displayTitle,formatByline} from '../lib/items.js';
+import {resolveWikiLink} from '../lib/notes.js';
 import {MarkdownField} from '../components/shared.jsx';
+import {MarkdownEditor} from '../components/MarkdownEditor.jsx';
 
 function mkId(){return Math.random().toString(36).slice(2,10);}
 
@@ -54,12 +58,21 @@ function ItemPicker({items,existingIds,onPick,onClose}){
 }
 
 // ── Program editor ───────────────────────────────────────────────────────────
-function ProgramEditor({program,items,onUpdate,onBack}){
+function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiveNoteId}){
   const [showPicker,setShowPicker]=useState(false);
   const [dragIdx,setDragIdx]=useState(null);
   const [dragOverIdx,setDragOverIdx]=useState(null);
   const [confirmRemoveId,setConfirmRemoveId]=useState(null);
-  const [bodyPreview,setBodyPreview]=useState(false);
+  const [bodyMode,setBodyMode]=useState('edit');
+
+  const handleBodyWikiClick=useCallback((rawText)=>{
+    const resolved=resolveWikiLink(rawText,items,[],null,freeNotes||[]);
+    if(!resolved)return;
+    if(resolved.type==='note'){
+      if(setActiveNoteId)setActiveNoteId(resolved.target);
+      if(setView)setView('notes');
+    }
+  },[items,freeNotes,setView,setActiveNoteId]);
 
   const pieceItems=useMemo(()=>program.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean),[program.itemIds,items]);
   const existingIds=useMemo(()=>new Set(program.itemIds),[program.itemIds]);
@@ -279,17 +292,38 @@ function ProgramEditor({program,items,onUpdate,onBack}){
       <div className="mt-8" style={{borderTop:`1px solid ${LINE}`}}>
         <div className="flex items-center justify-between py-3">
           <div className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.32em',color:DIM}}>Notes</div>
-          <button onClick={()=>setBodyPreview(v=>!v)} className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:FAINT}}>
-            {bodyPreview?'Edit':'Preview'}
+          <button onClick={()=>setBodyMode(m=>m==='edit'?'preview':'edit')} className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:FAINT}}>
+            {bodyMode==='preview'?'Edit':'Preview'}
           </button>
         </div>
-        <MarkdownField
-          value={program.body||''}
-          onChange={v=>update({body:v||null})}
-          placeholder="Program notes, quotes, ideas — anything belonging to this program's world."
-          minHeight={120}
-          style={{background:'transparent'}}
-        />
+        {bodyMode==='preview'?(
+          <div style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.8,color:TEXT,minHeight:'80px'}}>
+            {program.body?(
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                p:({children})=><p style={{marginBottom:'1em'}}>{children}</p>,
+                a:({href,children})=>{
+                  if(href?.startsWith('wiki://')){
+                    const raw=decodeURIComponent(href.slice(7));
+                    return <span onClick={()=>handleBodyWikiClick(raw)} style={{color:IKB,borderBottom:`1px solid ${IKB}40`,cursor:'pointer'}}>{children}</span>;
+                  }
+                  const url=href&&!href.match(/^https?:\/\//)? `https://${href}`:href;
+                  return <a href={url} target="_blank" rel="noopener noreferrer" style={{color:IKB,borderBottom:`1px solid ${IKB}40`}}>{children}</a>;
+                },
+              }}>
+                {program.body.replace(/\[\[([^\]\n]+)\]\]/g,(_,t)=>`[${t}](wiki://${encodeURIComponent(t)})`)}
+              </ReactMarkdown>
+            ):(
+              <span style={{fontFamily:serifText,fontStyle:'italic',color:DIM,fontSize:'14px'}}>Nothing here yet.</span>
+            )}
+          </div>
+        ):(
+          <MarkdownEditor
+            value={program.body||''}
+            onChange={v=>update({body:v||null})}
+            placeholder="Program notes, quotes, ideas — anything belonging to this program's world."
+            minHeight={120}
+          />
+        )}
       </div>
     </div>
   );
@@ -362,7 +396,7 @@ function ProgramsList({programs,items,onSelect,onNew}){
 }
 
 // ── Main view ────────────────────────────────────────────────────────────────
-export default function ProgramsView({items,programs,setPrograms,selectedProgramId,setSelectedProgramId}){
+export default function ProgramsView({items,programs,setPrograms,selectedProgramId,setSelectedProgramId,setView,freeNotes,setActiveNoteId}){
   const selectedProgram=programs.find(p=>p.id===selectedProgramId)||null;
 
   const createProgram=()=>{
@@ -383,6 +417,9 @@ export default function ProgramsView({items,programs,setPrograms,selectedProgram
         items={items}
         onUpdate={updateProgram}
         onBack={()=>setSelectedProgramId(null)}
+        freeNotes={freeNotes||[]}
+        setView={setView}
+        setActiveNoteId={setActiveNoteId}
       />
     );
   }
