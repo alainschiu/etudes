@@ -13,7 +13,7 @@ const SHORTCUTS=[{k:'Space',v:'Start / pause last practiced item'},{k:'R',v:'Tog
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
 const USER_GUIDE_URL='https://etudes.me/guide';
 
-export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,signInWithApple,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning}){
+export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning}){
   const [tab,setTab]=useState('settings');
   const [authMode,setAuthMode]=useState('signin'); // 'signin'|'signup'
   const [authEmail,setAuthEmail]=useState('');
@@ -79,7 +79,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
           </div>
         ):(
           <div className="space-y-5">
-          {(signInWithGoogle||signInWithApple)&&(<div className="space-y-2"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Continue with</div>{signInWithGoogle&&<button type="button" onClick={signInWithGoogle} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Google</button>}{signInWithApple&&<button type="button" onClick={signInWithApple} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Apple</button>}<div className="flex items-center gap-3 py-1"><span style={{flex:1,height:'1px',background:LINE_STR}}/><span className="uppercase" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>or</span><span style={{flex:1,height:'1px',background:LINE_STR}}/></div></div>)}
+          {signInWithGoogle&&(<div className="space-y-2"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Continue with</div><button type="button" onClick={signInWithGoogle} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Google</button><div className="flex items-center gap-3 py-1"><span style={{flex:1,height:'1px',background:LINE_STR}}/><span className="uppercase" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>or</span><span style={{flex:1,height:'1px',background:LINE_STR}}/></div></div>)}
           <form onSubmit={handleAuth} className="space-y-5">
             <div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Sign in with email</div>
               <div className="space-y-4 overflow-hidden">
@@ -113,7 +113,6 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
           ):(
             <div className="text-center mb-2" style={{color:FAINT,fontSize:'11px'}}>Includes notes, logs, recordings, and scores. Audio files may be large.</div>
           )}
-          <div className="mt-2 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.5}}>You can also drag the .md chip in the header to your desktop (Chromium only).</div>
         </div>
         <div><div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Backup & restore</div><div className="text-xs italic mb-3" style={{color:FAINT,fontFamily:serif,lineHeight:1.5}}>Full backup includes all data, PDFs, and recordings in a single .json file.</div><div className="flex gap-2"><button onClick={onExportJson} className="flex-1 uppercase py-2.5 flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'10px',letterSpacing:'0.22em'}}><Archive className="w-3 h-3" strokeWidth={1.25}/> Backup</button><button onClick={()=>{onClose();setTimeout(onImportClick,100);}} className="flex-1 uppercase py-2.5 flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><UploadIcon className="w-3 h-3" strokeWidth={1.25}/> Restore</button></div></div>
       </div>
