@@ -114,7 +114,7 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
   };
 
   return(
-    <div className="max-w-2xl mx-auto px-12 py-10">
+    <div className="max-w-4xl mx-auto px-12 py-14">
       {/* Back */}
       <button onClick={onBack} className="flex items-center gap-2 mb-8 uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans}}>
         <ChevronLeft className="w-3 h-3" strokeWidth={1.5}/> All programs
@@ -338,7 +338,7 @@ function ProgramsList({programs,items,onSelect,onNew}){
   },[programs]);
 
   return(
-    <div className="max-w-2xl mx-auto px-12 py-10">
+    <div className="max-w-4xl mx-auto px-12 py-14">
       {/* Header */}
       <div className="flex items-start justify-between mb-10">
         <div>
