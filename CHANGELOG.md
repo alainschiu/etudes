@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.96.0 — 2026-04-30
+
+### Phase 2 — Mobile PWA Redesign
+
+- **Service worker** (`vite-plugin-pwa`) — Workbox generates `sw.js` on every build; NetworkFirst for Supabase API calls, CacheFirst (1 year) for Google Fonts, full static asset precache; `registerType: autoUpdate`
+- **`useViewport` hook** — ResizeObserver on `documentElement`; returns `{isMobile}` (true when viewport width < 768 px); replaces any `window.innerWidth` one-liners
+- **Mobile bottom navigation** — fixed 8-tab bar (Today, Week, Month, Répertoire, Programs, Routines, Logs, Notes); 56 px + `env(safe-area-inset-bottom)` for iPhone home indicator; IKB active state with 2 px top border; min 44 px touch targets
+- **Compact mobile header** — 44 px bar with 20 px italic logotype and a Settings icon; desktop 64 px header (clock, .md chip, Réglages, tab nav) unchanged
+- **Mobile footer bar** — 52 px bar with live session timer + Stop button on the left; Rest / Record / Metronome / Drone icon buttons (44 px each) on the right; desktop footer bar unchanged
+- **Répertoire on mobile** — Composers/Instruments sidebar renders as a full-screen overlay sheet (backdrop dismiss) instead of an inline aside; content uses `px-4 py-8`; A/B comparison bar adds `padding-bottom: 56 px` to clear the bottom nav
+- **PDF score drawer on mobile** — edge-to-edge (no 24 px window inset); spots/bookmarks panel stacks below the PDF viewer as a 240 px panel instead of a side column
+
+### Phase 1 — UX & documentation (completed)
+
+- **Apple Sign-In button** — re-added alongside Google in the auth modal; renders conditionally when `signInWithApple` prop is provided
+- **`docs/guide.html` fixes** — §03 nav ceiling clarified ("Programs is an eighth view, deliberately outside it"); §24 cross-device audio section expanded with explicit "Recording on another device" placeholder explanation
+- **`docs/index.html`** — synced to match `guide.html` (was 18 lines behind)
+
 ## v0.95.6 — 2026-04-28
 
 ### Logs view — unified card layout & visual differentiation

@@ -281,7 +281,7 @@ export default function RepertoireView(p){
   </div>
   {/* ── Global A/B comparison bar (cross-piece only) ──────────────────── */}
   {globalAbA&&globalAbB&&globalAbA.itemId!==globalAbB.itemId&&(
-    <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:40,background:BG,borderTop:`1px solid ${LINE_STR}`,boxShadow:'0 -4px 24px rgba(0,0,0,0.5)',paddingBottom:isMobile?'56px':undefined}}>
+    <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:40,background:BG,borderTop:`1px solid ${LINE_STR}`,boxShadow:'0 -4px 24px rgba(0,0,0,0.5)',...(isMobile&&{paddingBottom:'56px'})}}>
       <div className="max-w-6xl mx-auto px-12">
         {/* Header */}
         <div className="flex items-center gap-3 py-2" style={{borderBottom:`1px solid ${LINE}`}}>
