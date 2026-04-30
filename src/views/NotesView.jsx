@@ -107,9 +107,17 @@ function SidebarSection({label,open,onToggle,count,children}){
 }
 
 // ── Main NotesView ────────────────────────────────────────────────────────
-export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes}){
+export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes,programs,setSelectedProgramId,requestedNoteId,setRequestedNoteId}){
   const [activeCategoryId,setActiveCategoryId]=useState('__all');
   const [activeNoteId,setActiveNoteId]=useState(freeNotes[0]?.id);
+
+  // Consume external navigation requests (e.g. from Programs body wiki-links)
+  useEffect(()=>{
+    if(requestedNoteId){
+      setActiveNoteId(requestedNoteId);
+      if(setRequestedNoteId)setRequestedNoteId(null);
+    }
+  },[requestedNoteId]);
   const [query,setQuery]=useState('');
   const [tagSearch,setTagSearch]=useState('');
   const [addingCategory,setAddingCategory]=useState(false);
@@ -210,8 +218,13 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
     }else if(resolved.type==='spot'){
       if(setExpandedItemId)setExpandedItemId(resolved.target.itemId);
       if(setView)setView('repertoire');
+    }else if(resolved.type==='program'){
+      if(setSelectedProgramId)setSelectedProgramId(resolved.target);
+      if(setView)setView('programs');
+    }else if(resolved.type==='note'){
+      setActiveNoteId(resolved.target);
     }
-  },[history,openLogEntry,setExpandedItemId,setView]);
+  },[history,openLogEntry,setExpandedItemId,setView,setSelectedProgramId]);
 
   const isStdView=activeCategoryId==='__daily'||activeCategoryId==='__repertoire';
 
@@ -228,7 +241,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
       {/* ── Header — offset to align with main content column ── */}
       <div className="mb-6" style={{paddingLeft:sidebarOpen?'249px':'40px'}}>
         <div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em',fontFamily:sans}}>Notes</div>
-        <h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'72px',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
+        <h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'clamp(32px,6vw,56px)',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
       </div>
 
       {/* ── Two-column body — bounded height, both columns scroll independently ── */}
@@ -461,6 +474,8 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
                     onWikiLinkClick={handleWikiLinkClick}
                     items={items||[]}
                     history={history||[]}
+                    programs={programs||[]}
+                    notes={freeNotes||[]}
                   />
                 ):(
                   <div className="italic" style={{color:FAINT,fontFamily:serif}}>Select or create a note.</div>
@@ -476,13 +491,13 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
 }
 
 // ── Note editor ───────────────────────────────────────────────────────────
-function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLinkClick, items, history}){
+function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLinkClick, items, history, programs, notes}){
   const [catOpen,setCatOpen]=useState(false);
   const [viewMode,setViewMode]=useState(false);
   const handleWikiClick=useCallback((rawText)=>{
-    const resolved=resolveWikiLink(rawText,items,history);
+    const resolved=resolveWikiLink(rawText,items,history,programs,notes);
     if(resolved)onWikiLinkClick?.(resolved);
-  },[items,history,onWikiLinkClick]);
+  },[items,history,programs,notes,onWikiLinkClick]);
 
   return (
     <div>
@@ -518,7 +533,7 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
             {catOpen&&(
               <>
                 <div className="fixed inset-0 z-20" onClick={()=>setCatOpen(false)}/>
-                <div className="absolute top-full mt-1 z-30 min-w-36" style={{background:'#1A1918',border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>
+                <div className="absolute top-full mt-1 z-30 min-w-36" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>
                   <button onClick={()=>{onUpdate({category:''});setCatOpen(false);}} className="w-full text-left px-3 py-2 italic" style={{color:MUTED,borderBottom:`1px solid ${LINE}`,fontFamily:serif,fontSize:'12px'}}>No folder</button>
                   {categories.map(c=>(
                     <button key={c} onClick={()=>{onUpdate({category:c});setCatOpen(false);}} className="w-full text-left px-3 py-2 italic" style={{color:note.category===c?TEXT:MUTED,background:note.category===c?IKB_SOFT:'transparent',borderBottom:`1px solid ${LINE}`,fontFamily:serif,fontSize:'12px'}}>{c}</button>

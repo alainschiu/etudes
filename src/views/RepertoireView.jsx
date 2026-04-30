@@ -272,7 +272,7 @@ export default function RepertoireView(p){
         </div>
       </div>
       <div style={{borderTop:`1px solid ${LINE_STR}`}}>
-        {items.length===0&&<div className="py-16 text-center italic" style={{color:FAINT,fontFamily:serif,fontSize:'15px'}}>Your repertoire is empty. Add your first piece above.</div>}
+        {items.length===0&&<div className="py-16 text-center italic" style={{color:DIM,fontFamily:serif,fontSize:'15px'}}>Nothing here yet.</div>}
         {!groupByCollection&&sorted.map(renderItem)}
         {groupByCollection&&grouped&&(<>{grouped.collections.map(({name,list})=>(<div key={name}><div className="px-2 pt-5 pb-2 flex items-baseline gap-3" style={{borderBottom:`1px solid ${LINE_MED}`,background:SURFACE}}><Layers className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/><span className="italic" style={{fontFamily:serif,fontSize:'18px',fontWeight:300}}>{name}</span><span className="tabular-nums ml-auto" style={{color:FAINT,fontSize:'10px'}}>{list.length} movement{list.length===1?'':'s'}</span></div>{list.map(renderItem)}</div>))}{grouped.standalone.length>0&&(<><div className="px-2 pt-5 pb-2" style={{borderBottom:`1px solid ${LINE_MED}`,background:SURFACE}}><span className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.3em'}}>Standalone</span></div>{grouped.standalone.map(renderItem)}</>)}</>)}
         {items.length>0&&sorted.length===0&&(<div className="py-12 text-center"><div className="italic mb-3" style={{color:FAINT,fontFamily:serif,fontSize:'15px'}}>Nothing matches these filters.</div><button onClick={clearFilters} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Clear all filters</button></div>)}

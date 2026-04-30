@@ -1,5 +1,49 @@
 # Changelog
 
+## v0.97.0 — 2026-04-30
+
+### Track 1 — Architecture & Navigation
+
+- **Streak counter removed** — `calcStreak`, the flame glyph, and all streak state removed from every surface (Week, Month, footer, settings). The month calendar already shows consistency quietly; no replacement.
+- **Review tab** — Week and Month views merged into a single Review tab. A scale selector at the top of the view switches between Week and Month; the last-used scale persists as `etudes-reviewScale`. Active scale carries a thin IKB underline; no pill, no border.
+- **Seven-tab nav** — nav reduced from eight tabs to seven: Today · Review · Répertoire · Routines · Logs · Notes · Programs. Programs is last (after Notes), consistent with its role as a writing/reflection surface.
+- **Mobile bottom nav updated** — week/month entries replaced with a single review entry.
+
+### Track 2 — Programs View
+
+- **Schema migration** — Programs records gain `venue`, `audience`, `itemNotes`, `intention`, `reflection`, and `body` fields. Migration runs unconditionally on every app load (idempotent via spread). `SCHEMA_VERSION` bumped to 10.
+- **Programs list view** — sorted by `performanceDate` descending, undated last. Each row shows name, date, venue, piece count, and total duration. Empty state: *Nothing here yet.*
+- **Program editor** — full editor with: name (inline edit, italic serif 32–36px); date, venue, and audience fields (audience is never exported and never displayed outside this editor); intention field (read-only once performance date is past — writable on the day itself); piece list with drag reorder and per-piece marginal annotations; reflection field (shows `—` for future dates, writable once date has passed or if null); free markdown Notes field with Edit/Preview toggle.
+- **`selectedProgramId` lifted to `App.jsx`** — not local state in ProgramsView, so wiki-link navigation from Notes can reach it.
+- **Wiki-link integration** — `resolveWikiLink` extended to resolve `program` and `note` types. `[[Program Name]]` from Notes navigates to the program editor. `[[Note Title]]` from Programs body navigates to Notes.
+
+### Track 3 — Export
+
+- **jszip installed** — ~100 KB bundle increase.
+- **`src/lib/slug.js`** — `toSlug()` + `uniqueSlug()` with collision handling via `_2`, `_3` suffix.
+- **ZIP export** — `Export journal` in Settings produces `études-export-YYYY-MM-DD.zip` containing: `journal/` (one `.md` per daily log, one per weekly/monthly reflection), `notes/`, `repertoire/`, `programs/`, `recordings/` (audio blobs with format-detected extension and `_locked` suffix), `scores/` (PDF blobs), `README.md`, and `_data.json`. Every `.md` file has YAML frontmatter and a human-readable body.
+- **Audience privacy** — the `audience` field on program records is stripped from every exported file and from `_data.json` at serialisation time.
+- **Platform-aware delivery** — uses `navigator.canShare` on iOS/Android (share sheet); falls back to direct download on desktop. `AbortError` (share sheet dismissed) is silently ignored.
+- **Header `.md` chip removed** — one export path: the ZIP. `exportLog()` and drag handlers removed.
+- **`exportJson()` and `importJsonFile()` preserved** — JSON backup/restore flow unchanged.
+
+### Track 4 — Design System
+
+- **`LINK` token annotated** in `src/constants/theme.js` — permitted use: docs HTML files only.
+- **`WARM` token annotated** — permitted surfaces: rest timer, warm-up sessions, locked recording rows, A/B B-track waveform.
+- **`REC = '#A93226'` added** — muted destructive for active recording state only.
+- **All green eliminated** — `REF_COLOR = '#6B8F71'` and all `rgba(107,143,113,…)` replaced with `MUTED`; ref bar background (`#1a211a`) replaced with `SURFACE`; ref bar border replaced with `LINE_MED`; `--semantic-rest: #7A8F6A` removed from `index.css`.
+- **Reference audio waveform** — `accentColor` changed to `MUTED` across `shared.jsx`, `App.jsx`, ref bar; no glow.
+- **Display heading scale** — all seven view page headings now use `clamp(32px, 6vw, 56px)` — fixed in `DisplayHeader` (shared component), `WeekView`, `MonthView`, `LogsView`, `NotesView`.
+- **Répertoire empty state** — corrected to *Nothing here yet.*
+
+### Track 5 — Quality & Polish
+
+- **Help modal** — shortcut list updated to reflect current state.
+- **Docs** — `docs/guide.html` and `docs/index.html` updated: Review tab section replaces separate Week/Month sections; Programs section rewritten (salon journal framing, intention lock, reflection, wiki-links, audience privacy); Export section rewritten (ZIP structure, audio formats, platform delivery, privacy); "Recording on another device" placeholder removed and replaced with a factual statement.
+
+---
+
 ## v0.96.0 — 2026-04-30 (patch fixes)
 
 - **`package.json` version sync** — Settings modal reads `appPkg.version` from `package.json` directly (not from `constants/config.js`); `package.json` was still at `0.95.7` while the footer badge showed `0.96.0` — both now read `0.96.0`

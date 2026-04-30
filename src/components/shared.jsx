@@ -24,7 +24,7 @@ import {idbGet} from '../lib/storage.js';
 import {daysUntil} from '../lib/dates.js';
 import {getItemTime, getSpotTime, displayTitle, formatByline} from '../lib/items.js';
 
-export function DisplayHeader({eyebrow,title,suffix,right,titleRight}){return (<div className="mb-12 flex items-end justify-between gap-6"><div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{eyebrow}</div><div className="flex items-end gap-5"><h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'72px',letterSpacing:'-0.02em'}}><span style={{fontStyle:'italic'}}>{title}</span>{suffix&&<span style={{color:FAINT}}>{suffix}</span>}</h1>{titleRight&&<div className="pb-2">{titleRight}</div>}</div></div>{right}</div>);}
+export function DisplayHeader({eyebrow,title,suffix,right,titleRight}){return (<div className="mb-12 flex items-end justify-between gap-6"><div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{eyebrow}</div><div className="flex items-end gap-5"><h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'clamp(32px,6vw,56px)',letterSpacing:'-0.02em'}}><span style={{fontStyle:'italic'}}>{title}</span>{suffix&&<span style={{color:FAINT}}>{suffix}</span>}</h1>{titleRight&&<div className="pb-2">{titleRight}</div>}</div></div>{right}</div>);}
 
 export function Ring({value,max,maxSize=180}){const pct=Math.min(100,(value/max)*100);return (<div className="relative flex items-center justify-center w-full mx-auto" style={{maxWidth:maxSize,aspectRatio:'1 / 1'}}><svg viewBox="0 0 100 100" className="w-full h-full -rotate-90" preserveAspectRatio="xMidYMid meet"><circle cx="50" cy="50" r="44" fill="none" stroke={LINE_MED} strokeWidth="5"/><circle cx="50" cy="50" r="44" fill="none" stroke={IKB} strokeWidth="5" strokeLinecap="round" strokeDasharray={2*Math.PI*44} strokeDashoffset={2*Math.PI*44*(1-pct/100)} style={{transition:'stroke-dashoffset 0.6s ease'}}/></svg><div className="absolute inset-0 flex flex-col items-center justify-center"><div className="tabular-nums" style={{fontFamily:serif,fontWeight:300,letterSpacing:'-0.02em',fontSize:'36px'}}>{value}<span style={{color:MUTED,fontSize:'18px'}}>′</span></div><div className="uppercase mt-1" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.25em'}}>of {max}′</div></div></div>);}
 
@@ -203,7 +203,6 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
   );
 }
 
-const REF_COLOR='#6B8F71';
 
 export function RefTrackPlayer({meta,blobLoader,onUpload,onDelete}){
   const [speed,setSpeed]=useState(1.0);
@@ -231,10 +230,10 @@ export function RefTrackPlayer({meta,blobLoader,onUpload,onDelete}){
     if(!onUpload)return null;
     return(
       <div onDragOver={onDragOver} onDragLeave={onDragLeave} onDrop={onDrop}
-        style={{border:`1px dashed ${isDragActive?REF_COLOR:LINE_MED}`,background:isDragActive?'rgba(107,143,113,0.08)':'transparent',padding:'10px 14px',marginBottom:'10px',transition:'background 120ms,border-color 120ms'}}>
+        style={{border:`1px dashed ${isDragActive?MUTED:LINE_MED}`,background:isDragActive?'rgba(200,193,179,0.08)':'transparent',padding:'10px 14px',marginBottom:'10px',transition:'background 120ms,border-color 120ms'}}>
         <input ref={fileRef} type="file" accept="audio/*" style={{display:'none'}} onChange={handleFile}/>
         {isDragActive
-          ?<span className="italic" style={{fontFamily:serif,color:REF_COLOR,fontSize:'12px'}}>drop to attach</span>
+          ?<span className="italic" style={{fontFamily:serif,color:MUTED,fontSize:'12px'}}>drop to attach</span>
           :<button onClick={()=>fileRef.current?.click()} disabled={uploading} className="uppercase flex items-center gap-1.5" style={{color:uploading?FAINT:MUTED,fontSize:'9px',letterSpacing:'0.18em',cursor:uploading?'wait':'pointer'}}>{uploading?'processing…':<><Upload className="w-3 h-3" strokeWidth={1.25}/> add reference · mp3 wav flac m4a</>}</button>}
       </div>
     );
@@ -243,24 +242,24 @@ export function RefTrackPlayer({meta,blobLoader,onUpload,onDelete}){
   // ── Player state ────────────────────────────────────────────────────────
   const waveActions=(
     <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'6px 14px',border:`1px solid ${LINE_MED}`,marginLeft:'-1px'}}>
-      <input type="range" min="0.25" max="1" step="0.01" value={speed} onChange={e=>setSpeed(parseFloat(e.target.value))} style={{width:'140px',accentColor:REF_COLOR,cursor:'pointer'}} title={`Speed: ${Math.round(speed*100)}%`}/>
+      <input type="range" min="0.25" max="1" step="0.01" value={speed} onChange={e=>setSpeed(parseFloat(e.target.value))} style={{width:'140px',accentColor:MUTED,cursor:'pointer'}} title={`Speed: ${Math.round(speed*100)}%`}/>
       <span className="tabular-nums" style={{fontFamily:mono,color:FAINT,fontSize:'9px',minWidth:'32px'}}>{Math.round(speed*100)}%</span>
     </div>
   );
 
   return(
     <div onDragOver={canDrop?onDragOver:undefined} onDragLeave={canDrop?onDragLeave:undefined} onDrop={canDrop?onDrop:undefined}
-      style={{border:`1px solid ${isDragActive?REF_COLOR:LINE_STR}`,background:isDragActive?'rgba(107,143,113,0.08)':'transparent',padding:'12px 14px 14px',marginBottom:'10px',transition:'border-color 120ms,background 120ms'}}>
+      style={{border:`1px solid ${isDragActive?MUTED:LINE_STR}`,background:isDragActive?'rgba(200,193,179,0.08)':'transparent',padding:'12px 14px 14px',marginBottom:'10px',transition:'border-color 120ms,background 120ms'}}>
       <input ref={fileRef} type="file" accept="audio/*" style={{display:'none'}} onChange={handleFile}/>
       <div className="flex items-center gap-2 mb-3">
-        <span className="uppercase shrink-0" style={{fontFamily:mono,color:REF_COLOR,fontSize:'9px',letterSpacing:'0.22em'}}>Ref</span>
+        <span className="uppercase shrink-0" style={{fontFamily:mono,color:MUTED,fontSize:'9px',letterSpacing:'0.22em'}}>Ref</span>
         {isDragActive
-          ?<span className="italic flex-1 min-w-0" style={{fontFamily:serif,color:REF_COLOR,fontSize:'11px'}}>drop to replace</span>
+          ?<span className="italic flex-1 min-w-0" style={{fontFamily:serif,color:MUTED,fontSize:'11px'}}>drop to replace</span>
           :<span className="truncate flex-1 min-w-0" style={{fontFamily:mono,color:MUTED,fontSize:'10px',letterSpacing:'0.06em'}}>{meta.filename}</span>}
         {onUpload&&<button onClick={()=>fileRef.current?.click()} disabled={uploading} style={{color:FAINT,padding:'0 2px',cursor:'pointer',flexShrink:0}} title="Replace ref track (or drag a new file)"><Upload className="w-3 h-3" strokeWidth={1.25}/></button>}
         {onDelete&&<button onClick={onDelete} style={{color:FAINT,padding:'0 2px',cursor:'pointer',flexShrink:0}} title="Remove ref track"><X className="w-3 h-3" strokeWidth={1.25}/></button>}
       </div>
-      <Waveform blobLoader={blobLoader} meta={meta} playbackRate={speed} actions={waveActions} accentColor={REF_COLOR} accentSoft="rgba(107,143,113,0.12)"/>
+      <Waveform blobLoader={blobLoader} meta={meta} playbackRate={speed} actions={waveActions} accentColor={MUTED} accentSoft="rgba(200,193,179,0.12)"/>
     </div>
   );
 }

@@ -1,179 +1,435 @@
-import React,{useState,useMemo} from 'react';
+import React,{useState,useMemo,useCallback} from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
-import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
-import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
-import Pencil from 'lucide-react/dist/esm/icons/pencil';
-import Check from 'lucide-react/dist/esm/icons/check';
-import Calendar from 'lucide-react/dist/esm/icons/calendar';
+import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
 import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical';
-import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,serif,sans} from '../constants/theme.js';
-import {STAGES} from '../constants/config.js';
+import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,serif,serifText,sans,mono} from '../constants/theme.js';
 import {displayTitle,formatByline} from '../lib/items.js';
-import {DisplayHeader} from '../components/shared.jsx';
+import {resolveWikiLink} from '../lib/notes.js';
+import {MarkdownField} from '../components/shared.jsx';
+import {MarkdownEditor} from '../components/MarkdownEditor.jsx';
 
 function mkId(){return Math.random().toString(36).slice(2,10);}
 
-function formatLength(secs){
-  if(!secs)return null;
-  const m=Math.floor(secs/60),s=secs%60;
-  return `${m}′${String(s).padStart(2,'0')}″`;
+function startOfToday(){
+  const d=new Date();d.setHours(0,0,0,0);return d;
 }
 
-function parseLengthInput(v){
-  v=(v||'').trim();
-  if(!v)return null;
-  if(v.includes(':')){const[m,s]=v.split(':').map(Number);return(isNaN(m)||isNaN(s))?null:m*60+s;}
-  const n=parseFloat(v);return isNaN(n)?null:Math.round(n*60);
+function formatPerfDate(iso){
+  if(!iso)return null;
+  const [y,m,d]=iso.split('-').map(Number);
+  const dt=new Date(y,m-1,d);
+  return dt.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
 }
 
-function stageLabel(key){return STAGES.find(s=>s.key===key)?.label||key||'';}
-
-// ── Inline editable title ────────────────────────────────────────────────────
-function InlineEdit({value,onSave,style,className}){
-  const[editing,setEditing]=useState(false);
-  const[val,setVal]=useState(value);
-  const commit=()=>{const v=val.trim();if(v)onSave(v);else setVal(value);setEditing(false);};
-  if(editing)return<input autoFocus value={val} onChange={e=>setVal(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter')commit();if(e.key==='Escape'){setVal(value);setEditing(false);}}} className="focus:outline-none bg-transparent" style={{...style,borderBottom:`1px solid ${LINE_STR}`,paddingBottom:'2px'}}/>;
-  return<span onDoubleClick={()=>{setVal(value);setEditing(true);}} className={className} style={{...style,cursor:'text'}} title="Double-click to rename">{value}</span>;
+function fmtDuration(totalSecs){
+  if(!totalSecs||totalSecs<=0)return null;
+  const m=Math.round(totalSecs/60);
+  return `${m} min`;
 }
 
-// ── Item picker popup ────────────────────────────────────────────────────────
+// ── Item picker ──────────────────────────────────────────────────────────────
 function ItemPicker({items,existingIds,onPick,onClose}){
-  const[q,setQ]=useState('');
-  const avail=items.filter(i=>i.type==='piece'&&!existingIds.has(i.id)&&(displayTitle(i).toLowerCase().includes(q.toLowerCase())||(i.composer||'').toLowerCase().includes(q.toLowerCase())));
-  return(<><div className="fixed inset-0 z-20" onClick={onClose}/><div className="absolute z-30 left-0 mt-1 w-72 max-h-72 overflow-auto etudes-scroll" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)',fontFamily:sans,textTransform:'none',letterSpacing:0}}><div className="px-3 py-2" style={{borderBottom:`1px solid ${LINE}`}}><input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Search pieces…" className="w-full focus:outline-none text-sm bg-transparent" style={{color:TEXT,fontFamily:serif}}/></div>{avail.length===0&&<div className="px-4 py-3 text-xs italic" style={{color:FAINT,fontFamily:serif}}>No matching pieces.</div>}{avail.map(it=>(<button key={it.id} onClick={()=>{onPick(it);onClose();}} className="w-full text-left px-4 py-2.5" style={{borderBottom:`1px solid ${LINE}`}}><div className="italic" style={{fontSize:'13px',fontWeight:300,fontFamily:serif}}>{displayTitle(it)}</div>{formatByline(it)&&<div className="italic mt-0.5" style={{color:MUTED,fontFamily:serif,fontSize:'11px'}}>{formatByline(it)}</div>}</button>))}</div></>);
+  const [q,setQ]=useState('');
+  const avail=useMemo(()=>items.filter(i=>
+    i.type==='piece'&&
+    !existingIds.has(i.id)&&
+    (displayTitle(i).toLowerCase().includes(q.toLowerCase())||(i.composer||'').toLowerCase().includes(q.toLowerCase()))
+  ),[items,existingIds,q]);
+  return(
+    <>
+      <div className="fixed inset-0 z-20" onClick={onClose}/>
+      <div className="absolute z-30 left-0 mt-1 w-80 max-h-72 overflow-auto etudes-scroll" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>
+        <div className="px-3 py-2" style={{borderBottom:`1px solid ${LINE}`}}>
+          <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Search pieces…" className="w-full focus:outline-none bg-transparent" style={{color:TEXT,fontFamily:serif,fontSize:'13px'}}/>
+        </div>
+        {avail.length===0&&<div className="px-4 py-3 italic" style={{color:FAINT,fontFamily:serif,fontSize:'13px'}}>No matching pieces.</div>}
+        {avail.map(it=>(
+          <button key={it.id} onClick={()=>{onPick(it);onClose();}} className="w-full text-left px-4 py-2.5" style={{borderBottom:`1px solid ${LINE}`}}>
+            <div className="italic" style={{fontSize:'13px',fontWeight:300,fontFamily:serif,color:TEXT}}>{displayTitle(it)}</div>
+            {formatByline(it)&&<div className="italic mt-0.5" style={{color:MUTED,fontFamily:serif,fontSize:'11px'}}>{formatByline(it)}</div>}
+          </button>
+        ))}
+      </div>
+    </>
+  );
 }
 
-// ── Single program card ──────────────────────────────────────────────────────
-function ProgramCard({program,items,onUpdate,onDelete}){
-  const[expanded,setExpanded]=useState(true);
-  const[showPicker,setShowPicker]=useState(false);
-  const[dragPIdx,setDragPIdx]=useState(null);
-  const[dragPOver,setDragPOver]=useState(null);
-  const[editingDate,setEditingDate]=useState(false);
-  const[dateVal,setDateVal]=useState(program.performanceDate||'');
+// ── Program editor ───────────────────────────────────────────────────────────
+function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiveNoteId}){
+  const [showPicker,setShowPicker]=useState(false);
+  const [dragIdx,setDragIdx]=useState(null);
+  const [dragOverIdx,setDragOverIdx]=useState(null);
+  const [confirmRemoveId,setConfirmRemoveId]=useState(null);
+  const [bodyMode,setBodyMode]=useState('edit');
+
+  const handleBodyWikiClick=useCallback((rawText)=>{
+    const resolved=resolveWikiLink(rawText,items,[],null,freeNotes||[]);
+    if(!resolved)return;
+    if(resolved.type==='note'){
+      if(setActiveNoteId)setActiveNoteId(resolved.target);
+      if(setView)setView('notes');
+    }
+  },[items,freeNotes,setView,setActiveNoteId]);
 
   const pieceItems=useMemo(()=>program.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean),[program.itemIds,items]);
   const existingIds=useMemo(()=>new Set(program.itemIds),[program.itemIds]);
-
   const totalSecs=useMemo(()=>pieceItems.reduce((a,it)=>a+(it.lengthSecs||0),0),[pieceItems]);
 
-  const addItem=(it)=>onUpdate({...program,itemIds:[...program.itemIds,it.id]});
-  const removeItem=(id)=>onUpdate({...program,itemIds:program.itemIds.filter(x=>x!==id)});
+  const update=useCallback((patch)=>onUpdate({...program,...patch}),[program,onUpdate]);
 
-  const handlePDragStart=(idx)=>setDragPIdx(idx);
-  const handlePDragOver=(e,idx)=>{e.preventDefault();setDragPOver(idx);};
-  const handlePDrop=(toIdx)=>{
-    if(dragPIdx===null||dragPIdx===toIdx){setDragPIdx(null);setDragPOver(null);return;}
-    const ids=[...program.itemIds];const[moved]=ids.splice(dragPIdx,1);ids.splice(toIdx,0,moved);
-    onUpdate({...program,itemIds:ids});setDragPIdx(null);setDragPOver(null);
+  const isPast=!!program.performanceDate&&new Date(program.performanceDate)<startOfToday();
+  const isFuture=!!program.performanceDate&&new Date(program.performanceDate)>startOfToday();
+  // Writable today and in the future; locked once the date has passed
+  const intentionReadOnly=!!program.performanceDate&&new Date(program.performanceDate)<startOfToday();
+
+  const addPiece=(it)=>update({itemIds:[...program.itemIds,it.id]});
+  const removePiece=(id)=>{
+    const hasNote=(program.itemNotes||{})[id];
+    if(hasNote){setConfirmRemoveId(id);}
+    else{
+      const itemNotes={...(program.itemNotes||{})};delete itemNotes[id];
+      update({itemIds:program.itemIds.filter(x=>x!==id),itemNotes});
+    }
+  };
+  const confirmRemove=(id)=>{
+    const itemNotes={...(program.itemNotes||{})};delete itemNotes[id];
+    update({itemIds:program.itemIds.filter(x=>x!==id),itemNotes});
+    setConfirmRemoveId(null);
   };
 
-  const commitDate=()=>{onUpdate({...program,performanceDate:dateVal.trim()||null});setEditingDate(false);};
+  const setItemNote=(itemId,val)=>{
+    const itemNotes={...(program.itemNotes||{}),[itemId]:val};
+    update({itemNotes});
+  };
+
+  const handleDragStart=(idx)=>setDragIdx(idx);
+  const handleDragOver=(e,idx)=>{e.preventDefault();setDragOverIdx(idx);};
+  const handleDrop=(toIdx)=>{
+    if(dragIdx===null||dragIdx===toIdx){setDragIdx(null);setDragOverIdx(null);return;}
+    const ids=[...program.itemIds];const[moved]=ids.splice(dragIdx,1);ids.splice(toIdx,0,moved);
+    update({itemIds:ids});setDragIdx(null);setDragOverIdx(null);
+  };
 
   return(
-    <div className="mb-6" style={{border:`1px solid ${LINE_MED}`,background:SURFACE}}>
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4" style={{borderBottom:expanded?`1px solid ${LINE}`:'none'}}>
-        <div className="flex items-baseline gap-4 flex-1 min-w-0">
-          <InlineEdit value={program.name} onSave={(v)=>onUpdate({...program,name:v})} style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,fontSize:'20px',letterSpacing:'-0.01em',color:TEXT}}/>
-          {/* Performance date */}
-          <div className="flex items-center gap-1.5 shrink-0" onClick={e=>e.stopPropagation()}>
-            {editingDate?(
-              <input autoFocus value={dateVal} onChange={e=>setDateVal(e.target.value)} onBlur={commitDate} onKeyDown={e=>{if(e.key==='Enter')commitDate();if(e.key==='Escape')setEditingDate(false);}} placeholder="YYYY-MM-DD" className="font-mono tabular-nums text-xs focus:outline-none px-1" style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE_MED}`,width:'100px'}}/>
-            ):(
-              <button onClick={()=>{setDateVal(program.performanceDate||'');setEditingDate(true);}} className="flex items-center gap-1 uppercase" style={{color:program.performanceDate?MUTED:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>
-                <Calendar className="w-2.5 h-2.5" strokeWidth={1.25}/>
-                {program.performanceDate||'set date'}
-              </button>
-            )}
+    <div className="max-w-2xl mx-auto px-12 py-10">
+      {/* Back */}
+      <button onClick={onBack} className="flex items-center gap-2 mb-8 uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans}}>
+        <ChevronLeft className="w-3 h-3" strokeWidth={1.5}/> All programs
+      </button>
+
+      {/* Name */}
+      <div className="mb-2">
+        <input
+          value={program.name||''}
+          onChange={e=>update({name:e.target.value})}
+          onBlur={e=>update({name:e.target.value.trim()||'Untitled program'})}
+          placeholder="Untitled program"
+          className="w-full focus:outline-none bg-transparent"
+          style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,fontSize:'clamp(32px,5vw,36px)',letterSpacing:'-0.02em',color:TEXT,lineHeight:1.1}}
+        />
+      </div>
+
+      {/* Date */}
+      <div className="mb-1.5">
+        <input
+          type="date"
+          value={program.performanceDate||''}
+          onChange={e=>update({performanceDate:e.target.value||null})}
+          className="focus:outline-none bg-transparent"
+          style={{fontFamily:sans,fontSize:'13px',color:program.performanceDate?MUTED:FAINT}}
+        />
+        {!program.performanceDate&&<span style={{fontFamily:sans,fontSize:'13px',color:FAINT}}>No date set</span>}
+      </div>
+
+      {/* Venue */}
+      <div className="mb-1">
+        <input
+          value={program.venue||''}
+          onChange={e=>update({venue:e.target.value||null})}
+          placeholder="Where"
+          className="focus:outline-none bg-transparent w-full"
+          style={{fontFamily:sans,fontSize:'13px',color:FAINT}}
+        />
+      </div>
+
+      {/* Audience — whisper, never exported */}
+      <div className="mb-8">
+        <input
+          value={program.audience||''}
+          onChange={e=>update({audience:e.target.value||null})}
+          placeholder="Who was there"
+          className="focus:outline-none bg-transparent w-full"
+          style={{fontFamily:sans,fontSize:'11px',color:DIM}}
+        />
+      </div>
+
+      {/* Intention */}
+      <div className="mb-8">
+        <div className="uppercase mb-2" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.32em',color:DIM}}>Intention</div>
+        {intentionReadOnly?(
+          <div style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.8,color:MUTED,whiteSpace:'pre-wrap'}}>
+            {program.intention||<span style={{color:DIM}}>—</span>}
           </div>
-        </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="relative">
-            <button onClick={()=>setShowPicker(v=>!v)} className="uppercase flex items-center gap-1.5 px-3 py-1" style={{color:IKB,border:`1px solid ${IKB}40`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}>
-              <Plus className="w-3 h-3" strokeWidth={1.25}/> Add piece
-            </button>
-            {showPicker&&<ItemPicker items={items} existingIds={existingIds} onPick={addItem} onClose={()=>setShowPicker(false)}/>}
-          </div>
-          <button onClick={()=>setExpanded(v=>!v)} style={{color:FAINT}}>{expanded?<ChevronUp className="w-3.5 h-3.5" strokeWidth={1.25}/>:<ChevronDown className="w-3.5 h-3.5" strokeWidth={1.25}/>}</button>
-          <button onClick={onDelete} style={{color:FAINT}}><X className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
-        </div>
+        ):(
+          <textarea
+            value={program.intention||''}
+            onChange={e=>update({intention:e.target.value||null})}
+            onBlur={e=>update({intention:e.target.value.trim()||null})}
+            placeholder="Why these pieces. Why this order. What you want to say."
+            rows={4}
+            className="w-full focus:outline-none bg-transparent resize-none"
+            style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.8,color:MUTED}}
+          />
+        )}
       </div>
 
       {/* Piece list */}
-      {expanded&&(
-        <div>
-          {pieceItems.length===0&&(
-            <div className="px-6 py-5 italic" style={{color:FAINT,fontFamily:serif,fontSize:'13px'}}>No pieces yet — add from your repertoire.</div>
-          )}
-          {pieceItems.map((it,idx)=>{
-            const len=it.lengthSecs?formatLength(it.lengthSecs):null;
-            const stage=stageLabel(it.stage);
-            const isDragOver=dragPOver===idx&&dragPIdx!==null&&dragPIdx!==idx;
-            return(
-              <div key={it.id} draggable onDragStart={()=>handlePDragStart(idx)} onDragOver={e=>handlePDragOver(e,idx)} onDrop={()=>handlePDrop(idx)} onDragEnd={()=>{setDragPIdx(null);setDragPOver(null);}}
-                className="group flex items-center gap-3 px-6 py-3" style={{borderBottom:`1px solid ${LINE}`,background:isDragOver?`${IKB}08`:'transparent',opacity:dragPIdx===idx?0.4:1}}>
-                {/* drag handle */}
-                <span className="cursor-grab active:cursor-grabbing shrink-0" style={{color:FAINT}}><GripVertical className="w-3 h-3" strokeWidth={1.25}/></span>
-                {/* index */}
-                <span className="tabular-nums shrink-0" style={{color:DIM,fontFamily:serif,fontStyle:'italic',fontSize:'11px',minWidth:'16px'}}>{idx+1}.</span>
-                {/* title + byline */}
-                <div className="flex-1 min-w-0">
-                  <div className="italic" style={{fontFamily:serif,fontWeight:300,fontSize:'14px',color:TEXT,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{displayTitle(it)}</div>
-                  {formatByline(it)&&<div className="italic truncate" style={{color:MUTED,fontFamily:serif,fontSize:'11px'}}>{formatByline(it)}</div>}
-                </div>
-                {/* stage */}
-                <span className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.2em'}}>{stage}</span>
-                {/* length */}
-                <span className="tabular-nums shrink-0 font-mono" style={{color:len?MUTED:DIM,fontSize:'11px',fontWeight:300,minWidth:'44px',textAlign:'right'}}>{len||'—'}</span>
-                {/* remove */}
-                <button onClick={()=>removeItem(it.id)} className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{color:FAINT}}><X className="w-3 h-3" strokeWidth={1.25}/></button>
-              </div>
-            );
-          })}
-          {/* Footer: total */}
-          <div className="flex items-center justify-between px-6 py-3" style={{borderTop:pieceItems.length>0?`1px solid ${LINE_MED}`:'none',background:BG}}>
-            <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>{pieceItems.length} piece{pieceItems.length===1?'':'s'}</div>
-            <div className="flex items-center gap-2">
-              <span className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Total</span>
-              <span className="font-mono tabular-nums" style={{color:totalSecs>0?TEXT:FAINT,fontSize:'13px',fontWeight:300}}>{totalSecs>0?formatLength(totalSecs):'—'}</span>
-            </div>
+      <div className="mb-2" style={{borderTop:`1px solid ${LINE_STR}`}}>
+        <div className="flex items-center justify-between py-3">
+          <div className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.28em',color:DIM}}>Program</div>
+          <div className="relative">
+            <button onClick={()=>setShowPicker(v=>!v)} className="uppercase flex items-center gap-1.5 px-3 py-1" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:LINE_STR,border:`1px solid ${LINE_STR}`,background:'transparent'}}>
+              <Plus className="w-3 h-3" strokeWidth={1.25}/> Add piece
+            </button>
+            {showPicker&&<ItemPicker items={items} existingIds={existingIds} onPick={addPiece} onClose={()=>setShowPicker(false)}/>}
           </div>
         </div>
+
+        {pieceItems.length===0&&(
+          <div className="py-8 text-center italic" style={{fontFamily:serif,fontSize:'14px',color:DIM}}>Nothing here yet.</div>
+        )}
+
+        {pieceItems.map((it,idx)=>{
+          const isDragOver=dragOverIdx===idx&&dragIdx!==null&&dragIdx!==idx;
+          const note=(program.itemNotes||{})[it.id]||'';
+          return(
+            <div key={it.id}
+              draggable
+              onDragStart={()=>handleDragStart(idx)}
+              onDragOver={e=>handleDragOver(e,idx)}
+              onDrop={()=>handleDrop(idx)}
+              onDragEnd={()=>{setDragIdx(null);setDragOverIdx(null);}}
+              className="group"
+              style={{borderBottom:`1px solid ${LINE}`,background:isDragOver?IKB_SOFT:'transparent',opacity:dragIdx===idx?0.4:1,transition:'background 0.1s'}}
+            >
+              <div className="flex items-start gap-3 px-0 py-3">
+                <span className="cursor-grab active:cursor-grabbing shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{color:DIM}}>
+                  <GripVertical className="w-3.5 h-3.5" strokeWidth={1.25}/>
+                </span>
+                <span className="tabular-nums shrink-0 mt-0.5" style={{color:DIM,fontFamily:serif,fontStyle:'italic',fontSize:'11px',minWidth:'18px'}}>{idx+1}.</span>
+                <div className="flex-1 min-w-0">
+                  <div className="italic leading-snug" style={{fontFamily:serif,fontWeight:300,fontSize:'15px',color:TEXT}}>{displayTitle(it)}</div>
+                  {formatByline(it)&&<div className="italic mt-0.5" style={{fontFamily:sans,fontSize:'12px',color:FAINT}}>{formatByline(it)}</div>}
+                  <input
+                    value={note}
+                    onChange={e=>setItemNote(it.id,e.target.value)}
+                    onBlur={e=>{if(!e.target.value.trim())setItemNote(it.id,'');}}
+                    placeholder="A note on this piece — attacca, long pause before, the pivot"
+                    className="w-full focus:outline-none bg-transparent mt-1"
+                    style={{fontFamily:serifText,fontStyle:'italic',fontSize:'12px',color:FAINT}}
+                  />
+                </div>
+                <span className="tabular-nums shrink-0 mt-0.5" style={{fontFamily:mono,fontSize:'11px',color:it.lengthSecs?DIM:DIM}}>
+                  {it.lengthSecs?fmtDuration(it.lengthSecs):'—'}
+                </span>
+                <button onClick={()=>removePiece(it.id)} className="shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{color:FAINT}}>
+                  <X className="w-3.5 h-3.5" strokeWidth={1.25}/>
+                </button>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Total */}
+        {pieceItems.length>0&&(
+          <div className="flex items-center justify-end gap-2 py-3" style={{borderTop:`1px solid ${LINE_MED}`}}>
+            <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:FAINT}}>Total</span>
+            <span className="tabular-nums" style={{fontFamily:mono,fontSize:'13px',color:totalSecs>0?MUTED:DIM}}>
+              {totalSecs>0?fmtDuration(totalSecs):'—'}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Confirm remove with annotation */}
+      {confirmRemoveId&&(()=>{
+        const it=items.find(i=>i.id===confirmRemoveId);
+        return(
+          <div className="mb-6 px-4 py-3 flex items-center justify-between gap-4" style={{border:`1px solid ${LINE_STR}`,background:SURFACE}}>
+            <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px',color:MUTED}}>
+              Remove {it?displayTitle(it):'this piece'}? Its annotation will be lost.
+            </span>
+            <div className="flex items-center gap-3">
+              <button onClick={()=>setConfirmRemoveId(null)} className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:FAINT}}>Cancel</button>
+              <button onClick={()=>confirmRemove(confirmRemoveId)} className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:TEXT}}>Remove</button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Reflection */}
+      <div className="mt-8 mb-8">
+        <div className="uppercase mb-2" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.32em',color:DIM}}>Reflection</div>
+        {isFuture?(
+          <div style={{fontFamily:serifText,fontSize:'15px',color:DIM}}>—</div>
+        ):(
+          <textarea
+            value={program.reflection||''}
+            onChange={e=>update({reflection:e.target.value||null})}
+            onBlur={e=>update({reflection:e.target.value.trim()||null})}
+            placeholder="What the evening meant. What the room held. Whether the argument landed."
+            rows={4}
+            className="w-full focus:outline-none bg-transparent resize-none"
+            style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.8,color:MUTED}}
+          />
+        )}
+      </div>
+
+      {/* Body / Notes — always writable */}
+      <div className="mt-8" style={{borderTop:`1px solid ${LINE}`}}>
+        <div className="flex items-center justify-between py-3">
+          <div className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.32em',color:DIM}}>Notes</div>
+          <button onClick={()=>setBodyMode(m=>m==='edit'?'preview':'edit')} className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:FAINT}}>
+            {bodyMode==='preview'?'Edit':'Preview'}
+          </button>
+        </div>
+        {bodyMode==='preview'?(
+          <div style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.8,color:TEXT,minHeight:'80px'}}>
+            {program.body?(
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                p:({children})=><p style={{marginBottom:'1em'}}>{children}</p>,
+                a:({href,children})=>{
+                  if(href?.startsWith('wiki://')){
+                    const raw=decodeURIComponent(href.slice(7));
+                    return <span onClick={()=>handleBodyWikiClick(raw)} style={{color:IKB,borderBottom:`1px solid ${IKB}40`,cursor:'pointer'}}>{children}</span>;
+                  }
+                  const url=href&&!href.match(/^https?:\/\//)? `https://${href}`:href;
+                  return <a href={url} target="_blank" rel="noopener noreferrer" style={{color:IKB,borderBottom:`1px solid ${IKB}40`}}>{children}</a>;
+                },
+              }}>
+                {program.body.replace(/\[\[([^\]\n]+)\]\]/g,(_,t)=>`[${t}](wiki://${encodeURIComponent(t)})`)}
+              </ReactMarkdown>
+            ):(
+              <span style={{fontFamily:serifText,fontStyle:'italic',color:DIM,fontSize:'14px'}}>Nothing here yet.</span>
+            )}
+          </div>
+        ):(
+          <MarkdownEditor
+            value={program.body||''}
+            onChange={v=>update({body:v||null})}
+            placeholder="Program notes, quotes, ideas — anything belonging to this program's world."
+            minHeight={120}
+          />
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Programs list ────────────────────────────────────────────────────────────
+function ProgramsList({programs,items,onSelect,onNew}){
+  const sorted=useMemo(()=>{
+    const dated=programs.filter(p=>p.performanceDate).sort((a,b)=>b.performanceDate.localeCompare(a.performanceDate));
+    const undated=programs.filter(p=>!p.performanceDate).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    return [...dated,...undated];
+  },[programs]);
+
+  return(
+    <div className="max-w-2xl mx-auto px-12 py-10">
+      {/* Header */}
+      <div className="flex items-start justify-between mb-10">
+        <div>
+          <div className="uppercase mb-2" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.32em',color:DIM}}>Programs</div>
+          <h1 style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,fontSize:'clamp(32px,6vw,56px)',letterSpacing:'-0.02em',lineHeight:1,color:TEXT}}>Programs</h1>
+        </div>
+        <button
+          onClick={onNew}
+          className="uppercase flex items-center gap-2 px-4 py-2 shrink-0"
+          style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:TEXT,border:`1px solid ${LINE_STR}`,background:'transparent',marginTop:'auto'}}
+        >
+          <Plus className="w-3 h-3" strokeWidth={1.25}/> New program
+        </button>
+      </div>
+
+      {sorted.length===0&&(
+        <div className="py-20 text-center">
+          <div className="italic" style={{fontFamily:serif,fontSize:'16px',color:DIM}}>Nothing here yet.</div>
+        </div>
       )}
+
+      {sorted.map(p=>{
+        const pieceCount=p.itemIds?.length||0;
+        const totalSecs=(p.itemIds||[]).reduce((a,id)=>{const it=items.find(i=>i.id===id);return a+(it?.lengthSecs||0);},0);
+        const formattedDate=p.performanceDate?formatPerfDate(p.performanceDate):null;
+        return(
+          <button
+            key={p.id}
+            onClick={()=>onSelect(p.id)}
+            className="w-full text-left py-4 group"
+            style={{borderBottom:`1px solid ${LINE}`}}
+          >
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="italic" style={{fontFamily:serif,fontWeight:300,fontSize:'clamp(18px,2.5vw,22px)',color:TEXT}}>{p.name||'Untitled program'}</span>
+              <span className="tabular-nums shrink-0" style={{fontFamily:mono,fontSize:'11px',color:totalSecs>0?DIM:DIM}}>
+                {totalSecs>0?fmtDuration(totalSecs):''}
+              </span>
+            </div>
+            <div className="flex items-baseline gap-3 mt-0.5">
+              {formattedDate?(
+                <span style={{fontFamily:sans,fontSize:'12px',color:MUTED}}>{formattedDate}</span>
+              ):(
+                <span style={{fontFamily:sans,fontSize:'12px',color:FAINT}}>Undated</span>
+              )}
+              {p.venue&&<span style={{fontFamily:sans,fontSize:'12px',color:FAINT}}>{p.venue}</span>}
+              <span className="tabular-nums" style={{fontFamily:mono,fontSize:'11px',color:DIM}}>
+                {pieceCount} piece{pieceCount===1?'':'s'}
+              </span>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }
 
 // ── Main view ────────────────────────────────────────────────────────────────
-export default function ProgramsView({items,programs,setPrograms}){
-  const addProgram=()=>{
-    const p={id:mkId(),name:'New Program',performanceDate:null,itemIds:[]};
+export default function ProgramsView({items,programs,setPrograms,selectedProgramId,setSelectedProgramId,setView,freeNotes,setActiveNoteId}){
+  const selectedProgram=programs.find(p=>p.id===selectedProgramId)||null;
+
+  const createProgram=()=>{
+    const p={
+      id:mkId(),name:'',performanceDate:null,venue:null,audience:null,
+      itemIds:[],itemNotes:{},intention:null,reflection:null,body:null,
+    };
     setPrograms(prev=>[...prev,p]);
+    setSelectedProgramId(p.id);
   };
+
   const updateProgram=(updated)=>setPrograms(prev=>prev.map(p=>p.id===updated.id?updated:p));
-  const deleteProgram=(id)=>setPrograms(prev=>prev.filter(p=>p.id!==id));
+
+  if(selectedProgram){
+    return(
+      <ProgramEditor
+        program={selectedProgram}
+        items={items}
+        onUpdate={updateProgram}
+        onBack={()=>setSelectedProgramId(null)}
+        freeNotes={freeNotes||[]}
+        setView={setView}
+        setActiveNoteId={setActiveNoteId}
+      />
+    );
+  }
 
   return(
-    <div className="max-w-3xl mx-auto px-12 py-14">
-      <DisplayHeader eyebrow="Concert & Audition" title="Programs" right={
-        <button onClick={addProgram} className="uppercase flex items-center gap-2 px-4 py-2" style={{color:IKB,border:`1px solid ${IKB}40`,background:IKB_SOFT,fontSize:'10px',letterSpacing:'0.28em'}}>
-          <Plus className="w-3.5 h-3.5" strokeWidth={1.25}/> New program
-        </button>
-      }/>
-      {programs.length===0&&(
-        <div className="py-20 text-center">
-          <div className="italic mb-4" style={{color:FAINT,fontFamily:serif,fontSize:'16px'}}>No programs yet.</div>
-          <button onClick={addProgram} className="uppercase flex items-center gap-2 px-5 py-2.5 mx-auto" style={{color:IKB,border:`1px solid ${IKB}40`,background:IKB_SOFT,fontSize:'10px',letterSpacing:'0.28em'}}>
-            <Plus className="w-3.5 h-3.5" strokeWidth={1.25}/> Create your first program
-          </button>
-        </div>
-      )}
-      {programs.map(p=>(
-        <ProgramCard key={p.id} program={p} items={items} onUpdate={updateProgram} onDelete={()=>deleteProgram(p.id)}/>
-      ))}
-    </div>
+    <ProgramsList
+      programs={programs}
+      items={items}
+      onSelect={(id)=>setSelectedProgramId(id)}
+      onNew={createProgram}
+    />
   );
 }

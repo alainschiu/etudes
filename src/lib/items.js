@@ -1,4 +1,4 @@
-import {todayDateStr,shiftDate} from './dates.js';
+import {todayDateStr} from './dates.js';
 
 export const mkPdfId=()=>`pdf-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
 export const mkAttachId=()=>`att-${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
@@ -71,4 +71,3 @@ export const TEST_REPERTOIRE_ITEMS=[
   {id:'test-study-007',type:'study',title:'Counterpoint',tags:['counterpoint','textbook'],pdfs:[],defaultPdfId:null,detail:'',composer:'',author:'Kent Kennan',arranger:'',catalog:'',collection:'',movement:'',stage:'learning',referenceUrl:'',startedDate:null,bpmLog:[],bpmTarget:null,todayNote:'',instrument:'',spots:[],performances:[],lengthSecs:null},
 ];
 
-export const calcStreak=(history,effMin)=>{const map={};history.forEach(h=>{if((h.kind==='day'||!h.kind)){const eff=(h.minutes||0)-(h.warmupMinutes||0);if(eff>=1)map[h.date]=eff;}});const t=todayDateStr();if((effMin||0)>=1)map[t]=effMin;let c=0;let cur=t;if(!map[cur])cur=shiftDate(cur,-1);while(map[cur]){c++;cur=shiftDate(cur,-1);}return c;};

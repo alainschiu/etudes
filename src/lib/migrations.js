@@ -1,7 +1,5 @@
 import {mkSpotId,mkPerfId,mkAttachId} from './items.js';
 
-export const SCHEMA_VERSION=8;
-
 export const IMPORT_MIGRATIONS=[
   {from:1,to:2,migrate:(d)=>{const s=d.state||{};const items=(s.items||[]).map(i=>({...i,instrument:typeof i.instrument==='string'?i.instrument:'',spots:Array.isArray(i.spots)?i.spots:[]}));return {...d,schemaVersion:2,state:{...s,items}};}},
   {from:2,to:3,migrate:(d)=>{const s=d.state||{};const items=(s.items||[]).map(i=>({...i,spots:Array.isArray(i.spots)?i.spots.map(sp=>({...sp,note:typeof sp.note==='string'?sp.note:'',bpmLog:Array.isArray(sp.bpmLog)?sp.bpmLog:[]})):[]}));return {...d,schemaVersion:3,state:{...s,items}};}},
@@ -32,6 +30,16 @@ export const IMPORT_MIGRATIONS=[
   }},
 ];
 export function migrateImport(data){let c=data;let v=c.schemaVersion||1;for(const m of IMPORT_MIGRATIONS){if(m.from===v){c=m.migrate(c);v=m.to;c.schemaVersion=v;}}return c;}
+
+export function migratePrograms(programs){
+  return (programs||[]).map(p=>({
+    venue:null,audience:null,itemNotes:{},intention:null,
+    reflection:null,body:null,
+    ...p,
+    // itemNotes re-checked after spread to guard against corrupted non-object values
+    itemNotes:(p.itemNotes&&typeof p.itemNotes==='object')?p.itemNotes:{},
+  }));
+}
 
 export function migrateItems(items){return (items||[]).map(i=>{
   let stage=i.stage;if(stage==='reading')stage='learning';if(stage==='performance')stage='maintenance';

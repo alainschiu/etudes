@@ -4,8 +4,8 @@ import {idbPut,idbDel,idbGet,idbAllKeys,storageAvailable,detectStorage,lsGet,lsS
 import {useSupabaseAuth} from '../lib/useSupabaseAuth.js';
 import {loadFromCloud,syncToCloud,mergeStates,LS_CLOUD_SYNC_KEY} from '../lib/sync.js';
 import {todayDateStr,shiftDate,getWeekStart,getMonthKey} from '../lib/dates.js';
-import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,mkNoteLogId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem,calcStreak} from '../lib/items.js';
-import {migrateItems,migrateSessions,migrateRoutines,migrateHistory} from '../lib/migrations.js';
+import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,mkNoteLogId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem} from '../lib/items.js';
+import {migrateItems,migrateSessions,migrateRoutines,migrateHistory,migratePrograms} from '../lib/migrations.js';
 import {buildCompositeDailyReflection,parseTagsFromBody} from '../lib/notes.js';
 import {checkAndSendReminder} from '../lib/notifications.js';
 import {measureSyncPayload} from '../lib/sync.js';
@@ -50,7 +50,7 @@ export default function useEtudesState(){
   const [todaySessions,setTodaySessions]=useState(()=>{const raw=migrateSessions(lsGet('etudes-todaySessions',DEFAULT_SESSIONS)).map(s=>({...s,itemIds:s.itemIds===null?[]:s.itemIds}));return [...raw].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type));});
   const [loadedRoutineId,setLoadedRoutineId]=useState(()=>lsGet('etudes-loadedRoutineId',null));
   const [routines,setRoutines]=useState(()=>migrateRoutines(lsGet('etudes-routines',[])));
-  const [programs,setPrograms]=useState(()=>lsGet('etudes-programs',[]));
+  const [programs,setPrograms]=useState(()=>migratePrograms(lsGet('etudes-programs',[])));
   const [dailyReflection,setDailyReflection]=useState(()=>lsGet('etudes-dailyReflection',''));
   const [weekReflection,setWeekReflection]=useState(()=>lsGet('etudes-weekReflection',{notes:'',goals:''}));
   const [monthReflection,setMonthReflection]=useState(()=>lsGet('etudes-monthReflection',{notes:'',goals:''}));
@@ -156,7 +156,6 @@ export default function useEtudesState(){
   const monthPre=todayKey.slice(0,7);
   const monthHistSec=history.filter(h=>(h.kind==='day'||!h.kind)&&h.date.startsWith(monthPre)&&h.date<todayKey).reduce((a,b)=>a+((b.minutes||0)-(b.warmupMinutes||0)),0)*60;
   const monthActualSeconds=monthHistSec+effectiveTotalToday;
-  const streak=useMemo(()=>calcStreak(history,Math.floor(effectiveTotalToday/60)),[history,effectiveTotalToday]);
 
   const activeItem=useMemo(()=>items.find(i=>i.id===activeItemId),[items,activeItemId]);
   const activeSpot=useMemo(()=>activeItem&&activeSpotId?(activeItem.spots||[]).find(s=>s.id===activeSpotId):null,[activeItem,activeSpotId]);
@@ -477,10 +476,10 @@ export default function useEtudesState(){
   const resolveDayEntry=(date)=>{if(date===todayKey)return todayHistoryEntry;return history.find(h=>(h.kind==='day'||!h.kind)&&h.date===date);};
 
   // ── Import/export (delegated) ─────────────────────────────────────────────
-  const {exportLog,exportJson,importJsonFile,handleChipDrag,handleChipDragEnd}=useImportExport({
+  const {exportJson,importJsonFile,buildZip,exportProgress}=useImportExport({
     todayKey,items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,loadedRoutineId,routines,
     dailyReflection,weekReflection,monthReflection,settings,freeNotes,recordingMeta,history,dayClosed,
-    pieceRecordingMeta,noteCategories,refTrackMeta,
+    pieceRecordingMeta,noteCategories,refTrackMeta,programs,
     pdfUrlMap,todayHistoryEntry,
     setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
     setRoutines,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
@@ -590,7 +589,7 @@ export default function useEtudesState(){
     drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,
     sessionRefs,reflectionRef,importInputRef,
     totalToday,effectiveTotalToday,sectionTimes,
-    weekActualSeconds,monthActualSeconds,streak,
+    weekActualSeconds,monthActualSeconds,
     todayKey,pdfItem,loadedRoutine,todayHistoryEntry,
     fmt,fmtMin,
     updateItem,addItem,startItem,stopItem,toggleWorking,toggleRest,
@@ -614,8 +613,7 @@ export default function useEtudesState(){
     programs,setPrograms,
     loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,
     openLogEntry,closeLogDrawer,resolveDayEntry,
-    exportLog,exportJson,importJsonFile,
-    handleChipDrag,handleChipDragEnd,
+    exportJson,importJsonFile,buildZip,exportProgress,
     handleTap,
     user,signIn,signUp,signOut,signInWithGoogle,signInWithApple,syncStatus,lastSyncedAt,syncNow:doSync,syncPayloadWarning,
   };

@@ -1,23 +1,26 @@
-# Études — v0.96.0
+# Études — v0.97.0
 
-A practice journal for musicians. Track daily sessions, time focused work, organise repertoire, and review progress across week and month views. Works offline as a PWA — install from the browser on any device.
+A practice journal for musicians. Seven views: Today, Review, Répertoire, Routines, Logs, Notes, Programs. Works offline as a PWA — install from the browser on any device.
 
 ## Features
 
 - **Today** — session timer, spot-level timing, warmup and rest tracking, day close
-- **Repertoire** — pieces, technique, play, and study items with stage labels, performance dates, spots, tempo history, reference links, embeds (YouTube / Spotify / Apple Music), and PDF scores
-- **PDF score viewer** — upload scores to any repertoire item; shared score library (one PDF, multiple items with independent page ranges); named bookmarks with jump-to-page; spot ↔ bookmark link (viewer auto-jumps to that page when the spot is activated); two-page / single-page / continuous scroll; zoom, fit-to-width/page; resizable sidebar; fullscreen modal
-- **Audio recording** — per-day and per-piece recordings with scrubbable SVG waveforms, A/B comparison (same piece or cross-piece); FIFO rolling archive (10 slots, lockable); context-aware record button routes to active piece or daily log; attach daily recordings to a routine piece; cross-device placeholder shown when audio exists on another device only
-- **Reference tracks** — upload a reference audio file per piece; varispeed playback (25–100%); pull-up bar in Today view; inline player in Répertoire
-- **Routines & Programs** — build and load practice routines; group pieces into programs; save changes back to loaded routine
-- **Week / Month** — ring graphs, reflections, streak tracking, temporal navigation (past weeks/months)
-- **Logs & Notes** — searchable practice history (daily, weekly, monthly); free reference notes with wiki-links and markdown
+- **Review** — Week and Month scales in one tab; IKB ring graphs, reflections, temporal navigation; scale selector persists last-used choice
+- **Répertoire** — pieces, technique, play, and study items with stage labels, performance dates, spots, tempo history, reference links, and PDF scores
+- **PDF score viewer** — upload scores to any repertoire item; shared score library (one PDF, multiple items with independent page ranges); named bookmarks with jump-to-page; spot ↔ bookmark link; two-page / single-page / continuous scroll; zoom, fit-to-width/page; resizable sidebar; fullscreen modal
+- **Audio recording** — per-day and per-piece recordings with scrubbable SVG waveforms, A/B comparison (same piece or cross-piece); FIFO rolling archive (10 slots, lockable); context-aware record button routes to active piece or daily log; attach daily recordings to a routine piece
+- **Reference tracks** — upload a reference audio file per piece; varispeed playback (25–100%); pull-up bar in Today view; inline player in Répertoire; waveform renders in `--muted`
+- **Routines** — build and load practice routines with pinned pieces and optional targets; save changes back to loaded routine
+- **Programs** — private salon journal: named programs with an ordered sequence of pieces, per-piece marginal annotations, intention (writable before, locked after), reflection (unlocks after), and free markdown notes. Wiki-links connect Programs ↔ Notes. The `audience` field is private and never exported.
+- **Logs** — searchable practice history (daily, weekly, monthly cards); log drawer
+- **Notes** — free reference notes with wiki-links, markdown, folder organisation, and tag filtering; links resolve to repertoire items, log dates, and programs
+- **Export** — `Export journal` in Settings produces a dated ZIP: per-entity markdown files with YAML frontmatter, audio blobs (format-detected), PDF scores, README, and `_data.json`. Separate JSON backup/restore for full data migration.
 - **Metronome** — tap tempo, BPM scrub drag, accelerando, compound meter (6/8 etc.), click volume
 - **Tuning drone** — piano-keyboard note picker, pitch reference; open with `D`
 - **Keyboard shortcuts** — `Space` stop · `R` rest · `M` metronome · `T` tap · `L` log BPM · `D` tuning · `N` note · `?` settings
 - **Sync** — optional sign-in (Google, Apple, or email); data syncs across devices via Supabase; payload size warning when backup exceeds 500 KB
 - **Daily reminder** — optional push notification at a chosen time (requires notification permission)
-- **Mobile PWA** — bottom tab navigation, compact header, mobile-optimised footer bar (timer + Rest / Record / Metronome / Drone icons), Répertoire sidebar as full-screen overlay sheet, PDF drawer full-screen on mobile; installable from any browser
+- **Mobile PWA** — bottom tab navigation (7 tabs), compact header, mobile-optimised footer bar, Répertoire sidebar as full-screen overlay sheet, PDF drawer full-screen on mobile; installable from any browser
 
 ## Tech Stack
 
@@ -25,6 +28,7 @@ A practice journal for musicians. Track daily sessions, time focused work, organ
 - Tailwind CSS
 - vite-plugin-pwa / Workbox (service worker, offline caching)
 - react-pdf / pdfjs-dist (PDF rendering)
+- JSZip (ZIP export)
 - Supabase (auth + PostgreSQL, optional)
 - lucide-react
 
@@ -59,7 +63,7 @@ src/
   hooks/        metronome, recording, viewport, import/export, keyboard shortcuts
   lib/          storage, sync, auth, notifications, date/item/media utilities
   state/        useEtudesState — central state hook
-  views/        Today, Week, Month, Repertoire, Programs, Routines, Logs, Notes
+  views/        Today, Review, Repertoire, Programs, Routines, Logs, Notes
 docs/
   guide.html    user guide
 supabase/
