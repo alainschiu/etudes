@@ -1,15 +1,291 @@
-import {useRef,useEffect} from 'react';
+import {useState} from 'react';
+import JSZip from 'jszip';
 import {APP_VERSION,SCHEMA_VERSION,TYPES,SECTION_CONFIG,DEFAULT_SESSIONS,ROLLOVER_KEY,WEEK_ROLLOVER_KEY,MONTH_ROLLOVER_KEY} from '../constants/config.js';
 import {idbPut,idbDel,idbGet,idbAllKeys,lsGet,lsSet} from '../lib/storage.js';
 import {blobToBase64,base64ToBlob,triggerDownload} from '../lib/media.js';
 import {todayDateStr,getWeekStart,getMonthKey} from '../lib/dates.js';
-import {formatForMarkdown,resolveHistoryItem,buildHistoryItems} from '../lib/items.js';
-import {migrateImport,migrateItems,migrateSessions,migrateRoutines,migrateHistory} from '../lib/migrations.js';
+import {formatForMarkdown,resolveHistoryItem} from '../lib/items.js';
+import {migrateImport,migrateItems,migrateSessions,migrateRoutines,migrateHistory,migratePrograms} from '../lib/migrations.js';
+import {toSlug,uniqueSlug} from '../lib/slug.js';
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function isoToHuman(iso){
+  if(!iso)return null;
+  const[y,m,d]=iso.split('-').map(Number);
+  return new Date(y,m-1,d).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+}
+
+function blobExt(blob){
+  const t=(blob?.type||'').toLowerCase();
+  if(t.includes('webm'))return 'webm';
+  if(t.includes('mp4')||t.includes('m4a')||t.includes('aac'))return 'mp4';
+  if(t.includes('ogg'))return 'ogg';
+  return 'webm';
+}
+
+function itemSlug(item,usedSlugs){
+  const composerPart=item.composer?toSlug(item.composer):'';
+  const titlePart=toSlug(item.title||item.collection||'untitled');
+  const base=composerPart?`${composerPart}_${titlePart}`:titlePart;
+  return uniqueSlug(base,usedSlugs);
+}
+
+// ── Markdown generators ───────────────────────────────────────────────────────
+
+function generateReadme(todayKey){
+  return `# Études export — ${todayKey}
+
+This archive contains your complete Études journal.
+
+## Folder structure
+
+- \`journal/\` — daily logs and weekly/monthly reflections
+- \`notes/\` — your knowledge base notes
+- \`repertoire/\` — pieces and practice items
+- \`programs/\` — concert and salon programs
+- \`recordings/\` — audio takes (daily and per piece)
+- \`scores/\` — PDF scores
+
+## Audio formats
+
+Recordings are in the format your browser's MediaRecorder produces: WebM/Opus on Chrome and Android, MP4/AAC on Safari and iOS. Both are widely supported — VLC plays either.
+
+## Re-import
+
+\`_data.json\` contains the full machine-readable journal. It can be used to restore your data if needed.
+
+## No app required
+
+Every \`.md\` file in this archive is readable in any text editor, markdown viewer, or Obsidian vault.
+`;
+}
+
+function generateDailyLog(entry,items,todayKey){
+  const d=entry.date;
+  const[y,m,day]=d.split('-').map(Number);
+  const dt=new Date(y,m-1,day);
+  const humanDate=dt.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
+  const mins=entry.minutes||0;
+  const tech=(entry.items||[]).filter(i=>{const r=resolveHistoryItem(i,items);return r?.type==='tech';});
+  const pieces=(entry.items||[]).filter(i=>{const r=resolveHistoryItem(i,items);return r?.type==='piece';});
+  const play=(entry.items||[]).filter(i=>{const r=resolveHistoryItem(i,items);return r?.type==='play';});
+  const study=(entry.items||[]).filter(i=>{const r=resolveHistoryItem(i,items);return r?.type==='study';});
+  const techMin=tech.reduce((a,i)=>a+(i.minutes||0),0);
+  const piecesMin=pieces.reduce((a,i)=>a+(i.minutes||0),0);
+  const playMin=play.reduce((a,i)=>a+(i.minutes||0),0);
+  const studyMin=study.reduce((a,i)=>a+(i.minutes||0),0);
+
+  const lines=[];
+  lines.push(`---`);
+  lines.push(`type: log`);
+  lines.push(`date: ${d}`);
+  lines.push(`minutes: ${mins}`);
+  lines.push(`sections:`);
+  lines.push(`  technique: ${techMin}`);
+  lines.push(`  pieces: ${piecesMin}`);
+  lines.push(`  play: ${playMin}`);
+  lines.push(`  study: ${studyMin}`);
+  lines.push(`routine: ${entry.routineName?`"${entry.routineName}"`:'null'}`);
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`# ${humanDate}`);
+  lines.push(``);
+
+  const sectionOrder=[{type:'tech',label:'Technique',list:tech,total:techMin},{type:'piece',label:'Pieces',list:pieces,total:piecesMin},{type:'play',label:'Play',list:play,total:playMin},{type:'study',label:'Study',list:study,total:studyMin}];
+  for(const{label,list,total} of sectionOrder){
+    if(!list.length)continue;
+    lines.push(`## ${label} — ${total} min`);
+    lines.push(``);
+    for(const e of list){
+      const r=resolveHistoryItem(e,items);
+      if(!r)continue;
+      lines.push(`- ${formatForMarkdown(r)} — ${e.minutes||0} min`);
+      if(e.spotsSnapshot?.length){
+        for(const sp of e.spotsSnapshot){const sm=(e.spotMinutes||{})[sp.id]||0;if(sm>0)lines.push(`  - ${sp.label} (spot) — ${sm} min`);}
+      }
+    }
+    lines.push(``);
+  }
+
+  if(entry.reflection?.trim()){
+    lines.push(`---`);
+    lines.push(``);
+    lines.push(`*Reflection*`);
+    lines.push(``);
+    lines.push(entry.reflection.trim());
+    lines.push(``);
+  }
+
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`*Exported from Études · ${todayKey}*`);
+  return lines.join('\n');
+}
+
+function generateWeekReflection(entry,todayKey){
+  const lines=[];
+  lines.push(`---`);
+  lines.push(`type: reflection`);
+  lines.push(`scale: week`);
+  lines.push(`week: ${entry.weekStart||entry.week||''}`);
+  lines.push(`minutes: ${entry.minutes||0}`);
+  lines.push(`---`);
+  lines.push(``);
+  const wd=entry.weekStart||entry.week||'';
+  lines.push(`# Week of ${wd}`);
+  lines.push(``);
+  if(entry.notes?.trim()){lines.push(`## Notes`);lines.push(``);lines.push(entry.notes.trim());lines.push(``);}
+  if(entry.goals?.trim()){lines.push(`## Goals for next week`);lines.push(``);lines.push(entry.goals.trim());lines.push(``);}
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`*Exported from Études · ${todayKey}*`);
+  return lines.join('\n');
+}
+
+function generateMonthReflection(entry,todayKey){
+  const lines=[];
+  lines.push(`---`);
+  lines.push(`type: reflection`);
+  lines.push(`scale: month`);
+  lines.push(`month: ${entry.month||''}`);
+  lines.push(`minutes: ${entry.minutes||0}`);
+  lines.push(`---`);
+  lines.push(``);
+  const[y,m]=(entry.month||'2000-01').split('-').map(Number);
+  const dt=new Date(y,m-1,1);
+  const monthName=dt.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  lines.push(`# ${monthName}`);
+  lines.push(``);
+  if(entry.notes?.trim()){lines.push(`## Notes`);lines.push(``);lines.push(entry.notes.trim());lines.push(``);}
+  if(entry.goals?.trim()){lines.push(`## Goals for next month`);lines.push(``);lines.push(entry.goals.trim());lines.push(``);}
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`*Exported from Études · ${todayKey}*`);
+  return lines.join('\n');
+}
+
+function generateNoteFile(note,todayKey){
+  const lines=[];
+  lines.push(`---`);
+  lines.push(`type: note`);
+  lines.push(`id: ${note.id}`);
+  lines.push(`created: ${note.date||''}`);
+  lines.push(`folder: ${note.category?`"${note.category}"`:'null'}`);
+  lines.push(`tags: [${(note.tags||[]).map(t=>`"${t}"`).join(', ')}]`);
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`# ${note.title||'Untitled'}`);
+  lines.push(``);
+  if(note.body?.trim())lines.push(note.body.trim());
+  lines.push(``);
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`*Exported from Études · ${todayKey}*`);
+  return lines.join('\n');
+}
+
+function generateRepertoireFile(item,todayKey){
+  const lines=[];
+  lines.push(`---`);
+  lines.push(`type: ${item.type}`);
+  lines.push(`id: ${item.id}`);
+  lines.push(`title: ${item.title||''}`);
+  lines.push(`composer: ${item.composer||'null'}`);
+  lines.push(`movement: ${item.movement||'null'}`);
+  lines.push(`collection: ${item.collection||'null'}`);
+  lines.push(`instrument: ${item.instrument||'null'}`);
+  lines.push(`catalog: ${item.catalog||'null'}`);
+  lines.push(`stage: ${item.stage||'queued'}`);
+  lines.push(`started: ${item.startedDate||'null'}`);
+  const lifeTime=0;
+  lines.push(`time_invested: ${lifeTime}`);
+  lines.push(`tempo_target: ${item.bpmTarget||'null'}`);
+  lines.push(`bpm_log:`);
+  for(const bl of(item.bpmLog||[]))lines.push(`  - { date: ${bl.date}, bpm: ${bl.bpm} }`);
+  lines.push(`tags: [${(item.tags||[]).map(t=>`"${t}"`).join(', ')}]`);
+  lines.push(`---`);
+  lines.push(``);
+  const byline=item.composer?`*${item.composer}*`:null;
+  const titleStr=item.collection&&item.movement?`${item.collection} — ${item.movement}`:(item.title||'Untitled');
+  lines.push(`# ${byline?`${byline} — `:''}${titleStr}`);
+  lines.push(``);
+  if(item.detail?.trim()){lines.push(`## Notes`);lines.push(``);lines.push(item.detail.trim());lines.push(``);}
+  if((item.spots||[]).length){
+    lines.push(`## Spots`);
+    lines.push(``);
+    for(const s of item.spots){
+      lines.push(`### ${s.label||'Unnamed spot'}`);
+      if(s.bpmTarget)lines.push(``+`*Tempo target: ${s.bpmTarget} BPM*`);
+      if(s.note?.trim()){lines.push(``);lines.push(s.note.trim());}
+      lines.push(``);
+    }
+  }
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`*Exported from Études · ${todayKey}*`);
+  return lines.join('\n');
+}
+
+function generateProgramFile(program,items,todayKey){
+  // audience is intentionally excluded from all exports
+  const totalSecs=(program.itemIds||[]).reduce((a,id)=>{const it=items.find(i=>i.id===id);return a+(it?.lengthSecs||0);},0);
+  const totalMin=Math.round(totalSecs/60);
+  const piecesList=(program.itemIds||[]).map(id=>{
+    const it=items.find(i=>i.id===id);
+    const note=(program.itemNotes||{})[id]||null;
+    return `  - { title: "${it?it.title||'':id}", composer: "${it?.composer||''}", note: ${note?`"${note}"`:'null'} }`;
+  });
+
+  const lines=[];
+  lines.push(`---`);
+  lines.push(`type: program`);
+  lines.push(`id: ${program.id}`);
+  lines.push(`name: "${program.name||''}"`);
+  lines.push(`performance_date: ${program.performanceDate||'null'}`);
+  lines.push(`venue: ${program.venue?`"${program.venue}"`:'null'}`);
+  lines.push(`duration_minutes: ${totalMin}`);
+  lines.push(`pieces:`);
+  for(const p of piecesList)lines.push(p);
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`# ${program.name||'Untitled program'}`);
+  lines.push(``);
+  if(program.performanceDate){
+    const venuePart=program.venue?` · ${program.venue}`:'';
+    lines.push(`*${isoToHuman(program.performanceDate)}${venuePart}*`);
+    lines.push(``);
+  }
+  if(program.intention?.trim()){
+    lines.push(`## Intention`);
+    lines.push(``);
+    lines.push(program.intention.trim());
+    lines.push(``);
+  }
+  if(program.body?.trim()){
+    lines.push(`## Program notes`);
+    lines.push(``);
+    lines.push(program.body.trim());
+    lines.push(``);
+  }
+  if(program.reflection?.trim()){
+    lines.push(`## Reflection`);
+    lines.push(``);
+    lines.push(program.reflection.trim());
+    lines.push(``);
+  }
+  lines.push(`---`);
+  lines.push(``);
+  lines.push(`*Exported from Études · ${todayKey}*`);
+  return lines.join('\n');
+}
+
+// ── Main hook ─────────────────────────────────────────────────────────────────
 
 export default function useImportExport({
   todayKey,items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,loadedRoutineId,routines,
   dailyReflection,weekReflection,monthReflection,settings,freeNotes,recordingMeta,history,dayClosed,
-  pieceRecordingMeta,noteCategories,refTrackMeta,
+  pieceRecordingMeta,noteCategories,refTrackMeta,programs,
   pdfUrlMap,todayHistoryEntry,
   setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
   setRoutines,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
@@ -20,40 +296,9 @@ export default function useImportExport({
   setRestoreBusy,setExportMenu,setConfirmModal,
   importInputRef,
 }){
+  const [exportProgress,setExportProgress]=useState('');
 
-  const buildLogString=(format)=>{
-    const days=[...history.filter(h=>h.kind==='day'||!h.kind)];
-    if(todayHistoryEntry.minutes>0||todayHistoryEntry.items.length>0||todayHistoryEntry.reflection.trim())days.push(todayHistoryEntry);
-    days.sort((a,b)=>b.date.localeCompare(a.date));
-    const md=format==='md';const L=[];
-    L.push(md?'# Études — Practice Journal':'ÉTUDES — PRACTICE JOURNAL');L.push(md?`_Exported ${todayKey}_`:`Exported ${todayKey}`);L.push('');
-    if(days.length===0)L.push(md?'_No sessions yet._':'No sessions yet.');
-    for(const s of days){
-      if(!s.minutes&&!s.reflection?.trim()&&(!s.items||s.items.length===0))continue;
-      const d=new Date(s.date);const wd=d.toLocaleDateString('en-US',{weekday:'long'});const dl=d.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
-      const wn=s.warmupMinutes?` · ${s.warmupMinutes} min warm-up`:'';
-      L.push('');L.push(md?'---':'================================');L.push('');
-      L.push(md?`# Daily Journal — ${s.date}`:`DAILY JOURNAL — ${s.date}`);
-      L.push(md?`_${wd}, ${dl} · ${s.minutes} min total${wn}_`:`${wd}, ${dl} · ${s.minutes} min total${wn}`);L.push('');
-      const g={tech:[],piece:[],play:[],study:[]};
-      (s.items||[]).forEach(e=>{const r=resolveHistoryItem(e,items);if(r&&g[r.type])g[r.type].push({it:r,minutes:e.minutes,note:e.note||'',spotMinutes:e.spotMinutes||{},spotsSnapshot:e.spotsSnapshot||[]});});
-      for(const t of TYPES){const list=g[t];if(!list||list.length===0)continue;const total=list.reduce((a,b)=>a+b.minutes,0);L.push(md?`## ${SECTION_CONFIG[t].label} (${total} min)`:`${SECTION_CONFIG[t].label.toUpperCase()} (${total} min)`);L.push('');
-        for(const {it,minutes,note,spotMinutes,spotsSnapshot} of list){const name=formatForMarkdown(it);
-          if(md){L.push(`### ${name}`);L.push(`_${minutes} min_`);if(spotsSnapshot?.length){for(const sp of spotsSnapshot){const sm=spotMinutes[sp.id]||0;if(sm>0)L.push(`- ${sp.label}: _${sm} min_`);}}if(note)L.push(note);L.push('');}
-          else{L.push(`  ${name} (${minutes} min)`);if(spotsSnapshot?.length){for(const sp of spotsSnapshot){const sm=spotMinutes[sp.id]||0;if(sm>0)L.push(`    · ${sp.label} (${sm} min)`);}}if(note)note.split('\n').forEach(l=>L.push(`    ${l}`));}
-        }}
-      if(s.reflection){L.push(md?'## Reflection':'REFLECTION');L.push('');L.push(s.reflection);L.push('');}
-    }
-    const weeks=history.filter(h=>h.kind==='week').sort((a,b)=>b.weekStart.localeCompare(a.weekStart));
-    const months=history.filter(h=>h.kind==='month').sort((a,b)=>b.month.localeCompare(a.month));
-    if(weeks.length||months.length){L.push('');L.push(md?'---':'================================');L.push('');L.push(md?'# Weekly & Monthly Reflections':'WEEKLY & MONTHLY REFLECTIONS');L.push('');}
-    for(const w of weeks){L.push(md?`## Week of ${w.weekStart}`:`WEEK OF ${w.weekStart}`);if(w.notes){L.push(md?'**Notes**':'NOTES');L.push(w.notes);L.push('');}if(w.goals){L.push(md?'**Goals**':'GOALS');L.push(w.goals);L.push('');}}
-    for(const mo of months){L.push(md?`## ${mo.month}`:mo.month);if(mo.notes){L.push(md?'**Notes**':'NOTES');L.push(mo.notes);L.push('');}if(mo.goals){L.push(md?'**Goals**':'GOALS');L.push(mo.goals);L.push('');}}
-    return L.join('\n');
-  };
-
-  const exportLog=(fmt)=>{const c=buildLogString(fmt);const b=new Blob([c],{type:fmt==='md'?'text/markdown':'text/plain'});triggerDownload(b,`etudes-journal-${todayKey}.${fmt==='md'?'md':'txt'}`);setExportMenu(false);};
-
+  // ── JSON backup (preserved) ─────────────────────────────────────────────────
   const exportJson=async()=>{
     try{
       setRestoreBusy(true);
@@ -68,6 +313,150 @@ export default function useImportExport({
     finally{setRestoreBusy(false);}
   };
 
+  // ── ZIP export ───────────────────────────────────────────────────────────────
+  const buildZip=async()=>{
+    const zip=new JSZip();
+    const root=`études-export-${todayKey}/`;
+
+    // README
+    setExportProgress('Exporting journal entries…');
+    await new Promise(r=>setTimeout(r,0));
+    zip.file(`${root}README.md`,generateReadme(todayKey));
+
+    // _data.json — strip audience from programs
+    const safePrograms=(programs||[]).map(p=>{
+      // eslint-disable-next-line no-unused-vars
+      const {audience,...rest}=p;
+      return rest;
+    });
+    const allLsKeys=['etudes-items','etudes-itemTimes','etudes-warmupTimeToday','etudes-restToday','etudes-workingOn','etudes-todaySessions','etudes-loadedRoutineId','etudes-routines','etudes-programs','etudes-dailyReflection','etudes-weekReflection','etudes-monthReflection','etudes-settings','etudes-freeNotes','etudes-noteCategories','etudes-recordingMeta','etudes-pieceRecordingMeta','etudes-refTrackMeta','etudes-history','etudes-dayClosed'];
+    const dataJson={};
+    for(const k of allLsKeys){
+      try{const v=localStorage.getItem(k);if(v)dataJson[k]=JSON.parse(v);}catch{}
+    }
+    dataJson['etudes-programs']=safePrograms;
+    zip.file(`${root}_data.json`,JSON.stringify(dataJson,null,2));
+
+    // Journal entries
+    const days=[...history.filter(h=>h.kind==='day'||!h.kind)];
+    if(todayHistoryEntry&&(todayHistoryEntry.minutes>0||todayHistoryEntry.items?.length>0||todayHistoryEntry.reflection?.trim())){
+      days.push(todayHistoryEntry);
+    }
+    for(const d of days){
+      if(!d.date)continue;
+      zip.file(`${root}journal/${d.date}_log.md`,generateDailyLog(d,items,todayKey));
+    }
+    const weeks=history.filter(h=>h.kind==='week');
+    for(const w of weeks){
+      const key=w.weekStart||w.week||w.date||'unknown';
+      zip.file(`${root}journal/${key}_reflection.md`,generateWeekReflection(w,todayKey));
+    }
+    const months=history.filter(h=>h.kind==='month');
+    for(const mo of months){
+      const key=mo.month||mo.date||'unknown';
+      zip.file(`${root}journal/${key}_reflection.md`,generateMonthReflection(mo,todayKey));
+    }
+
+    // Notes
+    const noteUsedSlugs=new Set();
+    for(const note of(freeNotes||[])){
+      const sl=uniqueSlug(toSlug(note.title||'untitled'),noteUsedSlugs);
+      zip.file(`${root}notes/${sl}.md`,generateNoteFile(note,todayKey));
+    }
+
+    // Repertoire
+    const repUsedSlugs=new Set();
+    for(const item of(items||[])){
+      const sl=itemSlug(item,repUsedSlugs);
+      zip.file(`${root}repertoire/${sl}.md`,generateRepertoireFile(item,todayKey));
+    }
+
+    // Programs (audience already stripped above)
+    const progUsedSlugs=new Set();
+    for(const prog of(programs||[])){
+      const namePart=toSlug(prog.name||'untitled');
+      const datePart=prog.performanceDate||'undated';
+      const baseSlug=`${datePart}_program_${namePart}`;
+      const sl=uniqueSlug(baseSlug,progUsedSlugs);
+      zip.file(`${root}programs/${sl}.md`,generateProgramFile(prog,items,todayKey));
+    }
+
+    // Recordings
+    setExportProgress('Exporting recordings…');
+    await new Promise(r=>setTimeout(r,0));
+
+    // Daily recordings
+    const dailyKeys=await idbAllKeys('recordings');
+    for(const k of dailyKeys){
+      const blob=await idbGet('recordings',k);
+      if(!blob)continue;
+      const ext=blobExt(blob);
+      zip.file(`${root}recordings/daily/${k}_session.${ext}`,blob);
+    }
+
+    // Piece recordings
+    const allPieceMeta=pieceRecordingMeta||{};
+    for(const [itemId,takes] of Object.entries(allPieceMeta)){
+      if(!Array.isArray(takes)||takes.length===0)continue;
+      const item=items.find(i=>String(i.id)===String(itemId));
+      const composerPart=item?.composer?toSlug(item.composer):'unknown';
+      const titlePart=toSlug(item?.title||item?.collection||'untitled');
+      const folderSlug=composerPart?`${composerPart}_${titlePart}`:titlePart;
+      const sortedTakes=[...takes].sort((a,b)=>(a.ts||0)-(b.ts||0));
+      for(let n=0;n<sortedTakes.length;n++){
+        const take=sortedTakes[n];
+        const blob=await idbGet('pieceRecordings',take.idbKey||`${itemId}__${take.ts}`);
+        if(!blob)continue;
+        const ext=blobExt(blob);
+        const lockSuffix=take.locked?'_locked':'';
+        const date=take.ts?new Date(take.ts).toISOString().slice(0,10):'unknown';
+        zip.file(`${root}recordings/pieces/${folderSlug}/${date}_take-${n+1}${lockSuffix}.${ext}`,blob);
+      }
+    }
+
+    // Scores (PDFs)
+    setExportProgress('Exporting scores…');
+    await new Promise(r=>setTimeout(r,0));
+    const pdfKeys=await idbAllKeys('pdfs');
+    for(const libraryId of pdfKeys){
+      const blob=await idbGet('pdfs',libraryId);
+      if(!blob)continue;
+      // Find the item that owns this pdf via its pdfLibrary entry
+      let itemForPdf=null;
+      for(const it of(items||[])){
+        const att=(it.pdfs||[]).find(p=>p.libraryId===libraryId||p.id===libraryId);
+        if(att){itemForPdf=it;break;}
+      }
+      if(!itemForPdf)continue;
+      const composerPart=itemForPdf.composer?toSlug(itemForPdf.composer):'';
+      const titlePart=toSlug(itemForPdf.title||itemForPdf.collection||'untitled');
+      const pdfSlug=composerPart?`${composerPart}_${titlePart}`:titlePart;
+      zip.file(`${root}scores/${pdfSlug}.pdf`,blob);
+    }
+
+    // Build and deliver
+    setExportProgress('Building archive…');
+    await new Promise(r=>setTimeout(r,0));
+    const zipBlob=await zip.generateAsync({type:'blob'});
+    const filename=`etudes-export-${todayKey}.zip`;
+    const file=new File([zipBlob],filename,{type:'application/zip'});
+
+    setExportProgress('');
+    if(navigator.canShare?.({files:[file]})){
+      try{
+        await navigator.share({files:[file]});
+      }catch(e){
+        if(e.name!=='AbortError'){
+          triggerDownload(zipBlob,filename);
+        }
+        // AbortError: user dismissed share sheet — do nothing
+      }
+    }else{
+      triggerDownload(zipBlob,filename);
+    }
+  };
+
+  // ── Import ───────────────────────────────────────────────────────────────────
   const applyImport=async(data)=>{
     try{
       setRestoreBusy(true);
@@ -76,11 +465,8 @@ export default function useImportExport({
       const nprb={};for(const [k,b] of Object.entries(data.blobs?.pieceRecordings||{})){const bl=base64ToBlob(b,'audio/webm');if(bl)nprb[k]=bl;}
       const nrtb={};for(const [k,v] of Object.entries(data.blobs?.refTracks||{})){const entry=typeof v==='object'?v:{d:v,t:'audio/mpeg'};const bl=base64ToBlob(entry.d,entry.t||'audio/mpeg');if(bl)nrtb[k]=bl;}
       Object.values(pdfUrlMap).forEach(u=>{try{URL.revokeObjectURL(u);}catch{}});
-      // Always restore pdfs + daily recordings (present in all backup versions)
       for(const k of await idbAllKeys('pdfs'))await idbDel('pdfs',k);
       for(const k of await idbAllKeys('recordings'))await idbDel('recordings',k);
-      // Only clear+restore newer stores if the backup actually contains them
-      // (old backups omit these; clearing without restoring would destroy existing local data)
       const hasPieceRec=data.blobs?.pieceRecordings!==undefined;
       const hasRefTracks=data.blobs?.refTracks!==undefined;
       if(hasPieceRec){for(const k of await idbAllKeys('pieceRecordings'))await idbDel('pieceRecordings',k);}
@@ -135,11 +521,5 @@ export default function useImportExport({
     readImport(file);
   };
 
-  // Drag chip (.md export)
-  const dragChipUrlRef=useRef(null);
-  const handleChipDrag=(e)=>{try{const c=buildLogString('md');const fn=`etudes-journal-${todayKey}.md`;const b=new Blob([c],{type:'text/markdown'});if(dragChipUrlRef.current){try{URL.revokeObjectURL(dragChipUrlRef.current);}catch{}}const u=URL.createObjectURL(b);dragChipUrlRef.current=u;e.dataTransfer.effectAllowed='copy';e.dataTransfer.setData('DownloadURL',`text/markdown:${fn}:${u}`);e.dataTransfer.setData('text/plain',c);e.dataTransfer.setData('text/uri-list',u);}catch{}};
-  const handleChipDragEnd=()=>{const u=dragChipUrlRef.current;if(u){setTimeout(()=>{try{URL.revokeObjectURL(u);}catch{}},60000);dragChipUrlRef.current=null;}};
-  useEffect(()=>()=>{if(dragChipUrlRef.current){try{URL.revokeObjectURL(dragChipUrlRef.current);}catch{}}},[]);
-
-  return {exportLog,exportJson,importJsonFile,handleChipDrag,handleChipDragEnd,buildLogString};
+  return {exportJson,importJsonFile,buildZip,exportProgress};
 }

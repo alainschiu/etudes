@@ -476,10 +476,10 @@ export default function useEtudesState(){
   const resolveDayEntry=(date)=>{if(date===todayKey)return todayHistoryEntry;return history.find(h=>(h.kind==='day'||!h.kind)&&h.date===date);};
 
   // ── Import/export (delegated) ─────────────────────────────────────────────
-  const {exportLog,exportJson,importJsonFile,handleChipDrag,handleChipDragEnd}=useImportExport({
+  const {exportJson,importJsonFile,buildZip,exportProgress}=useImportExport({
     todayKey,items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,loadedRoutineId,routines,
     dailyReflection,weekReflection,monthReflection,settings,freeNotes,recordingMeta,history,dayClosed,
-    pieceRecordingMeta,noteCategories,refTrackMeta,
+    pieceRecordingMeta,noteCategories,refTrackMeta,programs,
     pdfUrlMap,todayHistoryEntry,
     setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
     setRoutines,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
@@ -613,8 +613,7 @@ export default function useEtudesState(){
     programs,setPrograms,
     loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,
     openLogEntry,closeLogDrawer,resolveDayEntry,
-    exportLog,exportJson,importJsonFile,
-    handleChipDrag,handleChipDragEnd,
+    exportJson,importJsonFile,buildZip,exportProgress,
     handleTap,
     user,signIn,signUp,signOut,signInWithGoogle,signInWithApple,syncStatus,lastSyncedAt,syncNow:doSync,syncPayloadWarning,
   };
