@@ -4,7 +4,7 @@ import {idbPut,idbDel,idbGet,idbAllKeys,storageAvailable,detectStorage,lsGet,lsS
 import {useSupabaseAuth} from '../lib/useSupabaseAuth.js';
 import {loadFromCloud,syncToCloud,mergeStates,LS_CLOUD_SYNC_KEY} from '../lib/sync.js';
 import {todayDateStr,shiftDate,getWeekStart,getMonthKey} from '../lib/dates.js';
-import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,mkNoteLogId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem,calcStreak} from '../lib/items.js';
+import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,mkNoteLogId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem} from '../lib/items.js';
 import {migrateItems,migrateSessions,migrateRoutines,migrateHistory} from '../lib/migrations.js';
 import {buildCompositeDailyReflection,parseTagsFromBody} from '../lib/notes.js';
 import {checkAndSendReminder} from '../lib/notifications.js';
@@ -156,7 +156,6 @@ export default function useEtudesState(){
   const monthPre=todayKey.slice(0,7);
   const monthHistSec=history.filter(h=>(h.kind==='day'||!h.kind)&&h.date.startsWith(monthPre)&&h.date<todayKey).reduce((a,b)=>a+((b.minutes||0)-(b.warmupMinutes||0)),0)*60;
   const monthActualSeconds=monthHistSec+effectiveTotalToday;
-  const streak=useMemo(()=>calcStreak(history,Math.floor(effectiveTotalToday/60)),[history,effectiveTotalToday]);
 
   const activeItem=useMemo(()=>items.find(i=>i.id===activeItemId),[items,activeItemId]);
   const activeSpot=useMemo(()=>activeItem&&activeSpotId?(activeItem.spots||[]).find(s=>s.id===activeSpotId):null,[activeItem,activeSpotId]);
@@ -590,7 +589,7 @@ export default function useEtudesState(){
     drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,
     sessionRefs,reflectionRef,importInputRef,
     totalToday,effectiveTotalToday,sectionTimes,
-    weekActualSeconds,monthActualSeconds,streak,
+    weekActualSeconds,monthActualSeconds,
     todayKey,pdfItem,loadedRoutine,todayHistoryEntry,
     fmt,fmtMin,
     updateItem,addItem,startItem,stopItem,toggleWorking,toggleRest,
