@@ -119,27 +119,27 @@ export default function Etudes(){
         const refItem=items.find(i=>i.id===s.refBarItemId);
         const speedAction=(
           <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'6px 14px',border:`1px solid ${LINE_MED}`,marginLeft:'-1px'}}>
-            <input type="range" min="0.25" max="1" step="0.01" value={refBarSpeed} onChange={e=>setRefBarSpeed(parseFloat(e.target.value))} style={{width:'140px',accentColor:'#6B8F71',cursor:'pointer'}} title={`Speed: ${Math.round(refBarSpeed*100)}%`}/>
+            <input type="range" min="0.25" max="1" step="0.01" value={refBarSpeed} onChange={e=>setRefBarSpeed(parseFloat(e.target.value))} style={{width:'140px',accentColor:MUTED,cursor:'pointer'}} title={`Speed: ${Math.round(refBarSpeed*100)}%`}/>
             <span className="tabular-nums" style={{fontFamily:mono,color:FAINT,fontSize:'9px',minWidth:'32px'}}>{Math.round(refBarSpeed*100)}%</span>
           </div>
         );
         return(
           <div style={{overflow:'hidden',maxHeight:refBarVisible?'280px':'0',transition:'max-height 280ms cubic-bezier(0.32,0.72,0,1)'}}>
-            <div style={{transform:refBarVisible?'translateY(0)':'translateY(100%)',transition:'transform 280ms cubic-bezier(0.32,0.72,0,1)',background:'#1a211a',borderTop:`1px solid rgba(107,143,113,0.3)`}}>
+            <div style={{transform:refBarVisible?'translateY(0)':'translateY(100%)',transition:'transform 280ms cubic-bezier(0.32,0.72,0,1)',background:SURFACE,borderTop:`1px solid ${LINE_MED}`}}>
               <div style={{display:'flex',justifyContent:'center',paddingTop:'8px',cursor:'pointer'}} onClick={closeRefBar}>
-                <div style={{width:'32px',height:'3px',borderRadius:'2px',background:'rgba(107,143,113,0.35)'}}/>
+                <div style={{width:'32px',height:'3px',borderRadius:'2px',background:LINE_STR}}/>
               </div>
               <div className="px-10 py-6">
                 <div className="flex items-center justify-between mb-5">
                   <div>
-                    <div className="uppercase flex items-center gap-2" style={{color:'#6B8F71',fontSize:'10px',letterSpacing:'0.32em'}}>
+                    <div className="uppercase flex items-center gap-2" style={{color:MUTED,fontSize:'10px',letterSpacing:'0.32em'}}>
                       Reference for
                       {refItem&&<span className="normal-case italic" style={{fontFamily:serif,fontSize:'13px',letterSpacing:0,color:MUTED,marginLeft:'4px'}}>{refItem.title}{refItem.movement&&` — ${refItem.movement}`}</span>}
                     </div>
                   </div>
                   <button onClick={closeRefBar} style={{color:FAINT}}><X className="w-4 h-4" strokeWidth={1.25}/></button>
                 </div>
-                <Waveform blobLoader={()=>idbGet('refTracks',s.refBarItemId)} meta={refMeta} playbackRate={refBarSpeed} actions={speedAction} accentColor="#6B8F71" accentSoft="rgba(107,143,113,0.12)"/>
+                <Waveform blobLoader={()=>idbGet('refTracks',s.refBarItemId)} meta={refMeta} playbackRate={refBarSpeed} actions={speedAction} accentColor={MUTED} accentSoft="rgba(200,193,179,0.12)"/>
               </div>
             </div>
           </div>

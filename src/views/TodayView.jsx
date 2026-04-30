@@ -28,7 +28,7 @@ import Music from 'lucide-react/dist/esm/icons/music';
 import MessageSquarePlus from 'lucide-react/dist/esm/icons/message-square-plus';
 import Mic from 'lucide-react/dist/esm/icons/mic';
 import Square from 'lucide-react/dist/esm/icons/square';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, sans, mono} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, REC, serif, sans, mono} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
 import {todayDateStr, daysUntil} from '../lib/dates.js';
 import {getItemTime, displayTitle, formatByline, nextPerformance, getParentBucket} from '../lib/items.js';
@@ -174,8 +174,8 @@ export default function TodayView(p){
               return (<div key={`${session.id}-${item.id}`} data-today-item={item.id} style={{borderBottom:`1px solid ${LINE}`}}>
                 <div onClick={()=>{if(!isEditingTime)setExpandedItemId(expanded?null:item.id);}} className="group py-2.5 px-2 flex items-center gap-4 cursor-pointer" style={{background:isActiveAny?IKB_SOFT:'transparent'}}>
                   <button onClick={e=>{e.stopPropagation();if(isActiveAny)stopItem();else startItem(item.id,null,session.id);}} disabled={dayClosed&&!isActiveAny} className="shrink-0" style={{color:isActiveWhole?IKB:(isActiveAny?MUTED:(dayClosed?FAINT:TEXT)),filter:isActiveWhole?`drop-shadow(0 0 6px ${IKB})`:'none',cursor:(dayClosed&&!isActiveAny)?'not-allowed':'pointer'}}>{isActiveAny?<Pause className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>}</button>
-                  {(()=>{const isPieceRec=pieceRecordingItemId===item.id;const blocked=(dayClosed&&!isPieceRec)||(pieceRecordingItemId&&!isPieceRec)||isRecording;return(<button onClick={e=>{e.stopPropagation();isPieceRec?stopPieceRecording():startPieceRecording(item.id,currentBpm,item.stage);}} disabled={!!blocked} className="shrink-0" title={isPieceRec?'Stop recording':'Record this piece'} style={{color:isPieceRec?'#A93226':blocked?DIM:FAINT,cursor:blocked?'not-allowed':'pointer'}}>{isPieceRec?<Square className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor" style={{animation:'pulse 1s infinite'}}/>:<Mic className="w-3.5 h-3.5" strokeWidth={1.25}/>}</button>);})()}
-                  {refTrackMeta?.[item.id]&&(<button onClick={e=>{e.stopPropagation();setRefBarItemId(prev=>prev===item.id?null:item.id);}} className="shrink-0" title="Reference track" style={{color:refBarItemId===item.id?'#6B8F71':FAINT,cursor:'pointer'}}><Music className="w-3.5 h-3.5" strokeWidth={1.25}/></button>)}
+                  {(()=>{const isPieceRec=pieceRecordingItemId===item.id;const blocked=(dayClosed&&!isPieceRec)||(pieceRecordingItemId&&!isPieceRec)||isRecording;return(<button onClick={e=>{e.stopPropagation();isPieceRec?stopPieceRecording():startPieceRecording(item.id,currentBpm,item.stage);}} disabled={!!blocked} className="shrink-0" title={isPieceRec?'Stop recording':'Record this piece'} style={{color:isPieceRec?REC:blocked?DIM:FAINT,cursor:blocked?'not-allowed':'pointer'}}>{isPieceRec?<Square className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor" style={{animation:'pulse 1s infinite'}}/>:<Mic className="w-3.5 h-3.5" strokeWidth={1.25}/>}</button>);})()}
+                  {refTrackMeta?.[item.id]&&(<button onClick={e=>{e.stopPropagation();setRefBarItemId(prev=>prev===item.id?null:item.id);}} className="shrink-0" title="Reference track" style={{color:refBarItemId===item.id?MUTED:FAINT,cursor:'pointer'}}><Music className="w-3.5 h-3.5" strokeWidth={1.25}/></button>)}
                   <div className="flex-1 min-w-0">
                     {/* Title + byline on one line */}
                     <div style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>

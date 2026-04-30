@@ -241,7 +241,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
       {/* ── Header — offset to align with main content column ── */}
       <div className="mb-6" style={{paddingLeft:sidebarOpen?'249px':'40px'}}>
         <div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em',fontFamily:sans}}>Notes</div>
-        <h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'72px',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
+        <h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'clamp(32px,6vw,56px)',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
       </div>
 
       {/* ── Two-column body — bounded height, both columns scroll independently ── */}
@@ -533,7 +533,7 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
             {catOpen&&(
               <>
                 <div className="fixed inset-0 z-20" onClick={()=>setCatOpen(false)}/>
-                <div className="absolute top-full mt-1 z-30 min-w-36" style={{background:'#1A1918',border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>
+                <div className="absolute top-full mt-1 z-30 min-w-36" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>
                   <button onClick={()=>{onUpdate({category:''});setCatOpen(false);}} className="w-full text-left px-3 py-2 italic" style={{color:MUTED,borderBottom:`1px solid ${LINE}`,fontFamily:serif,fontSize:'12px'}}>No folder</button>
                   {categories.map(c=>(
                     <button key={c} onClick={()=>{onUpdate({category:c});setCatOpen(false);}} className="w-full text-left px-3 py-2 italic" style={{color:note.category===c?TEXT:MUTED,background:note.category===c?IKB_SOFT:'transparent',borderBottom:`1px solid ${LINE}`,fontFamily:serif,fontSize:'12px'}}>{c}</button>
