@@ -9,8 +9,6 @@ import {
 
 export default function MetronomeSheet({open, onClose, metronome, setMetronome, handleTap, currentBeat, currentSub}) {
   const accel = metronome.accel;
-  const isDotSub = metronome.subdivision === 'dot';
-  const effectiveSub = isDotSub ? 1 : (typeof metronome.subdivision === 'number' ? metronome.subdivision : 1);
   const noteValOpts = [{v:'2',label:'2'},{v:'4',label:'4'},{v:'8',label:'8'},{v:'16',label:'16'}];
   const subOpts = [{value:1,label:'♩'},{value:2,label:'♫'},{value:3,label:'♩₃'},{value:4,label:'♬'},{value:'dot',label:'♩.'}];
   const tempos = [
@@ -90,70 +88,6 @@ export default function MetronomeSheet({open, onClose, metronome, setMetronome, 
           ))}
         </div>
 
-        {/* Beat visualiser */}
-        {visualMode==='bars'?(
-          // Bars mode — 100–120px container, equal-width beat groups, beat labels below
-          <div style={{padding:'0 24px 12px',flexShrink:0}}>
-            <div style={{display:'flex',alignItems:'flex-end',gap:'4px',height:'110px'}}>
-              {Array.from({length:metronome.beats}).map((_,i)=>{
-                const isA=metronome.running&&currentBeat===i;
-                const isBeat1=i===0;
-                return(
-                  <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:'2px',height:'100%',justifyContent:'flex-end'}}>
-                    {/* subdivision bars */}
-                    <div style={{width:'100%',display:'flex',alignItems:'flex-end',gap:'1px',flex:1}}>
-                      {/* downbeat */}
-                      <div style={{
-                        flex:2,
-                        height:isA&&isBeat1?'100px':isA?'72px':isBeat1?'58px':'40px',
-                        background:isA?IKB:isBeat1?DIM:`rgba(244,238,227,0.18)`,
-                        borderRadius:'1px',
-                        transition:isA?'none':'height 150ms ease-out',
-                        alignSelf:'flex-end',
-                      }}/>
-                      {/* subdivision marks */}
-                      {effectiveSub>1&&Array.from({length:effectiveSub-1}).map((_,si)=>{
-                        const isAS=metronome.running&&currentBeat===i&&currentSub===si+1;
-                        return(
-                          <div key={si} style={{
-                            flex:1,
-                            height:isAS?'50px':'24px',
-                            background:isAS?IKB:'rgba(244,238,227,0.10)',
-                            borderRadius:'1px',
-                            transition:isAS?'none':'height 150ms ease-out',
-                            alignSelf:'flex-end',
-                          }}/>
-                        );
-                      })}
-                    </div>
-                    {/* beat number label */}
-                    <div style={{fontFamily:mono,fontSize:'9px',color:isA?IKB:FAINT,lineHeight:1,paddingTop:'4px',flexShrink:0}}>{i+1}</div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ):(
-          // Pulse mode — single rectangle flashes per beat
-          <div style={{padding:'0 24px 12px',flexShrink:0,display:'flex',justifyContent:'center',alignItems:'center',height:'110px'}}>
-            {metronome.running?(()=>{
-              const isBeat1=currentBeat===0;
-              return(
-                <div style={{
-                  width:'80px',
-                  height: isBeat1?'90px':'64px',
-                  background:isBeat1?IKB:DIM,
-                  opacity:currentBeat>=0?1:0,
-                  boxShadow:isBeat1?`0 0 24px ${IKB}80`:'none',
-                  borderRadius:'2px',
-                  transition:'height 120ms ease-out, opacity 120ms ease-out, box-shadow 120ms ease-out',
-                }}/>
-              );
-            })():(
-              <div style={{width:'80px',height:'64px',background:`rgba(244,238,227,0.08)`,borderRadius:'2px'}}/>
-            )}
-          </div>
-        )}
 
         <div style={{flex:1,overflowY:'auto',padding:'0 24px 24px',display:'flex',flexDirection:'column',gap:'16px'}}>
           {/* Tap + BPM slider */}
