@@ -1,4 +1,7 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
+import MetronomeSheet from './MetronomeSheet.jsx';
+import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
+import Plus from 'lucide-react/dist/esm/icons/plus';
 import DevToolsBar from '../dev/DevToolsBar.jsx';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
@@ -14,7 +17,7 @@ import Lock from 'lucide-react/dist/esm/icons/lock';
 import TrendingUp from 'lucide-react/dist/esm/icons/trending-up';
 import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import {Waveform,Tooltip} from './shared.jsx';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, serif, sans, mono} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, REC, serif, serifText, sans, mono, Z_FOOTER} from '../constants/theme.js';
 import {SECTION_CONFIG} from '../constants/config.js';
 import {NOTE_NAMES, noteToFreqFull, getCentOffset} from '../lib/music.js';
 import {displayTitle, formatByline, getSpotTime, getParentBucket} from '../lib/items.js';
@@ -90,7 +93,7 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
 
 function AccelProgress({metronome}){if(!metronome.accel.enabled)return null;const s=metronome.bpm;const tgt=metronome.accel.targetBpm;const r=s>=tgt;const pct=r?100:Math.min(100,((s-60)/Math.max(1,tgt-60))*100);const u=metronome.accel.unit||'bar';return (<div className="mt-3 flex items-center gap-3"><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Accel</span><div className="flex-1 h-px relative" style={{background:LINE_MED}}><div className="absolute inset-y-0 left-0" style={{background:r?WARM:IKB,width:`${pct}%`,height:'1px'}}/></div><span className="tabular-nums shrink-0" style={{color:r?WARM:MUTED,fontSize:'10px'}}>{r?`▲ ${tgt}`:`${s} → ${tgt} · +${metronome.accel.stepBpm}/${metronome.accel.every}${u[0]}`}</span></div>);}
 
-export default function Footer({isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,attachDailyToPiece,todaySessions,items}){
+export default function Footer({isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,attachDailyToPiece,todaySessions,items,settings}){
   const [quickNoteText,setQuickNoteText]=useState('');
   const [attachTarget,setAttachTarget]=useState('');
   // Recording elapsed timer (covers both daily and piece recording)
@@ -100,6 +103,22 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
   // Smart record helpers
   const isActivePieceRec=!!pieceRecordingItemId&&pieceRecordingItemId===activeItemId;
   const anyRecording=isRecording||!!pieceRecordingItemId;
+  // Mobile: metronome bottom sheet
+  const [metroSheetOpen,setMetroSheetOpen]=useState(false);
+  // Mobile: publish footer height as CSS custom property
+  const footerRef=useRef(null);
+  useEffect(()=>{
+    if(!isMobile||!footerRef.current)return;
+    const update=()=>{
+      if(footerRef.current){
+        document.documentElement.style.setProperty('--footer-height',`${footerRef.current.offsetHeight}px`);
+      }
+    };
+    update();
+    const ro=new ResizeObserver(update);
+    ro.observe(footerRef.current);
+    return()=>ro.disconnect();
+  },[isMobile]);
   const handleRecordClick=()=>{
     if(isActivePieceRec){stopPieceRecording&&stopPieceRecording();}
     else if(isRecording){stopRecording();}
@@ -228,34 +247,112 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
     {quickNoteOpen&&activeItemId&&(<div className="px-10 py-3 flex items-center gap-3" style={{borderBottom:`1px solid ${LINE}`,background:SURFACE}}><MessageSquarePlus className="w-3.5 h-3.5 shrink-0" strokeWidth={1.25} style={{color:IKB}}/><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Note {activeSpot&&<span style={{color:IKB,marginLeft:'6px'}}>· {activeSpot.label}</span>}</span><input autoFocus value={quickNoteText} onChange={e=>setQuickNoteText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submit();else if(e.key==='Escape'){setQuickNoteText('');setQuickNoteOpen(false);}}} onBlur={submit} placeholder="A note for this session…" className="flex-1 text-sm focus:outline-none" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_MED}`,fontFamily:serif,fontSize:'14px',paddingBottom:'2px'}}/><span className="uppercase shrink-0" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>Enter to save · Esc to cancel</span></div>)}
 
     {isMobile?(
-      /* ── Mobile footer bar ──────────────────────────────────────────────── */
-      <div style={{display:'flex',alignItems:'stretch',minHeight:'52px',paddingLeft:'12px',paddingRight:'12px',gap:'8px'}}>
-        {/* Timer block — full-width left */}
-        <div style={{flex:1,display:'flex',flexDirection:'column',justifyContent:'center',minWidth:0}}>
-          <div className="uppercase flex items-center gap-1" style={{color:activeItem?IKB:FAINT,fontSize:'9px',letterSpacing:'0.22em',lineHeight:1}}>
-            <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${(activeItemId||isResting)?'animate-pulse':''}`} style={{background:activeItemId?IKB:(isResting?MUTED:DIM)}}/>
-            {activeSpot?<span className="italic truncate" style={{fontFamily:serif,fontSize:'9px'}}>{activeSpot.label}</span>:statusLabel}
+      /* ── Mobile 3-row transport ─────────────────────────────────────────── */
+      <div ref={footerRef} style={{background:BG,borderTop:`1px solid ${LINE_MED}`,paddingBottom:'env(safe-area-inset-bottom,0px)'}}>
+        {/* Row 1 — Readout (only when active item) */}
+        {activeItemId&&activeItem&&(
+          <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'8px 18px 6px',borderBottom:`1px solid ${LINE}`}}>
+            <div className="animate-pulse" style={{width:'6px',height:'6px',borderRadius:'999px',background:IKB,flexShrink:0,boxShadow:`0 0 5px ${IKB}`}}/>
+            <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',color:IKB,flexShrink:0}}>{SECTION_CONFIG[activeItem.type].label}</span>
+            <span style={{fontFamily:serifText,fontStyle:'italic',fontSize:'13px',color:'rgba(212,206,195,0.9)',flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{displayTitle(activeItem)}</span>
+            <span style={{fontFamily:mono,fontSize:'11px',color:TEXT,flexShrink:0}}>{fmt(activeTimerSec)}</span>
           </div>
-          <div className="flex items-baseline gap-2 mt-0.5">
-            <span className="tabular-nums" style={{fontFamily:mono,color:statusColor,fontWeight:300,fontSize:'22px',lineHeight:1}}>{fmt(statusSec)}</span>
-            {activeItemId&&<button onClick={stopItem} className="uppercase px-2.5 py-1 shrink-0" style={{border:`1px solid ${LINE_STR}`,color:TEXT,fontSize:'9px',letterSpacing:'0.18em',minHeight:'32px'}}>Stop</button>}
+        )}
+
+        {/* Row 2 — Transport */}
+        <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'12px 18px 10px'}}>
+          {/* Play / Pause */}
+          <button
+            onClick={()=>activeItemId?stopItem():undefined}
+            style={{
+              width:'48px',height:'48px',borderRadius:'999px',flexShrink:0,
+              border:`1px solid ${activeItemId?IKB:LINE_STR}`,
+              background:activeItemId?IKB_SOFT:'transparent',
+              color:activeItemId?IKB:MUTED,
+              display:'flex',alignItems:'center',justifyContent:'center',
+              cursor:'pointer',
+              transition:'all 200ms cubic-bezier(0.2,0.7,0.2,1)',
+            }}
+          >
+            {activeItemId
+              ? <Pause size={16} strokeWidth={1.5}/>
+              : <Play size={16} strokeWidth={1.5}/>
+            }
+          </button>
+
+          {/* Metronome widget */}
+          <div style={{flex:1,height:'40px',borderRadius:'4px',border:`1px solid ${metronome.running?IKB:LINE_STR}`,overflow:'hidden',display:'flex',minWidth:0}}>
+            {/* Left region — toggle metro on/off */}
+            <button
+              onClick={()=>setMetronome(m=>({...m,running:!m.running}))}
+              style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'8px',padding:'0 10px',background:'transparent',border:'none',cursor:'pointer'}}
+            >
+              {/* Beat bars */}
+              <div style={{display:'flex',alignItems:'flex-end',gap:'2px',height:'20px',flexShrink:0}}>
+                {Array.from({length:Math.min(metronome.beats,6)}).map((_,i)=>{
+                  const isA=metronome.running&&currentBeat===i;
+                  return <div key={i} style={{width:isA?'3px':'2px',height:isA?(i===0?'20px':'14px'):'9px',background:isA?IKB:(metronome.running?DIM:'rgba(244,238,227,0.15)'),borderRadius:'1px',transition:'height 75ms,width 75ms'}}/>;
+                })}
+              </div>
+              <span style={{fontFamily:mono,fontSize:'13px',fontWeight:500,color:metronome.running?IKB:MUTED}}>{metronome.bpm}</span>
+              <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'11px',color:metronome.running?IKB:FAINT}}>{metronome.beats}/4</span>
+            </button>
+            {/* Right region — open sheet */}
+            <button
+              onClick={()=>setMetroSheetOpen(true)}
+              style={{width:'28px',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',borderLeft:`1px solid ${metronome.running?IKB:LINE_MED}`,cursor:'pointer'}}
+            >
+              <ChevronUp size={12} strokeWidth={1.5} style={{color:FAINT}}/>
+            </button>
           </div>
+
+          {/* Record */}
+          <button
+            onClick={handleRecordClick}
+            disabled={dayClosed&&!anyRecording}
+            style={{width:'40px',height:'40px',borderRadius:'999px',flexShrink:0,border:`1px solid ${anyRecording?REC:'transparent'}`,background:anyRecording?'rgba(169,50,38,0.10)':'transparent',color:anyRecording?REC:(dayClosed?FAINT:MUTED),display:'flex',alignItems:'center',justifyContent:'center',cursor:dayClosed&&!anyRecording?'not-allowed':'pointer'}}
+          >
+            {anyRecording?<Square size={15} strokeWidth={1.25} fill="currentColor"/>:<Mic size={15} strokeWidth={1.25}/>}
+          </button>
+
+          {/* Quick add / note */}
+          <button
+            onClick={()=>setQuickNoteOpen(true)}
+            style={{width:'40px',height:'40px',borderRadius:'999px',flexShrink:0,border:'1px solid transparent',background:'transparent',color:MUTED,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+          >
+            <Plus size={15} strokeWidth={1.25}/>
+          </button>
         </div>
-        {/* Icon cluster — right side */}
-        <div style={{display:'flex',alignItems:'center',gap:'4px',flexShrink:0}}>
-          <button onClick={toggleRest} disabled={dayClosed&&!isResting} style={{minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${isResting?IKB:'transparent'}`,color:isResting?IKB:((dayClosed&&!isResting)?FAINT:MUTED),background:isResting?IKB_SOFT:'transparent',cursor:(dayClosed&&!isResting)?'not-allowed':'pointer'}}>
-            <Coffee className="w-4 h-4" strokeWidth={1.25}/>
-          </button>
-          <button onClick={handleRecordClick} disabled={dayClosed&&!anyRecording} style={{minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${anyRecording?'#A93226':'transparent'}`,color:anyRecording?'#A93226':((dayClosed&&!anyRecording)?FAINT:MUTED),background:anyRecording?'rgba(169,50,38,0.08)':'transparent',cursor:(dayClosed&&!anyRecording)?'not-allowed':'pointer'}}>
-            {anyRecording?<Square className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>:<Mic className="w-4 h-4" strokeWidth={1.25}/>}
-          </button>
-          <button onClick={()=>setMetroExpanded(x=>!x)} style={{minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${metronome.running?IKB:'transparent'}`,color:metronome.running?IKB:MUTED,background:metronome.running?IKB_SOFT:'transparent'}}>
-            <MetronomeIcon size={16}/>
-          </button>
-          <button onClick={()=>setDroneExpanded(x=>!x)} style={{minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${drone.running?IKB:'transparent'}`,color:drone.running?IKB:MUTED,background:drone.running?IKB_SOFT:'transparent'}}>
-            <Waves className="w-4 h-4" strokeWidth={1.25}/>
+
+        {/* Row 3 — Status strip */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 18px 4px',borderTop:`1px solid ${LINE}`}}>
+          <div style={{display:'flex',alignItems:'baseline',gap:'6px'}}>
+            <span className="uppercase" style={{fontFamily:sans,fontSize:'8px',fontWeight:500,letterSpacing:'0.28em',color:FAINT}}>Aujourd'hui</span>
+            <span style={{fontFamily:mono,fontSize:'10px',color:MUTED}}>{fmtMin(effectiveTotalToday)}{settings?.dailyTarget?` / ${settings.dailyTarget}′`:''}</span>
+          </div>
+          {/* Rest toggle */}
+          <button
+            onClick={toggleRest}
+            disabled={dayClosed&&!isResting}
+            style={{display:'flex',alignItems:'center',gap:'5px',background:'transparent',border:'none',cursor:dayClosed&&!isResting?'not-allowed':'pointer',opacity:dayClosed&&!isResting?0.4:1}}
+          >
+            {isResting
+              ? <span className="uppercase animate-pulse" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',color:WARM}}>Rest</span>
+              : <Coffee size={13} strokeWidth={1.25} style={{color:FAINT}}/>
+            }
           </button>
         </div>
+
+        {/* Metronome bottom sheet */}
+        <MetronomeSheet
+          open={metroSheetOpen}
+          onClose={()=>setMetroSheetOpen(false)}
+          metronome={metronome}
+          setMetronome={setMetronome}
+          handleTap={handleTap}
+          currentBeat={currentBeat}
+          currentSub={currentSub}
+        />
       </div>
     ):(
     <div className="h-16 flex items-stretch px-10 gap-6">
