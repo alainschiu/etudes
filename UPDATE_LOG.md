@@ -1,5 +1,20 @@
 # Update Log
 
+## v0.97.6 — 2026-05-01
+
+- **Metronome widget (mobile)** — beat bars are now the dominant visual element; whole left zone (bars + BPM/time sig) is a single touch target that toggles the metronome; time signature rendered larger; chevron opens the sheet as before
+- **Pulse mode** — new visual mode for the metronome widget: the entire box flashes briefly on each beat instead of showing bars. Beat 1 fires in IKB with a glow; other beats flash at reduced opacity. Toggle between Bars and Pulse in the metronome drawer.
+- **Metronome sheet (mobile)** — all control rows (Beats, Note, Sub, Sound, Vol, Accel) now share a consistent left-aligned label column; accelerando section exposes the Step and Every inputs so the ramp is actually configurable on mobile
+- **Today view items (mobile)** — tapping anywhere on an item row opens the inline edit panel (no longer requires the chevron); PDF icon appears inline next to the title and opens the score directly; expand panel shows Reference track, today's recording, today's note, and persistent notes in that order
+- **Tuning panel (mobile)** — dedicated `MobileDronePanel` layout: full-width 64 px piano keyboard, stacked A=/Oct/Temperament rows, collapsible root + offset table; desktop panel unchanged
+- **Audio — iOS playback fixes** — `AudioContext.resume()` called on user gesture for metronome, drone, and waveform playback (fixes silent audio on first tap on iOS); MIME type negotiation (`webm;codecs=opus → mp4 → fallback`) for `MediaRecorder` so recordings are playable on all platforms
+- **Audio — recording key collision** — piece recording IDB keys now include a timestamp suffix (`itemId__date__ts`) so same-day re-records no longer silently overwrite each other
+- **Audio — drone note change** — frequency transitions use an exponential ramp (30 ms) instead of an instant set, eliminating the audible click on note change
+- **Audio — waveform context limit** — `computePeaks` reuses a single module-level `AudioContext` instead of creating a new one per call (was hitting the 4-context iOS limit after a few recordings)
+- **Waveform display** — removed the redundant second smoothing pass in the display component (peaks are already smoothed twice in `computePeaks`); waveforms are slightly crisper
+- **Wiki links (mobile)** — `[[wiki-link]]` taps in the CodeMirror editor now use a direct non-passive `touchstart` DOM listener so `preventDefault` is called before iOS initiates navigation; read-only markdown links also intercept `touchstart` to prevent the SPA reload that was jumping back to Today
+- **Recording soft mutex** — starting a new recording while one is already running shows an inline "Stop current and start new?" confirmation banner above the footer instead of silently failing or using a modal
+
 ## v0.97.5 — 2026-05-01
 
 - **Mobile navigation** — hamburger drawer replaces the bottom tab bar; primary views (Today, Répertoire, Programs, Logs, Notes) show icon + label + eyebrow; Review and Routines as secondary items; Export and Réglages as utility actions
