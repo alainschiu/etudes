@@ -42,6 +42,18 @@
 - **Help modal** — shortcut list updated to reflect current state.
 - **Docs** — `docs/guide.html` and `docs/index.html` updated: Review tab section replaces separate Week/Month sections; Programs section rewritten (salon journal framing, intention lock, reflection, wiki-links, audience privacy); Export section rewritten (ZIP structure, audio formats, platform delivery, privacy); "Recording on another device" placeholder removed and replaced with a factual statement.
 
+### Track 6 — Copy & voice (May 2026)
+
+- **Search placeholders** — Logs `Search logs…`; Répertoire main search `Search…`.
+- **Réglages (Settings modal)** — Shorter daily-reminder footnote; tighter sync warning, Local only explainer, post-signup email copy, sign-in footnote; shorter full-backup sentence; **Shortcuts** tab descriptions shortened (e.g. Space → “Start or pause”, Esc → “Close”); **Sync conflict** buttons → `Keep this device` / `Keep cloud version` (less alarming). **HelpModal** shortcut text aligned with Settings where it mirrors the tab.
+- **Today / Week / Month / Routines / Footer** — Placeholders shifted to declarative, calmer register (e.g. Today session note `What happened.`; reflection `How today felt. What surprised you.`).
+- **Répertoire** — Single-example placeholders for collection/catalog; `Composer` / `Instrument` / `Link` field hints; log-book new-note placeholder `A note on this session.`; empty filtered log / empty log / piece-picker-adjacent empty → unified **`Nothing here yet.`**
+- **Programs** — Empty piece-picker search → `Nothing here yet.` (same string as elsewhere).
+- **Markdown deep-link hint** — `Custom links open in the installed app.`
+- **Daily reminder notification** — Body → `Your practice journal is waiting.` (inviting, non-accusatory).
+- **Dev / seed** — `seedTestNotes` sample titles: Prof. Lehmann; *Practicing* in Reverse; related seed bodies use Lehmann; DevTools seeded program notes → `Notes for {name}.`
+- **Docs** — `docs/UI_TEXT_AUDIT.md` synced; guide/index sync conflict glossary terms match new button labels.
+
 ---
 
 ## v0.96.0 — 2026-04-30 (patch fixes)

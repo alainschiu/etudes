@@ -1,5 +1,12 @@
 # Update Log
 
+## v0.97.0 — 2026-05-01
+
+- **Calmer copy** — placeholders and Settings text tightened across Today, Review (week/month), Routines, Répertoire, Logs search, and the footer quick-note bar; empty lists that used different phrases now say **Nothing here yet.** in one voice
+- **Réglages** — shorter reminder and sync explainers; sync conflict choices renamed to **Keep this device** and **Keep cloud version**; shortcut help text simplified in Settings and Help
+- **Daily reminder** — notification wording is inviting instead of implying you failed to practice
+- **User guide** — conflict-resolution terms updated to match the new sync buttons
+
 ## v0.96.0 — 2026-04-30
 
 - **Works offline** — the app installs as a PWA and caches all assets; loads instantly on repeat visits with no network connection needed

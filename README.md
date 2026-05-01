@@ -17,7 +17,7 @@ A practice journal for musicians. Seven views: Today, Review, Répertoire, Routi
 - **Export** — `Export journal` in Settings produces a dated ZIP: per-entity markdown files with YAML frontmatter, audio blobs (format-detected), PDF scores, README, and `_data.json`. Separate JSON backup/restore for full data migration.
 - **Metronome** — tap tempo, BPM scrub drag, accelerando, compound meter (6/8 etc.), click volume
 - **Tuning drone** — piano-keyboard note picker, pitch reference; open with `D`
-- **Keyboard shortcuts** — `Space` stop · `R` rest · `M` metronome · `T` tap · `L` log BPM · `D` tuning · `N` note · `?` settings
+- **Keyboard shortcuts** — `Space` start or pause · `R` rest · `M` metronome · `T` tap · `L` log BPM · `D` tuning · `N` quick note · `?` Réglages · `1–4` jump to section on Today
 - **Sync** — optional sign-in (Google, Apple, or email); data syncs across devices via Supabase; payload size warning when backup exceeds 500 KB
 - **Daily reminder** — optional push notification at a chosen time (requires notification permission)
 - **Mobile PWA** — bottom tab navigation (7 tabs), compact header, mobile-optimised footer bar, Répertoire sidebar as full-screen overlay sheet, PDF drawer full-screen on mobile; installable from any browser
