@@ -13,7 +13,7 @@ const SHORTCUTS=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
 const USER_GUIDE_URL='https://etudes.me/guide';
 
-export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning}){
+export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes}){
   const [tab,setTab]=useState('settings');
   const [authMode,setAuthMode]=useState('signin'); // 'signin'|'signup'
   const [authEmail,setAuthEmail]=useState('');
@@ -131,7 +131,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
           </div>
           <div className="uppercase shrink-0" style={{color:MUTED,fontSize:'10px',letterSpacing:'0.22em'}}>v{APP_VERSION}</div>
         </div>
-        <div className="flex items-baseline justify-between gap-4 pt-3">
+        <div className="flex items-baseline justify-between gap-4 py-3" style={{borderBottom:`1px solid ${LINE}`}}>
           <div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>User Guide</div>
           <a
             href={USER_GUIDE_URL}
@@ -146,6 +146,16 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
             }}
           >etudes.me/guide →</a>
         </div>
+        {seedTestNotes&&(
+          <div className="pt-3">
+            <div className="uppercase mb-2" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>Debug</div>
+            <button
+              onClick={()=>{seedTestNotes();onClose();}}
+              className="uppercase"
+              style={{color:FAINT,border:`1px solid ${LINE_MED}`,background:'transparent',padding:'4px 12px',fontSize:'9px',letterSpacing:'0.22em',cursor:'pointer'}}
+            >Seed test notes &amp; history</button>
+          </div>
+        )}
       </div>
     )}
     <div className="px-8 py-5" style={{borderTop:`1px solid ${LINE}`}}><button onClick={onClose} className="w-full py-3 uppercase" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.32em'}}>Done</button></div>

@@ -259,6 +259,8 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
       seedTestNotes={seedTestNotes}
       items={items}
       history={history}
+      programs={programs}
+      notes={freeNotes}
       onWikiLinkClick={handleWikiLinkClick}
     />;
   }
@@ -669,7 +671,12 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
 }
 
 // ── Mobile notes view ─────────────────────────────────────────────────────
-function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes,items,history,onWikiLinkClick}){
+function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes,items,history,programs,notes,onWikiLinkClick}){
+  // MarkdownEditor calls onWikiLinkClick with a raw string; resolve it first
+  const handleMobileWikiClick=useCallback((raw)=>{
+    const resolved=resolveWikiLink(raw,items,history,programs,notes);
+    if(resolved&&onWikiLinkClick)onWikiLinkClick(resolved);
+  },[items,history,programs,notes,onWikiLinkClick]);
   const [expandedId,setExpandedId]=useState(null);
   const [editSheetId,setEditSheetId]=useState(null);
   const [filterSheetOpen,setFilterSheetOpen]=useState(false);
@@ -828,7 +835,7 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
               </button>
             </div>
             <div style={{flex:1,overflow:'hidden'}}>
-              <MarkdownEditor value={editNote.body||''} onChange={val=>updateNote(editNote.id,{body:val,tags:parseTagsFromBody(val)})} placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`} minHeight={400} fontSize="16px" items={items} history={history} onWikiLinkClick={onWikiLinkClick}/>
+              <MarkdownEditor value={editNote.body||''} onChange={val=>updateNote(editNote.id,{body:val,tags:parseTagsFromBody(val)})} placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`} minHeight={400} fontSize="16px" items={items} history={history} onWikiLinkClick={handleMobileWikiClick}/>
             </div>
           </>
         )}
