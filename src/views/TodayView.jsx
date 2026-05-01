@@ -1,4 +1,6 @@
-import React, {useState, useEffect, useRef} from 'react';
+import React, {useState, useEffect, useRef, useCallback} from 'react';
+import useViewport from '../hooks/useViewport.js';
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
 import Plus from 'lucide-react/dist/esm/icons/plus';
@@ -48,6 +50,7 @@ function AnalogClock({size=40}){
 }
 
 export default function TodayView(p){
+  const {isMobile}=useViewport();
   const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm,refTrackMeta,refBarItemId,setRefBarItemId}=p;
   const today=new Date();const todayKey=todayDateStr();
   const [routineMenu,setRoutineMenu]=useState(false);const [addMenu,setAddMenu]=useState(false);const [pickerSessionId,setPickerSessionId]=useState(null);const [quickAdd,setQuickAdd]=useState(null);const [confirmClose,setConfirmClose]=useState(false);
@@ -93,6 +96,12 @@ export default function TodayView(p){
 
   const hiddenTypes=TYPES.filter(t=>!todaySessions.some(s=>s.type===t));
 
+  // ── Mobile accordion view ──────────────────────────────────────────────
+  if(isMobile){
+    return <TodayMobile {...p} isMobile={true} getSessionItems={getSessionItems} getAvailableItems={getAvailableItems} warmupMin={warmupMin} effectiveMin={effectiveMin} effectiveDailyTarget={effectiveDailyTarget} hiddenTypes={hiddenTypes} collapsedSessions={collapsedSessions} setCollapsedSessions={setCollapsedSessions} toggleCollapsed={toggleCollapsed} handleFilePlus={handleFilePlus} piecePlayTypes={piecePlayTypes}/>;
+  }
+
+  // ── Desktop view (unchanged) ───────────────────────────────────────────
   return (
     <div className="max-w-4xl mx-auto px-12 py-14">
       <DisplayHeader eyebrow={`${today.toLocaleDateString('en-US',{weekday:'long'})} · ${today.toLocaleDateString('en-US',{month:'long',day:'numeric'})}`} title="Today" titleRight={<AnalogClock size={40}/>} right={
@@ -244,6 +253,289 @@ export default function TodayView(p){
         )}
       </div>
       <div className="mt-16"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Reflection</div><h3 className="text-4xl mb-6 leading-none" style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,letterSpacing:'-0.015em'}}>Journal du jour</h3><MarkdownField value={dailyReflection||''} onChange={setDailyReflection} placeholder="How today felt. What surprised you." minHeight={176} style={{background:SURFACE,fontSize:'16px'}} showDeepLinkHint/><div ref={reflectionRef}/></div>
+    </div>
+  );
+}
+
+// ── Mobile accordion component ─────────────────────────────────────────────
+function TodayMobile(p){
+  const {
+    items,setView,todaySessions,activeItemId,activeSpotId,activeSessionId,
+    itemTimes,startItem,stopItem,updateItem,addItem,dayClosed,reopenDay,endDay,
+    dailyReflection,setDailyReflection,settings,effectiveTotalToday,
+    warmupTimeToday,restToday,fmt,fmtMin,reflectionRef,
+    addItemToSession,removeItemFromSession,addSessionType,
+    sectionTimes,startPieceRecording,stopPieceRecording,pieceRecordingItemId,
+    pieceRecordingMeta,isRecording,currentBpm,
+    getSessionItems,getAvailableItems,warmupMin,effectiveMin,
+    effectiveDailyTarget,hiddenTypes,collapsedSessions,setCollapsedSessions,
+    toggleCollapsed,handleFilePlus,addSpot,updateSpot,deleteSpot,editSpotTime,
+  } = p;
+
+  const today = new Date();
+  const todayKey = todayDateStr();
+  const [openSections, setOpenSections] = useState(() => {
+    const open = new Set();
+    // Open section containing active item, else open 'piece' by default
+    let found = false;
+    todaySessions.forEach(s => {
+      const sItems = getSessionItems(s);
+      if(sItems.some(it => it.id === activeItemId)){ open.add(s.id); found = true; }
+    });
+    if(!found){
+      const pieceSession = todaySessions.find(s => s.type === 'piece');
+      if(pieceSession) open.add(pieceSession.id);
+      else if(todaySessions[0]) open.add(todaySessions[0].id);
+    }
+    return open;
+  });
+  const [reflOpen, setReflOpen] = useState(false);
+  const [confirmClose, setConfirmClose] = useState(false);
+  const [pickerSessionId, setPickerSessionId] = useState(null);
+
+  // Auto-open section when active item changes
+  useEffect(() => {
+    if(!activeItemId) return;
+    todaySessions.forEach(s => {
+      const sItems = getSessionItems(s);
+      if(sItems.some(it => it.id === activeItemId)){
+        setOpenSections(prev => { const n = new Set(prev); n.add(s.id); return n; });
+      }
+    });
+  }, [activeItemId]);
+
+  const toggleSection = (id) => setOpenSections(prev => {
+    const n = new Set(prev);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+
+  const totalMin = Math.floor(effectiveTotalToday / 60);
+  const target = effectiveDailyTarget;
+  const pct = target ? Math.min(100, (totalMin / target) * 100) : 0;
+
+  return (
+    <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)'}}>
+      {/* Day closed banner */}
+      {dayClosed && (
+        <div style={{padding:'12px 16px',background:IKB_SOFT,borderBottom:`1px solid ${IKB}`,display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+            <Lock size={14} strokeWidth={1.25} style={{color:IKB,flexShrink:0}}/>
+            <span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em',color:TEXT}}>Day closed</span>
+          </div>
+          <button onClick={reopenDay} className="uppercase" style={{color:IKB,fontSize:'9px',letterSpacing:'0.22em',border:`1px solid ${IKB}`,padding:'4px 10px'}}>Reopen</button>
+        </div>
+      )}
+
+      {/* Date header */}
+      <div style={{padding:'16px 20px 8px'}}>
+        <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',marginBottom:'2px'}}>
+          {today.toLocaleDateString('en-US',{weekday:'long'})}
+        </div>
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'28px',letterSpacing:'-0.01em',lineHeight:1.1,color:TEXT}}>
+          {today.toLocaleDateString('en-US',{month:'long',day:'numeric'})}
+        </div>
+      </div>
+
+      {/* Target progress bar */}
+      <div style={{padding:'14px 20px',borderTop:`1px solid ${LINE_STR}`,borderBottom:`1px solid ${LINE}`,margin:'0 0 0 0'}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'8px'}}>
+          <span className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans}}>Target</span>
+          <span style={{fontFamily:mono,fontSize:'11px',color:MUTED}}>
+            {totalMin} / {target}′
+            {restToday > 0 && <span style={{color:FAINT,fontSize:'9px',marginLeft:'6px'}}>· rest {Math.floor(restToday/60)}′</span>}
+          </span>
+        </div>
+        <div style={{height:'3px',background:LINE,borderRadius:'1px',overflow:'hidden'}}>
+          <div style={{height:'100%',width:`${pct}%`,background:IKB,borderRadius:'1px',transition:'width 0.4s ease'}}/>
+        </div>
+      </div>
+
+      {/* Empty state */}
+      {items.length === 0 && (
+        <div style={{margin:'24px 20px',padding:'24px',border:`1px dashed ${LINE_STR}`,textAlign:'center'}}>
+          <div style={{fontFamily:serif,fontStyle:'italic',fontSize:'16px',color:MUTED,marginBottom:'8px'}}>Start here.</div>
+          <div style={{fontSize:'12px',color:FAINT,lineHeight:1.7}}>
+            Add a piece in <button onClick={()=>setView('repertoire')} style={{color:IKB,textDecoration:'underline',cursor:'pointer'}}>Répertoire</button>
+          </div>
+        </div>
+      )}
+
+      {/* Accordion sections */}
+      {todaySessions.map(session => {
+        const sessionItems = getSessionItems(session);
+        const sectionSec = sectionTimes[session.type] || 0;
+        const isOpen = openSections.has(session.id);
+        const isWarmup = !!session.isWarmup;
+        const chevronStyle = {
+          transform: isOpen ? 'rotate(90deg)' : 'rotate(0deg)',
+          transition: 'transform 200ms cubic-bezier(0.2,0.7,0.2,1)',
+          flexShrink: 0,
+        };
+
+        return (
+          <div key={session.id}>
+            {/* Section header */}
+            <button
+              onClick={() => toggleSection(session.id)}
+              style={{
+                display:'flex',alignItems:'center',width:'100%',padding:'0 20px',
+                minHeight:'52px',borderBottom:`1px solid ${isOpen ? LINE_STR : LINE}`,
+                background:'transparent',border:'none',
+                borderBottomWidth:'1px',borderBottomStyle:'solid',
+                borderBottomColor: isOpen ? LINE_STR : LINE,
+                cursor:'pointer',textAlign:'left',gap:'10px',
+              }}
+            >
+              <ChevronRight size={11} strokeWidth={1.5} style={{...chevronStyle,color:DIM}}/>
+              <span className="uppercase" style={{fontFamily:sans,fontSize:'10px',fontWeight:500,letterSpacing:'0.28em',color:MUTED,flex:1,textAlign:'left'}}>
+                {SECTION_CONFIG[session.type].label}
+                {isWarmup && <span style={{color:WARM,marginLeft:'4px'}}>◔</span>}
+                {!isOpen && sessionItems.length > 0 && (
+                  <span style={{color:FAINT,fontSize:'9px',letterSpacing:'0.15em',marginLeft:'6px'}}>· {sessionItems.length}</span>
+                )}
+              </span>
+              <span style={{fontFamily:mono,fontSize:'11px',color:MUTED}}>{fmtMin(sectionSec)}</span>
+            </button>
+
+            {/* Section items */}
+            {isOpen && (
+              <div>
+                {sessionItems.length === 0 && (
+                  <div style={{padding:'12px 20px',fontFamily:serif,fontStyle:'italic',fontSize:'13px',color:FAINT,borderBottom:`1px solid ${LINE}`}}>
+                    No pieces selected.
+                  </div>
+                )}
+                {sessionItems.map(item => {
+                  const isActiveAny = activeItemId === item.id && activeSessionId === session.id;
+                  const isActiveWhole = isActiveAny && !activeSpotId;
+                  const time = getItemTime(itemTimes, item.id);
+                  const it = (session.itemTargets || {})[item.id] || null;
+                  const asl = isActiveAny && activeSpotId ? (item.spots||[]).find(s=>s.id===activeSpotId)?.label : null;
+                  const perf = nextPerformance(item.performances);
+                  const hasSpots = (item.spots||[]).length > 0;
+                  const timeColor = (it && time >= it*60) ? IKB : time > 0 ? MUTED : FAINT;
+
+                  return (
+                    <div key={item.id} style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent',padding:'14px 20px',display:'flex',alignItems:'center',gap:'12px',minHeight:'44px'}}>
+                      {/* Play / pulse dot */}
+                      <button
+                        onClick={e=>{e.stopPropagation();isActiveAny?stopItem():startItem(item.id,null,session.id);}}
+                        disabled={dayClosed&&!isActiveAny}
+                        style={{flexShrink:0,minWidth:'18px',minHeight:'18px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:dayClosed&&!isActiveAny?'not-allowed':'pointer',padding:0}}
+                      >
+                        {isActiveWhole
+                          ? <div className="animate-pulse" style={{width:'8px',height:'8px',borderRadius:'999px',background:IKB,boxShadow:`0 0 6px ${IKB}`}}/>
+                          : <Play size={11} strokeWidth={1.25} style={{color:dayClosed?FAINT:FAINT,opacity:dayClosed?0.4:0.7}}/>
+                        }
+                      </button>
+
+                      {/* Title + meta */}
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'17px',color:isActiveAny?TEXT:'rgba(212,206,195,0.9)',lineHeight:1.2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          {displayTitle(item)}
+                        </div>
+                        {formatByline(item) && (
+                          <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'12px',color:FAINT,marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                            {formatByline(item)}
+                          </div>
+                        )}
+                        {(hasSpots || perf || asl) && (
+                          <div style={{marginTop:'6px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+                            {asl && <span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:IKB}}>{asl}</span>}
+                            {hasSpots && !asl && <span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:FAINT}}>{item.spots.length} spot{item.spots.length===1?'':'s'}</span>}
+                            {perf && <span style={{marginLeft:'auto'}}><PerformanceChip perf={perf} compact/></span>}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Time + target */}
+                      <div style={{flexShrink:0,textAlign:'right'}}>
+                        <div style={{fontFamily:mono,fontSize:'12px',color:timeColor}}>{time>0?fmt(time):'—'}</div>
+                        {it && <div style={{fontFamily:mono,fontSize:'9px',color:FAINT,marginTop:'2px'}}>/ {it}′</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Quick add row */}
+                <div style={{padding:'10px 20px',borderBottom:`1px solid ${LINE}`,display:'flex',alignItems:'center',gap:'8px',minHeight:'44px'}}>
+                  <button
+                    onClick={()=>setPickerSessionId(pickerSessionId===session.id?null:session.id)}
+                    style={{display:'flex',alignItems:'center',gap:'6px',background:'transparent',border:'none',cursor:'pointer',padding:0}}
+                  >
+                    <Plus size={11} strokeWidth={1.25} style={{color:FAINT}}/>
+                    <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',color:FAINT}}>
+                      Add to {SECTION_CONFIG[session.type].label}
+                    </span>
+                  </button>
+                  {pickerSessionId===session.id && (
+                    <ItemPickerPopup
+                      availableItems={getAvailableItems(session)}
+                      onPick={id=>{addItemToSession(session.id,id);setPickerSessionId(null);}}
+                      onClose={()=>setPickerSessionId(null)}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Reflection block */}
+      <div style={{borderTop:`1px solid ${LINE}`,marginTop:'8px'}}>
+        <button
+          onClick={()=>setReflOpen(v=>!v)}
+          style={{display:'flex',alignItems:'center',width:'100%',padding:'0 20px',minHeight:'52px',background:'transparent',border:'none',cursor:'pointer',gap:'10px'}}
+        >
+          <ChevronRight size={11} strokeWidth={1.5} style={{transform:reflOpen?'rotate(90deg)':'rotate(0deg)',transition:'transform 200ms cubic-bezier(0.2,0.7,0.2,1)',color:DIM,flexShrink:0}}/>
+          <span className="uppercase" style={{fontFamily:sans,fontSize:'10px',fontWeight:500,letterSpacing:'0.28em',color:MUTED,flex:1,textAlign:'left'}}>Reflection</span>
+          <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'14px',color:FAINT}}>Journal du jour</span>
+          <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:(dailyReflection||'').trim()?IKB:FAINT}}>
+            {(dailyReflection||'').trim()?'Saved':'Empty'}
+          </span>
+        </button>
+        {reflOpen && (
+          <div style={{padding:'0 20px 20px'}}>
+            <MarkdownField
+              value={dailyReflection||''}
+              onChange={setDailyReflection}
+              placeholder="How today felt. What surprised you."
+              minHeight={100}
+              style={{background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'14px'}}
+              showDeepLinkHint
+            />
+          </div>
+        )}
+      </div>
+
+      {/* Close the day pill */}
+      <div style={{margin:'32px 0 24px',display:'flex',justifyContent:'center'}}>
+        {dayClosed ? (
+          <button onClick={reopenDay} className="uppercase" style={{display:'flex',alignItems:'center',gap:'6px',color:IKB,border:`1px solid ${IKB}`,background:IKB_SOFT,padding:'8px 18px',fontSize:'9px',letterSpacing:'0.28em'}}>
+            <Unlock size={12} strokeWidth={1.25}/> Reopen the day
+          </button>
+        ) : confirmClose ? (
+          <div style={{width:'100%',maxWidth:'320px',background:SURFACE,border:`1px solid ${LINE_MED}`,padding:'16px 20px',margin:'0 20px'}}>
+            <div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em',color:MUTED,marginBottom:'8px'}}>Log today?</div>
+            <p style={{fontFamily:serifText,fontStyle:'italic',fontSize:'13px',lineHeight:1.65,color:TEXT,marginBottom:'14px'}}>
+              Today's notes go to each piece's log book and the day locks. Reopen any time.
+            </p>
+            <div style={{display:'flex',gap:'8px',justifyContent:'flex-end'}}>
+              <button onClick={()=>setConfirmClose(false)} className="uppercase" style={{color:FAINT,border:`1px solid ${LINE_STR}`,padding:'6px 12px',fontSize:'10px',letterSpacing:'0.22em'}}>Cancel</button>
+              <button onClick={()=>{setConfirmClose(false);endDay();}} className="uppercase" style={{display:'flex',alignItems:'center',gap:'6px',color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,padding:'6px 12px',fontSize:'10px',letterSpacing:'0.22em'}}>
+                <Lock size={11} strokeWidth={1.25}/> Log & Close
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={()=>setConfirmClose(true)} className="uppercase" style={{display:'flex',alignItems:'center',gap:'6px',color:MUTED,border:`1px solid ${LINE_MED}`,padding:'8px 18px',fontSize:'9px',letterSpacing:'0.28em'}}>
+            <Lock size={12} strokeWidth={1.25}/> Close the day
+          </button>
+        )}
+      </div>
+      <div ref={reflectionRef}/>
     </div>
   );
 }
