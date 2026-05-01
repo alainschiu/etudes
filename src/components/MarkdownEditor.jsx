@@ -169,6 +169,17 @@ function createWikiLinkPlugin(clickRef) {
             return true;
           }
         },
+        // pointerdown fires immediately on touch (no 300ms iOS delay) — handles wiki-link taps on mobile
+        pointerdown: (e, view) => {
+          if (e.pointerType === 'mouse') return; // already handled by mousedown
+          const wl = e.target?.closest?.('.cm-wikilink');
+          if (wl && clickRef?.current) {
+            const raw = (wl.textContent || '').replace(/^\[\[|\]\]$/g, '');
+            clickRef.current(raw);
+            e.preventDefault();
+            return true;
+          }
+        },
       },
     }
   );
