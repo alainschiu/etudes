@@ -365,7 +365,7 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
             {/* Zone 1 — beat bars (onClick = toggle) */}
             <button
               onClick={()=>setMetronome(m=>({...m,running:!m.running}))}
-              style={{flex:'0 0 58%',minWidth:0,display:'flex',alignItems:'flex-end',gap:'2px',padding:'0 8px 6px',background:'transparent',border:'none',cursor:'pointer',overflow:'hidden'}}
+              style={{flex:'1 1 0',minWidth:0,display:'flex',alignItems:'flex-end',gap:'2px',padding:'0 8px 6px',background:'transparent',border:'none',cursor:'pointer',overflow:'hidden'}}
             >
               {Array.from({length:Math.min(metronome.beats,8)}).map((_,i)=>{
                 const isDotSub2=metronome.subdivision==='dot';
@@ -399,7 +399,7 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
               })}
             </button>
             {/* Zone 2 — BPM + time sig (display only, no click) */}
-            <div style={{flex:'0 0 34%',display:'flex',flexDirection:'column',alignItems:'flex-end',justifyContent:'center',padding:'0 8px',pointerEvents:'none'}}>
+            <div style={{flexShrink:0,width:'52px',display:'flex',flexDirection:'column',alignItems:'flex-end',justifyContent:'center',padding:'0 8px',pointerEvents:'none'}}>
               <span style={{fontFamily:mono,fontSize:'16px',fontWeight:500,color:metronome.running?IKB:MUTED,lineHeight:1}}>{metronome.bpm}</span>
               <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'11px',color:metronome.running?IKB:FAINT,lineHeight:1,marginTop:'2px'}}>{metronome.beats}/{isDotSub?'♩.':metronome.noteValue}</span>
             </div>
