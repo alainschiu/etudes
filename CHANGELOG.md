@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.97.5 — 2026-05-01
+
+### Mobile adaptation (Tracks 1–9)
+
+See UPDATE_LOG for user-facing summary. Full technical detail in the sprint branch.
+
+---
+
 ## v0.97.0 — 2026-04-30
 
 ### Track 1 — Architecture & Navigation

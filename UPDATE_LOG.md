@@ -1,5 +1,17 @@
 # Update Log
 
+## v0.97.5 — 2026-05-01
+
+- **Mobile navigation** — hamburger drawer replaces the bottom tab bar; primary views (Today, Répertoire, Programs, Logs, Notes) show icon + label + eyebrow; Review and Routines as secondary items; Export and Réglages as utility actions
+- **Today on mobile** — accordion sections, target progress bar, item rows with pulse dot when active, collapsible reflection, close-the-day pill
+- **Footer on mobile** — three-row transport: readout strip (active item + elapsed), Play/Pause · metronome widget · Record · Plus, status strip with today total and rest toggle; metronome opens a full bottom sheet
+- **Répertoire on mobile** — list view with filter sheet; tap a piece to open a full detail screen with Spots, Info, Recordings, and Score tabs
+- **Notes on mobile** — folder chip strip, search, expand-in-place, edit bottom sheet
+- **Logs on mobile** — vertical day list grouped by month, 2px section bar per day, reflection excerpt; taps open the existing log drawer
+- **Programs, Routines, Review on mobile** — reduced padding, minimum 44px touch targets throughout
+- **Typography (all screens)** — display headings weight 400; Répertoire and Today item titles in EB Garamond italic; reading prose (reflections, notes, spot annotations) in EB Garamond
+- **PWA** — iOS home screen meta tags; manifest theme colour aligned to app background; icon `any maskable`
+
 ## v0.97.0 — 2026-05-01
 
 - **Calmer copy** — placeholders and Settings text tightened across Today, Review (week/month), Routines, Répertoire, Logs search, and the footer quick-note bar; empty lists that used different phrases now say **Nothing here yet.** in one voice
