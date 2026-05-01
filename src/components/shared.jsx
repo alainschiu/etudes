@@ -24,7 +24,7 @@ import {idbGet} from '../lib/storage.js';
 import {daysUntil} from '../lib/dates.js';
 import {getItemTime, getSpotTime, displayTitle, formatByline} from '../lib/items.js';
 
-export function DisplayHeader({eyebrow,title,suffix,right,titleRight}){return (<div className="mb-12 flex items-end justify-between gap-6"><div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{eyebrow}</div><div className="flex items-end gap-5"><h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'clamp(32px,6vw,56px)',letterSpacing:'-0.02em'}}><span style={{fontStyle:'italic'}}>{title}</span>{suffix&&<span style={{color:FAINT}}>{suffix}</span>}</h1>{titleRight&&<div className="pb-2">{titleRight}</div>}</div></div>{right}</div>);}
+export function DisplayHeader({eyebrow,title,suffix,right,titleRight}){return (<div className="mb-12 flex items-end justify-between gap-6"><div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{eyebrow}</div><div className="flex items-end gap-5"><h1 className="leading-none" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(32px,6vw,56px)',letterSpacing:'-0.02em'}}><span style={{fontStyle:'italic'}}>{title}</span>{suffix&&<span style={{color:FAINT}}>{suffix}</span>}</h1>{titleRight&&<div className="pb-2">{titleRight}</div>}</div></div>{right}</div>);}
 
 export function Ring({value,max,maxSize=180}){const pct=Math.min(100,(value/max)*100);return (<div className="relative flex items-center justify-center w-full mx-auto" style={{maxWidth:maxSize,aspectRatio:'1 / 1'}}><svg viewBox="0 0 100 100" className="w-full h-full -rotate-90" preserveAspectRatio="xMidYMid meet"><circle cx="50" cy="50" r="44" fill="none" stroke={LINE_MED} strokeWidth="5"/><circle cx="50" cy="50" r="44" fill="none" stroke={IKB} strokeWidth="5" strokeLinecap="round" strokeDasharray={2*Math.PI*44} strokeDashoffset={2*Math.PI*44*(1-pct/100)} style={{transition:'stroke-dashoffset 0.6s ease'}}/></svg><div className="absolute inset-0 flex flex-col items-center justify-center"><div className="tabular-nums" style={{fontFamily:serif,fontWeight:300,letterSpacing:'-0.02em',fontSize:'36px'}}>{value}<span style={{color:MUTED,fontSize:'18px'}}>′</span></div><div className="uppercase mt-1" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.25em'}}>of {max}′</div></div></div>);}
 
@@ -323,7 +323,7 @@ export function MarkdownField({value,onChange,placeholder,minHeight=80,className
 
   if(readOnly){
     return (
-      <div className={className} style={{minHeight,padding:'12px 16px',fontFamily:serif,fontSize:'15px',lineHeight:1.8,fontWeight:300,color:TEXT,background:'transparent',border:`1px solid ${LINE}`,...style}}>
+      <div className={className} style={{minHeight,padding:'12px 16px',fontFamily:serifText,fontSize:'15px',lineHeight:1.8,fontWeight:300,color:TEXT,background:'transparent',border:`1px solid ${LINE}`,...style}}>
         {(value||'').trim()?(
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents({})}>{value}</ReactMarkdown>
         ):(

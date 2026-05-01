@@ -28,7 +28,7 @@ import Music from 'lucide-react/dist/esm/icons/music';
 import MessageSquarePlus from 'lucide-react/dist/esm/icons/message-square-plus';
 import Mic from 'lucide-react/dist/esm/icons/mic';
 import Square from 'lucide-react/dist/esm/icons/square';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, REC, serif, sans, mono} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, REC, serif, serifText, sans, mono} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
 import {todayDateStr, daysUntil} from '../lib/dates.js';
 import {getItemTime, displayTitle, formatByline, nextPerformance, getParentBucket} from '../lib/items.js';
@@ -231,7 +231,7 @@ export default function TodayView(p){
         ):confirmClose?(
           <div className="w-full max-w-sm" style={{border:`1px solid ${LINE_MED}`,background:SURFACE,padding:'20px 24px'}}>
             <div className="uppercase mb-2" style={{fontSize:'10px',letterSpacing:'0.28em',color:MUTED}}>Log today?</div>
-            <p style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,fontSize:'14px',lineHeight:1.65,color:TEXT,marginBottom:'14px'}}>
+            <p style={{fontFamily:serifText,fontStyle:'italic',fontWeight:300,fontSize:'14px',lineHeight:1.65,color:TEXT,marginBottom:'14px'}}>
               Today's session notes will be sent to each piece's log book, and the day will be locked. Practice timers cannot be edited after closing — you can reopen if needed.
             </p>
             <div className="flex items-center gap-3 justify-end">
@@ -243,7 +243,7 @@ export default function TodayView(p){
           <button onClick={()=>setConfirmClose(true)} className="uppercase flex items-center gap-2 px-4 py-2.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'10px',letterSpacing:'0.28em'}} title="Finalize today and lock timer edits"><Lock className="w-3 h-3" strokeWidth={1.25}/> Close the day</button>
         )}
       </div>
-      <div className="mt-16"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Reflection</div><h3 className="text-4xl mb-6 leading-none" style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,letterSpacing:'-0.015em'}}>Journal du jour</h3><MarkdownField value={dailyReflection||''} onChange={setDailyReflection} placeholder="How today felt. What surprised you." minHeight={176} style={{background:SURFACE,fontSize:'16px'}} showDeepLinkHint/><div ref={reflectionRef}/></div>
+      <div className="mt-16"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Reflection</div><h3 className="text-4xl mb-6 leading-none" style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,letterSpacing:'-0.015em'}}>Journal du jour</h3><MarkdownField value={dailyReflection||''} onChange={setDailyReflection} placeholder="How today felt. What surprised you." minHeight={176} style={{background:SURFACE,fontSize:'16px'}} showDeepLinkHint/><div ref={reflectionRef}/></div>
     </div>
   );
 }

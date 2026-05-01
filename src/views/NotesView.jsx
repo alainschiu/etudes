@@ -14,7 +14,7 @@ import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import Pencil from 'lucide-react/dist/esm/icons/pencil';
 import Check from 'lucide-react/dist/esm/icons/check';
 import Eye from 'lucide-react/dist/esm/icons/eye';
-import {TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, SURFACE, SURFACE2, BG, serif, sans, LINK} from '../constants/theme.js';
+import {TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, SURFACE, SURFACE2, BG, serif, serifText, sans, LINK} from '../constants/theme.js';
 import {todayDateStr} from '../lib/dates.js';
 import {displayTitle, formatByline} from '../lib/items.js';
 import {resolveWikiLink, parseTagsFromBody} from '../lib/notes.js';
@@ -37,7 +37,7 @@ function DailyReflectionsView({history}){
         return (
           <div key={h.date} style={{borderBottom:`1px solid ${LINE}`,paddingBottom:'24px'}}>
             <div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>{d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>
-            <div style={{fontFamily:serif,fontSize:'16px',lineHeight:1.8,fontWeight:300}}>
+            <div style={{fontFamily:serifText,fontSize:'16px',lineHeight:1.8,fontWeight:300}}>
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{p:({children})=><p style={{marginBottom:'0.8em'}}>{children}</p>,h3:({children})=><h3 style={{fontSize:'1em',fontWeight:400,marginBottom:'0.35em',marginTop:'0.7em',opacity:0.75}}>{children}</h3>,hr:()=><hr style={{border:'none',borderTop:`1px solid rgba(244,238,227,0.12)`,margin:'0.75em 0'}}/>,a:({href,children})=><a href={href} target="_blank" rel="noopener noreferrer" style={{color:LINK,textDecoration:'underline'}}>{children}</a>}}>
                 {h.reflection}
               </ReactMarkdown>
@@ -73,7 +73,7 @@ function RepertoireLogsView({items}){
             {[...(item.noteLog||[])].reverse().map(entry=>(
               <div key={entry.id} style={{borderLeft:`2px solid ${IKB}30`,paddingLeft:'12px'}}>
                 <div className="uppercase mb-1" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>{entry.date}{entry.source==='manual'?' · manual':''}</div>
-                <div style={{fontFamily:serif,fontSize:'13px',lineHeight:1.65,color:TEXT,whiteSpace:'pre-wrap'}}>{entry.text}</div>
+                <div style={{fontFamily:serifText,fontSize:'13px',lineHeight:1.65,color:TEXT,whiteSpace:'pre-wrap'}}>{entry.text}</div>
               </div>
             ))}
           </div>
@@ -389,7 +389,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
         {/* Heading — inside content column, no paddingLeft hack */}
         <div className="mb-6">
           <div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em',fontFamily:sans}}>Notes</div>
-          <h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'clamp(32px,6vw,56px)',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
+          <h1 className="leading-none" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(32px,6vw,56px)',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
         </div>
 
         {/* Standard category views */}
@@ -576,7 +576,7 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
 
       {/* Body — preview or editor */}
       {viewMode?(
-        <div style={{fontFamily:serif,fontSize:'17px',lineHeight:1.75,fontWeight:300,color:TEXT}}>
+        <div style={{fontFamily:serifText,fontSize:'17px',lineHeight:1.75,fontWeight:300,color:TEXT}}>
           {note.body?(
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
               p:({children})=><p style={{marginBottom:'1em'}}>{children}</p>,

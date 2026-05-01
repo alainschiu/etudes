@@ -128,7 +128,7 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
           onBlur={e=>update({name:e.target.value.trim()||'Untitled program'})}
           placeholder="Untitled program"
           className="w-full focus:outline-none bg-transparent"
-          style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,fontSize:'clamp(32px,5vw,36px)',letterSpacing:'-0.02em',color:TEXT,lineHeight:1.1}}
+          style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(32px,5vw,36px)',letterSpacing:'-0.02em',color:TEXT,lineHeight:1.1}}
         />
       </div>
 
@@ -367,7 +367,7 @@ function ProgramsList({programs,items,onSelect,onNew}){
             style={{borderBottom:`1px solid ${LINE}`}}
           >
             <div className="flex items-baseline justify-between gap-4">
-              <span className="italic" style={{fontFamily:serif,fontWeight:300,fontSize:'clamp(18px,2.5vw,22px)',color:TEXT}}>{p.name||'Untitled program'}</span>
+              <span className="italic" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(18px,2.5vw,22px)',color:TEXT}}>{p.name||'Untitled program'}</span>
               <span className="tabular-nums shrink-0" style={{fontFamily:mono,fontSize:'11px',color:totalSecs>0?DIM:DIM}}>
                 {totalSecs>0?fmtDuration(totalSecs):''}
               </span>
