@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {lsGet,lsSet} from '../lib/storage.js';
-import {IKB,TEXT,FAINT,sans} from '../constants/theme.js';
+import {IKB,TEXT,FAINT,sans,serif} from '../constants/theme.js';
 import useViewport from '../hooks/useViewport.js';
 import WeekView from './WeekView.jsx';
 import MonthView from './MonthView.jsx';
@@ -18,7 +18,7 @@ export default function ReviewView(props){
     <div className="max-w-4xl mx-auto px-12 pt-14 pb-14" style={isMobile?{paddingLeft:'20px',paddingRight:'20px',paddingTop:'12px',paddingBottom:'calc(var(--footer-height,160px) + 28px)'}:{}}>
       {/* Mobile: display heading + scale toggle on same row */}
       {isMobile&&(
-        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT,marginBottom:'12px'}}>
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT,marginBottom:'12px',paddingTop:'8px'}}>
           {scale==='week'?'This week':scale==='month'?'This month':'Review'}
         </div>
       )}

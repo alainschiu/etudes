@@ -697,7 +697,24 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
 
   return(
     <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)'}}>
-      {/* Folder chip strip — horizontal scroll, momentum on iOS */}
+      {/* Heading row — first */}
+      <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',padding:'20px 20px 12px'}}>
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>
+          {activeCategoryId==='__all'&&!tagSearch?'Notes':activeCategoryId==='__daily'?'Daily':activeCategoryId==='__repertoire'?'Logs':tagSearch?`#${tagSearch}`:activeCategoryId}
+        </div>
+        <div style={{display:'flex',gap:'8px',alignItems:'center',paddingBottom:'8px'}}>
+          {seedTestNotes&&<button onClick={seedTestNotes} style={{color:FAINT,fontFamily:sans,fontSize:'9px',letterSpacing:'0.18em',textTransform:'uppercase',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'4px 8px',cursor:'pointer'}}>Seed</button>}
+          <button onClick={()=>setFilterSheetOpen(true)} style={{width:'36px',height:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid ${activeCategoryId!=='__all'||tagSearch?IKB:LINE_MED}`,borderRadius:'4px',cursor:'pointer',color:activeCategoryId!=='__all'||tagSearch?IKB:MUTED}} aria-label="Filter notes"><SlidersHorizontal size={14} strokeWidth={1.25}/></button>
+          <button onClick={addNote} style={{minWidth:'36px',minHeight:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid ${LINE_MED}`,cursor:'pointer',color:MUTED}}><Plus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
+        </div>
+      </div>
+      {/* Search bar — after heading */}
+      <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 20px',borderBottom:`1px solid ${LINE}`}}>
+        <Search className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
+        <input type="text" value={tagSearch?`#${tagSearch}`:query} onChange={e=>{const v=e.target.value;if(v.startsWith('#')){setTagSearch(v.slice(1));setQuery('');}else{setQuery(v);setTagSearch('');}}} placeholder="Search or #tag…" style={{flex:1,background:'transparent',border:'none',color:TEXT,fontFamily:serifText,fontStyle:'italic',fontSize:'14px',outline:'none'}}/>
+        {(query||tagSearch)&&<button onClick={()=>{setQuery('');setTagSearch('');}} style={{color:MUTED,background:'transparent',border:'none',cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase'}}>Clear</button>}
+      </div>
+      {/* Folder chip strip — after search, edge-to-edge */}
       <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch',scrollbarWidth:'none',WebkitScrollbarWidth:'none',padding:'12px 20px',borderBottom:`1px solid ${LINE}`}}>
         <div style={{display:'flex',gap:'8px',flexShrink:0,minWidth:'max-content'}}>
           {ALL_CHIPS.map(chip=>{
@@ -708,23 +725,6 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
               </button>
             );
           })}
-        </div>
-      </div>
-      {/* Search bar */}
-      <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 20px',borderBottom:`1px solid ${LINE}`}}>
-        <Search className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
-        <input type="text" value={tagSearch?`#${tagSearch}`:query} onChange={e=>{const v=e.target.value;if(v.startsWith('#')){setTagSearch(v.slice(1));setQuery('');}else{setQuery(v);setTagSearch('');}}} placeholder="Search or #tag…" style={{flex:1,background:'transparent',border:'none',color:TEXT,fontFamily:serifText,fontStyle:'italic',fontSize:'14px',outline:'none'}}/>
-        {(query||tagSearch)&&<button onClick={()=>{setQuery('');setTagSearch('');}} style={{color:MUTED,background:'transparent',border:'none',cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase'}}>Clear</button>}
-      </div>
-      {/* Heading row — after search, correct order */}
-      <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',padding:'16px 20px 12px'}}>
-        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>
-          {activeCategoryId==='__all'&&!tagSearch?'Notes':activeCategoryId==='__daily'?'Daily':activeCategoryId==='__repertoire'?'Logs':tagSearch?`#${tagSearch}`:activeCategoryId}
-        </div>
-        <div style={{display:'flex',gap:'8px',alignItems:'center',paddingBottom:'8px'}}>
-          {seedTestNotes&&<button onClick={seedTestNotes} style={{color:FAINT,fontFamily:sans,fontSize:'9px',letterSpacing:'0.18em',textTransform:'uppercase',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'4px 8px',cursor:'pointer'}}>Seed</button>}
-          <button onClick={()=>setFilterSheetOpen(true)} style={{width:'36px',height:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid ${activeCategoryId!=='__all'||tagSearch?IKB:LINE_MED}`,borderRadius:'4px',cursor:'pointer',color:activeCategoryId!=='__all'||tagSearch?IKB:MUTED}} aria-label="Filter notes"><SlidersHorizontal size={14} strokeWidth={1.25}/></button>
-          <button onClick={addNote} style={{minWidth:'36px',minHeight:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid ${LINE_MED}`,cursor:'pointer',color:MUTED}}><Plus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
         </div>
       </div>
       {/* Note list */}

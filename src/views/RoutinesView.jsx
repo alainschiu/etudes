@@ -37,7 +37,7 @@ export default function RoutinesView({routines,setRoutines,loadRoutine,setPrompt
 
   return (<div className="max-w-4xl mx-auto px-12 py-14" style={isMobile?{paddingLeft:'20px',paddingRight:'20px',paddingTop:'12px',paddingBottom:'calc(var(--footer-height,160px) + 28px)'}:{}}>
     {isMobile?(
-      <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:'16px'}}>
+      <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:'16px',paddingTop:'8px'}}>
         <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>Routines</div>
         <div style={{display:'flex',gap:'6px',paddingBottom:'8px'}}>
           <button onClick={createNew} className="uppercase flex items-center gap-1.5 px-2.5 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> New</button>

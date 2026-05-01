@@ -121,7 +121,7 @@ function LogsMobile({filtered,query,setQuery,kindFilter,setKindFilter,openLogEnt
   return(
     <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)'}}>
       {/* Header */}
-      <div style={{padding:'16px 20px 8px'}}>
+      <div style={{padding:'20px 20px 8px'}}>
         <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',marginBottom:'2px'}}>Archive</div>
         <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>Practice logs</div>
       </div>

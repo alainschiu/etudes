@@ -371,7 +371,7 @@ function TodayMobile(p){
   const pct = target ? Math.min(100, (totalMin / target) * 100) : 0;
 
   return (
-    <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)'}}>
+    <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)',paddingTop:'8px'}}>
       {/* Day closed banner */}
       {dayClosed && (
         <div style={{padding:'12px 16px',background:IKB_SOFT,borderBottom:`1px solid ${IKB}`,display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px'}}>
