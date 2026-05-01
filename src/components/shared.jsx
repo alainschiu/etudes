@@ -88,14 +88,14 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
   const pause=()=>{if(!audioRef.current)return;_rampDown(()=>{audioRef.current?.pause();setPlaying(false);});};
   const rewind=()=>{if(!audioRef.current)return;_rampDown(()=>{const a=audioRef.current;if(a){a.pause();a.currentTime=0;}setPlaying(false);setProgress(0);});};
 
-  // Real scrubbing: mousedown starts drag, mousemove tracks, mouseup commits
+  // Real scrubbing: mouse + touch unified
+  const getClientX=(e)=>e.touches?e.touches[0]?.clientX??e.changedTouches[0]?.clientX:e.clientX;
+
   const onScrubStart=async(e)=>{
     if(!peaks.length)return;
     e.preventDefault();
     wasPlayingRef.current=playing;
-    // Pause during scrub so audio doesn't race ahead
     if(audioRef.current){audioRef.current.pause();setPlaying(false);}
-    // Pre-load audio so mouseup can seek immediately
     ensure();
     scrubbingRef.current=true;
 
@@ -105,15 +105,19 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
       return Math.max(0,Math.min(1,(clientX-r.left)/r.width));
     };
 
-    // Set initial position immediately
-    setProgress(getFrac(e.clientX));
+    setProgress(getFrac(getClientX(e)));
 
-    const onMove=(mv)=>{setProgress(getFrac(mv.clientX));};
+    const onMove=(mv)=>{
+      if(mv.cancelable)mv.preventDefault();
+      setProgress(getFrac(getClientX(mv)));
+    };
     const onUp=async(up)=>{
       scrubbingRef.current=false;
       document.removeEventListener('mousemove',onMove);
       document.removeEventListener('mouseup',onUp);
-      const frac=getFrac(up.clientX);
+      document.removeEventListener('touchmove',onMove);
+      document.removeEventListener('touchend',onUp);
+      const frac=getFrac(getClientX(up));
       setProgress(frac);
       const a=audioRef.current;
       if(a&&a.duration&&!isNaN(a.duration)){
@@ -123,6 +127,8 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
     };
     document.addEventListener('mousemove',onMove);
     document.addEventListener('mouseup',onUp);
+    document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('touchend',onUp);
   };
 
   useEffect(()=>()=>{if(audioRef.current)audioRef.current.pause();if(urlRef.current)URL.revokeObjectURL(urlRef.current);try{wactxRef.current?.close();}catch{}},[]);
@@ -158,7 +164,8 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
   const svgMarkup=(h)=>(
     <svg ref={svgRef} width="100%" height={h} viewBox="0 0 1000 100" preserveAspectRatio="none"
       style={{display:'block',cursor:peaks.length?'col-resize':'default',userSelect:'none'}}
-      onMouseDown={peaks.length?onScrubStart:undefined}>
+      onMouseDown={peaks.length?onScrubStart:undefined}
+      onTouchStart={peaks.length?onScrubStart:undefined}>
       <defs><clipPath id={clipId}><rect x="0" y="0" width={needleX} height="100"/></clipPath></defs>
       {peaks.length>0?(<>
         <path d={shapePath} fill={DIM}/>

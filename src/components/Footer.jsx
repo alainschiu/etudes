@@ -7,6 +7,7 @@ import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
 import X from 'lucide-react/dist/esm/icons/x';
 import Waves from 'lucide-react/dist/esm/icons/waves';
+import AudioWaveform from 'lucide-react/dist/esm/icons/audio-waveform';
 import Zap from 'lucide-react/dist/esm/icons/zap';
 import Coffee from 'lucide-react/dist/esm/icons/coffee';
 import Mic from 'lucide-react/dist/esm/icons/mic';
@@ -313,6 +314,15 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
             style={{width:'40px',height:'40px',borderRadius:'999px',flexShrink:0,border:`1px solid ${anyRecording?REC:'transparent'}`,background:anyRecording?'rgba(169,50,38,0.10)':'transparent',color:anyRecording?REC:(dayClosed?FAINT:MUTED),display:'flex',alignItems:'center',justifyContent:'center',cursor:dayClosed&&!anyRecording?'not-allowed':'pointer'}}
           >
             {anyRecording?<Square size={15} strokeWidth={1.25} fill="currentColor"/>:<Mic size={15} strokeWidth={1.25}/>}
+          </button>
+
+          {/* Tuner / Drone */}
+          <button
+            onClick={()=>setDroneExpanded(x=>!x)}
+            style={{width:'40px',height:'40px',borderRadius:'999px',flexShrink:0,border:`1px solid ${drone.running?IKB:'transparent'}`,background:drone.running?IKB_SOFT:'transparent',color:drone.running?IKB:MUTED,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+            aria-label="Tuner"
+          >
+            <AudioWaveform size={15} strokeWidth={1.25}/>
           </button>
 
           {/* Quick add / note */}

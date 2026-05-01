@@ -273,7 +273,7 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
   const recBlocked = (dayClosed && !isPieceRec) || (pieceRecordingItemId && !isPieceRec) || isRecording;
 
   return (
-    <div {...longPress} style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent',padding:'14px 20px',display:'flex',alignItems:'center',gap:'10px',minHeight:'44px',userSelect:'none'}}>
+    <div {...longPress} style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent',padding:'14px 20px',display:'flex',alignItems:'center',gap:'10px',minHeight:'44px',userSelect:'none',touchAction:'none'}}>
       {/* Play / pulse dot */}
       <button
         onClick={e=>{e.stopPropagation();isActiveAny?stopItem():startItem(item.id,null,session.id);}}
@@ -387,7 +387,7 @@ function TodayMobile(p){
   const pct = target ? Math.min(100, (totalMin / target) * 100) : 0;
 
   return (
-    <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)',paddingTop:'8px'}}>
+    <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)',paddingTop:'8px',touchAction:'pan-y'}}>
       {/* Day closed banner */}
       {dayClosed && (
         <div style={{padding:'12px 16px',background:IKB_SOFT,borderBottom:`1px solid ${IKB}`,display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px'}}>
