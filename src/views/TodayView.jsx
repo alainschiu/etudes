@@ -259,7 +259,7 @@ export default function TodayView(p){
 }
 
 // ── Mobile item row — extracted so useLongPress is called at component top-level
-function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta}){
+function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta,addSpot,updateSpot,deleteSpot,editSpotTime}){
   const isActiveAny = activeItemId === item.id && activeSessionId === session.id;
   const isActiveWhole = isActiveAny && !activeSpotId;
   const time = getItemTime(itemTimes, item.id);
@@ -403,6 +403,25 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
                 placeholder="Long-running notes…"
                 minHeight={60}
                 style={{background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'13px'}}
+              />
+            </div>
+          )}
+          {/* Spots */}
+          {item.type==='piece'&&addSpot&&(
+            <div>
+              <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,marginBottom:'6px'}}>Spots</div>
+              <SpotsBlock
+                item={item}
+                itemTimes={itemTimes}
+                activeItemId={activeItemId}
+                activeSpotId={activeSpotId}
+                startItem={(id,sid)=>startItem(id,sid,session.id)}
+                stopItem={stopItem}
+                addSpot={addSpot}
+                updateSpot={updateSpot}
+                deleteSpot={deleteSpot}
+                editSpotTime={editSpotTime}
+                dayClosed={dayClosed}
               />
             </div>
           )}
@@ -625,6 +644,10 @@ function TodayMobile(p){
                     handleStartRecording={handleStartRecording}
                     updateItem={p.updateItem}
                     refTrackMeta={p.refTrackMeta}
+                    addSpot={p.addSpot}
+                    updateSpot={p.updateSpot}
+                    deleteSpot={p.deleteSpot}
+                    editSpotTime={p.editSpotTime}
                   />
                 ))}
 

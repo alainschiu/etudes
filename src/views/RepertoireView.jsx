@@ -309,6 +309,8 @@ export default function RepertoireView(p){
       globalAbB={globalAbB}
       setGlobalAbA={setGlobalAbA}
       setGlobalAbB={setGlobalAbB}
+      pieceRecordingMeta={pieceRecordingMeta}
+      refTrackMeta={refTrackMeta}
     />;
   }
 
@@ -555,7 +557,7 @@ function LengthEditorRow({i,updateItem}){
 function formatLengthForInput(secs){if(!secs)return'';const m=Math.floor(secs/60),s=secs%60;return`${m}:${String(s).padStart(2,'0')}`;}
 
 // ── Mobile: Répertoire list ───────────────────────────────────────────────
-function MobileRepertoireList({items,sorted,grouped,groupByCollection,setGroupByCollection,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,filterComposer,filterInstrument,hasFilters,clearFilters,allComposers,allInstruments,activeItemId,dayClosed,handleAdd,onTapItem,itemTimes,fmtMin,history,globalAbA,globalAbB,setGlobalAbA,setGlobalAbB}){
+function MobileRepertoireList({items,sorted,grouped,groupByCollection,setGroupByCollection,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,filterComposer,filterInstrument,hasFilters,clearFilters,allComposers,allInstruments,activeItemId,dayClosed,handleAdd,onTapItem,itemTimes,fmtMin,history,globalAbA,globalAbB,setGlobalAbA,setGlobalAbB,pieceRecordingMeta,refTrackMeta}){
   const [filterSheetOpen,setFilterSheetOpen]=useState(false);
   const [composerOpen,setComposerOpen]=useState(true);
   const [instrumentOpen,setInstrumentOpen]=useState(true);
@@ -606,7 +608,7 @@ function MobileRepertoireList({items,sorted,grouped,groupByCollection,setGroupBy
       {/* List */}
       <div style={{borderTop:`1px solid ${LINE_STR}`}}>
         {items.length===0&&<div style={{padding:'48px 20px',textAlign:'center',fontFamily:serif,fontStyle:'italic',fontSize:'15px',color:DIM}}>Nothing here yet.</div>}
-        {!groupByCollection&&sorted.map(item=><MobileRepItem key={item.id} item={item} onTap={()=>onTapItem(item.id)} activeItemId={activeItemId} history={history}/>)}
+        {!groupByCollection&&sorted.map(item=><MobileRepItem key={item.id} item={item} onTap={()=>onTapItem(item.id)} activeItemId={activeItemId} history={history} pieceRecordingMeta={pieceRecordingMeta} refTrackMeta={refTrackMeta}/>)}
         {groupByCollection&&grouped&&(<>
           {grouped.collections.map(({name,list})=>(
             <div key={name}>
@@ -614,12 +616,12 @@ function MobileRepertoireList({items,sorted,grouped,groupByCollection,setGroupBy
                 <span style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'16px',color:MUTED}}>{name}</span>
                 <span style={{color:FAINT,fontSize:'10px',marginLeft:'auto'}}>{list.length} mvt{list.length===1?'':'s'}</span>
               </div>
-              {list.map(item=><MobileRepItem key={item.id} item={item} onTap={()=>onTapItem(item.id)} activeItemId={activeItemId} history={history}/>)}
+              {list.map(item=><MobileRepItem key={item.id} item={item} onTap={()=>onTapItem(item.id)} activeItemId={activeItemId} history={history} pieceRecordingMeta={pieceRecordingMeta} refTrackMeta={refTrackMeta}/>)}
             </div>
           ))}
           {grouped.standalone.length>0&&(<>
             <div style={{padding:'12px 20px 8px',borderBottom:`1px solid ${LINE_MED}`,background:SURFACE}}><span className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.3em'}}>Standalone</span></div>
-            {grouped.standalone.map(item=><MobileRepItem key={item.id} item={item} onTap={()=>onTapItem(item.id)} activeItemId={activeItemId} history={history}/>)}
+            {grouped.standalone.map(item=><MobileRepItem key={item.id} item={item} onTap={()=>onTapItem(item.id)} activeItemId={activeItemId} history={history} pieceRecordingMeta={pieceRecordingMeta} refTrackMeta={refTrackMeta}/>)}
           </>)}
         </>)}
         {items.length>0&&sorted.length===0&&<div style={{padding:'32px 20px',textAlign:'center',fontFamily:serif,fontStyle:'italic',fontSize:'14px',color:FAINT}}>Nothing matches.</div>}
@@ -659,22 +661,28 @@ function MobileRepertoireList({items,sorted,grouped,groupByCollection,setGroupBy
   );
 }
 
-function MobileRepItem({item,onTap,activeItemId,history}){
+function MobileRepItem({item,onTap,activeItemId,history,pieceRecordingMeta,refTrackMeta}){
   const isActive=activeItemId===item.id;
   const perf=nextPerformance(item.performances);
-  const hasSpots=(item.spots||[]).length>0;
+  const spotCount=(item.spots||[]).length;
+  const hasPdf=(item.pdfs||[]).length>0;
+  const hasRecordings=!!(pieceRecordingMeta?.[item.id]&&Object.keys(pieceRecordingMeta[item.id]).length>0);
+  const hasRefTrack=!!(refTrackMeta?.[item.id]);
   return(
-    <button onClick={onTap} style={{display:'flex',alignItems:'center',gap:'12px',width:'100%',padding:'14px 20px',borderBottom:`1px solid ${LINE}`,background:isActive?IKB_SOFT:'transparent',minHeight:'52px',textAlign:'left',cursor:'pointer',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:LINE}}>
+    <button onClick={onTap} style={{display:'flex',alignItems:'center',gap:'12px',width:'100%',padding:'14px 20px',background:isActive?IKB_SOFT:'transparent',minHeight:'52px',textAlign:'left',cursor:'pointer',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:LINE}}>
       <div style={{flexShrink:0,width:'24px'}}>
         <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'11px',color:MUTED}}>{SECTION_CONFIG[item.type].roman}</span>
       </div>
       <div style={{flex:1,minWidth:0}}>
         <div style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'16px',color:isActive?TEXT:'rgba(212,206,195,0.9)',lineHeight:1.2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{displayTitle(item)}</div>
         {formatByline(item)&&<div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'12px',color:FAINT,marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{formatByline(item)}</div>}
-        <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'4px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'5px',flexWrap:'wrap'}}>
           <StageDots stage={item.stage}/>
-          {hasSpots&&<span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.18em',textTransform:'uppercase',color:FAINT}}>{item.spots.length}s</span>}
-          {perf&&<PerformanceChip perf={perf} compact/>}
+          {spotCount>0&&<span style={{display:'flex',alignItems:'center',gap:'3px',color:FAINT}}><Crosshair size={9} strokeWidth={1.25}/><span style={{fontFamily:mono,fontSize:'9px'}}>{spotCount}</span></span>}
+          {hasRecordings&&<Mic size={9} strokeWidth={1.25} style={{color:FAINT}}/>}
+          {hasRefTrack&&<Music size={9} strokeWidth={1.25} style={{color:FAINT}}/>}
+          {hasPdf&&<FileText size={9} strokeWidth={1.25} style={{color:FAINT}}/>}
+          {perf&&<span style={{marginLeft:'auto'}}><PerformanceChip perf={perf} compact/></span>}
         </div>
       </div>
     </button>
