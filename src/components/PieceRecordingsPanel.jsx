@@ -221,7 +221,7 @@ export default function PieceRecordingsPanel({
                     {entry?.stage&&<span style={{fontFamily:serif,fontStyle:'italic',color:FAINT,fontSize:'11px'}}>{entry.stage}</span>}
                     {(entry?.locked??false)&&<Lock className="w-2.5 h-2.5" strokeWidth={1.5} style={{color:WARM}}/>}
                   </div>
-                  <Waveform blobLoader={()=>idbGet('pieceRecordings',`${item.id}__${ab.date}`)} meta={entry} accentColor={accent} accentSoft={soft}/>
+                  <Waveform blobLoader={()=>idbGet('pieceRecordings',entry?.idbKey??`${item.id}__${ab.date}`)} meta={entry} accentColor={accent} accentSoft={soft}/>
                 </div>
               );
             })}

@@ -80,6 +80,7 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
     else then();
   };
   const play=async()=>{
+    wactxRef.current?.resume();
     const a=await ensure();if(!a)return;
     const ctx=wactxRef.current,g=gainRef.current;
     if(ctx&&g){if(ctx.state==='suspended')await ctx.resume();g.gain.cancelScheduledValues(ctx.currentTime);g.gain.setValueAtTime(0,ctx.currentTime);g.gain.linearRampToValueAtTime(1,ctx.currentTime+0.05);}
@@ -133,13 +134,9 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
 
   useEffect(()=>()=>{if(audioRef.current)audioRef.current.pause();if(urlRef.current)URL.revokeObjectURL(urlRef.current);try{wactxRef.current?.close();}catch{}},[]);
 
-  // 2-pass smooth + normalize for display
+  // Normalize for display — peaks from computePeaks are already smoothed twice
   const rawPeaks=meta?.peaks||[];
-  const peaks=rawPeaks.length<3?rawPeaks:(()=>{
-    let s=[...rawPeaks];
-    for(let p=0;p<2;p++){const n=[...s];for(let i=1;i<s.length-1;i++)n[i]=s[i-1]*0.25+s[i]*0.5+s[i+1]*0.25;s=n;}
-    const mx=Math.max(...s,1e-6);return s.map(v=>v/mx);
-  })();
+  const peaks=rawPeaks.length<2?rawPeaks:(()=>{const mx=Math.max(...rawPeaks,1e-6);return rawPeaks.map(v=>v/mx);})();
 
   // Closed SVG path: smooth bezier top (L→R) + bottom (R→L)
   const shapePath=(()=>{

@@ -54,6 +54,34 @@ export default function Etudes(){
   const closeRefBar=()=>{setRefBarVisible(false);setTimeout(()=>s.setRefBarItemId(null),280);};
   const {view,setView,showSettings,setShowSettings,showHelp,setShowHelp,exportMenu,setExportMenu,confirmModal,setConfirmModal,promptModal,setPromptModal,syncConflictModal,quickNoteOpen,setQuickNoteOpen,restoreBusy,expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,logDrawerDate,logDrawerEntry,editingTimeItemId,setEditingTimeItemId,dragIdx,dragOverIdx,storageMode,storageQuotaHit,setStorageQuotaHit,items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,setTodaySessions,loadedRoutineId,routines,setRoutines,programs,setPrograms,dailyReflection,setDailyReflection,weekReflection,setWeekReflection,monthReflection,setMonthReflection,settings,setSettings,freeNotes,setFreeNotes,noteCategories,setNoteCategories,recordingMeta,history,dayClosed,trash,activeItemId,activeSpotId,activeSessionId,activeItem,activeSpot,activeIsWarmup,isResting,isRecording,recExpanded,setRecExpanded,metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,sessionRefs,reflectionRef,importInputRef,totalToday,effectiveTotalToday,sectionTimes,weekActualSeconds,monthActualSeconds,todayKey,pdfItem,loadedRoutine,todayHistoryEntry,fmt,fmtMin,updateItem,addItem,startItem,stopItem,toggleWorking,toggleRest,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,moveSpot,addPerformance,updatePerformance,deletePerformance,closeDay,reopenDay,endDay,deleteItem,undoDelete,dismissTrash,logTempo,addQuickNote,pdfLibrary,pdfUrlMap,addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,addBookmark,removeBookmark,renameBookmark,startRecording,stopRecording,deleteRecording,handleDragStart,handleDragOver,handleDrop,handleDragEnd,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,openLogEntry,closeLogDrawer,resolveDayEntry,exportJson,importJsonFile,buildZip,exportProgress,handleTap,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,saveFreeNote,seedTestNotes}=s;
 
+  // ── Recording soft mutex ──────────────────────────────────────────────────
+  const [mutexPrompt,setMutexPrompt]=useState(null); // null | {to:'piece'|'daily', toId:string|null}
+
+  const handleStartRecording=(type,itemId)=>{
+    if(type==='piece'){
+      if(s.pieceRecordingItemId===itemId){s.stopPieceRecording();return;}
+      if(s.pieceRecordingItemId||isRecording){setMutexPrompt({to:'piece',toId:itemId});return;}
+      s.startPieceRecording(itemId,metronome.bpm,items.find(i=>i.id===itemId)?.stage);
+    }else{
+      if(isRecording){stopRecording();return;}
+      if(s.pieceRecordingItemId){setMutexPrompt({to:'daily',toId:null});return;}
+      startRecording();
+    }
+  };
+
+  const confirmMutex=()=>{
+    if(!mutexPrompt)return;
+    if(s.pieceRecordingItemId)s.stopPieceRecording();
+    if(isRecording)stopRecording();
+    const {to,toId}=mutexPrompt;
+    setMutexPrompt(null);
+    // slight delay so stop has time to flush before new start
+    setTimeout(()=>{
+      if(to==='piece'&&toId)s.startPieceRecording(toId,metronome.bpm,items.find(i=>i.id===toId)?.stage);
+      else if(to==='daily')startRecording();
+    },80);
+  };
+
   const commonProps={items,history,settings,itemTimes,fmt,fmtMin,recordingMeta};
 
   return (
@@ -84,7 +112,7 @@ export default function Etudes(){
       {isMobile&&storageMode==='memory'&&(<div className="shrink-0 px-4 py-1.5 flex items-center justify-center" style={{background:SURFACE,borderBottom:`1px dashed ${LINE_MED}`}}><span className="uppercase tabular-nums" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.28em'}}>Storage unavailable · session will not be saved</span></div>)}
       <div className="flex-1 flex overflow-hidden">
         <main className="flex-1 overflow-auto etudes-scroll" style={isMobile?{paddingTop:'calc(44px + env(safe-area-inset-top, 0px))'}:{}}>
-          {view==='today'&&<TodayView {...{...commonProps,view,setView,todaySessions,setTodaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,totalToday,effectiveTotalToday,warmupTimeToday,restToday,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,deleteRecording,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,isRecording,currentBpm:metronome.bpm,refTrackMeta:s.refTrackMeta,refBarItemId:s.refBarItemId,setRefBarItemId:s.setRefBarItemId}}/>}
+          {view==='today'&&<TodayView {...{...commonProps,view,setView,todaySessions,setTodaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,totalToday,effectiveTotalToday,warmupTimeToday,restToday,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,deleteRecording,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,handleStartRecording,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,isRecording,currentBpm:metronome.bpm,refTrackMeta:s.refTrackMeta,refBarItemId:s.refBarItemId,setRefBarItemId:s.setRefBarItemId}}/>}
           {view==='review'&&<ReviewView {...{...commonProps,weekActualSeconds,weekReflection,setWeekReflection,monthActualSeconds,monthReflection,setMonthReflection,effectiveTotalToday,warmupTimeToday,openLogEntry}}/>}
           {view==='repertoire'&&<RepertoireView {...{...commonProps,view,setItems:s.setItems,updateItem,deleteItem,setPdfDrawerItemId,activeItemId,activeSpotId,startItem,stopItem,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta:s.pieceRecordingMeta,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,deletePieceRecording:s.deletePieceRecording,lockPieceRecording:s.lockPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,isRecording,currentBpm:metronome.bpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta:s.refTrackMeta,uploadRefTrack:s.uploadRefTrack,deleteRefTrack:s.deleteRefTrack,pdfUrlMap:s.pdfUrlMap,localPieceRecordingIds:s.localPieceRecordingIds,localRefTrackIds:s.localRefTrackIds}}/>}
           {view==='programs'&&<ProgramsView items={items} programs={programs} setPrograms={setPrograms} selectedProgramId={selectedProgramId} setSelectedProgramId={setSelectedProgramId} setView={setView} freeNotes={freeNotes} setActiveNoteId={(id)=>{setRequestedNoteId(id);}}/>}
@@ -157,7 +185,16 @@ export default function Etudes(){
           settings={settings}
         />
       )}
-      <Footer {...{isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,attachDailyToPiece:s.attachDailyToPiece,todaySessions,items,settings}}/>
+      {mutexPrompt&&(
+        <div style={{background:SURFACE,borderTop:`1px solid ${LINE_MED}`,padding:'10px 18px',display:'flex',alignItems:'center',gap:'10px',zIndex:50,position:'relative',flexShrink:0}}>
+          <span style={{fontFamily:sans,fontSize:'10px',color:MUTED,letterSpacing:'0.12em',flex:1}}>
+            Stop current recording and start {mutexPrompt.to==='piece'?'piece recording':'daily recording'}?
+          </span>
+          <button onClick={()=>setMutexPrompt(null)} style={{background:'transparent',border:`1px solid ${LINE_MED}`,color:FAINT,padding:'4px 10px',cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase'}}>Cancel</button>
+          <button onClick={confirmMutex} style={{background:IKB_SOFT,border:`1px solid ${IKB}`,color:TEXT,padding:'4px 10px',cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase'}}>Confirm</button>
+        </div>
+      )}
+      <Footer {...{isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,attachDailyToPiece:s.attachDailyToPiece,todaySessions,items,settings,handleStartRecording}}/>
       {trash&&<UndoToast item={trash.item} onUndo={undoDelete} onDismiss={dismissTrash}/>}
       {showSettings&&<SettingsModal settings={settings} setSettings={setSettings} storageMode={storageMode} onExportZip={buildZip} exportProgress={exportProgress} onExportJson={exportJson} onImportClick={()=>importInputRef.current?.click()} onClose={()=>setShowSettings(false)} user={s.user} signIn={s.signIn} signUp={s.signUp} signOut={s.signOut} signInWithGoogle={s.signInWithGoogle} syncStatus={s.syncStatus} lastSyncedAt={s.lastSyncedAt} syncNow={s.syncNow} syncPayloadWarning={s.syncPayloadWarning}/>}
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}

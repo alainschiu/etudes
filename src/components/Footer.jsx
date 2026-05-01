@@ -1,7 +1,6 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
 import MetronomeSheet from './MetronomeSheet.jsx';
 import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
-import Plus from 'lucide-react/dist/esm/icons/plus';
 import DevToolsBar from '../dev/DevToolsBar.jsx';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
@@ -24,6 +23,86 @@ import {NOTE_NAMES, noteToFreqFull, getCentOffset} from '../lib/music.js';
 import {displayTitle, formatByline, getSpotTime, getParentBucket} from '../lib/items.js';
 
 function MetronomeIcon({size=14}){return(<svg width={size} height={size+2} viewBox="0 0 14 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"><polygon points="3,15 11,15 7,3"/><line x1="7" y1="3" x2="10" y2="9"/><circle cx="7" cy="15" r="1" fill="currentColor" stroke="none"/></svg>);}
+
+function MobileDronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
+  const hz=noteToFreqFull(drone.note,drone.octave,drone.pitchRef||440,drone.temperament||'equal',drone.root||'C').toFixed(1);
+  const cents=getCentOffset(drone.note,drone.root||'C',drone.temperament||'equal');
+  const centsAbs=Math.abs(cents);
+  const centsStr=cents===0?null:`${cents>0?'+':''}${cents.toFixed(1)}¢`;
+  const centsColor=centsAbs===0?FAINT:centsAbs>15?'#E07A7A':centsAbs>5?WARM:IKB;
+  const pitchOpts=[440,415,432];
+  const tempOpts=[{v:'equal',label:'Equal'},{v:'just',label:'Just'},{v:'meantone',label:'Meantone ¼'}];
+  const notEqual=(drone.temperament||'equal')!=='equal';
+  const whites=['C','D','E','F','G','A','B'];
+  const blacks=[{wi:1,n:'C#'},{wi:2,n:'D#'},{wi:4,n:'F#'},{wi:5,n:'G#'},{wi:6,n:'A#'}];
+  const W=100/7;
+  const BW=W*0.62;
+  const [advOpen,setAdvOpen]=useState(false);
+  return(
+    <div style={{borderBottom:`1px solid ${LINE}`,background:SURFACE,padding:'16px 18px'}}>
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'12px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+          <span className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em',fontFamily:sans}}>Tuning</span>
+          {centsStr&&<span style={{fontFamily:mono,color:centsColor,fontSize:'11px',fontWeight:500}}>{centsStr}</span>}
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+          <button onClick={toggleDrone} style={{width:'36px',height:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:drone.running?IKB:'transparent',color:TEXT,border:`1px solid ${drone.running?IKB:LINE_STR}`,borderRadius:'4px',cursor:'pointer',flexShrink:0}}>
+            {drone.running?<Pause className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-3.5 h-3.5 ml-0.5" strokeWidth={1.25} fill="currentColor"/>}
+          </button>
+          <button onClick={()=>setDroneExpanded(false)} style={{color:FAINT,background:'transparent',border:'none',cursor:'pointer'}}><X className="w-4 h-4" strokeWidth={1.25}/></button>
+        </div>
+      </div>
+      {/* Note display */}
+      <div style={{display:'flex',alignItems:'baseline',gap:'10px',marginBottom:'14px'}}>
+        <span style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,fontSize:'56px',lineHeight:1,color:TEXT}}>{drone.note}</span>
+        <span style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,fontSize:'28px',color:MUTED,lineHeight:1}}>{drone.octave}</span>
+        <div style={{display:'flex',flexDirection:'column',gap:'2px',marginLeft:'6px'}}>
+          <span style={{fontFamily:mono,fontSize:'13px',color:FAINT}}>{hz} Hz</span>
+        </div>
+      </div>
+      {/* Piano keyboard — full width */}
+      <div style={{position:'relative',height:'64px',width:'100%',userSelect:'none',marginBottom:'14px'}}>
+        {whites.map((n,i)=>{const isActive=drone.note===n;const nc=notEqual?getCentOffset(n,drone.root||'C',drone.temperament||'equal'):0;const nca=Math.abs(nc);const nc2=nca>15?'#E07A7A':nca>5?WARM:null;return(<div key={n} onClick={()=>setDrone(d=>({...d,note:n}))} style={{position:'absolute',left:`${i*W}%`,width:`${W}%`,top:0,bottom:0,background:isActive?IKB:'#D4CEC4',border:'1px solid rgba(26,25,21,0.28)',zIndex:1,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',paddingBottom:'5px',minWidth:'36px'}}>{notEqual&&nc2&&<span style={{position:'absolute',top:'4px',fontSize:'5px',color:nc2,lineHeight:1}}>●</span>}<span style={{fontSize:'10px',color:isActive?'#fff':'#1A1915',fontFamily:serif}}>{n}</span></div>);})}
+        {blacks.map(({wi,n})=>{const isActive=drone.note===n;const nc=notEqual?getCentOffset(n,drone.root||'C',drone.temperament||'equal'):0;const nca=Math.abs(nc);const nc2=nca>15?'#E07A7A':nca>5?WARM:null;const left=wi*W-BW/2;return(<div key={n} onClick={()=>setDrone(d=>({...d,note:n}))} style={{position:'absolute',left:`${left}%`,width:`${BW}%`,top:0,height:'62%',background:isActive?IKB:'#1A1915',border:'1px solid #0A0A08',zIndex:2,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',paddingBottom:'3px'}}>{notEqual&&nc2&&<span style={{position:'absolute',top:'2px',fontSize:'4px',color:nc2,lineHeight:1}}>●</span>}<span style={{fontSize:'8px',color:isActive?'#fff':'rgba(212,206,196,0.55)',fontFamily:serif}}>{n.replace('#','♯')}</span></div>);})}
+      </div>
+      {/* Volume row */}
+      <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
+        <span className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em',fontFamily:sans,flexShrink:0}}>Vol</span>
+        <input type="range" min="0" max="0.6" step="0.01" value={drone.volume} onChange={e=>setDrone(d=>({...d,volume:+e.target.value}))} style={{flex:1,accentColor:IKB}}/>
+        <span style={{fontFamily:mono,color:MUTED,fontSize:'10px',minWidth:'28px',textAlign:'right'}}>{Math.round(drone.volume*100)}%</span>
+      </div>
+      {/* A= row */}
+      <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'8px'}}>
+        <span className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em',fontFamily:sans,flexShrink:0,minWidth:'52px'}}>A =</span>
+        <div style={{display:'flex'}}>{pitchOpts.map(p=>(<button key={p} onClick={()=>setDrone(d=>({...d,pitchRef:p}))} style={{padding:'4px 10px',border:`1px solid ${(drone.pitchRef||440)===p?IKB:LINE_MED}`,background:(drone.pitchRef||440)===p?IKB_SOFT:'transparent',color:(drone.pitchRef||440)===p?TEXT:MUTED,fontFamily:mono,fontSize:'11px',marginLeft:'-1px',cursor:'pointer'}}>{p}</button>))}</div>
+      </div>
+      {/* Octave row */}
+      <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'8px'}}>
+        <span className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em',fontFamily:sans,flexShrink:0,minWidth:'52px'}}>Oct</span>
+        <div style={{display:'flex'}}>{[3,4,5].map(o=>(<button key={o} onClick={()=>setDrone(d=>({...d,octave:o}))} style={{padding:'4px 12px',border:`1px solid ${drone.octave===o?IKB:LINE_MED}`,background:drone.octave===o?IKB_SOFT:'transparent',color:drone.octave===o?TEXT:MUTED,fontFamily:serif,fontSize:'13px',marginLeft:'-1px',cursor:'pointer'}}>{o}</button>))}</div>
+      </div>
+      {/* Temperament row */}
+      <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'10px'}}>
+        <span className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em',fontFamily:sans,flexShrink:0,minWidth:'52px'}}>Temper.</span>
+        <div style={{display:'flex'}}>{tempOpts.map(t=>(<button key={t.v} onClick={()=>setDrone(d=>({...d,temperament:t.v}))} style={{padding:'4px 8px',border:`1px solid ${(drone.temperament||'equal')===t.v?IKB:LINE_MED}`,background:(drone.temperament||'equal')===t.v?IKB_SOFT:'transparent',color:(drone.temperament||'equal')===t.v?TEXT:MUTED,fontSize:'11px',marginLeft:'-1px',cursor:'pointer',letterSpacing:'0.02em'}}>{t.label}</button>))}</div>
+      </div>
+      {/* Advanced: root + cent table (collapsible) */}
+      {notEqual&&(
+        <div>
+          <button onClick={()=>setAdvOpen(v=>!v)} style={{display:'flex',alignItems:'center',gap:'4px',background:'transparent',border:'none',cursor:'pointer',padding:'0 0 8px'}}>
+            <ChevronUp size={10} strokeWidth={1.5} style={{color:FAINT,transform:advOpen?'rotate(0deg)':'rotate(180deg)',transition:'transform 150ms'}}/>
+            <span className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em',fontFamily:sans}}>Root &amp; offsets</span>
+          </button>
+          {advOpen&&(<>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'10px'}}>{NOTE_NAMES.map(n=>(<button key={n} onClick={()=>setDrone(d=>({...d,root:n}))} style={{minWidth:'30px',padding:'3px 5px',border:`1px solid ${(drone.root||'C')===n?IKB:LINE_MED}`,background:(drone.root||'C')===n?IKB_SOFT:'transparent',color:(drone.root||'C')===n?TEXT:MUTED,fontFamily:serif,fontSize:'11px',cursor:'pointer'}}>{n}</button>))}</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'6px 16px'}}>{NOTE_NAMES.map(n=>{const c=getCentOffset(n,drone.root||'C',drone.temperament||'equal');const ca=Math.abs(c);const cc=ca>15?'#E07A7A':ca>5?WARM:FAINT;const isActive=drone.note===n;return(<span key={n} style={{fontFamily:mono,fontSize:'10px',color:isActive?TEXT:cc,fontWeight:isActive?500:300,minWidth:'60px'}}>{n} {c>=0?'+':''}{c.toFixed(1)}¢</span>);})}</div>
+          </>)}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
   const hz=noteToFreqFull(drone.note,drone.octave,drone.pitchRef||440,drone.temperament||'equal',drone.root||'C').toFixed(1);
@@ -152,7 +231,7 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
 
   return (<footer className={isMobile?'':'shrink-0'} style={{borderTop:`1px solid ${LINE_MED}`,background:BG,...(isMobile&&{position:'fixed',bottom:0,left:0,right:0,zIndex:Z_FOOTER})}}>
     <DevToolsBar/>
-    {droneExpanded&&<DronePanel drone={drone} setDrone={setDrone} toggleDrone={toggleDrone} setDroneExpanded={setDroneExpanded}/>}
+    {droneExpanded&&(isMobile?<MobileDronePanel drone={drone} setDrone={setDrone} toggleDrone={toggleDrone} setDroneExpanded={setDroneExpanded}/>:<DronePanel drone={drone} setDrone={setDrone} toggleDrone={toggleDrone} setDroneExpanded={setDroneExpanded}/>)}
     {recExpanded&&(
       <div className="px-10 py-6" style={{borderBottom:`1px solid ${LINE}`,background:SURFACE}}>
         <div className="flex items-center justify-between mb-5">
@@ -283,22 +362,48 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
 
           {/* Metronome widget */}
           <div style={{flex:1,height:'40px',borderRadius:'4px',border:`1px solid ${metronome.running?IKB:LINE_STR}`,overflow:'hidden',display:'flex',minWidth:0}}>
-            {/* Left region — toggle metro on/off */}
+            {/* Zone 1 — beat bars (onClick = toggle) */}
             <button
               onClick={()=>setMetronome(m=>({...m,running:!m.running}))}
-              style={{flex:1,minWidth:0,display:'flex',alignItems:'center',gap:'8px',padding:'0 10px',background:'transparent',border:'none',cursor:'pointer'}}
+              style={{flex:'0 0 58%',minWidth:0,display:'flex',alignItems:'flex-end',gap:'2px',padding:'0 8px 6px',background:'transparent',border:'none',cursor:'pointer',overflow:'hidden'}}
             >
-              {/* Beat bars */}
-              <div style={{display:'flex',alignItems:'flex-end',gap:'2px',height:'20px',flexShrink:0}}>
-                {Array.from({length:Math.min(metronome.beats,6)}).map((_,i)=>{
-                  const isA=metronome.running&&currentBeat===i;
-                  return <div key={i} style={{width:isA?'3px':'2px',height:isA?(i===0?'20px':'14px'):'9px',background:isA?IKB:(metronome.running?DIM:'rgba(244,238,227,0.15)'),borderRadius:'1px',transition:'height 75ms,width 75ms'}}/>;
-                })}
-              </div>
-              <span style={{fontFamily:mono,fontSize:'13px',fontWeight:500,color:metronome.running?IKB:MUTED}}>{metronome.bpm}</span>
-              <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'11px',color:metronome.running?IKB:FAINT}}>{metronome.beats}/4</span>
+              {Array.from({length:Math.min(metronome.beats,8)}).map((_,i)=>{
+                const isDotSub2=metronome.subdivision==='dot';
+                const effectiveSub2=isDotSub2?1:(typeof metronome.subdivision==='number'?metronome.subdivision:1);
+                const isA=metronome.running&&currentBeat===i;
+                const isBeat1=i===0;
+                return(
+                  <div key={i} style={{flex:1,display:'flex',alignItems:'flex-end',gap:'1px',height:'28px'}}>
+                    {/* downbeat bar */}
+                    <div style={{
+                      flex:1,
+                      height:isA&&isBeat1?'28px':isA?'20px':isBeat1?'18px':'13px',
+                      background:isA?IKB:isBeat1?DIM:`rgba(244,238,227,0.20)`,
+                      borderRadius:'1px',
+                      transition:isA?'none':'height 150ms ease-out',
+                    }}/>
+                    {/* subdivision bars */}
+                    {effectiveSub2>1&&Array.from({length:effectiveSub2-1}).map((_,si)=>{
+                      const isAS=metronome.running&&currentBeat===i&&currentSub===si+1;
+                      return <div key={si} style={{
+                        width:'2px',
+                        height:isAS?'14px':'9px',
+                        background:isAS?IKB:'rgba(244,238,227,0.10)',
+                        borderRadius:'1px',
+                        transition:isAS?'none':'height 150ms ease-out',
+                        flexShrink:0,
+                      }}/>;
+                    })}
+                  </div>
+                );
+              })}
             </button>
-            {/* Right region — open sheet */}
+            {/* Zone 2 — BPM + time sig (display only, no click) */}
+            <div style={{flex:'0 0 34%',display:'flex',flexDirection:'column',alignItems:'flex-end',justifyContent:'center',padding:'0 8px',pointerEvents:'none'}}>
+              <span style={{fontFamily:mono,fontSize:'16px',fontWeight:500,color:metronome.running?IKB:MUTED,lineHeight:1}}>{metronome.bpm}</span>
+              <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'11px',color:metronome.running?IKB:FAINT,lineHeight:1,marginTop:'2px'}}>{metronome.beats}/{isDotSub?'♩.':metronome.noteValue}</span>
+            </div>
+            {/* Zone 3 — chevron (onClick = sheet) */}
             <button
               onClick={()=>setMetroSheetOpen(true)}
               style={{width:'28px',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',borderLeft:`1px solid ${metronome.running?IKB:LINE_MED}`,cursor:'pointer'}}
@@ -320,7 +425,7 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
           <button
             onClick={()=>setDroneExpanded(x=>!x)}
             style={{width:'40px',height:'40px',borderRadius:'999px',flexShrink:0,border:`1px solid ${drone.running?IKB:'transparent'}`,background:drone.running?IKB_SOFT:'transparent',color:drone.running?IKB:MUTED,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
-            aria-label="Tuner"
+            aria-label="Tuning"
           >
             <AudioWaveform size={15} strokeWidth={1.25}/>
           </button>
@@ -330,7 +435,7 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
             onClick={()=>setQuickNoteOpen(true)}
             style={{width:'40px',height:'40px',borderRadius:'999px',flexShrink:0,border:'1px solid transparent',background:'transparent',color:MUTED,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
           >
-            <Plus size={15} strokeWidth={1.25}/>
+            <MessageSquarePlus size={15} strokeWidth={1.25}/>
           </button>
         </div>
 

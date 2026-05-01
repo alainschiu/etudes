@@ -218,7 +218,7 @@ export default function TodayView(p){
                 {expanded&&(<div className="px-6 py-5 space-y-4" style={{background:SURFACE,borderTop:`1px solid ${LINE}`}}>
                   {quickAdd?.itemId===item.id&&(<div className="space-y-3 pb-4" style={{borderBottom:`1px solid ${LINE}`}}><input autoFocus value={item.title==='Untitled'?'':item.title} onChange={e=>updateItem(item.id,{title:e.target.value})} placeholder="Title" onKeyDown={e=>{if(e.key==='Escape')setQuickAdd(null);}} className="w-full focus:outline-none pb-0.5" style={{background:'transparent',color:TEXT,fontFamily:sans,fontWeight:300,fontSize:'15px',borderBottom:`1px solid ${LINE_MED}`}}/><input value={item.composer||''} onChange={e=>updateItem(item.id,{composer:e.target.value})} placeholder="Composer" onKeyDown={e=>{if(e.key==='Enter'||e.key==='Escape')setQuickAdd(null);}} className="w-full focus:outline-none pb-0.5" style={{background:'transparent',color:TEXT,fontFamily:sans,fontWeight:300,fontSize:'13px',borderBottom:`1px solid ${LINE_MED}`}}/><div className="flex justify-end"><button onClick={()=>setQuickAdd(null)} className="uppercase flex items-center gap-1.5 px-3 py-1" style={{color:IKB,border:`1px solid ${IKB}40`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}><Check className="w-3 h-3" strokeWidth={1.25}/> Done</button></div></div>)}
                   {/* Recording — shown first if present */}
-                  {(()=>{const todayEntry=pieceRecordingMeta?.[item.id]?.[todayKey];if(!todayEntry)return null;const bkey=`${item.id}__${todayKey}`;return(<Waveform key={todayEntry.ts} compact blobLoader={()=>idbGet('pieceRecordings',bkey)} meta={todayEntry}/>);})()}
+                  {(()=>{const todayEntry=pieceRecordingMeta?.[item.id]?.[todayKey];if(!todayEntry)return null;const bkey=todayEntry.idbKey??`${item.id}__${todayKey}`;return(<Waveform key={todayEntry.ts} compact blobLoader={()=>idbGet('pieceRecordings',bkey)} meta={todayEntry}/>);})()}
                   <div><div className="uppercase mb-1.5 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><MessageSquarePlus className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Today</div><MarkdownField value={item.todayNote||''} onChange={v=>updateItem(item.id,{todayNote:v})} placeholder="What happened." minHeight={80} style={{background:SURFACE2,border:`1px solid ${IKB}40`}} showDeepLinkHint/></div>
                   {item.type==='piece'&&<SpotsBlock item={item} itemTimes={itemTimes} activeItemId={activeItemId} activeSpotId={activeSpotId} startItem={(id,sid)=>startItem(id,sid,session.id)} stopItem={stopItem} addSpot={addSpot} updateSpot={updateSpot} deleteSpot={deleteSpot} editSpotTime={editSpotTime} dayClosed={dayClosed}/>}
                   {item.referenceUrl&&(()=>{const embed=getEmbedInfo(item.referenceUrl);return(<div><div className="uppercase mb-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}>Reference</div>{embed?.type==='youtube'?(<div style={{position:'relative',paddingBottom:'56.25%',height:0,overflow:'hidden',background:SURFACE2,borderRadius:2}}><iframe src={embed.src} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allowFullScreen loading="lazy" title="Reference"/></div>):embed?.type==='spotify'?(<iframe src={embed.src} width="100%" height={embed.compact?152:352} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Reference"/>):embed?.type==='apple'?(<iframe src={embed.src} width="100%" height={175} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay *; encrypted-media *; fullscreen *" loading="lazy" title="Reference"/>):(<a href={item.referenceUrl} target="_blank" rel="noopener noreferrer" className="uppercase flex items-center gap-1" style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em'}}>Open reference ↗</a>)}</div>);})()}
@@ -259,7 +259,7 @@ export default function TodayView(p){
 }
 
 // ── Mobile item row — extracted so useLongPress is called at component top-level
-function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording}){
+function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording}){
   const isActiveAny = activeItemId === item.id && activeSessionId === session.id;
   const isActiveWhole = isActiveAny && !activeSpotId;
   const time = getItemTime(itemTimes, item.id);
@@ -271,57 +271,99 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
   const longPress = useLongPress(() => onLongPress({...item, sessionId: session.id, it}));
   const isPieceRec = pieceRecordingItemId === item.id;
   const recBlocked = (dayClosed && !isPieceRec) || (pieceRecordingItemId && !isPieceRec) || isRecording;
+  const todayRecEntry = pieceRecordingMeta?.[item.id]?.[todayKey];
+  const hasPdf = (item.pdfs||[]).length > 0;
+  const hasExpand = hasPdf || !!todayRecEntry || !!item.todayNote;
+  const [expanded, setExpanded] = useState(false);
 
   return (
-    <div {...longPress} style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent',padding:'14px 20px',display:'flex',alignItems:'center',gap:'10px',minHeight:'44px',userSelect:'none',touchAction:'none'}}>
-      {/* Play / pulse dot */}
-      <button
-        onClick={e=>{e.stopPropagation();isActiveAny?stopItem():startItem(item.id,null,session.id);}}
-        disabled={dayClosed&&!isActiveAny}
-        style={{flexShrink:0,minWidth:'18px',minHeight:'18px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:dayClosed&&!isActiveAny?'not-allowed':'pointer',padding:0}}
-      >
-        {isActiveWhole
-          ? <div className="animate-pulse" style={{width:'8px',height:'8px',borderRadius:'999px',background:IKB,boxShadow:`0 0 6px ${IKB}`}}/>
-          : <Play size={11} strokeWidth={1.25} style={{color:FAINT,opacity:dayClosed?0.4:0.7}}/>
-        }
-      </button>
-      {/* Per-item record button — always visible */}
-      <button
-        onTouchStart={e=>e.stopPropagation()}
-        onMouseDown={e=>e.stopPropagation()}
-        onClick={e=>{e.stopPropagation();isPieceRec?stopPieceRecording&&stopPieceRecording():startPieceRecording&&startPieceRecording(item.id,null,item.stage);}}
-        disabled={!!recBlocked}
-        aria-label={isPieceRec?'Stop recording':'Record'}
-        style={{flexShrink:0,width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:isPieceRec?REC:'transparent',border:`1px solid ${isPieceRec?REC:LINE_STR}`,borderRadius:'999px',cursor:recBlocked?'not-allowed':'pointer',opacity:recBlocked&&!isPieceRec?0.35:1}}
-      >
-        {isPieceRec
-          ? <Square size={8} strokeWidth={1.25} style={{color:BG}} fill={BG}/>
-          : <Mic size={11} strokeWidth={1.25} style={{color:MUTED}}/>
-        }
-      </button>
-      {/* Title + meta */}
-      <div style={{flex:1,minWidth:0}}>
-        <div style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'17px',color:isActiveAny?TEXT:'rgba(212,206,195,0.9)',lineHeight:1.2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-          {displayTitle(item)}
+    <div style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent'}}>
+      {/* Main row */}
+      <div {...longPress} style={{padding:'14px 20px',display:'flex',alignItems:'center',gap:'10px',minHeight:'44px',userSelect:'none',touchAction:'none'}}>
+        {/* Play / pulse dot */}
+        <button
+          onClick={e=>{e.stopPropagation();isActiveAny?stopItem():startItem(item.id,null,session.id);}}
+          disabled={dayClosed&&!isActiveAny}
+          style={{flexShrink:0,minWidth:'18px',minHeight:'18px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:dayClosed&&!isActiveAny?'not-allowed':'pointer',padding:0}}
+        >
+          {isActiveWhole
+            ? <div className="animate-pulse" style={{width:'8px',height:'8px',borderRadius:'999px',background:IKB,boxShadow:`0 0 6px ${IKB}`}}/>
+            : <Play size={11} strokeWidth={1.25} style={{color:FAINT,opacity:dayClosed?0.4:0.7}}/>
+          }
+        </button>
+        {/* Per-item record button — always visible */}
+        <button
+          onTouchStart={e=>e.stopPropagation()}
+          onMouseDown={e=>e.stopPropagation()}
+          onClick={e=>{e.stopPropagation();if(handleStartRecording){handleStartRecording('piece',item.id);}else if(isPieceRec){stopPieceRecording&&stopPieceRecording();}else{startPieceRecording&&startPieceRecording(item.id,null,item.stage);}}}
+          disabled={!!recBlocked&&!handleStartRecording}
+          aria-label={isPieceRec?'Stop recording':'Record'}
+          style={{flexShrink:0,width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:isPieceRec?REC:'transparent',border:`1px solid ${isPieceRec?REC:LINE_STR}`,borderRadius:'999px',cursor:recBlocked&&!handleStartRecording?'not-allowed':'pointer',opacity:recBlocked&&!isPieceRec&&!handleStartRecording?0.35:1}}
+        >
+          {isPieceRec
+            ? <Square size={8} strokeWidth={1.25} style={{color:BG}} fill={BG}/>
+            : <Mic size={11} strokeWidth={1.25} style={{color:MUTED}}/>
+          }
+        </button>
+        {/* Title + meta */}
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'17px',color:isActiveAny?TEXT:'rgba(212,206,195,0.9)',lineHeight:1.2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+            {displayTitle(item)}
+          </div>
+          {formatByline(item) && (
+            <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'12px',color:FAINT,marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+              {formatByline(item)}
+            </div>
+          )}
+          {(hasSpots || perf || asl) && (
+            <div style={{marginTop:'6px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+              {asl && <span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:IKB}}>{asl}</span>}
+              {hasSpots && !asl && <span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:FAINT}}>{item.spots.length} spot{item.spots.length===1?'':'s'}</span>}
+              {perf && <span style={{marginLeft:'auto'}}><PerformanceChip perf={perf} compact/></span>}
+            </div>
+          )}
         </div>
-        {formatByline(item) && (
-          <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'12px',color:FAINT,marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-            {formatByline(item)}
+        {/* Time + target + expand chevron */}
+        <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:'6px'}}>
+          <div style={{textAlign:'right'}}>
+            <div style={{fontFamily:mono,fontSize:'12px',color:timeColor}}>{time>0?fmt(time):'—'}</div>
+            {it && <div style={{fontFamily:mono,fontSize:'9px',color:FAINT,marginTop:'2px'}}>/ {it}′</div>}
           </div>
-        )}
-        {(hasSpots || perf || asl) && (
-          <div style={{marginTop:'6px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
-            {asl && <span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:IKB}}>{asl}</span>}
-            {hasSpots && !asl && <span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:FAINT}}>{item.spots.length} spot{item.spots.length===1?'':'s'}</span>}
-            {perf && <span style={{marginLeft:'auto'}}><PerformanceChip perf={perf} compact/></span>}
-          </div>
-        )}
+          {hasExpand&&(
+            <button
+              onTouchStart={e=>e.stopPropagation()}
+              onMouseDown={e=>e.stopPropagation()}
+              onClick={e=>{e.stopPropagation();setExpanded(v=>!v);}}
+              style={{flexShrink:0,width:'24px',height:'24px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',padding:0}}
+            >
+              <ChevronDown size={12} strokeWidth={1.5} style={{color:FAINT,transform:expanded?'rotate(180deg)':'rotate(0deg)',transition:'transform 150ms ease'}}/>
+            </button>
+          )}
+        </div>
       </div>
-      {/* Time + target */}
-      <div style={{flexShrink:0,textAlign:'right'}}>
-        <div style={{fontFamily:mono,fontSize:'12px',color:timeColor}}>{time>0?fmt(time):'—'}</div>
-        {it && <div style={{fontFamily:mono,fontSize:'9px',color:FAINT,marginTop:'2px'}}>/ {it}′</div>}
-      </div>
+      {/* Expand panel */}
+      {expanded&&hasExpand&&(
+        <div style={{padding:'12px 20px 16px',background:isActiveAny?IKB_SOFT:SURFACE,borderTop:`1px solid ${LINE}`,display:'flex',flexDirection:'column',gap:'12px'}}>
+          {hasPdf&&setPdfDrawerItemId&&(
+            <button
+              onClick={()=>setPdfDrawerItemId(item.id)}
+              style={{display:'flex',alignItems:'center',gap:'8px',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'8px 14px',cursor:'pointer',alignSelf:'flex-start'}}
+            >
+              <FileText size={13} strokeWidth={1.25} style={{color:MUTED,flexShrink:0}}/>
+              <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:MUTED}}>Score{item.pdfs.length>1?` · ${item.pdfs.length}`:''}</span>
+            </button>
+          )}
+          {todayRecEntry&&(()=>{
+            const bkey=todayRecEntry.idbKey??`${item.id}__${todayKey}`;
+            return <Waveform key={todayRecEntry.ts} compact blobLoader={()=>idbGet('pieceRecordings',bkey)} meta={todayRecEntry}/>;
+          })()}
+          {item.todayNote&&(
+            <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'13px',color:MUTED,lineHeight:1.6}}>
+              {item.todayNote.split('\n')[0].slice(0,120)}{item.todayNote.length>120?'…':''}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -340,6 +382,7 @@ function TodayMobile(p){
     effectiveDailyTarget,hiddenTypes,collapsedSessions,setCollapsedSessions,
     toggleCollapsed,handleFilePlus,addSpot,updateSpot,deleteSpot,editSpotTime,
     routines,loadedRoutine,loadRoutine,resetToFree,setPromptModal,saveRoutine,setItemTarget,
+    handleStartRecording,
   } = p;
   const [actionSheetItem, setActionSheetItem] = useState(null);
   const [routineMenuOpen, setRoutineMenuOpen] = useState(false);
@@ -532,6 +575,10 @@ function TodayMobile(p){
                     stopPieceRecording={stopPieceRecording}
                     pieceRecordingItemId={pieceRecordingItemId}
                     isRecording={isRecording}
+                    pieceRecordingMeta={pieceRecordingMeta}
+                    todayKey={todayKey}
+                    setPdfDrawerItemId={p.setPdfDrawerItemId}
+                    handleStartRecording={handleStartRecording}
                   />
                 ))}
 
