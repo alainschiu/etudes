@@ -1,8 +1,8 @@
 # Études — UI text audit (search bars, placeholders, prepopulated content)
 
-This document extends the full app copy audit with **search inputs**, **placeholders**, and **prepopulated or seeded default text** (including dev-only and debug seed flows).
+This document extends the full app copy audit with **search inputs**, **placeholders**, **Settings (Réglages) modal copy**, and **prepopulated or seeded default text** (including dev-only and debug seed flows).
 
-User-generated titles, reflections, and dates are omitted except where the app supplies a **fixed default** (e.g. `Untitled`).
+User-generated titles, reflections, and dates are omitted except where the app supplies a **fixed default** (e.g. `Untitled`). **Dynamic** strings (e.g. Supabase `authError`, `exportProgress` from import/export) are noted where the surrounding label is fixed.
 
 ---
 
@@ -21,7 +21,132 @@ User-generated titles, reflections, and dates are omitted except where the app s
 
 ---
 
-## 2. Prompt modals (title + input placeholder)
+## 2. Settings modal — Réglages (`src/components/modals.jsx` → `SettingsModal`)
+
+Chrome: **Configuration** (eyebrow) · **Réglages** (title) · close control (icon only).
+
+### Tab strip
+
+| Tab label |
+|-----------|
+| Settings |
+| Shortcuts |
+| Sync |
+| Export |
+| About |
+
+### Settings tab (`tab === 'settings'`)
+
+| Kind | Text |
+|------|------|
+| Section | Targets |
+| Row labels | Daily · Weekly · Monthly |
+| Hint (under each target) | minutes · warm-up excluded |
+| Section | Daily reminder |
+| Row label | Reminder |
+| Hint | no streaks · no consequences · opt-in |
+| Toggle | On / Off |
+| Row label (if reminder on) | Time |
+| Footnote | Appears once if you haven't opened Études that day. Requires browser notification permission. Resets each day regardless of whether you practiced. |
+
+### Sync tab (`tab === 'sync'`)
+
+| Kind | Text |
+|------|------|
+| Section | Storage |
+| Status line | saved locally on this device · *or* · storage unavailable |
+| Badge | ● local · *or* · ○ memory |
+
+**When signed in (`user` present):**
+
+| Kind | Text |
+|------|------|
+| Section | Account |
+| Dynamic | user email (not fixed copy) |
+| Status line (if `lastSyncedAt > 0`) | **Last cloud sync** + locale time (e.g. `Last cloud sync 03:45 PM`) — prefix is fixed; time is formatted by the browser |
+| Primary button (by `syncStatus`) | **Syncing…** · **Sync error** · **Sync now** |
+| Button | Sign out |
+| Warning (if `syncPayloadWarning`) | Your journal is growing large. Export a backup regularly to protect your data. |
+| Explainer | **What syncs:** repertoire, practice history, notes, settings, and recording metadata. |
+| Explainer | **Local only:** audio recordings and PDF scores — these stay on this device. Use Export → Backup to transfer them manually. |
+
+**After email sign-up (`signupSent`):**
+
+| Kind | Text |
+|------|------|
+| Section | Check your inbox |
+| Body | A confirmation link has been sent to **{email}**. Follow the link to activate your account, then return here to sign in. |
+| Link-style button | Back to sign in |
+
+**Sign-in / sign-up form (not signed in, not `signupSent`):**
+
+| Kind | Text |
+|------|------|
+| Section | Continue with |
+| Button | Google |
+| Divider | or |
+| Section | Sign in with email |
+| Placeholders | Email · Password |
+| Dynamic | Supabase / auth error message (italic, when present) |
+| Submit (by mode) | Sign in · Create account |
+| Toggle link | No account — create one · Already have an account — sign in |
+| Footnote | Sync covers repertoire, history, notes, and settings. Audio recordings and PDFs are local only — use Export → Backup to transfer them between devices. |
+
+### Export tab (`tab === 'export'`)
+
+| Kind | Text |
+|------|------|
+| Section | Journal export |
+| Button | Export journal |
+| Helper (idle) | Includes notes, logs, recordings, and scores. Audio files may be large. |
+| Dynamic | `exportProgress` string while export runs (from `useImportExport.js`; not a single fixed sentence) |
+| Section | Backup & restore |
+| Paragraph | Full backup includes all data, PDFs, and recordings in a single .json file. |
+| Buttons | Backup · Restore |
+
+### Shortcuts tab (`tab === 'shortcuts'`)
+
+Rows from `SHORTCUTS` (key → description):
+
+| Key | Description |
+|-----|-------------|
+| Space | Start / pause last practiced item |
+| R | Toggle rest timer |
+| M | Toggle metronome |
+| D | Toggle tuning drone |
+| T | Tap tempo |
+| L | Log BPM to active item or spot |
+| N | Quick note for active item |
+| 1 – 4 | Jump to session on Today |
+| ? | Open Réglages |
+| Esc | Close drawers and modals |
+
+Footer note: **Shortcuts are disabled while typing in a field.**
+
+### About tab (`tab === 'about'`)
+
+| Kind | Text |
+|------|------|
+| Row | Version *current build* (uppercase “Version” + italic “current build”) |
+| Value | `v` + app version from `package.json` (e.g. `v0.97`) |
+| Row | User Guide |
+| Link label | etudes.me/guide → |
+
+### Modal footer (all tabs)
+
+| Button |
+|--------|
+| Done |
+
+### Related modals in the same file
+
+- **`HelpModal`:** eyebrow **Reference** · title **Shortcuts** · same shortcut rows with slightly different wording for Space, L, ?, Esc · same footnote about shortcuts disabled while typing.
+- **`SyncConflictModal`:** heading **Sync — both devices have data** · body with piece counts · overlap note (two variants) · footer about audio/PDFs · buttons **Merge — keep everything**, **Use this device — overwrite cloud**, **Use cloud — discard local changes**.
+- **`ConfirmModal` / `PromptModal`:** generic **Cancel**, **Confirm**, **Save**; body/title from callers (see other sections).
+
+---
+
+## 3. Prompt modals (title + input placeholder)
 
 | Title | Placeholder | File |
 |-------|-------------|------|
@@ -32,9 +157,9 @@ User-generated titles, reflections, and dates are omitted except where the app s
 
 ---
 
-## 3. Placeholders by screen (non-search fields)
+## 4. Placeholders by screen (non-search fields)
 
-### Auth (`src/components/modals.jsx`)
+### Auth — Settings Sync tab (`src/components/modals.jsx`)
 
 - `Email`, `Password`
 
@@ -104,7 +229,7 @@ User-generated titles, reflections, and dates are omitted except where the app s
 
 ---
 
-## 4. Prepopulated defaults (runtime / persisted shape)
+## 5. Prepopulated defaults (runtime / persisted shape)
 
 ### New items (`src/lib/items.js`)
 
@@ -122,7 +247,7 @@ User-generated titles, reflections, and dates are omitted except where the app s
 
 ---
 
-## 5. Debug: “+ Seed test notes” (`src/state/useEtudesState.js`)
+## 6. Debug: “+ Seed test notes” (`src/state/useEtudesState.js`)
 
 Shown only when `seedTestNotes` is passed (dev wiring). Inserts **sample free notes**, **history** (daily / weekly / monthly markdown), and **per-item `detail` + `noteLog`** entries.
 
@@ -138,7 +263,7 @@ On Intonation — Chromatic Scale Work; Pedaling Philosophy Notes; Memory Strate
 
 ---
 
-## 6. Dev-only: Seed All (`src/dev/DevToolsBar.jsx`, `import.meta.env.DEV`)
+## 7. Dev-only: Seed All (`src/dev/DevToolsBar.jsx`, `import.meta.env.DEV`)
 
 **Button / status strings:** `dev`, `Seed All`, `Clear All` / `Sure?`, `starting…`, `seeding repertoire…`, `seeding history…`, `seeding notes, routines, programs…`, `seeding recordings & ref tracks…`, success/error status lines.
 
@@ -156,14 +281,14 @@ On Intonation — Chromatic Scale Work; Pedaling Philosophy Notes; Memory Strate
 
 ---
 
-## 7. Notifications (`src/lib/notifications.js`)
+## 8. Notifications (`src/lib/notifications.js`)
 
 - Notification **title:** `Études`  
 - **Body:** `You haven't practiced today yet.`
 
 ---
 
-## 8. Related: empty / helper copy tied to inputs
+## 9. Related: empty / helper copy tied to inputs
 
 | Text | Role |
 |------|------|
