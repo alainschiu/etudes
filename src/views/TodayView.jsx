@@ -259,7 +259,7 @@ export default function TodayView(p){
 }
 
 // ── Mobile item row — extracted so useLongPress is called at component top-level
-function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta,setRefBarItemId}){
+function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta}){
   const isActiveAny = activeItemId === item.id && activeSessionId === session.id;
   const isActiveWhole = isActiveAny && !activeSpotId;
   const time = getItemTime(itemTimes, item.id);
@@ -357,17 +357,17 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
       {/* Expand panel */}
       {expanded&&(
         <div style={{padding:'12px 16px 16px',background:SURFACE,borderTop:`1px solid ${LINE}`,display:'flex',flexDirection:'column',gap:'14px'}}>
-          {/* Reference track */}
-          {hasRefTrack&&setRefBarItemId&&(
+          {/* Reference track — inline waveform */}
+          {hasRefTrack&&(
             <div>
               <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,marginBottom:'6px'}}>Reference</div>
-              <button
-                onClick={()=>setRefBarItemId(id=>id===item.id?null:item.id)}
-                style={{display:'flex',alignItems:'center',gap:'6px',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'6px 12px',cursor:'pointer'}}
-              >
-                <Music size={12} strokeWidth={1.25} style={{color:MUTED}}/>
-                <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:MUTED}}>Play reference</span>
-              </button>
+              <Waveform
+                blobLoader={()=>idbGet('refTracks',item.id)}
+                meta={refTrackMeta[item.id]}
+                compact
+                accentColor={MUTED}
+                accentSoft="rgba(200,193,179,0.12)"
+              />
             </div>
           )}
           {/* Today's recording waveform */}
@@ -625,7 +625,6 @@ function TodayMobile(p){
                     handleStartRecording={handleStartRecording}
                     updateItem={p.updateItem}
                     refTrackMeta={p.refTrackMeta}
-                    setRefBarItemId={p.setRefBarItemId}
                   />
                 ))}
 
