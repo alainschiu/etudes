@@ -1,9 +1,10 @@
-import React, {useState, useMemo} from 'react';
+import React, {useState, useMemo, useCallback} from 'react';
 import useViewport from '../hooks/useViewport.js';
 import SlidersHorizontal from 'lucide-react/dist/esm/icons/sliders-horizontal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import X from 'lucide-react/dist/esm/icons/x';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import Search from 'lucide-react/dist/esm/icons/search';
 import Music from 'lucide-react/dist/esm/icons/music';
 import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
@@ -51,12 +52,39 @@ const logMd=(extraLink)=>({
   },
 });
 
+function NearbyNotes({notes}){
+  const [open,setOpen]=useState(false);
+  return(
+    <div className="px-8 py-5 shrink-0" style={{borderTop:`1px solid ${LINE}`,background:SURFACE,marginTop:'36px'}}>
+      <button onClick={()=>setOpen(v=>!v)} className="flex items-center gap-1.5 w-full" style={{background:'none',border:'none',cursor:'pointer',padding:0,textAlign:'left'}}>
+        <StickyNote className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
+        <span className="uppercase flex-1" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Notes from around this time</span>
+        <span className="tabular-nums shrink-0" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.12em'}}>{notes.length}</span>
+        <ChevronDown className="w-3 h-3 shrink-0 ml-1" strokeWidth={1.25} style={{color:FAINT,transform:open?'rotate(180deg)':'rotate(0deg)',transition:'transform 180ms ease'}}/>
+      </button>
+      {open&&(
+        <div className="space-y-2 mt-3">
+          {notes.map(n=>(
+            <div key={n.id} className="py-2" style={{borderBottom:`1px solid ${LINE}`}}>
+              <div className="flex items-baseline justify-between gap-2">
+                <div style={{fontSize:'13px',fontWeight:300}}>{n.title}</div>
+                <div className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>{n.date}</div>
+              </div>
+              {n.body&&<div className="italic mt-1" style={{color:MUTED,fontFamily:serif,fontSize:'12px',lineHeight:1.5}}>{n.body.slice(0,100)+(n.body.length>100?'…':'')}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function LogDrawer({entry,dayData,items,recordingMeta,freeNotes,onClose,deleteRecording}){
   const kind=entry?.kind||(dayData?'day':null);
   const ad=kind==='day'?(dayData?.date||entry?.date||null):kind==='week'?(entry?.weekStart||null):kind==='month'?(entry?.month?entry.month+'-15':null):null;
   const rn=useMemo(()=>{if(!freeNotes||!ad||!kind)return [];try{const a=new Date(ad.length===7?ad+'-15':ad);const ms=3*86400000;const w=kind==='month'?20*86400000:(kind==='week'?10*86400000:ms);return freeNotes.filter(n=>{try{const d=new Date(n.date);return Math.abs(d-a)<=w;}catch{return false;}}).slice(0,5);}catch{return [];}},[freeNotes,ad,kind]);
   if(!kind||(kind==='day'&&!dayData)){return (<div className="fixed inset-0 z-50 flex"><div className="flex-1" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(4px)'}} onClick={onClose}/><div className="w-full max-w-2xl flex flex-col" style={{background:BG,borderLeft:`1px solid ${LINE_STR}`}}><div className="px-8 py-6 flex items-center justify-between" style={{borderBottom:`1px solid ${LINE_MED}`}}><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>No data</div><button onClick={onClose} style={{color:MUTED}}><X className="w-4 h-4" strokeWidth={1.25}/></button></div><div className="flex-1 flex items-center justify-center px-8"><p className="italic text-center" style={{color:FAINT,fontFamily:serif,fontSize:'17px',lineHeight:1.7}}>No data for this entry.</p></div></div></div>);}
-  return (<div className="fixed inset-0 z-50 flex"><div className="flex-1" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(4px)'}} onClick={onClose}/><div className="w-full max-w-2xl flex flex-col overflow-hidden" style={{background:BG,borderLeft:`1px solid ${LINE_STR}`}}>{kind==='day'&&<DayLogContent dayData={dayData} items={items} recordingMeta={recordingMeta} deleteRecording={deleteRecording} onClose={onClose}/>}{kind==='week'&&<WeekLogContent entry={entry} onClose={onClose}/>}{kind==='month'&&<MonthLogContent entry={entry} onClose={onClose}/>}{rn.length>0&&(<div className="px-8 py-5 shrink-0" style={{borderTop:`1px solid ${LINE}`,background:SURFACE,marginTop:'36px'}}><div className="uppercase mb-3 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}><StickyNote className="w-3 h-3" strokeWidth={1.25}/> Notes from around this time</div><div className="space-y-2">{rn.map(n=>(<div key={n.id} className="py-2" style={{borderBottom:`1px solid ${LINE}`}}><div className="flex items-baseline justify-between gap-2"><div style={{fontSize:'13px',fontWeight:300}}>{n.title}</div><div className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>{n.date}</div></div>{n.body&&<div className="italic mt-1" style={{color:MUTED,fontFamily:serif,fontSize:'12px',lineHeight:1.5}}>{n.body.slice(0,100)+(n.body.length>100?'…':'')}</div>}</div>))}</div></div>)}</div></div>);
+  return (<div className="fixed inset-0 z-50 flex"><div className="flex-1" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(4px)'}} onClick={onClose}/><div className="w-full max-w-2xl flex flex-col overflow-hidden" style={{background:BG,borderLeft:`1px solid ${LINE_STR}`}}>{kind==='day'&&<DayLogContent dayData={dayData} items={items} recordingMeta={recordingMeta} deleteRecording={deleteRecording} onClose={onClose}/>}{kind==='week'&&<WeekLogContent entry={entry} onClose={onClose}/>}{kind==='month'&&<MonthLogContent entry={entry} onClose={onClose}/>}{rn.length>0&&<NearbyNotes notes={rn}/>}</div></div>);
 }
 
 function DayLogContent({dayData,items,recordingMeta,deleteRecording,onClose}){
