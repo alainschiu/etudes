@@ -1,6 +1,9 @@
 import React,{useState,useEffect,Suspense,lazy} from 'react';
 import useViewport from './hooks/useViewport.js';
-import MobileBottomNav from './components/MobileBottomNav.jsx';
+// MobileBottomNav kept but no longer rendered — replaced by TopBar + Drawer
+// import MobileBottomNav from './components/MobileBottomNav.jsx';
+import TopBar from './components/TopBar.jsx';
+import Drawer from './components/Drawer.jsx';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
 import Plus from 'lucide-react/dist/esm/icons/plus';
@@ -40,6 +43,7 @@ const tabs=[{id:'today',label:'Today'},{id:'review',label:'Review'},{id:'reperto
 export default function Etudes(){
   const {isMobile}=useViewport();
   const s=useEtudesState();
+  const [drawerOpen,setDrawerOpen]=useState(false);
   const [selectedProgramId,setSelectedProgramId]=useState(null);
   const [requestedNoteId,setRequestedNoteId]=useState(null);
   const [clockTime,setClockTime]=useState(()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;});
@@ -58,13 +62,14 @@ export default function Etudes(){
       {storageQuotaHit&&(<div className="shrink-0 px-10 py-2 flex items-center gap-3" style={{background:'#3D1A00',borderBottom:`1px solid rgba(201,126,74,0.4)`}}><span style={{color:WARM,fontSize:'11px',letterSpacing:'0.12em'}}>⚠ Storage full — new data is kept in memory only and will be lost when the tab closes. Export a backup to preserve your session.</span><button onClick={()=>setStorageQuotaHit(false)} style={{color:WARM,marginLeft:'auto',opacity:0.7,fontSize:'11px'}}>✕</button></div>)}
       <header className="shrink-0" style={{borderBottom:`1px solid ${LINE_MED}`}}>
         {isMobile?(
-          <div className="flex items-center px-4 h-11">
-            <div className="flex items-baseline gap-2"><div className="w-1.5 h-1.5 rounded-full" style={{background:IKB}}/><span style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'20px',letterSpacing:'-0.01em'}}>Études</span></div>
-            <div className="ml-auto flex items-center gap-3">
-              <Tooltip shortcut="?" label="Réglages"><button onClick={()=>setShowSettings(true)} style={{color:MUTED,display:'flex',alignItems:'center',padding:'6px'}}><Settings className="w-5 h-5" strokeWidth={1.25}/></button></Tooltip>
-              <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)importJsonFile(f);e.target.value='';}}/>
-            </div>
-          </div>
+          <>
+            <TopBar
+              onMenu={()=>setDrawerOpen(true)}
+              activeItemId={activeItemId}
+              onSettings={()=>setShowSettings(true)}
+            />
+            <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)importJsonFile(f);e.target.value='';}}/>
+          </>
         ):(
           <>
           <div className="flex items-center px-10 h-16">
@@ -87,7 +92,7 @@ export default function Etudes(){
         <main className="flex-1 overflow-auto etudes-scroll">
           {view==='today'&&<TodayView {...{...commonProps,view,setView,todaySessions,setTodaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,totalToday,effectiveTotalToday,warmupTimeToday,restToday,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,deleteRecording,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,isRecording,currentBpm:metronome.bpm,refTrackMeta:s.refTrackMeta,refBarItemId:s.refBarItemId,setRefBarItemId:s.setRefBarItemId}}/>}
           {view==='review'&&<ReviewView {...{...commonProps,weekActualSeconds,weekReflection,setWeekReflection,monthActualSeconds,monthReflection,setMonthReflection,effectiveTotalToday,warmupTimeToday,openLogEntry}}/>}
-          {view==='repertoire'&&<RepertoireView {...{...commonProps,setItems:s.setItems,updateItem,deleteItem,setPdfDrawerItemId,activeItemId,activeSpotId,startItem,stopItem,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta:s.pieceRecordingMeta,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,deletePieceRecording:s.deletePieceRecording,lockPieceRecording:s.lockPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,isRecording,currentBpm:metronome.bpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta:s.refTrackMeta,uploadRefTrack:s.uploadRefTrack,deleteRefTrack:s.deleteRefTrack,pdfUrlMap:s.pdfUrlMap,localPieceRecordingIds:s.localPieceRecordingIds,localRefTrackIds:s.localRefTrackIds}}/>}
+          {view==='repertoire'&&<RepertoireView {...{...commonProps,view,setItems:s.setItems,updateItem,deleteItem,setPdfDrawerItemId,activeItemId,activeSpotId,startItem,stopItem,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta:s.pieceRecordingMeta,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,deletePieceRecording:s.deletePieceRecording,lockPieceRecording:s.lockPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,isRecording,currentBpm:metronome.bpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta:s.refTrackMeta,uploadRefTrack:s.uploadRefTrack,deleteRefTrack:s.deleteRefTrack,pdfUrlMap:s.pdfUrlMap,localPieceRecordingIds:s.localPieceRecordingIds,localRefTrackIds:s.localRefTrackIds}}/>}
           {view==='programs'&&<ProgramsView items={items} programs={programs} setPrograms={setPrograms} selectedProgramId={selectedProgramId} setSelectedProgramId={setSelectedProgramId} setView={setView} freeNotes={freeNotes} setActiveNoteId={(id)=>{setRequestedNoteId(id);}}/>}
           {view==='routines'&&<RoutinesView {...{routines,setRoutines,loadRoutine,setPromptModal,todaySessions,setView,items,loadedRoutineId}}/>}
           {view==='logs'&&<LogsView {...{...commonProps,openLogEntry,freeNotes}}/>}
@@ -145,7 +150,19 @@ export default function Etudes(){
           </div>
         );
       })()}
-      {isMobile&&<MobileBottomNav tabs={tabs} view={view} setView={setView}/>}
+      {/* TODO: mobile-etudes/ reference files are now obsolete — archive or delete in a subsequent cleanup commit */}
+      {isMobile&&(
+        <Drawer
+          open={drawerOpen}
+          onClose={()=>setDrawerOpen(false)}
+          view={view}
+          setView={(v)=>{setView(v);setDrawerOpen(false);}}
+          buildZip={buildZip}
+          setShowSettings={setShowSettings}
+          totalToday={totalToday}
+          settings={settings}
+        />
+      )}
       <Footer {...{isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,attachDailyToPiece:s.attachDailyToPiece,todaySessions,items}}/>
       {trash&&<UndoToast item={trash.item} onUndo={undoDelete} onDismiss={dismissTrash}/>}
       {showSettings&&<SettingsModal settings={settings} setSettings={setSettings} storageMode={storageMode} onExportZip={buildZip} exportProgress={exportProgress} onExportJson={exportJson} onImportClick={()=>importInputRef.current?.click()} onClose={()=>setShowSettings(false)} user={s.user} signIn={s.signIn} signUp={s.signUp} signOut={s.signOut} signInWithGoogle={s.signInWithGoogle} syncStatus={s.syncStatus} lastSyncedAt={s.lastSyncedAt} syncNow={s.syncNow} syncPayloadWarning={s.syncPayloadWarning}/>}

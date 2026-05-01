@@ -13,6 +13,20 @@ export const LINK='#6BA3FF';
 // A/B comparison B-track waveform.
 // Not a general accent. Do not use outside these four surfaces.
 export const WARM='#B89668',WARM_SOFT='rgba(184,150,104,0.12)';
+// ── Z-index stack ─────────────────────────────────────────────────────────
+// z-50: Drawer panel
+// z-49: Drawer scrim
+// z-40: Metronome sheet (and future bottom sheets)
+// z-30: (reserved for future sheet layer)
+// z-20: Footer (fixed)
+// z-10: TopBar (fixed)
+// All other content: z-auto
+export const Z_DRAWER       = 50;
+export const Z_DRAWER_SCRIM = 49;
+export const Z_SHEET        = 40;
+export const Z_FOOTER       = 20;
+export const Z_TOPBAR       = 10;
+
 export const serif="'Cormorant Garamond', 'GT Sectra', 'Tiempos Headline', 'EB Garamond', Georgia, serif";
 export const serifText="'EB Garamond', 'Tiempos Text', 'Source Serif Pro', Georgia, serif";
 export const sans="'Inter', 'Söhne', 'Graphik', -apple-system, BlinkMacSystemFont, sans-serif";
