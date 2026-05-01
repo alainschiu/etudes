@@ -259,7 +259,7 @@ export default function TodayView(p){
 }
 
 // ── Mobile item row — extracted so useLongPress is called at component top-level
-function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording}){
+function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta,setRefBarItemId}){
   const isActiveAny = activeItemId === item.id && activeSessionId === session.id;
   const isActiveWhole = isActiveAny && !activeSpotId;
   const time = getItemTime(itemTimes, item.id);
@@ -273,93 +273,137 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
   const recBlocked = (dayClosed && !isPieceRec) || (pieceRecordingItemId && !isPieceRec) || isRecording;
   const todayRecEntry = pieceRecordingMeta?.[item.id]?.[todayKey];
   const hasPdf = (item.pdfs||[]).length > 0;
-  const hasExpand = hasPdf || !!todayRecEntry || !!item.todayNote;
+  const hasRefTrack = !!(refTrackMeta?.[item.id]);
   const [expanded, setExpanded] = useState(false);
 
   return (
     <div style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent'}}>
-      {/* Main row */}
-      <div {...longPress} style={{padding:'14px 20px',display:'flex',alignItems:'center',gap:'10px',minHeight:'44px',userSelect:'none',touchAction:'none'}}>
+      {/* Main row — tapping the title area toggles expand */}
+      <div {...longPress} style={{padding:'12px 16px',display:'flex',alignItems:'center',gap:'8px',minHeight:'44px',userSelect:'none',touchAction:'none'}}>
         {/* Play / pulse dot */}
         <button
           onClick={e=>{e.stopPropagation();isActiveAny?stopItem():startItem(item.id,null,session.id);}}
           disabled={dayClosed&&!isActiveAny}
-          style={{flexShrink:0,minWidth:'18px',minHeight:'18px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:dayClosed&&!isActiveAny?'not-allowed':'pointer',padding:0}}
+          style={{flexShrink:0,minWidth:'20px',minHeight:'20px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:dayClosed&&!isActiveAny?'not-allowed':'pointer',padding:0}}
         >
           {isActiveWhole
             ? <div className="animate-pulse" style={{width:'8px',height:'8px',borderRadius:'999px',background:IKB,boxShadow:`0 0 6px ${IKB}`}}/>
             : <Play size={11} strokeWidth={1.25} style={{color:FAINT,opacity:dayClosed?0.4:0.7}}/>
           }
         </button>
-        {/* Per-item record button — always visible */}
+        {/* Per-item record button */}
         <button
           onTouchStart={e=>e.stopPropagation()}
           onMouseDown={e=>e.stopPropagation()}
           onClick={e=>{e.stopPropagation();if(handleStartRecording){handleStartRecording('piece',item.id);}else if(isPieceRec){stopPieceRecording&&stopPieceRecording();}else{startPieceRecording&&startPieceRecording(item.id,null,item.stage);}}}
           disabled={!!recBlocked&&!handleStartRecording}
           aria-label={isPieceRec?'Stop recording':'Record'}
-          style={{flexShrink:0,width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:isPieceRec?REC:'transparent',border:`1px solid ${isPieceRec?REC:LINE_STR}`,borderRadius:'999px',cursor:recBlocked&&!handleStartRecording?'not-allowed':'pointer',opacity:recBlocked&&!isPieceRec&&!handleStartRecording?0.35:1}}
+          style={{flexShrink:0,width:'26px',height:'26px',display:'flex',alignItems:'center',justifyContent:'center',background:isPieceRec?REC:'transparent',border:`1px solid ${isPieceRec?REC:LINE_STR}`,borderRadius:'999px',cursor:recBlocked&&!handleStartRecording?'not-allowed':'pointer',opacity:recBlocked&&!isPieceRec&&!handleStartRecording?0.35:1}}
         >
           {isPieceRec
             ? <Square size={8} strokeWidth={1.25} style={{color:BG}} fill={BG}/>
             : <Mic size={11} strokeWidth={1.25} style={{color:MUTED}}/>
           }
         </button>
-        {/* Title + meta */}
-        <div style={{flex:1,minWidth:0}}>
-          <div style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'17px',color:isActiveAny?TEXT:'rgba(212,206,195,0.9)',lineHeight:1.2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-            {displayTitle(item)}
+        {/* Title + meta — tapping this area opens/closes expand */}
+        <div
+          style={{flex:1,minWidth:0,cursor:'pointer'}}
+          onClick={e=>{e.stopPropagation();setExpanded(v=>!v);}}
+        >
+          <div style={{display:'flex',alignItems:'center',gap:'5px',minWidth:0}}>
+            <span style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'17px',color:isActiveAny?TEXT:'rgba(212,206,195,0.9)',lineHeight:1.2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',flex:1,minWidth:0}}>
+              {displayTitle(item)}
+            </span>
+            {hasPdf&&setPdfDrawerItemId&&(
+              <button
+                onTouchStart={e=>e.stopPropagation()}
+                onMouseDown={e=>e.stopPropagation()}
+                onClick={e=>{e.stopPropagation();setPdfDrawerItemId(item.id);}}
+                style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',padding:'2px',cursor:'pointer'}}
+              >
+                <FileText size={12} strokeWidth={1.25} style={{color:FAINT}}/>
+              </button>
+            )}
           </div>
           {formatByline(item) && (
-            <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'12px',color:FAINT,marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+            <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'12px',color:FAINT,marginTop:'1px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
               {formatByline(item)}
             </div>
           )}
           {(hasSpots || perf || asl) && (
-            <div style={{marginTop:'6px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+            <div style={{marginTop:'4px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
               {asl && <span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:IKB}}>{asl}</span>}
               {hasSpots && !asl && <span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:FAINT}}>{item.spots.length} spot{item.spots.length===1?'':'s'}</span>}
               {perf && <span style={{marginLeft:'auto'}}><PerformanceChip perf={perf} compact/></span>}
             </div>
           )}
         </div>
-        {/* Time + target + expand chevron */}
-        <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:'6px'}}>
+        {/* Time + target + chevron */}
+        <div style={{flexShrink:0,display:'flex',alignItems:'center',gap:'4px'}}>
           <div style={{textAlign:'right'}}>
             <div style={{fontFamily:mono,fontSize:'12px',color:timeColor}}>{time>0?fmt(time):'—'}</div>
             {it && <div style={{fontFamily:mono,fontSize:'9px',color:FAINT,marginTop:'2px'}}>/ {it}′</div>}
           </div>
-          {hasExpand&&(
-            <button
-              onTouchStart={e=>e.stopPropagation()}
-              onMouseDown={e=>e.stopPropagation()}
-              onClick={e=>{e.stopPropagation();setExpanded(v=>!v);}}
-              style={{flexShrink:0,width:'24px',height:'24px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',padding:0}}
-            >
-              <ChevronDown size={12} strokeWidth={1.5} style={{color:FAINT,transform:expanded?'rotate(180deg)':'rotate(0deg)',transition:'transform 150ms ease'}}/>
-            </button>
-          )}
+          <button
+            onTouchStart={e=>e.stopPropagation()}
+            onMouseDown={e=>e.stopPropagation()}
+            onClick={e=>{e.stopPropagation();setExpanded(v=>!v);}}
+            style={{flexShrink:0,width:'22px',height:'22px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',padding:0}}
+          >
+            <ChevronDown size={12} strokeWidth={1.5} style={{color:FAINT,transform:expanded?'rotate(180deg)':'rotate(0deg)',transition:'transform 150ms ease'}}/>
+          </button>
         </div>
       </div>
       {/* Expand panel */}
-      {expanded&&hasExpand&&(
-        <div style={{padding:'12px 20px 16px',background:isActiveAny?IKB_SOFT:SURFACE,borderTop:`1px solid ${LINE}`,display:'flex',flexDirection:'column',gap:'12px'}}>
-          {hasPdf&&setPdfDrawerItemId&&(
-            <button
-              onClick={()=>setPdfDrawerItemId(item.id)}
-              style={{display:'flex',alignItems:'center',gap:'8px',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'8px 14px',cursor:'pointer',alignSelf:'flex-start'}}
-            >
-              <FileText size={13} strokeWidth={1.25} style={{color:MUTED,flexShrink:0}}/>
-              <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:MUTED}}>Score{item.pdfs.length>1?` · ${item.pdfs.length}`:''}</span>
-            </button>
+      {expanded&&(
+        <div style={{padding:'12px 16px 16px',background:SURFACE,borderTop:`1px solid ${LINE}`,display:'flex',flexDirection:'column',gap:'14px'}}>
+          {/* Reference track */}
+          {hasRefTrack&&setRefBarItemId&&(
+            <div>
+              <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,marginBottom:'6px'}}>Reference</div>
+              <button
+                onClick={()=>setRefBarItemId(id=>id===item.id?null:item.id)}
+                style={{display:'flex',alignItems:'center',gap:'6px',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'6px 12px',cursor:'pointer'}}
+              >
+                <Music size={12} strokeWidth={1.25} style={{color:MUTED}}/>
+                <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:MUTED}}>Play reference</span>
+              </button>
+            </div>
           )}
+          {/* Today's recording waveform */}
           {todayRecEntry&&(()=>{
             const bkey=todayRecEntry.idbKey??`${item.id}__${todayKey}`;
-            return <Waveform key={todayRecEntry.ts} compact blobLoader={()=>idbGet('pieceRecordings',bkey)} meta={todayRecEntry}/>;
+            return(
+              <div>
+                <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,marginBottom:'6px'}}>Recording · today</div>
+                <Waveform key={todayRecEntry.ts} compact blobLoader={()=>idbGet('pieceRecordings',bkey)} meta={todayRecEntry}/>
+              </div>
+            );
           })()}
-          {item.todayNote&&(
-            <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'13px',color:MUTED,lineHeight:1.6}}>
-              {item.todayNote.split('\n')[0].slice(0,120)}{item.todayNote.length>120?'…':''}
+          {/* Today's note */}
+          {updateItem&&(
+            <div>
+              <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,marginBottom:'6px'}}>Today</div>
+              <MarkdownField
+                value={item.todayNote||''}
+                onChange={v=>updateItem(item.id,{todayNote:v})}
+                placeholder="What happened."
+                minHeight={60}
+                style={{background:SURFACE2,border:`1px solid ${IKB}40`,fontSize:'13px'}}
+              />
+            </div>
+          )}
+          {/* Persistent notes */}
+          {updateItem&&(
+            <div>
+              <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,marginBottom:'6px'}}>Notes <span style={{color:DIM,letterSpacing:'0.2em'}}>· persistent</span></div>
+              <MarkdownField
+                value={item.detail||''}
+                onChange={v=>updateItem(item.id,{detail:v})}
+                placeholder="Long-running notes…"
+                minHeight={60}
+                style={{background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'13px'}}
+              />
             </div>
           )}
         </div>
@@ -579,6 +623,9 @@ function TodayMobile(p){
                     todayKey={todayKey}
                     setPdfDrawerItemId={p.setPdfDrawerItemId}
                     handleStartRecording={handleStartRecording}
+                    updateItem={p.updateItem}
+                    refTrackMeta={p.refTrackMeta}
+                    setRefBarItemId={p.setRefBarItemId}
                   />
                 ))}
 

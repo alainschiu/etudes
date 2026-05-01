@@ -302,16 +302,18 @@ const HAS_CUSTOM_LINK_RE=/(?:obsidian:\/\/|x-devonthink-item:\/\/)/;
 function MarkdownComponents({serif:serifFont}){
   return {
     a:({href,children,...rest})=>{
-      // Always prevent default navigation — any link in a markdown field that triggers browser
-      // navigation would reload the SPA and jump to Today. Open externals in a new tab; swallow
-      // anything else (deep links, relative paths) so the app state is never disrupted.
+      // Always prevent default navigation — any link that triggers browser navigation
+      // reloads the SPA and jumps to Today. Open externals in a new tab; swallow everything else.
       const isExternal=href&&(href.startsWith('http://')||href.startsWith('https://'));
       const isDeep=DEEP_LINK_SCHEMES.some(s=>href&&href.startsWith(s));
+      const suppress=(e)=>{e.preventDefault();e.stopPropagation();};
       const handleClick=(e)=>{
-        e.preventDefault();
+        suppress(e);
         if((isExternal||isDeep)&&href)window.open(href,'_blank','noopener,noreferrer');
       };
-      return (<a href={href} onClick={handleClick} style={{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'}} {...rest}>{children}</a>);
+      // touchstart must also preventDefault synchronously on iOS or the browser
+      // initiates navigation before onClick fires.
+      return (<a href={href} onClick={handleClick} onTouchStart={suppress} style={{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'}} {...rest}>{children}</a>);
     },
     p:({children})=><p style={{marginBottom:'0.85em',lineHeight:1.8}}>{children}</p>,
     h1:({children})=><h1 style={{fontSize:'1.3em',fontWeight:400,marginBottom:'0.5em',marginTop:'1em',borderBottom:`1px solid rgba(244,238,227,0.12)`,paddingBottom:'0.2em'}}>{children}</h1>,

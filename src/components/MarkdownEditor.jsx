@@ -169,14 +169,16 @@ function createWikiLinkPlugin(clickRef) {
             return true;
           }
         },
-        // pointerdown fires immediately on touch (no 300ms iOS delay) — handles wiki-link taps on mobile
-        pointerdown: (e, view) => {
-          if (e.pointerType === 'mouse') return; // already handled by mousedown
+        // touchstart fires synchronously (unlike mousedown which is delayed on iOS)
+        // and is the only reliable way to intercept taps on wiki-links before the
+        // browser dispatches a click that would navigate via any underlying anchor.
+        touchstart: (e, view) => {
           const wl = e.target?.closest?.('.cm-wikilink');
           if (wl && clickRef?.current) {
             const raw = (wl.textContent || '').replace(/^\[\[|\]\]$/g, '');
             clickRef.current(raw);
             e.preventDefault();
+            e.stopPropagation();
             return true;
           }
         },

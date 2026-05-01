@@ -362,48 +362,55 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
 
           {/* Metronome widget */}
           <div style={{flex:1,height:'48px',borderRadius:'4px',border:`1px solid ${metronome.running?IKB:LINE_STR}`,overflow:'hidden',display:'flex',minWidth:0}}>
-            {/* Zone 1 — beat bars (onClick = toggle) */}
-            <button
-              onClick={()=>setMetronome(m=>({...m,running:!m.running}))}
-              style={{flex:'1 1 0',minWidth:0,display:'flex',alignItems:'flex-end',gap:'2px',padding:'0 8px 8px',background:'transparent',border:'none',cursor:'pointer',overflow:'hidden'}}
-            >
-              {Array.from({length:Math.min(metronome.beats,8)}).map((_,i)=>{
-                const isDotSub2=metronome.subdivision==='dot';
-                const effectiveSub2=isDotSub2?1:(typeof metronome.subdivision==='number'?metronome.subdivision:1);
-                const isA=metronome.running&&currentBeat===i;
-                const isBeat1=i===0;
-                  return(
-                  <div key={i} style={{flex:1,display:'flex',alignItems:'flex-end',gap:'1px',height:'34px'}}>
-                    {/* downbeat bar */}
-                    <div style={{
-                      flex:1,
-                      height:isA&&isBeat1?'34px':isA?'24px':isBeat1?'22px':'16px',
-                      background:isA?IKB:isBeat1?DIM:`rgba(244,238,227,0.20)`,
-                      borderRadius:'1px',
-                      transition:isA?'none':'height 150ms ease-out',
-                    }}/>
-                    {/* subdivision bars */}
-                    {effectiveSub2>1&&Array.from({length:effectiveSub2-1}).map((_,si)=>{
-                      const isAS=metronome.running&&currentBeat===i&&currentSub===si+1;
-                      return <div key={si} style={{
-                        width:'2px',
-                        height:isAS?'14px':'9px',
-                        background:isAS?IKB:'rgba(244,238,227,0.10)',
-                        borderRadius:'1px',
-                        transition:isAS?'none':'height 150ms ease-out',
-                        flexShrink:0,
-                      }}/>;
-                    })}
-                  </div>
-                );
-              })}
-            </button>
-            {/* Zone 2 — BPM + time sig (display only, no click) */}
-            <div style={{flexShrink:0,width:'42px',display:'flex',flexDirection:'column',alignItems:'flex-end',justifyContent:'center',padding:'0 6px',pointerEvents:'none'}}>
-              <span style={{fontFamily:mono,fontSize:'14px',fontWeight:500,color:metronome.running?IKB:MUTED,lineHeight:1}}>{metronome.bpm}</span>
-              <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'11px',color:metronome.running?IKB:FAINT,lineHeight:1,marginTop:'2px'}}>{metronome.beats}/{isDotSub?'♩.':metronome.noteValue}</span>
-            </div>
-            {/* Zone 3 — chevron (onClick = sheet) */}
+            {/* Left zone — entire toggle surface (bars or pulse) */}
+            {(metronome.visualMode||'bars')==='pulse'?(
+              /* Pulse mode: whole left area is a pulsing rectangle */
+              <button
+                onClick={()=>setMetronome(m=>({...m,running:!m.running}))}
+                style={{flex:'1 1 0',minWidth:0,border:'none',cursor:'pointer',padding:0,
+                  background: metronome.running&&currentBeat>=0 ? (currentBeat===0?IKB:`rgba(0,47,167,0.45)`) : 'transparent',
+                  boxShadow: metronome.running&&currentBeat===0 ? `0 0 18px ${IKB}90` : 'none',
+                  transition:'background 80ms ease-out, box-shadow 80ms ease-out',
+                }}
+              />
+            ):(
+              /* Bars mode: single button covering bars + BPM/timesig */
+              <button
+                onClick={()=>setMetronome(m=>({...m,running:!m.running}))}
+                style={{flex:'1 1 0',minWidth:0,display:'flex',alignItems:'center',border:'none',cursor:'pointer',padding:'0',background:'transparent',overflow:'hidden'}}
+              >
+                {/* Beat bars */}
+                <div style={{flex:1,minWidth:0,display:'flex',alignItems:'flex-end',gap:'2px',padding:'0 8px 8px',height:'100%',overflow:'hidden'}}>
+                  {Array.from({length:Math.min(metronome.beats,8)}).map((_,i)=>{
+                    const isDotSub2=metronome.subdivision==='dot';
+                    const effectiveSub2=isDotSub2?1:(typeof metronome.subdivision==='number'?metronome.subdivision:1);
+                    const isA=metronome.running&&currentBeat===i;
+                    const isBeat1=i===0;
+                    return(
+                      <div key={i} style={{flex:1,display:'flex',alignItems:'flex-end',gap:'1px',height:'34px'}}>
+                        <div style={{
+                          flex:1,
+                          height:isA&&isBeat1?'34px':isA?'24px':isBeat1?'22px':'16px',
+                          background:isA?IKB:isBeat1?DIM:`rgba(244,238,227,0.20)`,
+                          borderRadius:'1px',
+                          transition:isA?'none':'height 150ms ease-out',
+                        }}/>
+                        {effectiveSub2>1&&Array.from({length:effectiveSub2-1}).map((_,si)=>{
+                          const isAS=metronome.running&&currentBeat===i&&currentSub===si+1;
+                          return <div key={si} style={{width:'2px',height:isAS?'14px':'9px',background:isAS?IKB:'rgba(244,238,227,0.10)',borderRadius:'1px',transition:isAS?'none':'height 150ms ease-out',flexShrink:0}}/>;
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* BPM + time sig */}
+                <div style={{flexShrink:0,width:'46px',display:'flex',flexDirection:'column',alignItems:'flex-end',justifyContent:'center',padding:'0 8px 0 0',gap:'2px'}}>
+                  <span style={{fontFamily:mono,fontSize:'14px',fontWeight:500,color:metronome.running?IKB:MUTED,lineHeight:1}}>{metronome.bpm}</span>
+                  <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px',color:metronome.running?IKB:FAINT,lineHeight:1}}>{metronome.beats}/{isDotSub?'♩.':metronome.noteValue}</span>
+                </div>
+              </button>
+            )}
+            {/* Chevron — sheet only */}
             <button
               onClick={()=>setMetroSheetOpen(true)}
               style={{width:'28px',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',borderLeft:`1px solid ${metronome.running?IKB:LINE_MED}`,cursor:'pointer'}}
