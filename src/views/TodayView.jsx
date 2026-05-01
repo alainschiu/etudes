@@ -1,5 +1,6 @@
 import React, {useState, useEffect, useRef, useCallback} from 'react';
 import useViewport from '../hooks/useViewport.js';
+import {useLongPress} from '../hooks/useLongPress.js';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
@@ -30,7 +31,7 @@ import Music from 'lucide-react/dist/esm/icons/music';
 import MessageSquarePlus from 'lucide-react/dist/esm/icons/message-square-plus';
 import Mic from 'lucide-react/dist/esm/icons/mic';
 import Square from 'lucide-react/dist/esm/icons/square';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, REC, serif, serifText, sans, mono} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, REC, serif, serifText, sans, mono, Z_SHEET} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
 import {todayDateStr, daysUntil} from '../lib/dates.js';
 import {getItemTime, displayTitle, formatByline, nextPerformance, getParentBucket} from '../lib/items.js';
@@ -98,7 +99,7 @@ export default function TodayView(p){
 
   // ── Mobile accordion view ──────────────────────────────────────────────
   if(isMobile){
-    return <TodayMobile {...p} isMobile={true} getSessionItems={getSessionItems} getAvailableItems={getAvailableItems} warmupMin={warmupMin} effectiveMin={effectiveMin} effectiveDailyTarget={effectiveDailyTarget} hiddenTypes={hiddenTypes} collapsedSessions={collapsedSessions} setCollapsedSessions={setCollapsedSessions} toggleCollapsed={toggleCollapsed} handleFilePlus={handleFilePlus} piecePlayTypes={piecePlayTypes}/>;
+    return <TodayMobile {...p} isMobile={true} getSessionItems={getSessionItems} getAvailableItems={getAvailableItems} warmupMin={warmupMin} effectiveMin={effectiveMin} effectiveDailyTarget={effectiveDailyTarget} hiddenTypes={hiddenTypes} collapsedSessions={collapsedSessions} setCollapsedSessions={setCollapsedSessions} toggleCollapsed={toggleCollapsed} handleFilePlus={handleFilePlus} piecePlayTypes={piecePlayTypes} routines={p.routines} loadedRoutine={p.loadedRoutine} loadRoutine={p.loadRoutine} resetToFree={p.resetToFree} setPromptModal={p.setPromptModal} saveRoutine={p.saveRoutine} setItemTarget={p.setItemTarget}/>;
   }
 
   // ── Desktop view (unchanged) ───────────────────────────────────────────
@@ -270,7 +271,10 @@ function TodayMobile(p){
     getSessionItems,getAvailableItems,warmupMin,effectiveMin,
     effectiveDailyTarget,hiddenTypes,collapsedSessions,setCollapsedSessions,
     toggleCollapsed,handleFilePlus,addSpot,updateSpot,deleteSpot,editSpotTime,
+    routines,loadedRoutine,loadRoutine,resetToFree,setPromptModal,saveRoutine,setItemTarget,
   } = p;
+  const [actionSheetItem, setActionSheetItem] = useState(null);
+  const [routineMenuOpen, setRoutineMenuOpen] = useState(false);
 
   const today = new Date();
   const todayKey = todayDateStr();
@@ -329,11 +333,47 @@ function TodayMobile(p){
 
       {/* Date header */}
       <div style={{padding:'16px 20px 8px'}}>
-        <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',marginBottom:'2px'}}>
-          {today.toLocaleDateString('en-US',{weekday:'long'})}
+        {/* Eyebrow row: DAY · DATE on left, Load Routine on right */}
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'4px'}}>
+          <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans}}>
+            {today.toLocaleDateString('en-US',{weekday:'long'}).toUpperCase()}
+            {' · '}
+            {today.toLocaleDateString('en-US',{month:'long',day:'numeric'}).toUpperCase()}
+          </div>
+          {/* Load routine */}
+          <div style={{position:'relative'}}>
+            <button
+              onClick={()=>setRoutineMenuOpen(v=>!v)}
+              style={{display:'flex',alignItems:'center',gap:'4px',background:'none',border:'none',padding:'4px 0',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:loadedRoutine?IKB:FAINT,cursor:'pointer',minHeight:'44px'}}
+            >
+              <Bookmark size={9} strokeWidth={1.5}/>
+              {loadedRoutine ? loadedRoutine.name : 'Load Routine'}
+              <ChevronDown size={8} strokeWidth={1.5}/>
+            </button>
+            {routineMenuOpen && (
+              <>
+                <div style={{position:'fixed',inset:0,zIndex:Z_SHEET-1}} onClick={()=>setRoutineMenuOpen(false)}/>
+                <div style={{position:'absolute',right:0,top:'100%',zIndex:Z_SHEET,background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)',minWidth:'200px',maxHeight:'320px',overflowY:'auto'}}>
+                  {routines.length===0 && <div style={{padding:'12px 16px',fontFamily:serif,fontStyle:'italic',fontSize:'13px',color:FAINT}}>No routines yet.</div>}
+                  {routines.map(r=>(
+                    <button key={r.id} onClick={()=>{loadRoutine(r);setRoutineMenuOpen(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'10px 16px',background:loadedRoutine?.id===r.id?IKB_SOFT:'transparent',border:'none',borderBottom:`1px solid ${LINE}`,cursor:'pointer'}}>
+                      <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,color:loadedRoutine?.id===r.id?IKB:TEXT,fontSize:'14px'}}>{r.name}</div>
+                    </button>
+                  ))}
+                  {loadedRoutine && (
+                    <button onClick={()=>{resetToFree();setRoutineMenuOpen(false);}} style={{display:'block',width:'100%',textAlign:'left',padding:'10px 16px',background:'transparent',border:'none',borderTop:`1px solid ${LINE_STR}`,cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:MUTED}}>Unload routine</button>
+                  )}
+                  {setPromptModal && (
+                    <button onClick={()=>{setRoutineMenuOpen(false);setPromptModal({title:'Save current arrangement as routine',placeholder:'Name',onConfirm:(name)=>{if(name?.trim())saveRoutine(name.trim());}});}} style={{display:'block',width:'100%',textAlign:'left',padding:'10px 16px',background:'transparent',border:'none',borderTop:`1px solid ${LINE}`,cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:IKB}}>Save current as…</button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
-        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'28px',letterSpacing:'-0.01em',lineHeight:1.1,color:TEXT}}>
-          {today.toLocaleDateString('en-US',{month:'long',day:'numeric'})}
+        {/* "Today" display heading */}
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1,color:TEXT}}>
+          Today
         </div>
       </div>
 
@@ -415,9 +455,11 @@ function TodayMobile(p){
                   const perf = nextPerformance(item.performances);
                   const hasSpots = (item.spots||[]).length > 0;
                   const timeColor = (it && time >= it*60) ? IKB : time > 0 ? MUTED : FAINT;
+                  // eslint-disable-next-line react-hooks/rules-of-hooks
+                  const longPress = useLongPress(() => setActionSheetItem({...item, sessionId: session.id, it}));
 
                   return (
-                    <div key={item.id} style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent',padding:'14px 20px',display:'flex',alignItems:'center',gap:'12px',minHeight:'44px'}}>
+                    <div key={item.id} {...longPress} style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent',padding:'14px 20px',display:'flex',alignItems:'center',gap:'12px',minHeight:'44px',userSelect:'none'}}>
                       {/* Play / pulse dot */}
                       <button
                         onClick={e=>{e.stopPropagation();isActiveAny?stopItem():startItem(item.id,null,session.id);}}
@@ -509,6 +551,35 @@ function TodayMobile(p){
           </div>
         )}
       </div>
+
+      {/* Action sheet (long-press on item row) */}
+      {actionSheetItem && (
+        <>
+          <div onClick={()=>setActionSheetItem(null)} style={{position:'fixed',inset:0,background:'rgba(11,10,8,0.6)',zIndex:Z_SHEET-1}}/>
+          <div style={{position:'fixed',bottom:0,left:0,right:0,background:BG,borderTop:`1px solid ${LINE_STR}`,borderRadius:'12px 12px 0 0',zIndex:Z_SHEET,paddingBottom:'env(safe-area-inset-bottom,16px)'}}>
+            <div style={{width:'36px',height:'3px',background:LINE_STR,borderRadius:'999px',margin:'12px auto 0'}}/>
+            {/* Item name header */}
+            <div style={{padding:'16px 24px 12px',borderBottom:`1px solid ${LINE}`,fontFamily:serifText,fontStyle:'italic',fontSize:'15px',color:TEXT}}>{displayTitle(actionSheetItem)}</div>
+            {/* Set target */}
+            <div style={{padding:'16px 24px',borderBottom:`1px solid ${LINE}`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+              <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.28em',color:FAINT}}>Target</span>
+              <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                <input
+                  type="number" min={0} max={300}
+                  value={actionSheetItem.it ?? ''}
+                  onChange={e=>{const val=parseInt(e.target.value,10)||null;setItemTarget&&setItemTarget(actionSheetItem.sessionId,actionSheetItem.id,val||null);setActionSheetItem(prev=>({...prev,it:val}));}}
+                  style={{width:'48px',textAlign:'right',background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,fontFamily:mono,fontSize:'14px',color:TEXT,outline:'none',padding:'2px 0'}}
+                />
+                <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',color:FAINT}}>min</span>
+              </div>
+            </div>
+            {/* Remove from today */}
+            <button onClick={()=>{removeItemFromSession(actionSheetItem.sessionId,actionSheetItem.id);setActionSheetItem(null);}} style={{width:'100%',padding:'16px 24px',background:'none',border:'none',textAlign:'left',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:FAINT,cursor:'pointer'}}>
+              Remove from today
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Close the day pill */}
       <div style={{margin:'32px 0 24px',display:'flex',justifyContent:'center'}}>
