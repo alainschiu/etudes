@@ -257,6 +257,9 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
       updateNote={updateNote}
       deleteNote={deleteNote}
       seedTestNotes={seedTestNotes}
+      items={items}
+      history={history}
+      onWikiLinkClick={handleWikiLinkClick}
     />;
   }
 
@@ -666,7 +669,7 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
 }
 
 // ── Mobile notes view ─────────────────────────────────────────────────────
-function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes}){
+function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes,items,history,onWikiLinkClick}){
   const [expandedId,setExpandedId]=useState(null);
   const [editSheetId,setEditSheetId]=useState(null);
   const [filterSheetOpen,setFilterSheetOpen]=useState(false);
@@ -742,7 +745,21 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
               {!isExpanded&&preview&&<div onClick={()=>setExpandedId(note.id)} style={{fontFamily:serifText,fontSize:'14px',lineHeight:1.6,color:FAINT,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',cursor:'pointer'}}>{preview}</div>}
               {isExpanded&&(
                 <div>
-                  <div style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.75,color:TEXT,marginTop:'4px',whiteSpace:'pre-wrap'}}>{note.body||''}</div>
+                  <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'14px',lineHeight:1.7,color:TEXT,marginTop:'4px'}}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                      p:({children})=><p style={{marginBottom:'0.7em'}}>{children}</p>,
+                      h1:({children})=><h1 style={{fontSize:'1.2em',fontWeight:500,marginBottom:'0.4em',marginTop:'0.8em'}}>{children}</h1>,
+                      h2:({children})=><h2 style={{fontSize:'1.1em',fontWeight:500,marginBottom:'0.3em',marginTop:'0.7em'}}>{children}</h2>,
+                      h3:({children})=><h3 style={{fontSize:'1em',fontWeight:400,marginBottom:'0.3em',marginTop:'0.6em',opacity:0.8}}>{children}</h3>,
+                      a:({href,children})=>{
+                        const isWiki=href&&href.startsWith('etudes://');
+                        if(isWiki&&onWikiLinkClick){return <span onClick={()=>onWikiLinkClick({type:'note',target:href.replace('etudes://','')})} style={{color:IKB,cursor:'pointer',textDecoration:'underline'}}>{children}</span>;}
+                        return <a href={href} target="_blank" rel="noopener noreferrer" style={{color:LINK,textDecoration:'underline'}}>{children}</a>;
+                      },
+                    }}>
+                      {(note.body||'').replace(/\[\[(.+?)\]\]/g,(_,t)=>`[${t}](etudes://${t})`)}
+                    </ReactMarkdown>
+                  </div>
                   <div style={{display:'flex',alignItems:'center',gap:'12px',marginTop:'12px'}}>
                     <button onClick={()=>setEditSheetId(note.id)} style={{display:'flex',alignItems:'center',gap:'4px',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'5px 10px',cursor:'pointer',color:MUTED}}>
                       <Pencil className="w-2.5 h-2.5" strokeWidth={1.25}/><span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Edit</span>
@@ -808,7 +825,7 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
               </button>
             </div>
             <div style={{flex:1,overflow:'hidden'}}>
-              <MarkdownEditor value={editNote.body||''} onChange={val=>updateNote(editNote.id,{body:val,tags:parseTagsFromBody(val)})} placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`} minHeight={400} fontSize="16px"/>
+              <MarkdownEditor value={editNote.body||''} onChange={val=>updateNote(editNote.id,{body:val,tags:parseTagsFromBody(val)})} placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`} minHeight={400} fontSize="16px" items={items} history={history} onWikiLinkClick={onWikiLinkClick}/>
             </div>
           </>
         )}

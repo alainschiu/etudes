@@ -259,7 +259,7 @@ export default function TodayView(p){
 }
 
 // ── Mobile item row — extracted so useLongPress is called at component top-level
-function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress}){
+function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording}){
   const isActiveAny = activeItemId === item.id && activeSessionId === session.id;
   const isActiveWhole = isActiveAny && !activeSpotId;
   const time = getItemTime(itemTimes, item.id);
@@ -269,9 +269,11 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
   const hasSpots = (item.spots||[]).length > 0;
   const timeColor = (it && time >= it*60) ? IKB : time > 0 ? MUTED : FAINT;
   const longPress = useLongPress(() => onLongPress({...item, sessionId: session.id, it}));
+  const isPieceRec = pieceRecordingItemId === item.id;
+  const recBlocked = (dayClosed && !isPieceRec) || (pieceRecordingItemId && !isPieceRec) || isRecording;
 
   return (
-    <div {...longPress} style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent',padding:'14px 20px',display:'flex',alignItems:'center',gap:'12px',minHeight:'44px',userSelect:'none'}}>
+    <div {...longPress} style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent',padding:'14px 20px',display:'flex',alignItems:'center',gap:'10px',minHeight:'44px',userSelect:'none'}}>
       {/* Play / pulse dot */}
       <button
         onClick={e=>{e.stopPropagation();isActiveAny?stopItem():startItem(item.id,null,session.id);}}
@@ -281,6 +283,20 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
         {isActiveWhole
           ? <div className="animate-pulse" style={{width:'8px',height:'8px',borderRadius:'999px',background:IKB,boxShadow:`0 0 6px ${IKB}`}}/>
           : <Play size={11} strokeWidth={1.25} style={{color:FAINT,opacity:dayClosed?0.4:0.7}}/>
+        }
+      </button>
+      {/* Per-item record button — always visible */}
+      <button
+        onTouchStart={e=>e.stopPropagation()}
+        onMouseDown={e=>e.stopPropagation()}
+        onClick={e=>{e.stopPropagation();isPieceRec?stopPieceRecording&&stopPieceRecording():startPieceRecording&&startPieceRecording(item.id,null,item.stage);}}
+        disabled={!!recBlocked}
+        aria-label={isPieceRec?'Stop recording':'Record'}
+        style={{flexShrink:0,width:'28px',height:'28px',display:'flex',alignItems:'center',justifyContent:'center',background:isPieceRec?REC:'transparent',border:`1px solid ${isPieceRec?REC:LINE_STR}`,borderRadius:'999px',cursor:recBlocked?'not-allowed':'pointer',opacity:recBlocked&&!isPieceRec?0.35:1}}
+      >
+        {isPieceRec
+          ? <Square size={8} strokeWidth={1.25} style={{color:BG}} fill={BG}/>
+          : <Mic size={11} strokeWidth={1.25} style={{color:MUTED}}/>
         }
       </button>
       {/* Title + meta */}
@@ -512,6 +528,10 @@ function TodayMobile(p){
                     stopItem={stopItem}
                     fmt={fmt}
                     onLongPress={setActionSheetItem}
+                    startPieceRecording={startPieceRecording}
+                    stopPieceRecording={stopPieceRecording}
+                    pieceRecordingItemId={pieceRecordingItemId}
+                    isRecording={isRecording}
                   />
                 ))}
 
