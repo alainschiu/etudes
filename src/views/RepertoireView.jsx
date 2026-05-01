@@ -162,17 +162,17 @@ export default function RepertoireView(p){
             <div className="mb-5">
               <EditorRow label="Work title" hint="Leave blank if this is a movement of a collection."><input type="text" value={titleValue} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{title:e.target.value})} placeholder="Untitled" style={{...eIn,fontFamily:serif}}/></EditorRow>
               <EditorRow label="Movement / part"><input type="text" value={i.movement||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{movement:e.target.value})} placeholder="I. Prélude" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
-              <EditorRow label="Collection"><input type="text" value={i.collection||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{collection:e.target.value})} placeholder="Suite Bergamasque, WTC I…" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
-              <EditorRow label="Catalog"><input type="text" value={i.catalog||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{catalog:e.target.value})} placeholder="Op. 110, BWV 846…" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
-              <EditorRow label="Composer"><input list="rep-composer-list" type="text" value={i.composer||''} onChange={e=>updateItem(i.id,{composer:e.target.value})} placeholder="—" style={eInI}/></EditorRow>
+              <EditorRow label="Collection"><input type="text" value={i.collection||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{collection:e.target.value})} placeholder="Suite Bergamasque" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
+              <EditorRow label="Catalog"><input type="text" value={i.catalog||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{catalog:e.target.value})} placeholder="Op. 110" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
+              <EditorRow label="Composer"><input list="rep-composer-list" type="text" value={i.composer||''} onChange={e=>updateItem(i.id,{composer:e.target.value})} placeholder="Composer" style={eInI}/></EditorRow>
               <EditorRow label="Author" hint="For books, textbooks, or study materials."><input type="text" value={i.author||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{author:e.target.value})} placeholder="—" style={eInI}/></EditorRow>
-              <EditorRow label="Instrument" icon={<Guitar className="w-3 h-3" strokeWidth={1.25}/>}><input list="rep-instrument-list" type="text" value={i.instrument||''} onChange={e=>updateItem(i.id,{instrument:e.target.value})} placeholder="piano, violin…" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
+              <EditorRow label="Instrument" icon={<Guitar className="w-3 h-3" strokeWidth={1.25}/>}><input list="rep-instrument-list" type="text" value={i.instrument||''} onChange={e=>updateItem(i.id,{instrument:e.target.value})} placeholder="Instrument" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
               <EditorRow label="Status"><StageLabels stage={i.stage} onChange={st=>updateItem(i.id,{stage:st})} compact/></EditorRow>
               {showArranger&&(showMore?(<EditorRow label="Arranger"><input type="text" value={i.arranger||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{arranger:e.target.value})} placeholder="—" style={eInI}/></EditorRow>):(<div className="flex items-baseline gap-6 py-2" style={{borderBottom:`1px solid ${LINE}`}}><div className="w-36 shrink-0"/><button onClick={()=>toggleShowMore(i.id)} className="uppercase italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}>+ arranger</button></div>))}
               <EditorRow label="Started"><input type="date" value={i.startedDate||''} onChange={e=>updateItem(i.id,{startedDate:e.target.value||null})} style={{...eInM,colorScheme:'dark'}}/></EditorRow>
               <LengthEditorRow i={i} updateItem={updateItem}/>
               {showBpmTarget&&<EditorRow label="Tempo target" icon={<TrendingUp className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/>}><input type="number" min="40" max="300" value={i.bpmTarget??''} onChange={e=>{const v=e.target.value;const n=parseInt(v,10);updateItem(i.id,{bpmTarget:Number.isFinite(n)&&n>0?n:null});}} placeholder="— bpm" style={eInM}/></EditorRow>}
-              <EditorRow label="Reference" icon={<Music className="w-3 h-3" strokeWidth={1.25}/>}><div className="flex items-center gap-3"><input type="text" value={i.referenceUrl||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{referenceUrl:e.target.value})} placeholder="paste a link" style={{...eIn,fontSize:'13px'}}/>{i.referenceUrl&&<a href={i.referenceUrl} target="_blank" rel="noopener noreferrer" className="uppercase flex items-center gap-1 shrink-0" style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em'}}><LinkIcon className="w-3 h-3" strokeWidth={1.25}/> Open ↗</a>}</div></EditorRow>
+              <EditorRow label="Reference" icon={<Music className="w-3 h-3" strokeWidth={1.25}/>}><div className="flex items-center gap-3"><input type="text" value={i.referenceUrl||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{referenceUrl:e.target.value})} placeholder="Link" style={{...eIn,fontSize:'13px'}}/>{i.referenceUrl&&<a href={i.referenceUrl} target="_blank" rel="noopener noreferrer" className="uppercase flex items-center gap-1 shrink-0" style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em'}}><LinkIcon className="w-3 h-3" strokeWidth={1.25}/> Open ↗</a>}</div></EditorRow>
               {(()=>{if(!i.referenceUrl)return null;const embed=getEmbedInfo(i.referenceUrl);if(!embed)return null;return(<div className="flex items-start gap-3 py-3" style={{borderBottom:`1px solid ${LINE}`}}><div className="w-36 shrink-0"/><div className="flex-1">{embed.type==='youtube'?(<div style={{position:'relative',paddingBottom:'56.25%',height:0,overflow:'hidden',background:SURFACE2,borderRadius:2}}><iframe src={embed.src} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allowFullScreen loading="lazy" title="Reference"/></div>):embed.type==='spotify'?(<iframe src={embed.src} width="100%" height={embed.compact?152:352} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="eager" title="Reference"/>):(<iframe src={embed.src} width="100%" height={175} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay *; encrypted-media *; fullscreen *" loading="eager" title="Reference"/>)}</div></div>);})()}
               {showPerformances&&(<EditorRow label="Performances" icon={<Calendar className="w-3 h-3" strokeWidth={1.25}/>}>
                 <div className="space-y-2">
@@ -267,7 +267,7 @@ export default function RepertoireView(p){
         {/* Row 2: Search — full width */}
         <div className="flex items-center gap-2 py-1.5 px-1" style={{borderBottom:`1px solid ${LINE}`}}>
           <Search className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
-          <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search pieces, composers, tags…" className="flex-1 text-xs focus:outline-none" style={{background:'transparent',color:TEXT}}/>
+          <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…" className="flex-1 text-xs focus:outline-none" style={{background:'transparent',color:TEXT}}/>
           {search&&<button onClick={()=>setSearch('')} style={{color:FAINT,fontSize:'10px',lineHeight:1}}>✕</button>}
         </div>
       </div>
@@ -374,7 +374,7 @@ function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,update
                 autoFocus
                 value={newNoteText}
                 onChange={e=>setNewNoteText(e.target.value)}
-                placeholder="Write a retrospective note…"
+                placeholder="A note on this session."
                 className="w-full resize-none focus:outline-none"
                 style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'13px',lineHeight:1.65,minHeight:'60px',fontWeight:300}}
               />
@@ -401,10 +401,10 @@ function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,update
           )}
 
           {filteredLog.length===0&&log.length>0&&q&&(
-            <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No entries match.</div>
+            <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>Nothing here yet.</div>
           )}
           {log.length===0&&(
-            <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No session notes yet. Notes from Today view are added here after day rollover.</div>
+            <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>Nothing here yet.</div>
           )}
 
           <div className="space-y-0">

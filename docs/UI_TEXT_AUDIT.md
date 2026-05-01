@@ -10,8 +10,8 @@ User-generated titles, reflections, and dates are omitted except where the app s
 
 | Location | Placeholder / behavior | File |
 |----------|------------------------|------|
-| Practice logs | `Search reflections, pieces, composers, spots, notes…` | `src/views/LogsView.jsx` |
-| Répertoire (main library) | `Search pieces, composers, tags…` | `src/views/RepertoireView.jsx` |
+| Practice logs | `Search logs…` | `src/views/LogsView.jsx` |
+| Répertoire (main library) | `Search…` | `src/views/RepertoireView.jsx` |
 | Répertoire — log book filter | `Filter log entries…` | `src/views/RepertoireView.jsx` |
 | Notes — main search | `Search or #tag…` (typing `#` filters by tag) | `src/views/NotesView.jsx` |
 | Notes — repertoire logs sidebar | `Filter by piece…` | `src/views/NotesView.jsx` |
@@ -47,7 +47,7 @@ Chrome: **Configuration** (eyebrow) · **Réglages** (title) · close control (i
 | Hint | no streaks · no consequences · opt-in |
 | Toggle | On / Off |
 | Row label (if reminder on) | Time |
-| Footnote | Appears once if you haven't opened Études that day. Requires browser notification permission. Resets each day regardless of whether you practiced. |
+| Footnote | Appears once on days you haven't opened Études. Requires notification permission. Resets each day. |
 
 ### Sync tab (`tab === 'sync'`)
 
@@ -66,16 +66,16 @@ Chrome: **Configuration** (eyebrow) · **Réglages** (title) · close control (i
 | Status line (if `lastSyncedAt > 0`) | **Last cloud sync** + locale time (e.g. `Last cloud sync 03:45 PM`) — prefix is fixed; time is formatted by the browser |
 | Primary button (by `syncStatus`) | **Syncing…** · **Sync error** · **Sync now** |
 | Button | Sign out |
-| Warning (if `syncPayloadWarning`) | Your journal is growing large. Export a backup regularly to protect your data. |
+| Warning (if `syncPayloadWarning`) | Your journal is large. Export a backup to protect your data. |
 | Explainer | **What syncs:** repertoire, practice history, notes, settings, and recording metadata. |
-| Explainer | **Local only:** audio recordings and PDF scores — these stay on this device. Use Export → Backup to transfer them manually. |
+| Explainer | **Local only:** audio recordings and PDF scores. Use Export to back them up. |
 
 **After email sign-up (`signupSent`):**
 
 | Kind | Text |
 |------|------|
 | Section | Check your inbox |
-| Body | A confirmation link has been sent to **{email}**. Follow the link to activate your account, then return here to sign in. |
+| Body | A confirmation link was sent to **{email}**. Follow it to activate, then return here to sign in. |
 | Link-style button | Back to sign in |
 
 **Sign-in / sign-up form (not signed in, not `signupSent`):**
@@ -90,7 +90,7 @@ Chrome: **Configuration** (eyebrow) · **Réglages** (title) · close control (i
 | Dynamic | Supabase / auth error message (italic, when present) |
 | Submit (by mode) | Sign in · Create account |
 | Toggle link | No account — create one · Already have an account — sign in |
-| Footnote | Sync covers repertoire, history, notes, and settings. Audio recordings and PDFs are local only — use Export → Backup to transfer them between devices. |
+| Footnote | Sync covers repertoire, history, notes, and settings. Recordings and PDFs stay on this device — use Export to back them up. |
 
 ### Export tab (`tab === 'export'`)
 
@@ -101,7 +101,7 @@ Chrome: **Configuration** (eyebrow) · **Réglages** (title) · close control (i
 | Helper (idle) | Includes notes, logs, recordings, and scores. Audio files may be large. |
 | Dynamic | `exportProgress` string while export runs (from `useImportExport.js`; not a single fixed sentence) |
 | Section | Backup & restore |
-| Paragraph | Full backup includes all data, PDFs, and recordings in a single .json file. |
+| Paragraph | Full backup of all data, PDFs, and recordings in one file. |
 | Buttons | Backup · Restore |
 
 ### Shortcuts tab (`tab === 'shortcuts'`)
@@ -110,16 +110,16 @@ Rows from `SHORTCUTS` (key → description):
 
 | Key | Description |
 |-----|-------------|
-| Space | Start / pause last practiced item |
+| Space | Start or pause |
 | R | Toggle rest timer |
 | M | Toggle metronome |
 | D | Toggle tuning drone |
 | T | Tap tempo |
-| L | Log BPM to active item or spot |
-| N | Quick note for active item |
-| 1 – 4 | Jump to session on Today |
+| L | Log BPM |
+| N | Quick note |
+| 1 – 4 | Jump to section |
 | ? | Open Réglages |
-| Esc | Close drawers and modals |
+| Esc | Close |
 
 Footer note: **Shortcuts are disabled while typing in a field.**
 
@@ -140,8 +140,8 @@ Footer note: **Shortcuts are disabled while typing in a field.**
 
 ### Related modals in the same file
 
-- **`HelpModal`:** eyebrow **Reference** · title **Shortcuts** · same shortcut rows with slightly different wording for Space, L, ?, Esc · same footnote about shortcuts disabled while typing.
-- **`SyncConflictModal`:** heading **Sync — both devices have data** · body with piece counts · overlap note (two variants) · footer about audio/PDFs · buttons **Merge — keep everything**, **Use this device — overwrite cloud**, **Use cloud — discard local changes**.
+- **`HelpModal`:** eyebrow **Reference** · title **Shortcuts** · shortcut rows aligned with Settings tab (D uses “Toggle tuning drone”; **?** still includes “(includes shortcuts)”) · same footnote about shortcuts disabled while typing.
+- **`SyncConflictModal`:** heading **Sync — both devices have data** · body with piece counts · overlap note (two variants) · footer about audio/PDFs · buttons **Merge — keep everything**, **Keep this device**, **Keep cloud version**.
 - **`ConfirmModal` / `PromptModal`:** generic **Cancel**, **Confirm**, **Save**; body/title from callers (see other sections).
 
 ---
@@ -165,23 +165,23 @@ Footer note: **Shortcuts are disabled while typing in a field.**
 
 ### Footer quick note (`src/components/Footer.jsx`)
 
-- `Jot a quick note for this session…`
+- `A note for this session…`
 
 ### Today (`src/views/TodayView.jsx`)
 
 - Quick add: `Title`, `Composer`
-- Markdown: `What happened in this session?`, `Long-running notes…`, `How did today feel? What surprised you?`
+- Markdown: `What happened.`, `Long-running notes…`, `How today felt. What surprised you.`
 
 ### Week / Month (`src/views/WeekView.jsx`, `src/views/MonthView.jsx`)
 
-- Week notes field: `What went well? What was difficult?`
-- Week goals field: `What do you want to achieve next week?`
-- Month notes field: `Highlights, breakthroughs, struggles…`
-- Month goals field: `Monthly goals and intentions…`
+- Week notes field: `What you noticed. What held you back.`
+- Week goals field: `What you intend for next week.`
+- Month notes field: `What the month held.`
+- Month goals field: `What you intend for next month.`
 
 ### Routines (`src/views/RoutinesView.jsx`)
 
-- `Intention for this session…`
+- `What you intend for this session.`
 - `Session target (min)`
 - Per-piece time inputs use `min` (inline, same pattern as Today targets)
 
@@ -195,15 +195,15 @@ Footer note: **Shortcuts are disabled while typing in a field.**
 
 ### Répertoire (`src/views/RepertoireView.jsx`)
 
-- Work: `Untitled`, `I. Prélude`, `Suite Bergamasque, WTC I…`, `Op. 110, BWV 846…`
-- Composer / Author / Arranger: `—`
-- Instrument: `piano, violin…`
+- Work: `Untitled` · Movement: `I. Prélude` · Collection: `Suite Bergamasque` · Catalog: `Op. 110`
+- Composer: `Composer` · Author / Arranger: `—`
+- Instrument: `Instrument`
 - Tempo: `— bpm`
-- Reference: `paste a link`
+- Reference: `Link`
 - Performances: `recital, lesson, audition…`
 - Tags: `add + enter`
 - Persistent notes (spot / piece context): `Fingerings, tempi, interpretive ideas…`
-- Log book new note: `Write a retrospective note…`
+- Log book new note: `A note on this session.`
 - Length: `—` (hint text separate: `e.g. 3:45 or 4 (minutes)`)
 
 ### PDF drawer / viewer (`src/components/PdfDrawer.jsx`, `src/components/PdfViewer.jsx`)
@@ -216,7 +216,7 @@ Footer note: **Shortcuts are disabled while typing in a field.**
 
 - Target editor: `min`
 - `MarkdownField` empty read-only fallback: `Nothing here yet.` (when no `placeholder` passed)
-- Deep-link hint (when `showDeepLinkHint`): `Custom links open in the desktop app if installed.`
+- Deep-link hint (when `showDeepLinkHint`): `Custom links open in the installed app.`
 
 ### Notes editor (`src/views/NotesView.jsx`)
 
@@ -252,7 +252,7 @@ Footer note: **Shortcuts are disabled while typing in a field.**
 Shown only when `seedTestNotes` is passed (dev wiring). Inserts **sample free notes**, **history** (daily / weekly / monthly markdown), and **per-item `detail` + `noteLog`** entries.
 
 **Free note titles (examples):**  
-On Intonation — Chromatic Scale Work; Pedaling Philosophy Notes; Memory Strategy — Structural Mapping; Masterclass Notes — Prof. Chen; Scale Practice Log — Week 17; The "Singing Tone" Problem; Rhythm Accuracy — Subdivisions; Audition Prep — Program Notes Draft; Double Stop Tuning — 3rds and 6ths; Quick Idea — Practising in Reverse; Weekly Reflection — Week 17; Bow Distribution Exercise.
+On Intonation — Chromatic Scale Work; Pedaling Philosophy Notes; Memory Strategy — Structural Mapping; Masterclass Notes — Prof. Lehmann; Scale Practice Log — Week 17; The "Singing Tone" Problem; Rhythm Accuracy — Subdivisions; Audition Prep — Program Notes Draft; Double Stop Tuning — 3rds and 6ths; Quick Idea — Practicing in Reverse; Weekly Reflection — Week 17; Bow Distribution Exercise.
 
 **Free note categories used:** Practice Journal, Theory Analysis, Masterclass Notes, Audition Prep (and similar).
 
@@ -275,7 +275,7 @@ On Intonation — Chromatic Scale Work; Pedaling Philosophy Notes; Memory Strate
 
 **Seeded routines (8 names):** Morning Fundamentals; Deep Work Session; Maintenance Run; Pre-Performance Warmup; Technique Focus; Repertoire Polish; New Material; Sunday Full Practice. **Intentions** pool: e.g. `Focus on tone quality throughout`, `Slow practice — no rushing`, `Intonation priority`, …
 
-**Seeded programs (5 names):** Spring Recital 2026; Audition Program; Studio Class; Informal House Concert; Competition Round 1 — with `notes` like `Program notes for {name}. Focus on musical continuity between pieces.`
+**Seeded programs (5 names):** Spring Recital 2026; Audition Program; Studio Class; Informal House Concert; Competition Round 1 — with `notes` like `Notes for {name}.`
 
 **YouTube links:** Five fixed `youtube.com` / `youtu.be` URLs assigned to random pieces.
 
@@ -284,7 +284,7 @@ On Intonation — Chromatic Scale Work; Pedaling Philosophy Notes; Memory Strate
 ## 8. Notifications (`src/lib/notifications.js`)
 
 - Notification **title:** `Études`  
-- **Body:** `You haven't practiced today yet.`
+- **Body:** `Your practice journal is waiting.`
 
 ---
 
@@ -292,10 +292,7 @@ On Intonation — Chromatic Scale Work; Pedaling Philosophy Notes; Memory Strate
 
 | Text | Role |
 |------|------|
-| `No matching pieces.` | Programs piece search empty |
-| `No entries match.` | Log book filter empty |
-| `No session notes yet. Notes from Today view are added here after day rollover.` | Log book empty |
-| `No items available.` | `ItemPickerPopup` (`shared.jsx`) |
+| `Nothing here yet.` | Programs piece search empty, log book filter empty, log book with no entries, `ItemPickerPopup` (`shared.jsx`) — unified empty string |
 
 ---
 

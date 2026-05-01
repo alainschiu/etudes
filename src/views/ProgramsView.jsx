@@ -45,7 +45,7 @@ function ItemPicker({items,existingIds,onPick,onClose}){
         <div className="px-3 py-2" style={{borderBottom:`1px solid ${LINE}`}}>
           <input autoFocus value={q} onChange={e=>setQ(e.target.value)} placeholder="Search pieces…" className="w-full focus:outline-none bg-transparent" style={{color:TEXT,fontFamily:serif,fontSize:'13px'}}/>
         </div>
-        {avail.length===0&&<div className="px-4 py-3 italic" style={{color:FAINT,fontFamily:serif,fontSize:'13px'}}>No matching pieces.</div>}
+        {avail.length===0&&<div className="px-4 py-3 italic" style={{color:FAINT,fontFamily:serif,fontSize:'13px'}}>Nothing here yet.</div>}
         {avail.map(it=>(
           <button key={it.id} onClick={()=>{onPick(it);onClose();}} className="w-full text-left px-4 py-2.5" style={{borderBottom:`1px solid ${LINE}`}}>
             <div className="italic" style={{fontSize:'13px',fontWeight:300,fontFamily:serif,color:TEXT}}>{displayTitle(it)}</div>

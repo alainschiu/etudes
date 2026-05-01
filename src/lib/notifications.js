@@ -26,7 +26,7 @@ export function checkAndSendReminder(settings, totalToday) {
 
   try {
     new Notification('Études', {
-      body: "You haven't practiced today yet.",
+      body: 'Your practice journal is waiting.',
       icon: '/web-app-manifest-192x192.png',
       silent: false,
     });

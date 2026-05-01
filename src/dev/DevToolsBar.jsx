@@ -346,7 +346,7 @@ function seedPrograms() {
     name,
     performanceDate: d.toISOString().slice(0,10),
     itemIds: pick(pieces, Math.min(3+Math.floor(Math.random()*4), pieces.length)).map(p=>p.id),
-    notes: `Program notes for ${name}. Focus on musical continuity between pieces.`,
+    notes: `Notes for ${name}.`,
   }));
   localStorage.setItem('etudes-programs', JSON.stringify([...existing, ...programs]));
   return programs.length;

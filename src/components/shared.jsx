@@ -264,7 +264,7 @@ export function RefTrackPlayer({meta,blobLoader,onUpload,onDelete}){
   );
 }
 
-export function ItemPickerPopup({availableItems,onPick,onClose}){return (<><div className="fixed inset-0 z-20" onClick={onClose}/><div className="absolute z-30 right-0 mt-1 min-w-64 max-h-64 overflow-auto etudes-scroll" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>{availableItems.length===0&&<div className="px-4 py-3 text-xs italic" style={{color:FAINT,fontFamily:serif}}>No items available.</div>}{availableItems.map(it=>(<button key={it.id} onClick={()=>{onPick(it.id);onClose();}} className="w-full text-left px-4 py-2.5" style={{borderBottom:`1px solid ${LINE}`}}><div style={{fontSize:'13px',fontWeight:300}}>{displayTitle(it)}</div>{formatByline(it)&&<div className="italic mt-0.5" style={{color:MUTED,fontFamily:serif,fontSize:'11px'}}>{formatByline(it)}</div>}</button>))}</div></>);}
+export function ItemPickerPopup({availableItems,onPick,onClose}){return (<><div className="fixed inset-0 z-20" onClick={onClose}/><div className="absolute z-30 right-0 mt-1 min-w-64 max-h-64 overflow-auto etudes-scroll" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>{availableItems.length===0&&<div className="px-4 py-3 text-xs italic" style={{color:FAINT,fontFamily:serif}}>Nothing here yet.</div>}{availableItems.map(it=>(<button key={it.id} onClick={()=>{onPick(it.id);onClose();}} className="w-full text-left px-4 py-2.5" style={{borderBottom:`1px solid ${LINE}`}}><div style={{fontSize:'13px',fontWeight:300}}>{displayTitle(it)}</div>{formatByline(it)&&<div className="italic mt-0.5" style={{color:MUTED,fontFamily:serif,fontSize:'11px'}}>{formatByline(it)}</div>}</button>))}</div></>);}
 
 export function TargetEdit({target,onChange,small=false}){const [editing,setEditing]=useState(false);const [val,setVal]=useState('');const open=(e)=>{e.stopPropagation();setVal(target?String(target):'');setEditing(true);};const commit=()=>{const n=parseInt(val,10);onChange(Number.isFinite(n)&&n>0?n:null);setEditing(false);};if(editing){return (<input autoFocus value={val} onChange={e=>setVal(e.target.value.replace(/[^0-9]/g,''))} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter')commit();else if(e.key==='Escape'){setEditing(false);}}} onClick={e=>e.stopPropagation()} className="font-mono tabular-nums focus:outline-none px-1.5 text-center" style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE_STR}`,width:'38px',fontSize:small?'10px':'11px'}} placeholder="min"/>);}if(target){return (<button onClick={open} className="font-mono tabular-nums" style={{color:'inherit',fontSize:'inherit',whiteSpace:'nowrap',letterSpacing:0}} title="Edit target">/ {target}′</button>);}return (<button onClick={open} className="uppercase target-hover-reveal" style={{color:FAINT,fontSize:small?'8px':'9px',letterSpacing:small?'0.12em':'0.2em',marginLeft:0}} title="Set target">+ target</button>);}
 
@@ -344,7 +344,7 @@ export function MarkdownField({value,onChange,placeholder,minHeight=80,className
       />
       {showHint&&(
         <div style={{padding:'4px 16px 8px',fontSize:'11px',color:FAINT,fontStyle:'italic',fontFamily:serif}}>
-          Custom links open in the desktop app if installed.
+          Custom links open in the installed app.
         </div>
       )}
     </div>
