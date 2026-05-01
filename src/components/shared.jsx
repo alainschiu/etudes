@@ -80,6 +80,7 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
     else then();
   };
   const play=async()=>{
+    wactxRef.current?.resume();
     const a=await ensure();if(!a)return;
     const ctx=wactxRef.current,g=gainRef.current;
     if(ctx&&g){if(ctx.state==='suspended')await ctx.resume();g.gain.cancelScheduledValues(ctx.currentTime);g.gain.setValueAtTime(0,ctx.currentTime);g.gain.linearRampToValueAtTime(1,ctx.currentTime+0.05);}
@@ -133,13 +134,9 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
 
   useEffect(()=>()=>{if(audioRef.current)audioRef.current.pause();if(urlRef.current)URL.revokeObjectURL(urlRef.current);try{wactxRef.current?.close();}catch{}},[]);
 
-  // 2-pass smooth + normalize for display
+  // Normalize for display — peaks from computePeaks are already smoothed twice
   const rawPeaks=meta?.peaks||[];
-  const peaks=rawPeaks.length<3?rawPeaks:(()=>{
-    let s=[...rawPeaks];
-    for(let p=0;p<2;p++){const n=[...s];for(let i=1;i<s.length-1;i++)n[i]=s[i-1]*0.25+s[i]*0.5+s[i+1]*0.25;s=n;}
-    const mx=Math.max(...s,1e-6);return s.map(v=>v/mx);
-  })();
+  const peaks=rawPeaks.length<2?rawPeaks:(()=>{const mx=Math.max(...rawPeaks,1e-6);return rawPeaks.map(v=>v/mx);})();
 
   // Closed SVG path: smooth bezier top (L→R) + bottom (R→L)
   const shapePath=(()=>{
@@ -305,10 +302,18 @@ const HAS_CUSTOM_LINK_RE=/(?:obsidian:\/\/|x-devonthink-item:\/\/)/;
 function MarkdownComponents({serif:serifFont}){
   return {
     a:({href,children,...rest})=>{
-      const isDeep=DEEP_LINK_SCHEMES.some(s=>href&&href.startsWith(s));
+      // Always prevent default navigation — any link that triggers browser navigation
+      // reloads the SPA and jumps to Today. Open externals in a new tab; swallow everything else.
       const isExternal=href&&(href.startsWith('http://')||href.startsWith('https://'));
-      const handleClick=(e)=>{if(isDeep||isExternal){e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}};
-      return (<a href={href} onClick={handleClick} style={{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'}} {...rest}>{children}</a>);
+      const isDeep=DEEP_LINK_SCHEMES.some(s=>href&&href.startsWith(s));
+      const suppress=(e)=>{e.preventDefault();e.stopPropagation();};
+      const handleClick=(e)=>{
+        suppress(e);
+        if((isExternal||isDeep)&&href)window.open(href,'_blank','noopener,noreferrer');
+      };
+      // touchstart must also preventDefault synchronously on iOS or the browser
+      // initiates navigation before onClick fires.
+      return (<a href={href} onClick={handleClick} onTouchStart={suppress} style={{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'}} {...rest}>{children}</a>);
     },
     p:({children})=><p style={{marginBottom:'0.85em',lineHeight:1.8}}>{children}</p>,
     h1:({children})=><h1 style={{fontSize:'1.3em',fontWeight:400,marginBottom:'0.5em',marginTop:'1em',borderBottom:`1px solid rgba(244,238,227,0.12)`,paddingBottom:'0.2em'}}>{children}</h1>,

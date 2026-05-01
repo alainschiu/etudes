@@ -1,5 +1,42 @@
 # Changelog
 
+## v0.97.6 — 2026-05-01
+
+### Mobile — Sprint Patch
+
+#### Metronome
+- **Widget redesign** — zones 1+2 merged into one `<button>`: beat bars fill the left region (`flex:1`), BPM + time sig (`16px serif`) sit in a fixed 46 px right column, chevron remains for sheet access. Single touch anywhere left of the chevron toggles on/off.
+- **Pulse mode** — `metronome.visualMode: 'bars' | 'pulse'` (new field, not persisted). In pulse mode the entire left zone flashes IKB on beat 1 and a dimmer blue on other beats; flash duration is 90 ms with a 200 ms ease-out decay. Toggle row `[Bars] [Pulse]` in `MetronomeSheet`.
+- **Sheet alignment** — shared `<Label>` component (`minWidth: 56px`) applied to every row in `MetronomeSheet`. Accel section now includes `stepBpm`, `every`, and `unit` controls so the ramp is configurable.
+
+#### Today view — item rows
+- **Tap to expand** — clicking the title area or chevron toggles the inline panel; previously only the chevron worked.
+- **PDF icon inline** — `FileText` icon rendered next to the title if PDFs are present; tapping it opens `PdfDrawer` directly without opening the expand panel.
+- **Expand panel order** — Reference track button → today's recording waveform → today's note (`MarkdownField`, editable) → persistent notes (`MarkdownField`, editable).
+
+#### Tuning
+- **`MobileDronePanel`** — separate component from desktop `DronePanel`. Full-width 64 px piano keyboard, stacked A=/Oct/Temperament rows (not flex-wrap), collapsible root selector + cent offset table. Desktop `DronePanel` unchanged.
+- **Label** — `aria-label` on mobile drone toggle: `"Tuner"` → `"Tuning"`.
+
+#### Recording
+- **Soft mutex** — `handleStartRecording(type, itemId)` in `App.jsx`: same recording → stop; conflict → `mutexPrompt` inline banner above footer with Confirm/Cancel; idle → start. No modal.
+- **MIME negotiation (15a)** — `preferredMime()` tries `audio/webm;codecs=opus → audio/mp4 → ''`; passed to `MediaRecorder` and `Blob`. `mimeType` stored in recording metadata.
+- **Key collision fix (15g)** — piece recording IDB key: `${itemId}__${date}` → `${itemId}__${date}__${Date.now()}`. Stored as `idbKey` in metadata. All consumer call sites (`deletePieceRecording`, `applyFifo`, `attachDailyToPiece`, `PieceRecordingsPanel`, `RepertoireView`, `TodayView`) use `entry.idbKey ?? fallback`.
+
+#### Audio — iOS fixes
+- **15b** — `wactxRef.current?.resume()` added synchronously before `await ensure()` in `Waveform.play()`. Web Audio graph and gain ramp kept intact.
+- **15c** — `audioCtxRef.current?.resume()` at top of metronome running branch and inside `toggleDrone`.
+- **15d** — `computePeaks` (`media.js`) reuses a module-level `_peaksCtx` singleton instead of `new AudioContext()` per call; avoids hitting the 4-context iOS limit.
+- **15e** — Drone frequency change uses `setValueAtTime` anchor + `exponentialRampToValueAtTime(freq, t+0.03)` to eliminate audible click on note change.
+
+#### Waveform display
+- **15f** — Removed second 2-pass smoothing in `Waveform` display component. `computePeaks` already smooths twice; the third pass was over-smoothing and flattening the shape.
+
+#### Wiki links
+- **CodeMirror editor** — direct DOM `addEventListener('touchstart', handler, {passive:false})` attached to the editor wrapper via `useEffect`. CodeMirror's `eventHandlers` cannot register non-passive listeners; this is the only mechanism that allows `preventDefault` to cancel iOS navigation.
+- **Read-only markdown** — `MarkdownComponents <a>` already calls `e.preventDefault()` unconditionally; `onTouchStart` handler added with same logic.
+- **`NotesMobile`** — plain `<a target="_blank">` links now also intercept `touchstart`.
+
 ## v0.97.5 — 2026-05-01
 
 ### Mobile adaptation (Tracks 1–9)

@@ -397,7 +397,7 @@ export default function RepertoireView(p){
                 <span style={{fontFamily:mono,color:FAINT,fontSize:'9px',letterSpacing:'0.06em'}}>{ab.date}</span>
                 {ab.meta?.bpm&&<span style={{fontFamily:mono,color:FAINT,fontSize:'9px'}}>↓ {ab.meta.bpm}</span>}
               </div>
-              <Waveform blobLoader={()=>idbGet('pieceRecordings',`${ab.itemId}__${ab.date}`)} meta={ab.meta}/>
+              <Waveform blobLoader={()=>idbGet('pieceRecordings',ab.meta?.idbKey??`${ab.itemId}__${ab.date}`)} meta={ab.meta}/>
             </div>
           ))}
         </div>
