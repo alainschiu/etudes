@@ -757,7 +757,7 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
                           // Never render a real <a> with etudes:// — iOS would try to open it as a URL scheme
                           return <span onClick={e=>{e.stopPropagation();if(onWikiLinkClick)onWikiLinkClick({type:'note',target:decodeURIComponent(href.replace('etudes://',''))});}} style={{color:IKB,cursor:'pointer',textDecoration:'underline'}}>{children}</span>;
                         }
-                        return <a href={href} target="_blank" rel="noopener noreferrer" style={{color:LINK,textDecoration:'underline'}}>{children}</a>;
+                        return <a href={href} target="_blank" rel="noopener noreferrer" onTouchStart={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} onClick={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} style={{color:LINK,textDecoration:'underline'}}>{children}</a>;
                       },
                     }}>
                       {(note.body||'').replace(/\[\[(.+?)\]\]/g,(_,t)=>`[${t}](etudes://${t})`)}

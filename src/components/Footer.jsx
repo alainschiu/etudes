@@ -173,9 +173,18 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
 
 function AccelProgress({metronome}){if(!metronome.accel.enabled)return null;const s=metronome.bpm;const tgt=metronome.accel.targetBpm;const r=s>=tgt;const pct=r?100:Math.min(100,((s-60)/Math.max(1,tgt-60))*100);const u=metronome.accel.unit||'bar';return (<div className="mt-3 flex items-center gap-3"><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Accel</span><div className="flex-1 h-px relative" style={{background:LINE_MED}}><div className="absolute inset-y-0 left-0" style={{background:r?WARM:IKB,width:`${pct}%`,height:'1px'}}/></div><span className="tabular-nums shrink-0" style={{color:r?WARM:MUTED,fontSize:'10px'}}>{r?`▲ ${tgt}`:`${s} → ${tgt} · +${metronome.accel.stepBpm}/${metronome.accel.every}${u[0]}`}</span></div>);}
 
-export default function Footer({isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,attachDailyToPiece,todaySessions,items,settings}){
+export default function Footer({isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,attachDailyToPiece,todaySessions,items,settings,handleStartRecording}){
   const [quickNoteText,setQuickNoteText]=useState('');
   const [attachTarget,setAttachTarget]=useState('');
+  // Pulse-mode flash: snap on at beat, decay after 90ms
+  const [pulseFlash,setPulseFlash]=useState(-1);
+  const pulseTimerRef=useRef(null);
+  useEffect(()=>{
+    if(!isMobile||(metronome.visualMode||'bars')!=='pulse'||!metronome.running||currentBeat<0)return;
+    setPulseFlash(currentBeat);
+    if(pulseTimerRef.current)clearTimeout(pulseTimerRef.current);
+    pulseTimerRef.current=setTimeout(()=>setPulseFlash(-1),90);
+  },[currentBeat]);// eslint-disable-line react-hooks/exhaustive-deps
   // Recording elapsed timer (covers both daily and piece recording)
   const [recElapsed,setRecElapsed]=useState(0);
   useEffect(()=>{if(!isRecording&&!pieceRecordingItemId){setRecElapsed(0);return;}const start=Date.now();const id=setInterval(()=>setRecElapsed(Math.floor((Date.now()-start)/1000)),500);return()=>clearInterval(id);},[isRecording,pieceRecordingItemId]);
@@ -364,13 +373,13 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
           <div style={{flex:1,height:'48px',borderRadius:'4px',border:`1px solid ${metronome.running?IKB:LINE_STR}`,overflow:'hidden',display:'flex',minWidth:0}}>
             {/* Left zone — entire toggle surface (bars or pulse) */}
             {(metronome.visualMode||'bars')==='pulse'?(
-              /* Pulse mode: whole left area is a pulsing rectangle */
+              /* Pulse mode: whole left area flashes briefly on each beat then returns to dark */
               <button
                 onClick={()=>setMetronome(m=>({...m,running:!m.running}))}
                 style={{flex:'1 1 0',minWidth:0,border:'none',cursor:'pointer',padding:0,
-                  background: metronome.running&&currentBeat>=0 ? (currentBeat===0?IKB:`rgba(0,47,167,0.45)`) : 'transparent',
-                  boxShadow: metronome.running&&currentBeat===0 ? `0 0 18px ${IKB}90` : 'none',
-                  transition:'background 80ms ease-out, box-shadow 80ms ease-out',
+                  background: pulseFlash>=0 ? (pulseFlash===0?IKB:`rgba(0,47,167,0.55)`) : 'transparent',
+                  boxShadow: pulseFlash===0 ? `0 0 22px ${IKB}99` : 'none',
+                  transition: pulseFlash>=0 ? 'none' : 'background 200ms ease-out, box-shadow 200ms ease-out',
                 }}
               />
             ):(
@@ -406,7 +415,7 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
                 {/* BPM + time sig */}
                 <div style={{flexShrink:0,width:'46px',display:'flex',flexDirection:'column',alignItems:'flex-end',justifyContent:'center',padding:'0 8px 0 0',gap:'2px'}}>
                   <span style={{fontFamily:mono,fontSize:'14px',fontWeight:500,color:metronome.running?IKB:MUTED,lineHeight:1}}>{metronome.bpm}</span>
-                  <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px',color:metronome.running?IKB:FAINT,lineHeight:1}}>{metronome.beats}/{isDotSub?'♩.':metronome.noteValue}</span>
+                  <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'16px',color:metronome.running?IKB:FAINT,lineHeight:1}}>{metronome.beats}/{isDotSub?'♩.':metronome.noteValue}</span>
                 </div>
               </button>
             )}
