@@ -258,6 +258,58 @@ export default function TodayView(p){
   );
 }
 
+// ── Mobile item row — extracted so useLongPress is called at component top-level
+function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress}){
+  const isActiveAny = activeItemId === item.id && activeSessionId === session.id;
+  const isActiveWhole = isActiveAny && !activeSpotId;
+  const time = getItemTime(itemTimes, item.id);
+  const it = (session.itemTargets || {})[item.id] || null;
+  const asl = isActiveAny && activeSpotId ? (item.spots||[]).find(s=>s.id===activeSpotId)?.label : null;
+  const perf = nextPerformance(item.performances);
+  const hasSpots = (item.spots||[]).length > 0;
+  const timeColor = (it && time >= it*60) ? IKB : time > 0 ? MUTED : FAINT;
+  const longPress = useLongPress(() => onLongPress({...item, sessionId: session.id, it}));
+
+  return (
+    <div {...longPress} style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent',padding:'14px 20px',display:'flex',alignItems:'center',gap:'12px',minHeight:'44px',userSelect:'none'}}>
+      {/* Play / pulse dot */}
+      <button
+        onClick={e=>{e.stopPropagation();isActiveAny?stopItem():startItem(item.id,null,session.id);}}
+        disabled={dayClosed&&!isActiveAny}
+        style={{flexShrink:0,minWidth:'18px',minHeight:'18px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:dayClosed&&!isActiveAny?'not-allowed':'pointer',padding:0}}
+      >
+        {isActiveWhole
+          ? <div className="animate-pulse" style={{width:'8px',height:'8px',borderRadius:'999px',background:IKB,boxShadow:`0 0 6px ${IKB}`}}/>
+          : <Play size={11} strokeWidth={1.25} style={{color:FAINT,opacity:dayClosed?0.4:0.7}}/>
+        }
+      </button>
+      {/* Title + meta */}
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'17px',color:isActiveAny?TEXT:'rgba(212,206,195,0.9)',lineHeight:1.2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+          {displayTitle(item)}
+        </div>
+        {formatByline(item) && (
+          <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'12px',color:FAINT,marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+            {formatByline(item)}
+          </div>
+        )}
+        {(hasSpots || perf || asl) && (
+          <div style={{marginTop:'6px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
+            {asl && <span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:IKB}}>{asl}</span>}
+            {hasSpots && !asl && <span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:FAINT}}>{item.spots.length} spot{item.spots.length===1?'':'s'}</span>}
+            {perf && <span style={{marginLeft:'auto'}}><PerformanceChip perf={perf} compact/></span>}
+          </div>
+        )}
+      </div>
+      {/* Time + target */}
+      <div style={{flexShrink:0,textAlign:'right'}}>
+        <div style={{fontFamily:mono,fontSize:'12px',color:timeColor}}>{time>0?fmt(time):'—'}</div>
+        {it && <div style={{fontFamily:mono,fontSize:'9px',color:FAINT,marginTop:'2px'}}>/ {it}′</div>}
+      </div>
+    </div>
+  );
+}
+
 // ── Mobile accordion component ─────────────────────────────────────────────
 function TodayMobile(p){
   const {
@@ -446,59 +498,22 @@ function TodayMobile(p){
                     No pieces selected.
                   </div>
                 )}
-                {sessionItems.map(item => {
-                  const isActiveAny = activeItemId === item.id && activeSessionId === session.id;
-                  const isActiveWhole = isActiveAny && !activeSpotId;
-                  const time = getItemTime(itemTimes, item.id);
-                  const it = (session.itemTargets || {})[item.id] || null;
-                  const asl = isActiveAny && activeSpotId ? (item.spots||[]).find(s=>s.id===activeSpotId)?.label : null;
-                  const perf = nextPerformance(item.performances);
-                  const hasSpots = (item.spots||[]).length > 0;
-                  const timeColor = (it && time >= it*60) ? IKB : time > 0 ? MUTED : FAINT;
-                  // eslint-disable-next-line react-hooks/rules-of-hooks
-                  const longPress = useLongPress(() => setActionSheetItem({...item, sessionId: session.id, it}));
-
-                  return (
-                    <div key={item.id} {...longPress} style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent',padding:'14px 20px',display:'flex',alignItems:'center',gap:'12px',minHeight:'44px',userSelect:'none'}}>
-                      {/* Play / pulse dot */}
-                      <button
-                        onClick={e=>{e.stopPropagation();isActiveAny?stopItem():startItem(item.id,null,session.id);}}
-                        disabled={dayClosed&&!isActiveAny}
-                        style={{flexShrink:0,minWidth:'18px',minHeight:'18px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:dayClosed&&!isActiveAny?'not-allowed':'pointer',padding:0}}
-                      >
-                        {isActiveWhole
-                          ? <div className="animate-pulse" style={{width:'8px',height:'8px',borderRadius:'999px',background:IKB,boxShadow:`0 0 6px ${IKB}`}}/>
-                          : <Play size={11} strokeWidth={1.25} style={{color:dayClosed?FAINT:FAINT,opacity:dayClosed?0.4:0.7}}/>
-                        }
-                      </button>
-
-                      {/* Title + meta */}
-                      <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'17px',color:isActiveAny?TEXT:'rgba(212,206,195,0.9)',lineHeight:1.2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                          {displayTitle(item)}
-                        </div>
-                        {formatByline(item) && (
-                          <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'12px',color:FAINT,marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                            {formatByline(item)}
-                          </div>
-                        )}
-                        {(hasSpots || perf || asl) && (
-                          <div style={{marginTop:'6px',display:'flex',alignItems:'center',gap:'6px',flexWrap:'wrap'}}>
-                            {asl && <span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:IKB}}>{asl}</span>}
-                            {hasSpots && !asl && <span style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:FAINT}}>{item.spots.length} spot{item.spots.length===1?'':'s'}</span>}
-                            {perf && <span style={{marginLeft:'auto'}}><PerformanceChip perf={perf} compact/></span>}
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Time + target */}
-                      <div style={{flexShrink:0,textAlign:'right'}}>
-                        <div style={{fontFamily:mono,fontSize:'12px',color:timeColor}}>{time>0?fmt(time):'—'}</div>
-                        {it && <div style={{fontFamily:mono,fontSize:'9px',color:FAINT,marginTop:'2px'}}>/ {it}′</div>}
-                      </div>
-                    </div>
-                  );
-                })}
+                {sessionItems.map(item => (
+                  <MobileItemRow
+                    key={item.id}
+                    item={item}
+                    session={session}
+                    activeItemId={activeItemId}
+                    activeSpotId={activeSpotId}
+                    activeSessionId={activeSessionId}
+                    itemTimes={itemTimes}
+                    dayClosed={dayClosed}
+                    startItem={startItem}
+                    stopItem={stopItem}
+                    fmt={fmt}
+                    onLongPress={setActionSheetItem}
+                  />
+                ))}
 
                 {/* Quick add row */}
                 <div style={{padding:'10px 20px',borderBottom:`1px solid ${LINE}`,display:'flex',alignItems:'center',gap:'8px',minHeight:'44px'}}>
