@@ -8,10 +8,12 @@ export default function TopBar({onMenu, activeItemId, onSettings}) {
   return (
     <div
       style={{
-        height: '44px',
         display: 'flex',
-        alignItems: 'center',
-        padding: '0 8px',
+        alignItems: 'flex-end',
+        paddingTop: 'env(safe-area-inset-top, 0px)',
+        paddingBottom: '0px',
+        minHeight: 'calc(44px + env(safe-area-inset-top, 0px))',
+        padding: 'env(safe-area-inset-top, 0px) 8px 0',
         background: BG,
         borderBottom: `1px solid ${LINE}`,
         position: 'relative',
@@ -19,6 +21,8 @@ export default function TopBar({onMenu, activeItemId, onSettings}) {
         flexShrink: 0,
       }}
     >
+      {/* Inner row sits below status bar, always 44px tall */}
+      <div style={{display:'flex',alignItems:'center',width:'100%',height:'44px',position:'relative'}}>
       {/* Left — hamburger */}
       <button
         onClick={onMenu}
@@ -67,7 +71,7 @@ export default function TopBar({onMenu, activeItemId, onSettings}) {
             fontFamily: serif,
             fontStyle: 'italic',
             fontWeight: 400,
-            fontSize: '18px',
+            fontSize: '22px',
             letterSpacing: '-0.01em',
             color: TEXT,
           }}
@@ -96,6 +100,7 @@ export default function TopBar({onMenu, activeItemId, onSettings}) {
       >
         <MoreHorizontal size={18} strokeWidth={1.5} />
       </button>
+      </div>{/* end inner 44px row */}
     </div>
   );
 }
