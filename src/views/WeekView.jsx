@@ -2,10 +2,12 @@ import React, {useState} from 'react';
 import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import {BG, SURFACE, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, serif, sans} from '../constants/theme.js';
+import useViewport from '../hooks/useViewport.js';
 import {todayDateStr, shiftDate, getWeekStart} from '../lib/dates.js';
 import {DisplayHeader, Ring, MarkdownField} from '../components/shared.jsx';
 
 export default function WeekView(p){
+  const {isMobile}=useViewport();
   const {history,settings,weekActualSeconds,weekReflection,setWeekReflection,effectiveTotalToday,openLogEntry,nested}=p;
   const [weekOffset,setWeekOffset]=useState(0);
   const isCurrent=weekOffset===0;
@@ -44,5 +46,5 @@ export default function WeekView(p){
     {isCurrent&&(<><div className="pb-3 mb-5" style={{borderBottom:`1px solid ${LINE}`}}><div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>Working draft for Mon — Sun. Snapshots to Logs when the week rolls over.</div></div><div className="space-y-10">{fields.map(f=>(<div key={f.key}><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{f.label}</div><MarkdownField value={weekReflection[f.key]||''} onChange={v=>setWeekReflection({...weekReflection,[f.key]:v})} placeholder={f.key==='notes'?'What you noticed. What held you back.':'What you intend for next week.'} minHeight={144} style={{background:SURFACE}} showDeepLinkHint/></div>))}</div></>)}
   </div>);
   if(nested)return content;
-  return (<div className="max-w-4xl mx-auto px-12 py-14">{content}</div>);
+  return (<div className="max-w-4xl mx-auto px-12 py-14" style={isMobile?{paddingLeft:'20px',paddingRight:'20px',paddingTop:'12px',paddingBottom:'calc(var(--footer-height,160px) + 28px)'}:{}}>{content}</div>);
 }

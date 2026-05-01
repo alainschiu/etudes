@@ -2,10 +2,12 @@ import React, {useMemo, useState} from 'react';
 import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import {BG, SURFACE, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, serif, sans} from '../constants/theme.js';
+import useViewport from '../hooks/useViewport.js';
 import {todayDateStr} from '../lib/dates.js';
 import {DisplayHeader, Ring, MarkdownField} from '../components/shared.jsx';
 
 export default function MonthView(p){
+  const {isMobile}=useViewport();
   const {history,settings,monthActualSeconds,monthReflection,setMonthReflection,openLogEntry,effectiveTotalToday,nested}=p;
   const [monthOffset,setMonthOffset]=useState(0);
   const isCurrent=monthOffset===0;
@@ -37,5 +39,5 @@ export default function MonthView(p){
     {isCurrent&&(<><div className="pb-3 mb-5" style={{borderBottom:`1px solid ${LINE}`}}><div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>Working draft. Snapshots to Logs at month end.</div></div><div className="space-y-10">{fields.map(f=>(<div key={f.key}><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{f.label}</div><MarkdownField value={monthReflection[f.key]||''} onChange={v=>setMonthReflection({...monthReflection,[f.key]:v})} placeholder={f.key==='notes'?'What the month held.':'What you intend for next month.'} minHeight={144} style={{background:SURFACE}} showDeepLinkHint/></div>))}</div></>)}
   </div>);
   if(nested)return content;
-  return (<div className="max-w-4xl mx-auto px-12 py-14">{content}</div>);
+  return (<div className="max-w-4xl mx-auto px-12 py-14" style={isMobile?{paddingLeft:'20px',paddingRight:'20px',paddingTop:'12px',paddingBottom:'calc(var(--footer-height,160px) + 28px)'}:{}}>{content}</div>);
 }

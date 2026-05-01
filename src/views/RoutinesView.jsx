@@ -1,4 +1,5 @@
 import React, {useState, useRef} from 'react';
+import useViewport from '../hooks/useViewport.js';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
 import ArrowUp from 'lucide-react/dist/esm/icons/arrow-up';
@@ -15,6 +16,7 @@ import {toRoman} from '../lib/music.js';
 import {DisplayHeader, TargetEdit, ItemPickerPopup} from '../components/shared.jsx';
 
 export default function RoutinesView({routines,setRoutines,loadRoutine,setPromptModal,todaySessions,setView,items,loadedRoutineId}){
+  const {isMobile}=useViewport();
   const [expandedId,setExpandedId]=useState(null);const [pickerKey,setPickerKey]=useState(null);
   const [editingNameId,setEditingNameId]=useState(null);const [editingNameVal,setEditingNameVal]=useState('');const nameInputRef=useRef(null);
   const startEditName=(r,e)=>{e.stopPropagation();setEditingNameId(r.id);setEditingNameVal(r.name);setTimeout(()=>nameInputRef.current?.select(),0);};
@@ -33,13 +35,13 @@ export default function RoutinesView({routines,setRoutines,loadRoutine,setPrompt
   const removeItemFromRoutineSession=(rid,sidx,itemId)=>setRoutines(routines.map(r=>{if(r.id!==rid)return r;return{...r,sessions:r.sessions.map((s,i)=>{if(i!==sidx)return s;const nt={...(s.itemTargets||{})};delete nt[itemId];return{...s,itemIds:(s.itemIds||[]).filter(x=>x!==itemId),itemTargets:nt};})};}));
   const moveItemInRoutineSession=(rid,sidx,itemIdx,dir)=>setRoutines(routines.map(r=>{if(r.id!==rid)return r;return{...r,sessions:r.sessions.map((s,i)=>{if(i!==sidx)return s;const ids=[...(s.itemIds||[])];const ni=itemIdx+dir;if(ni<0||ni>=ids.length)return s;[ids[itemIdx],ids[ni]]=[ids[ni],ids[itemIdx]];return{...s,itemIds:ids};})};}));
 
-  return (<div className="max-w-4xl mx-auto px-12 py-14">
+  return (<div className="max-w-4xl mx-auto px-12 py-14" style={isMobile?{paddingLeft:'20px',paddingRight:'20px',paddingTop:'12px',paddingBottom:'calc(var(--footer-height,160px) + 28px)'}:{}}>
     <DisplayHeader eyebrow="Arrangements" title="Routines" right={<div className="flex items-end gap-3"><button onClick={createNew} className="uppercase flex items-center gap-2 px-3 py-2" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> New</button><button onClick={createFromToday} className="uppercase flex items-center gap-2 px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> From Today</button></div>}/>
     <div className="text-sm italic mb-8" style={{color:MUTED,fontFamily:serif,lineHeight:1.7,fontWeight:300}}>Named arrangements of sessions with specific pieces pinned and optional target times. Load one on Today to replace your current setup.</div>
     <div style={{borderTop:`1px solid ${LINE_STR}`}}>
       {routines.length===0&&<div className="py-10 text-center text-sm italic" style={{color:FAINT,fontFamily:serif}}>No routines yet.</div>}
       {routines.map(r=>{const expanded=expandedId===r.id;const isLoaded=loadedRoutineId===r.id;return (<div key={r.id} style={{borderBottom:`1px solid ${LINE}`}}>
-        <div onClick={()=>setExpandedId(expanded?null:r.id)} className="py-4 px-2 flex items-center gap-3 cursor-pointer" style={{background:expanded?SURFACE:'transparent'}}>
+        <div onClick={()=>setExpandedId(expanded?null:r.id)} className="py-4 px-2 flex items-center gap-3 cursor-pointer" style={{background:expanded?SURFACE:'transparent',minHeight:isMobile?'52px':undefined}}>
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-3 flex-wrap">
               {editingNameId===r.id?(<span className="flex items-baseline gap-2" onClick={e=>e.stopPropagation()}><input ref={nameInputRef} value={editingNameVal} onChange={e=>setEditingNameVal(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')commitName(r.id);if(e.key==='Escape')setEditingNameId(null);}} onBlur={()=>commitName(r.id)} autoFocus className="focus:outline-none pb-0.5" style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,fontSize:'1.4rem',background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_MED}`,minWidth:'160px'}}/><button onMouseDown={e=>{e.preventDefault();commitName(r.id);}} style={{color:IKB}}><Check className="w-3.5 h-3.5" strokeWidth={1.25}/></button></span>):(<span className="flex items-baseline gap-2 group/name"><span style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,fontSize:'1.4rem',color:TEXT}}>{r.name}</span><button onClick={e=>startEditName(r,e)} className="opacity-0 group-hover/name:opacity-100 transition-opacity" style={{color:FAINT}}><Pencil className="w-3 h-3" strokeWidth={1.25}/></button></span>)}

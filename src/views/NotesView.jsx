@@ -1,4 +1,5 @@
 import React, {useState, useMemo, useCallback, useEffect} from 'react';
+import useViewport from '../hooks/useViewport.js';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Plus from 'lucide-react/dist/esm/icons/plus';
@@ -108,6 +109,7 @@ function SidebarSection({label,open,onToggle,count,children}){
 
 // ── Main NotesView ────────────────────────────────────────────────────────
 export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes,programs,setSelectedProgramId,requestedNoteId,setRequestedNoteId}){
+  const {isMobile}=useViewport();
   const [activeCategoryId,setActiveCategoryId]=useState('__all');
   const [activeNoteId,setActiveNoteId]=useState(freeNotes[0]?.id);
 
@@ -236,6 +238,27 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
     :activeCategoryId==='__all'?'Notes'
     :activeCategoryId;
 
+  // ── Mobile: note list + expand-in-place + edit sheet ──────────────────
+  if(isMobile){
+    return <NotesMobile
+      freeNotes={freeNotes}
+      filtered={filtered}
+      noteCategories={noteCategories}
+      allTags={allTags}
+      activeCategoryId={activeCategoryId}
+      setActiveCategoryId={setActiveCategoryId}
+      query={query}
+      setQuery={setQuery}
+      tagSearch={tagSearch}
+      setTagSearch={setTagSearch}
+      addNote={addNote}
+      updateNote={updateNote}
+      deleteNote={deleteNote}
+      seedTestNotes={seedTestNotes}
+    />;
+  }
+
+  // ── Desktop view (unchanged) ───────────────────────────────────────────
   return (
     <div className="flex max-w-6xl mx-auto h-full">
       {/* ── Left sidebar — identical structure to Répertoire ── */}
@@ -636,6 +659,118 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Mobile notes view ─────────────────────────────────────────────────────
+function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes}){
+  const [expandedId,setExpandedId]=useState(null);
+  const [editSheetId,setEditSheetId]=useState(null);
+  const ZSHEET=40;
+
+  const ALL_CHIPS=[
+    {id:'__all',label:'All notes'},
+    {id:'__daily',label:'Daily'},
+    {id:'__repertoire',label:'Logs'},
+    ...noteCategories.map(c=>({id:c,label:c})),
+    ...allTags.slice(0,12).map(t=>({id:`#${t}`,label:`#${t}`,isTag:true})),
+  ];
+
+  const handleChip=(chip)=>{
+    if(chip.isTag){setTagSearch(tagSearch===chip.id.slice(1)?'':chip.id.slice(1));setActiveCategoryId('__all');}
+    else{setActiveCategoryId(chip.id);setTagSearch('');}
+  };
+
+  const editNote=freeNotes.find(n=>n.id===editSheetId);
+
+  const sheetStyle={
+    position:'fixed',bottom:0,left:0,right:0,height:'85vh',
+    background:BG,borderTop:`1px solid ${LINE_STR}`,zIndex:ZSHEET,
+    transform:editSheetId?'translateY(0)':'translateY(100%)',
+    transition:editSheetId?'transform 240ms ease-out':'transform 200ms ease-in',
+    display:'flex',flexDirection:'column',
+  };
+
+  return(
+    <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)'}}>
+      {/* Folder chip strip — horizontal scroll, momentum on iOS */}
+      <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch',scrollbarWidth:'none',WebkitScrollbarWidth:'none',padding:'12px 20px',borderBottom:`1px solid ${LINE}`}}>
+        <div style={{display:'flex',gap:'8px',flexShrink:0,minWidth:'max-content'}}>
+          {ALL_CHIPS.map(chip=>{
+            const active=chip.isTag?tagSearch===chip.id.slice(1):activeCategoryId===chip.id&&!tagSearch;
+            return(
+              <button key={chip.id} onClick={()=>handleChip(chip)} style={{flexShrink:0,padding:'4px 12px',border:`1px solid ${active?IKB:LINE_STR}`,borderRadius:'999px',background:active?IKB_SOFT:'transparent',cursor:'pointer',fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',textTransform:'uppercase',color:active?TEXT:FAINT,whiteSpace:'nowrap'}}>
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {/* Search bar */}
+      <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 20px',borderBottom:`1px solid ${LINE}`}}>
+        <Search className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
+        <input type="text" value={tagSearch?`#${tagSearch}`:query} onChange={e=>{const v=e.target.value;if(v.startsWith('#')){setTagSearch(v.slice(1));setQuery('');}else{setQuery(v);setTagSearch('');}}} placeholder="Search or #tag…" style={{flex:1,background:'transparent',border:'none',color:TEXT,fontFamily:serifText,fontStyle:'italic',fontSize:'14px',outline:'none'}}/>
+        {(query||tagSearch)&&<button onClick={()=>{setQuery('');setTagSearch('');}} style={{color:MUTED,background:'transparent',border:'none',cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase'}}>Clear</button>}
+      </div>
+      {/* Header + New */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 20px 4px'}}>
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'22px',color:TEXT,letterSpacing:'-0.01em'}}>
+          {activeCategoryId==='__all'&&!tagSearch?'Notes':activeCategoryId==='__daily'?'Daily':activeCategoryId==='__repertoire'?'Logs':tagSearch?`#${tagSearch}`:activeCategoryId}
+        </div>
+        <div style={{display:'flex',gap:'8px'}}>
+          {seedTestNotes&&<button onClick={seedTestNotes} style={{color:FAINT,fontFamily:sans,fontSize:'9px',letterSpacing:'0.18em',textTransform:'uppercase',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'4px 8px',cursor:'pointer'}}>Seed</button>}
+          <button onClick={addNote} style={{minWidth:'36px',minHeight:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid ${LINE_MED}`,cursor:'pointer',color:MUTED}}><Plus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
+        </div>
+      </div>
+      {/* Note list */}
+      <div>
+        {filtered.length===0&&<div style={{padding:'32px 20px',fontFamily:serifText,fontStyle:'italic',fontSize:'14px',color:FAINT,textAlign:'center'}}>No notes yet.</div>}
+        {filtered.map(note=>{
+          const isExpanded=expandedId===note.id;
+          const preview=(note.body||'').replace(/^#+\s*/gm,'').replace(/[*_`#\[\]]/g,'').trim();
+          return(
+            <div key={note.id} style={{borderBottom:`1px solid ${LINE}`,padding:'18px 20px 14px'}}>
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'12px',marginBottom:'6px',cursor:'pointer'}} onClick={()=>setExpandedId(isExpanded?null:note.id)}>
+                <div style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'20px',color:TEXT,lineHeight:1.2,flex:1,minWidth:0}}>{note.title||'Untitled'}</div>
+                <span style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',textTransform:'uppercase',color:FAINT,flexShrink:0,paddingTop:'4px'}}>{note.date}</span>
+              </div>
+              {!isExpanded&&preview&&<div onClick={()=>setExpandedId(note.id)} style={{fontFamily:serifText,fontSize:'14px',lineHeight:1.6,color:FAINT,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',cursor:'pointer'}}>{preview}</div>}
+              {isExpanded&&(
+                <div>
+                  <div style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.75,color:TEXT,marginTop:'4px',whiteSpace:'pre-wrap'}}>{note.body||''}</div>
+                  <div style={{display:'flex',alignItems:'center',gap:'12px',marginTop:'12px'}}>
+                    <button onClick={()=>setEditSheetId(note.id)} style={{display:'flex',alignItems:'center',gap:'4px',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'5px 10px',cursor:'pointer',color:MUTED}}>
+                      <Pencil className="w-2.5 h-2.5" strokeWidth={1.25}/><span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Edit</span>
+                    </button>
+                    <button onClick={()=>deleteNote(note.id)} style={{display:'flex',alignItems:'center',gap:'4px',background:'transparent',border:'none',cursor:'pointer',color:FAINT,padding:'5px 0'}}>
+                      <Trash2 className="w-2.5 h-2.5" strokeWidth={1.25}/><span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {/* Edit bottom sheet */}
+      {editSheetId&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:ZSHEET-1}} onClick={()=>setEditSheetId(null)}/>}
+      <div style={sheetStyle}>
+        <div style={{display:'flex',justifyContent:'center',padding:'12px 0 4px',flexShrink:0}}><div style={{width:'36px',height:'3px',background:LINE_STR,borderRadius:'999px'}}/></div>
+        {editNote&&(
+          <>
+            <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'8px 20px',borderBottom:`1px solid ${LINE}`,flexShrink:0}}>
+              <input value={editNote.title||''} onChange={e=>updateNote(editNote.id,{title:e.target.value})} style={{flex:1,background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:serifText,fontStyle:'italic',fontSize:'20px',outline:'none',paddingBottom:'2px',minWidth:0}} placeholder="Untitled"/>
+              <button onClick={()=>setEditSheetId(null)} style={{flexShrink:0,minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer'}}>
+                <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',color:IKB}}>Done</span>
+              </button>
+            </div>
+            <div style={{flex:1,overflow:'hidden'}}>
+              <MarkdownEditor value={editNote.body||''} onChange={val=>updateNote(editNote.id,{body:val,tags:parseTagsFromBody(val)})} placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`} minHeight={400} fontSize="16px"/>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

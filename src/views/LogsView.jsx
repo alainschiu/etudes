@@ -1,4 +1,5 @@
 import React, {useState, useMemo} from 'react';
+import useViewport from '../hooks/useViewport.js';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import X from 'lucide-react/dist/esm/icons/x';
@@ -14,11 +15,15 @@ import {displayTitle, formatByline, resolveHistoryItem} from '../lib/items.js';
 import {Waveform} from '../components/shared.jsx';
 
 export function LogsView(p){
-  const {history,items,openLogEntry,recordingMeta,settings}=p;const dailyTarget=settings?.dailyTarget||90;
+  const {isMobile}=useViewport();
+  const {history,items,openLogEntry,recordingMeta,settings,freeNotes}=p;const dailyTarget=settings?.dailyTarget||90;
   const dayMap=useMemo(()=>{const m={};history.forEach(h=>{if((h.kind||'day')==='day'&&h.date)m[h.date]={minutes:h.minutes||0,warmupMinutes:h.warmupMinutes||0};});return m;},[history]);const [query,setQuery]=useState('');const [kindFilter,setKindFilter]=useState('all');
   const allEntries=useMemo(()=>{const l=[];history.forEach(h=>{const k=h.kind||'day';if(k==='day'&&h.minutes>0)l.push({...h,kind:'day',sortKey:h.date});else if(k==='week')l.push({...h,sortKey:h.weekEnd||h.weekStart});else if(k==='month')l.push({...h,sortKey:h.month+'-31'});});l.sort((a,b)=>b.sortKey.localeCompare(a.sortKey));return l;},[history]);
   const q=query.trim().toLowerCase();const filtered=allEntries.filter(e=>{if(kindFilter!=='all'&&e.kind!==kindFilter)return false;if(!q)return true;if(e.kind==='day'){if((e.reflection||'').toLowerCase().includes(q))return true;const r=(e.items||[]).map(x=>resolveHistoryItem(x,items)).filter(Boolean);return r.some(it=>(it.title||'').toLowerCase().includes(q)||(it.composer||'').toLowerCase().includes(q)||(it.collection||'').toLowerCase().includes(q)||(it.note||'').toLowerCase().includes(q)||(it.spotsSnapshot||[]).some(sp=>(sp.label||'').toLowerCase().includes(q)));}return (e.notes||'').toLowerCase().includes(q)||(e.goals||'').toLowerCase().includes(q);});
   const kinds=[{k:'all',l:'All'},{k:'day',l:'Daily'},{k:'week',l:'Weekly'},{k:'month',l:'Monthly'}];
+  if(isMobile){
+    return <LogsMobile filtered={filtered} query={query} setQuery={setQuery} kindFilter={kindFilter} setKindFilter={setKindFilter} openLogEntry={openLogEntry} dailyTarget={dailyTarget} kinds={kinds}/>;
+  }
   return (<div className="px-12 py-14 max-w-6xl mx-auto"><div className="mb-12 flex items-end justify-between gap-6"><div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Archive</div><h1 className="leading-none" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(32px,6vw,56px)',letterSpacing:'-0.02em'}}><span style={{fontStyle:'italic'}}>Practice logs</span></h1></div></div><div className="flex items-center gap-3 mb-5 py-3" style={{borderTop:`1px solid ${LINE_STR}`,borderBottom:`1px solid ${LINE}`}}><Search className="w-3.5 h-3.5 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/><input type="text" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search logs…" className="flex-1 text-sm focus:outline-none min-w-0" style={{background:'transparent',color:TEXT}}/>{query&&<button onClick={()=>setQuery('')} className="uppercase" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.22em'}}>Clear</button>}</div><div className="flex items-center gap-2 mb-5">{kinds.map(k=>(<button key={k.k} onClick={()=>setKindFilter(k.k)} className="uppercase px-3 py-1.5" style={{color:kindFilter===k.k?TEXT:MUTED,border:`1px solid ${kindFilter===k.k?IKB:LINE_MED}`,background:kindFilter===k.k?IKB_SOFT:'transparent',fontSize:'10px',letterSpacing:'0.22em'}}>{k.l}</button>))}<div className="ml-auto uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>{filtered.length} {q?`match${filtered.length===1?'':'es'}`:'entr'+(filtered.length===1?'y':'ies')}</div></div>{filtered.length===0?(<div className="py-16 text-center italic" style={{color:FAINT,fontFamily:serif,fontSize:'15px',borderTop:`1px solid ${LINE_STR}`,borderBottom:`1px solid ${LINE_STR}`}}>{q?'No logs match your search.':'No practice logs yet.'}</div>):(<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" style={{borderTop:`1px solid ${LINE_STR}`,paddingTop:'20px'}}>{filtered.map(entry=>{if(entry.kind==='day'){const d=new Date(entry.date);const rec=recordingMeta?.[entry.date];const practMin=entry.minutes-(entry.warmupMinutes||0);const wm=entry.warmupMinutes||0;const timeColor=practMin>=dailyTarget?IKB:MUTED;return (<button key={`day-${entry.date}`} onClick={()=>openLogEntry(entry)} className="text-left p-5 flex flex-col w-full" style={{border:`1px solid ${LINE}`,borderTop:`2px solid ${LINE_MED}`,background:'transparent',transition:'background 120ms',height:'240px',overflow:'hidden'}} onMouseEnter={e=>e.currentTarget.style.background=SURFACE} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><div className="flex items-center justify-between mb-3 shrink-0"><span className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Daily · {d.toLocaleDateString('en-US',{weekday:'long'})}</span><span className="flex items-center gap-1.5">{wm>0&&<Clock className="w-3 h-3 shrink-0" strokeWidth={1.5} style={{color:'#C97E4A'}}/>}{practMin>0&&<span className="tabular-nums" style={{fontFamily:mono,color:timeColor,fontSize:'11px',letterSpacing:'0.04em'}}>{practMin}′</span>}</span></div><div className="italic mb-0.5 shrink-0" style={{fontFamily:serif,fontWeight:300,color:DIM,fontSize:'16px'}}>{d.toLocaleDateString('en-US',{month:'long'})}</div><div className="tabular-nums shrink-0" style={{fontFamily:serif,fontWeight:300,fontSize:'44px',lineHeight:1.05,letterSpacing:'-0.02em'}}>{d.getDate()}</div><div className="uppercase mt-1 mb-3 shrink-0" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.22em'}}>{d.getFullYear()}</div><div className="mb-2 shrink-0" style={{borderTop:`1px solid ${LINE}`}}/><div className="flex-1 overflow-hidden min-h-0">{rec&&<div className="mb-2 flex items-center gap-2"><Music className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:IKB}}/><span className="uppercase" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.25em'}}>Recording</span></div>}{entry.reflection&&<p className="italic" style={{fontFamily:serif,fontSize:'13px',lineHeight:1.6,color:MUTED,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{entry.reflection}</p>}</div></button>);}if(entry.kind==='week'){const ws=new Date(entry.weekStart);const we=new Date(entry.weekEnd);const sameMonth=ws.getMonth()===we.getMonth();const weekPrefix=sameMonth?ws.toLocaleDateString('en-US',{month:'long'}):`${ws.toLocaleDateString('en-US',{month:'short'})} — ${we.toLocaleDateString('en-US',{month:'short'})}`;const weekHero=`${ws.getDate()} — ${we.getDate()}`;const weekDots=[];{const sd=new Date(ws);for(let i=0;i<7;i++){const dd=new Date(sd);dd.setDate(sd.getDate()+i);const key=dd.toISOString().split('T')[0];const day=dayMap[key];const pm=day?day.minutes-(day.warmupMinutes||0):0;weekDots.push({practiced:!!day&&day.minutes>0,pm});}}return (<button key={`week-${entry.weekStart}`} onClick={()=>openLogEntry(entry)} className="text-left p-5 flex flex-col w-full" style={{border:`1px solid ${LINE}`,borderTop:`2px solid ${FAINT}`,background:'transparent',transition:'background 120ms',height:'240px',overflow:'hidden'}} onMouseEnter={e=>e.currentTarget.style.background=SURFACE} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><div className="flex items-center justify-between mb-3 shrink-0"><span className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Weekly reflection</span><div className="flex items-center gap-1">{weekDots.filter(d=>d.practiced).map((d,i)=>(<div key={i} style={{width:'7px',height:'7px',borderRadius:'50%',background:d.pm>=dailyTarget?IKB:`${IKB}55`}}/>))}</div></div><div className="italic mb-0.5 shrink-0" style={{fontFamily:serif,fontWeight:300,color:DIM,fontSize:'16px'}}>{weekPrefix}</div><div className="shrink-0" style={{fontFamily:serif,fontWeight:300,fontSize:'44px',lineHeight:1.05,letterSpacing:'-0.02em'}}>{weekHero}</div><div className="uppercase mt-1 mb-3 shrink-0" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.22em'}}>{ws.getFullYear()}</div><div className="mb-2 shrink-0" style={{borderTop:`1px solid ${LINE}`}}/><div className="flex-1 overflow-hidden min-h-0">{entry.notes&&<p className="italic" style={{fontFamily:serif,fontSize:'13px',lineHeight:1.6,color:MUTED,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{entry.notes}</p>}</div></button>);}if(entry.kind==='month'){const [y,m]=entry.month.split('-');const mn=new Date(+y,+m-1,1);{const firstDayOff=(mn.getDay()+6)%7;const daysInMonth=new Date(+y,+m,0).getDate();const moCells=[];for(let i=0;i<firstDayOff;i++)moCells.push(null);for(let d=1;d<=daysInMonth;d++){const key=`${y}-${m}-${String(d).padStart(2,'0')}`;const day=dayMap[key];const pm=day?day.minutes-(day.warmupMinutes||0):0;moCells.push({practiced:!!day&&day.minutes>0,pm});}
 return (<button key={`month-${entry.month}`} onClick={()=>openLogEntry(entry)} className="text-left p-5 flex flex-col w-full" style={{border:`1px solid ${LINE}`,borderTop:`2px solid ${IKB}`,background:'transparent',transition:'background 120ms',height:'240px',overflow:'hidden'}} onMouseEnter={e=>e.currentTarget.style.background=SURFACE} onMouseLeave={e=>e.currentTarget.style.background='transparent'}><div className="flex gap-3 shrink-0 mb-3"><div className="flex-1 min-w-0"><div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Monthly reflection</div><div className="italic mb-0.5" style={{fontFamily:serif,fontWeight:300,color:DIM,fontSize:'16px'}}>Q{Math.ceil(+m/3)}</div><div className="italic" style={{fontFamily:serif,fontWeight:300,fontSize:'44px',lineHeight:1.05,letterSpacing:'-0.02em'}}>{mn.toLocaleDateString('en-US',{month:'long'})}</div><div className="uppercase mt-1" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.22em'}}>{y}</div></div><div className="shrink-0 pt-0.5"><div style={{display:'grid',gridTemplateColumns:'repeat(7,7px)',gap:'2px'}}>{moCells.map((cell,i)=>(<div key={i} style={{width:'7px',height:'7px',borderRadius:'50%',background:cell?.practiced?(cell.pm>=dailyTarget?IKB:`${IKB}55`):'transparent'}}/>))}</div></div></div><div className="mb-2 shrink-0" style={{borderTop:`1px solid ${LINE}`}}/><div className="flex-1 overflow-hidden min-h-0">{entry.notes&&<p className="italic" style={{fontFamily:serif,fontSize:'13px',lineHeight:1.6,color:MUTED,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{entry.notes}</p>}</div></button>);}}return null;})}</div>)}</div>);
 }
@@ -63,3 +68,99 @@ function DayLogContent({dayData,items,recordingMeta,deleteRecording,onClose}){
 function WeekLogContent({entry,onClose}){const ws=new Date(entry.weekStart);const we=new Date(entry.weekEnd);const md=logMd();return (<><div className="px-8 py-6 flex items-start justify-between gap-3 shrink-0" style={{borderBottom:`1px solid ${LINE_MED}`}}><div><div className="uppercase" style={{color:IKB,fontSize:'10px',letterSpacing:'0.32em'}}>Weekly reflection</div><h3 className="mt-1" style={{fontFamily:serif,fontWeight:300,fontSize:'28px',letterSpacing:'-0.015em',fontStyle:'italic'}}>{ws.toLocaleDateString('en-US',{month:'short',day:'numeric'})} — {we.toLocaleDateString('en-US',{month:'short',day:'numeric'})}</h3><div className="uppercase mt-1" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.22em'}}>{ws.getFullYear()}</div></div><button onClick={onClose} style={{color:MUTED}}><X className="w-4 h-4" strokeWidth={1.25}/></button></div><div className="flex-1 overflow-auto etudes-scroll px-8 py-8 space-y-8">{entry.notes&&(<div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Notes, observations, wins</div><div style={{fontFamily:serif,fontSize:'16px',lineHeight:1.85,fontWeight:300}}><ReactMarkdown remarkPlugins={[remarkGfm]} components={md}>{entry.notes}</ReactMarkdown></div></div>)}{entry.goals&&(<div className="pt-6" style={{borderTop:`1px solid ${LINE}`}}><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Goals for next week</div><div style={{fontFamily:serif,fontSize:'16px',lineHeight:1.85,fontWeight:300}}><ReactMarkdown remarkPlugins={[remarkGfm]} components={md}>{entry.goals}</ReactMarkdown></div></div>)}{!entry.notes&&!entry.goals&&<div className="italic" style={{color:FAINT,fontFamily:serif}}>Empty reflection.</div>}</div></>);}
 
 function MonthLogContent({entry,onClose}){const [y,m]=entry.month.split('-');const mn=new Date(+y,+m-1,1);const md=logMd();return (<><div className="px-8 py-6 flex items-start justify-between gap-3 shrink-0" style={{borderBottom:`1px solid ${LINE_MED}`}}><div><div className="uppercase" style={{color:IKB,fontSize:'10px',letterSpacing:'0.32em'}}>Monthly reflection</div><h3 className="mt-1" style={{fontFamily:serif,fontWeight:300,fontSize:'32px',letterSpacing:'-0.015em'}}><span style={{fontStyle:'italic'}}>{mn.toLocaleDateString('en-US',{month:'long'})}</span> <span style={{color:FAINT}}>{y}</span></h3></div><button onClick={onClose} style={{color:MUTED}}><X className="w-4 h-4" strokeWidth={1.25}/></button></div><div className="flex-1 overflow-auto etudes-scroll px-8 py-8 space-y-8">{entry.notes&&(<div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Notes, observations, wins</div><div style={{fontFamily:serif,fontSize:'16px',lineHeight:1.85,fontWeight:300}}><ReactMarkdown remarkPlugins={[remarkGfm]} components={md}>{entry.notes}</ReactMarkdown></div></div>)}{entry.goals&&(<div className="pt-6" style={{borderTop:`1px solid ${LINE}`}}><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Goals for next month</div><div style={{fontFamily:serif,fontSize:'16px',lineHeight:1.85,fontWeight:300}}><ReactMarkdown remarkPlugins={[remarkGfm]} components={md}>{entry.goals}</ReactMarkdown></div></div>)}{!entry.notes&&!entry.goals&&<div className="italic" style={{color:FAINT,fontFamily:serif}}>Empty reflection.</div>}</div></>);}
+
+// ── Mobile logs: vertical day list ────────────────────────────────────────
+const SECTION_COLORS={tech:'rgba(196,188,175,0.5)',piece:IKB,play:'#C97E4A',study:'rgba(196,188,175,0.25)'};
+function LogsMobile({filtered,query,setQuery,kindFilter,setKindFilter,openLogEntry,dailyTarget,kinds}){
+  // Group by month/year
+  const grouped=useMemo(()=>{
+    const m={};
+    filtered.forEach(e=>{
+      let key;
+      if(e.kind==='day')key=e.date.slice(0,7);
+      else if(e.kind==='week')key=(e.weekEnd||e.weekStart||'').slice(0,7);
+      else key=e.month||'';
+      if(!m[key])m[key]=[];
+      m[key].push(e);
+    });
+    return Object.entries(m).sort((a,b)=>b[0].localeCompare(a[0]));
+  },[filtered]);
+
+  return(
+    <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)'}}>
+      {/* Header */}
+      <div style={{padding:'16px 20px 8px'}}>
+        <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',marginBottom:'2px'}}>Archive</div>
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'28px',letterSpacing:'-0.01em',color:TEXT}}>Practice logs</div>
+      </div>
+      {/* Search */}
+      <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 20px',borderTop:`1px solid ${LINE_STR}`,borderBottom:`1px solid ${LINE}`}}>
+        <Search className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
+        <input type="text" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search logs…" style={{flex:1,background:'transparent',border:'none',color:TEXT,fontSize:'14px',outline:'none'}}/>
+        {query&&<button onClick={()=>setQuery('')} style={{color:MUTED,background:'transparent',border:'none',cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase'}}>Clear</button>}
+      </div>
+      {/* Kind filter */}
+      <div style={{display:'flex',gap:'6px',padding:'10px 20px',borderBottom:`1px solid ${LINE}`,overflowX:'auto',WebkitOverflowScrolling:'touch'}}>
+        {kinds.map(k=>(
+          <button key={k.k} onClick={()=>setKindFilter(k.k)} style={{flexShrink:0,padding:'4px 10px',border:`1px solid ${kindFilter===k.k?IKB:LINE_MED}`,background:kindFilter===k.k?IKB_SOFT:'transparent',color:kindFilter===k.k?TEXT:MUTED,fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',textTransform:'uppercase',cursor:'pointer'}}>{k.l}</button>
+        ))}
+      </div>
+      {/* Groups */}
+      {filtered.length===0&&<div style={{padding:'32px 20px',textAlign:'center',fontFamily:serif,fontStyle:'italic',fontSize:'14px',color:FAINT}}>{query?'No logs match.':'No practice logs yet.'}</div>}
+      {grouped.map(([monthKey,entries])=>{
+        const [y,m]=monthKey.split('-');
+        const monthName=monthKey?new Date(+y,+(m||1)-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'}):'';
+        return(
+          <div key={monthKey}>
+            <div className="uppercase" style={{padding:'12px 20px 6px',color:DIM,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',fontWeight:500}}>{monthName}</div>
+            {entries.map(entry=>{
+              if(entry.kind==='day'){
+                const d=new Date(entry.date);
+                const practMin=(entry.minutes||0)-(entry.warmupMinutes||0);
+                const isRest=practMin===0&&(entry.minutes||0)===0;
+                const timeColor=practMin>=dailyTarget?TEXT:MUTED;
+                const secs=entry.items||[];
+                const totals={tech:0,piece:0,play:0,study:0};
+                let hasAny=false;
+                secs.forEach(it=>{if(it.type&&totals[it.type]!==undefined){totals[it.type]+=(it.minutes||0);hasAny=true;}});
+                const totalForBar=Object.values(totals).reduce((a,b)=>a+b,0)||practMin||1;
+                return(
+                  <button key={entry.date} onClick={()=>openLogEntry(entry)} style={{display:'flex',alignItems:'flex-start',gap:'12px',width:'100%',padding:'18px 20px',borderBottom:`1px solid ${LINE}`,background:'transparent',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:LINE,cursor:'pointer',textAlign:'left'}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',gap:'8px',marginBottom:'6px'}}>
+                        <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',color:isRest?WARM:FAINT}}>{d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})}</span>
+                        <span style={{fontFamily:mono,fontSize:'13px',color:isRest?WARM:timeColor,flexShrink:0}}>{isRest?'rest':practMin>0?`${practMin}′`:'—'}</span>
+                      </div>
+                      {!isRest&&practMin>0&&(
+                        <div style={{height:'2px',background:LINE,borderRadius:'1px',overflow:'hidden',marginBottom:'8px'}}>
+                          {['tech','piece','play','study'].map(t=>{
+                            const w=hasAny?((totals[t]/totalForBar)*100):0;
+                            return w>0?<span key={t} style={{display:'inline-block',height:'100%',width:`${w}%`,background:SECTION_COLORS[t]||DIM}}/>:null;
+                          })}
+                        </div>
+                      )}
+                      {entry.reflection&&<div style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px',lineHeight:1.6,color:MUTED,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden',marginTop:'2px'}}>{entry.reflection.replace(/^#+\s*/gm,'').replace(/[*_`#]/g,'')}</div>}
+                    </div>
+                  </button>
+                );
+              }
+              if(entry.kind==='week'||entry.kind==='month'){
+                const label=entry.kind==='week'?'Weekly reflection':'Monthly reflection';
+                const text=entry.notes||entry.goals||'';
+                return(
+                  <button key={entry.kind==='week'?entry.weekStart:entry.month} onClick={()=>openLogEntry(entry)} style={{display:'flex',alignItems:'flex-start',gap:'12px',width:'100%',padding:'18px 20px',borderBottom:`1px solid ${LINE}`,background:'transparent',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:LINE,cursor:'pointer',textAlign:'left'}}>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div className="uppercase" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',color:FAINT,marginBottom:'6px'}}>{label}</div>
+                      {text&&<div style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px',lineHeight:1.6,color:MUTED,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{text.replace(/^#+\s*/gm,'').replace(/[*_`#]/g,'')}</div>}
+                    </div>
+                  </button>
+                );
+              }
+              return null;
+            })}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
