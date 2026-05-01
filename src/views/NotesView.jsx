@@ -8,6 +8,7 @@ import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import Folder from 'lucide-react/dist/esm/icons/folder';
 import FolderPlus from 'lucide-react/dist/esm/icons/folder-plus';
 import X from 'lucide-react/dist/esm/icons/x';
+import SlidersHorizontal from 'lucide-react/dist/esm/icons/sliders-horizontal';
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import Calendar from 'lucide-react/dist/esm/icons/calendar';
 import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
@@ -16,6 +17,7 @@ import Pencil from 'lucide-react/dist/esm/icons/pencil';
 import Check from 'lucide-react/dist/esm/icons/check';
 import Eye from 'lucide-react/dist/esm/icons/eye';
 import {TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, SURFACE, SURFACE2, BG, serif, serifText, sans, LINK} from '../constants/theme.js';
+const Z_SHEET_NOTES = 40;
 import {todayDateStr} from '../lib/dates.js';
 import {displayTitle, formatByline} from '../lib/items.js';
 import {resolveWikiLink, parseTagsFromBody} from '../lib/notes.js';
@@ -667,6 +669,7 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
 function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes}){
   const [expandedId,setExpandedId]=useState(null);
   const [editSheetId,setEditSheetId]=useState(null);
+  const [filterSheetOpen,setFilterSheetOpen]=useState(false);
   const ZSHEET=40;
 
   const ALL_CHIPS=[
@@ -720,6 +723,7 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
         </div>
         <div style={{display:'flex',gap:'8px'}}>
           {seedTestNotes&&<button onClick={seedTestNotes} style={{color:FAINT,fontFamily:sans,fontSize:'9px',letterSpacing:'0.18em',textTransform:'uppercase',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'4px 8px',cursor:'pointer'}}>Seed</button>}
+          <button onClick={()=>setFilterSheetOpen(true)} style={{width:'36px',height:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid ${activeCategoryId!=='__all'||tagSearch?IKB:LINE_MED}`,borderRadius:'4px',cursor:'pointer',color:activeCategoryId!=='__all'||tagSearch?IKB:MUTED}} aria-label="Filter notes"><SlidersHorizontal size={14} strokeWidth={1.25}/></button>
           <button onClick={addNote} style={{minWidth:'36px',minHeight:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid ${LINE_MED}`,cursor:'pointer',color:MUTED}}><Plus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
         </div>
       </div>
@@ -753,6 +757,44 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
           );
         })}
       </div>
+      {/* Filter bottom sheet */}
+      {filterSheetOpen&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:ZSHEET-1}} onClick={()=>setFilterSheetOpen(false)}/>}
+      <div style={{position:'fixed',bottom:0,left:0,right:0,background:BG,borderTop:`1px solid ${LINE_STR}`,borderRadius:'12px 12px 0 0',zIndex:ZSHEET,paddingBottom:'env(safe-area-inset-bottom,16px)',transform:filterSheetOpen?'translateY(0)':'translateY(100%)',transition:filterSheetOpen?'transform 240ms ease-out':'transform 200ms ease-in',maxHeight:'70vh',overflowY:'auto'}}>
+        <div style={{width:'36px',height:'3px',background:LINE_STR,borderRadius:'999px',margin:'12px auto 0'}}/>
+        <div style={{padding:'16px 24px 12px',borderBottom:`1px solid ${LINE}`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.28em',color:FAINT}}>Filter notes</span>
+          {(activeCategoryId!=='__all'||tagSearch)&&<button onClick={()=>{setActiveCategoryId('__all');setTagSearch('');setFilterSheetOpen(false);}} style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:MUTED,background:'transparent',border:'none',cursor:'pointer'}}>Clear</button>}
+        </div>
+        {/* Folders */}
+        {[
+          {id:'__all',label:'All notes'},
+          {id:'__daily',label:'Daily Reflections'},
+          {id:'__repertoire',label:'Repertoire Logs'},
+          ...noteCategories.map(c=>({id:c,label:c})),
+        ].map(folder=>{
+          const active=activeCategoryId===folder.id&&!tagSearch;
+          return(
+            <button key={folder.id} onClick={()=>{setActiveCategoryId(folder.id);setTagSearch('');setFilterSheetOpen(false);}} style={{display:'flex',alignItems:'center',width:'100%',padding:'12px 24px',minHeight:'44px',background:active?IKB_SOFT:'transparent',borderLeft:`2px solid ${active?IKB:'transparent'}`,border:'none',borderLeftWidth:'2px',borderLeftStyle:'solid',borderLeftColor:active?IKB:'transparent',cursor:'pointer',textAlign:'left',fontFamily:sans,fontSize:'13px',fontWeight:500,color:active?TEXT:MUTED}}>
+              {folder.label}
+            </button>
+          );
+        })}
+        {/* Tags */}
+        {allTags.length>0&&(
+          <div style={{padding:'12px 24px 0',borderTop:`1px solid ${LINE}`}}>
+            <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,marginBottom:'10px'}}>Tags</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'8px',paddingBottom:'12px'}}>
+              {allTags.map(t=>{
+                const active=tagSearch===t;
+                return(
+                  <button key={t} onClick={()=>{setTagSearch(active?'':t);setActiveCategoryId('__all');setFilterSheetOpen(false);}} style={{padding:'4px 12px',border:`1px solid ${active?IKB:LINE_STR}`,borderRadius:'999px',background:active?IKB_SOFT:'transparent',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:active?TEXT:FAINT,cursor:'pointer'}}>#{t}</button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Edit bottom sheet */}
       {editSheetId&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:ZSHEET-1}} onClick={()=>setEditSheetId(null)}/>}
       <div style={sheetStyle}>

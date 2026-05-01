@@ -7,7 +7,7 @@ import StickyNote from 'lucide-react/dist/esm/icons/sticky-note';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import {
   BG, TEXT, MUTED, FAINT, DIM, LINE, LINE_STR,
-  IKB, IKB_SOFT, serif, sans, mono,
+  IKB, IKB_SOFT, serif, serifText, sans, mono,
   Z_DRAWER, Z_DRAWER_SCRIM,
 } from '../constants/theme.js';
 
@@ -129,19 +129,20 @@ export default function Drawer({
                   <div style={{minWidth: 0}}>
                     <div style={{
                       fontFamily: sans,
-                      fontSize: '15px',
+                      fontSize: '11px',
                       fontWeight: 500,
+                      letterSpacing: '0.18em',
+                      textTransform: 'uppercase',
                       color: active ? TEXT : MUTED,
                       lineHeight: 1.2,
                     }}>
                       {label}
                     </div>
                     <div style={{
-                      fontFamily: sans,
-                      fontSize: '9px',
-                      fontWeight: 500,
-                      letterSpacing: '0.28em',
-                      textTransform: 'uppercase',
+                      fontFamily: serifText,
+                      fontStyle: 'italic',
+                      fontWeight: 400,
+                      fontSize: '11px',
                       color: FAINT,
                       marginTop: '2px',
                     }}>

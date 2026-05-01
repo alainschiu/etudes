@@ -1,5 +1,6 @@
 import React, {useState, useMemo} from 'react';
 import useViewport from '../hooks/useViewport.js';
+import SlidersHorizontal from 'lucide-react/dist/esm/icons/sliders-horizontal';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import X from 'lucide-react/dist/esm/icons/x';
@@ -55,7 +56,7 @@ export function LogDrawer({entry,dayData,items,recordingMeta,freeNotes,onClose,d
   const ad=kind==='day'?(dayData?.date||entry?.date||null):kind==='week'?(entry?.weekStart||null):kind==='month'?(entry?.month?entry.month+'-15':null):null;
   const rn=useMemo(()=>{if(!freeNotes||!ad||!kind)return [];try{const a=new Date(ad.length===7?ad+'-15':ad);const ms=3*86400000;const w=kind==='month'?20*86400000:(kind==='week'?10*86400000:ms);return freeNotes.filter(n=>{try{const d=new Date(n.date);return Math.abs(d-a)<=w;}catch{return false;}}).slice(0,5);}catch{return [];}},[freeNotes,ad,kind]);
   if(!kind||(kind==='day'&&!dayData)){return (<div className="fixed inset-0 z-50 flex"><div className="flex-1" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(4px)'}} onClick={onClose}/><div className="w-full max-w-2xl flex flex-col" style={{background:BG,borderLeft:`1px solid ${LINE_STR}`}}><div className="px-8 py-6 flex items-center justify-between" style={{borderBottom:`1px solid ${LINE_MED}`}}><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>No data</div><button onClick={onClose} style={{color:MUTED}}><X className="w-4 h-4" strokeWidth={1.25}/></button></div><div className="flex-1 flex items-center justify-center px-8"><p className="italic text-center" style={{color:FAINT,fontFamily:serif,fontSize:'17px',lineHeight:1.7}}>No data for this entry.</p></div></div></div>);}
-  return (<div className="fixed inset-0 z-50 flex"><div className="flex-1" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(4px)'}} onClick={onClose}/><div className="w-full max-w-2xl flex flex-col overflow-hidden" style={{background:BG,borderLeft:`1px solid ${LINE_STR}`}}>{kind==='day'&&<DayLogContent dayData={dayData} items={items} recordingMeta={recordingMeta} deleteRecording={deleteRecording} onClose={onClose}/>}{kind==='week'&&<WeekLogContent entry={entry} onClose={onClose}/>}{kind==='month'&&<MonthLogContent entry={entry} onClose={onClose}/>}{rn.length>0&&(<div className="px-8 py-5 shrink-0" style={{borderTop:`1px solid ${LINE}`,background:SURFACE}}><div className="uppercase mb-3 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}><StickyNote className="w-3 h-3" strokeWidth={1.25}/> Notes from around this time</div><div className="space-y-2">{rn.map(n=>(<div key={n.id} className="py-2" style={{borderBottom:`1px solid ${LINE}`}}><div className="flex items-baseline justify-between gap-2"><div style={{fontSize:'13px',fontWeight:300}}>{n.title}</div><div className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>{n.date}</div></div>{n.body&&<div className="italic mt-1" style={{color:MUTED,fontFamily:serif,fontSize:'12px',lineHeight:1.5}}>{n.body.slice(0,100)+(n.body.length>100?'…':'')}</div>}</div>))}</div></div>)}</div></div>);
+  return (<div className="fixed inset-0 z-50 flex"><div className="flex-1" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(4px)'}} onClick={onClose}/><div className="w-full max-w-2xl flex flex-col overflow-hidden" style={{background:BG,borderLeft:`1px solid ${LINE_STR}`}}>{kind==='day'&&<DayLogContent dayData={dayData} items={items} recordingMeta={recordingMeta} deleteRecording={deleteRecording} onClose={onClose}/>}{kind==='week'&&<WeekLogContent entry={entry} onClose={onClose}/>}{kind==='month'&&<MonthLogContent entry={entry} onClose={onClose}/>}{rn.length>0&&(<div className="px-8 py-5 shrink-0" style={{borderTop:`1px solid ${LINE}`,background:SURFACE,marginTop:'36px'}}><div className="uppercase mb-3 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}><StickyNote className="w-3 h-3" strokeWidth={1.25}/> Notes from around this time</div><div className="space-y-2">{rn.map(n=>(<div key={n.id} className="py-2" style={{borderBottom:`1px solid ${LINE}`}}><div className="flex items-baseline justify-between gap-2"><div style={{fontSize:'13px',fontWeight:300}}>{n.title}</div><div className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>{n.date}</div></div>{n.body&&<div className="italic mt-1" style={{color:MUTED,fontFamily:serif,fontSize:'12px',lineHeight:1.5}}>{n.body.slice(0,100)+(n.body.length>100?'…':'')}</div>}</div>))}</div></div>)}</div></div>);
 }
 
 function DayLogContent({dayData,items,recordingMeta,deleteRecording,onClose}){
@@ -72,6 +73,9 @@ function MonthLogContent({entry,onClose}){const [y,m]=entry.month.split('-');con
 // ── Mobile logs: vertical day list ────────────────────────────────────────
 const SECTION_COLORS={tech:'rgba(196,188,175,0.5)',piece:IKB,play:'#C97E4A',study:'rgba(196,188,175,0.25)'};
 function LogsMobile({filtered,query,setQuery,kindFilter,setKindFilter,openLogEntry,dailyTarget,kinds}){
+  const [filterSheetOpen,setFilterSheetOpen]=useState(false);
+  const ZSHEET=40;
+  const hasFilters=kindFilter!=='all';
   // Group by month/year
   const grouped=useMemo(()=>{
     const m={};
@@ -93,11 +97,12 @@ function LogsMobile({filtered,query,setQuery,kindFilter,setKindFilter,openLogEnt
         <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',marginBottom:'2px'}}>Archive</div>
         <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'28px',letterSpacing:'-0.01em',color:TEXT}}>Practice logs</div>
       </div>
-      {/* Search */}
+      {/* Search + filter button */}
       <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 20px',borderTop:`1px solid ${LINE_STR}`,borderBottom:`1px solid ${LINE}`}}>
         <Search className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
         <input type="text" value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search logs…" style={{flex:1,background:'transparent',border:'none',color:TEXT,fontSize:'14px',outline:'none'}}/>
         {query&&<button onClick={()=>setQuery('')} style={{color:MUTED,background:'transparent',border:'none',cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase'}}>Clear</button>}
+        <button onClick={()=>setFilterSheetOpen(true)} style={{width:'36px',height:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid ${hasFilters?IKB:LINE_MED}`,borderRadius:'4px',cursor:'pointer',color:hasFilters?IKB:MUTED,flexShrink:0}} aria-label="Filter logs"><SlidersHorizontal size={14} strokeWidth={1.25}/></button>
       </div>
       {/* Kind filter */}
       <div style={{display:'flex',gap:'6px',padding:'10px 20px',borderBottom:`1px solid ${LINE}`,overflowX:'auto',WebkitOverflowScrolling:'touch'}}>
@@ -106,6 +111,25 @@ function LogsMobile({filtered,query,setQuery,kindFilter,setKindFilter,openLogEnt
         ))}
       </div>
       {/* Groups */}
+      {/* Filter bottom sheet */}
+      {filterSheetOpen&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:ZSHEET-1}} onClick={()=>setFilterSheetOpen(false)}/>}
+      <div style={{position:'fixed',bottom:0,left:0,right:0,background:BG,borderTop:`1px solid ${LINE_STR}`,borderRadius:'12px 12px 0 0',zIndex:ZSHEET,paddingBottom:'env(safe-area-inset-bottom,16px)',transform:filterSheetOpen?'translateY(0)':'translateY(100%)',transition:filterSheetOpen?'transform 240ms ease-out':'transform 200ms ease-in'}}>
+        <div style={{width:'36px',height:'3px',background:LINE_STR,borderRadius:'999px',margin:'12px auto 0'}}/>
+        <div style={{padding:'16px 24px 12px',borderBottom:`1px solid ${LINE}`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.28em',color:FAINT}}>Filter logs</span>
+          {hasFilters&&<button onClick={()=>{setKindFilter('all');setFilterSheetOpen(false);}} style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:MUTED,background:'transparent',border:'none',cursor:'pointer'}}>Clear</button>}
+        </div>
+        {/* Type / kind filter */}
+        <div style={{padding:'16px 24px',borderBottom:`1px solid ${LINE}`}}>
+          <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,marginBottom:'10px'}}>Type</div>
+          <div style={{display:'flex',flexWrap:'wrap',gap:'8px'}}>
+            {kinds.map(k=>(
+              <button key={k.k} onClick={()=>{setKindFilter(k.k);setFilterSheetOpen(false);}} style={{padding:'4px 12px',border:`1px solid ${kindFilter===k.k?IKB:LINE_STR}`,borderRadius:'999px',background:kindFilter===k.k?IKB_SOFT:'transparent',fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',textTransform:'uppercase',color:kindFilter===k.k?TEXT:FAINT,cursor:'pointer'}}>{k.l}</button>
+            ))}
+          </div>
+        </div>
+      </div>
+
       {filtered.length===0&&<div style={{padding:'32px 20px',textAlign:'center',fontFamily:serif,fontStyle:'italic',fontSize:'14px',color:FAINT}}>{query?'No logs match.':'No practice logs yet.'}</div>}
       {grouped.map(([monthKey,entries])=>{
         const [y,m]=monthKey.split('-');
