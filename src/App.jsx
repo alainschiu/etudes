@@ -20,7 +20,7 @@ import Lock from 'lucide-react/dist/esm/icons/lock';
 import Settings from 'lucide-react/dist/esm/icons/settings';
 import Keyboard from 'lucide-react/dist/esm/icons/keyboard';
 
-import {BG,SURFACE,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,serif,sans,mono} from './constants/theme.js';
+import {BG,SURFACE,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,serif,serifText,sans,mono} from './constants/theme.js';
 import {SECTION_CONFIG,APP_VERSION} from './constants/config.js';
 import {getItemTime,displayTitle,formatByline} from './lib/items.js';
 import {DisplayHeader,Ring,StageLabels,Waveform,ItemPickerPopup,TargetEdit,TimeWithTarget,ItemTimeEditor,fmtSpotTime,PerformanceChip,SpotRow,SpotsBlock,Tooltip} from './components/shared.jsx';
@@ -108,7 +108,7 @@ export default function Etudes(){
                 {items.filter(i=>workingOn.includes(i.id)).map((i,idx)=>{const isActive=activeItemId===i.id;const asl=isActive&&activeSpotId?(i.spots||[]).find(s=>s.id===activeSpotId)?.label:null;return (
                   <div key={i.id} className="py-4" style={idx!==0?{borderTop:`1px solid ${LINE}`}:{}}>
                     <div className="flex items-start justify-between gap-2 mb-1.5"><div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.25em'}}>{SECTION_CONFIG[i.type].label}</div><button onClick={()=>toggleWorking(i.id)} className="shrink-0" style={{color:DIM}}><X className="w-3 h-3" strokeWidth={1.25}/></button></div>
-                    <div className="text-sm leading-snug mb-0.5">{displayTitle(i)}</div>
+                    <div className="leading-snug mb-0.5" style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'15px',lineHeight:1.2}}>{displayTitle(i)}</div>
                     {formatByline(i)&&<div className="text-xs italic mb-2" style={{color:MUTED,fontFamily:serif}}>{formatByline(i)}</div>}
                     {asl&&<div className="italic mt-1 flex items-center gap-1" style={{color:IKB,fontFamily:serif,fontSize:'11px'}}><Crosshair className="w-2.5 h-2.5" strokeWidth={1.25}/>{asl}</div>}
                     <div className="flex items-center justify-between mt-3"><span className="font-mono tabular-nums" style={{color:MUTED,fontSize:'11px'}}>{fmt(getItemTime(itemTimes,i.id))}</span><button onClick={()=>isActive?stopItem():startItem(i.id)} disabled={dayClosed&&!isActive} className="uppercase flex items-center gap-1.5" style={{color:isActive?IKB:(dayClosed?FAINT:TEXT),fontSize:'10px',letterSpacing:'0.22em',cursor:(dayClosed&&!isActive)?'not-allowed':'pointer'}}>{isActive?<><Pause className="w-3 h-3" strokeWidth={1.25}/> Pause</>:<><Play className="w-3 h-3" strokeWidth={1.25}/> Start</>}</button></div>
