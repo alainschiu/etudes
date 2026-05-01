@@ -527,7 +527,7 @@ function TodayMobile(p){
           </div>
         </div>
         {/* "Today" display heading */}
-        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1,color:TEXT}}>
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1,color:TEXT,paddingBottom:'12px'}}>
           Today
         </div>
       </div>
