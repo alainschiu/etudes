@@ -36,7 +36,17 @@ export default function RoutinesView({routines,setRoutines,loadRoutine,setPrompt
   const moveItemInRoutineSession=(rid,sidx,itemIdx,dir)=>setRoutines(routines.map(r=>{if(r.id!==rid)return r;return{...r,sessions:r.sessions.map((s,i)=>{if(i!==sidx)return s;const ids=[...(s.itemIds||[])];const ni=itemIdx+dir;if(ni<0||ni>=ids.length)return s;[ids[itemIdx],ids[ni]]=[ids[ni],ids[itemIdx]];return{...s,itemIds:ids};})};}));
 
   return (<div className="max-w-4xl mx-auto px-12 py-14" style={isMobile?{paddingLeft:'20px',paddingRight:'20px',paddingTop:'12px',paddingBottom:'calc(var(--footer-height,160px) + 28px)'}:{}}>
-    <DisplayHeader eyebrow="Arrangements" title="Routines" right={<div className="flex items-end gap-3"><button onClick={createNew} className="uppercase flex items-center gap-2 px-3 py-2" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> New</button><button onClick={createFromToday} className="uppercase flex items-center gap-2 px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> From Today</button></div>}/>
+    {isMobile?(
+      <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:'16px'}}>
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>Routines</div>
+        <div style={{display:'flex',gap:'6px',paddingBottom:'8px'}}>
+          <button onClick={createNew} className="uppercase flex items-center gap-1.5 px-2.5 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> New</button>
+          <button onClick={createFromToday} className="uppercase flex items-center gap-1.5 px-2.5 py-1.5" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> Today</button>
+        </div>
+      </div>
+    ):(
+      <DisplayHeader eyebrow="Arrangements" title="Routines" right={<div className="flex items-end gap-3"><button onClick={createNew} className="uppercase flex items-center gap-2 px-3 py-2" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> New</button><button onClick={createFromToday} className="uppercase flex items-center gap-2 px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> From Today</button></div>}/>
+    )}
     <div className="text-sm italic mb-8" style={{color:MUTED,fontFamily:serif,lineHeight:1.7,fontWeight:300}}>Named arrangements of sessions with specific pieces pinned and optional target times. Load one on Today to replace your current setup.</div>
     <div style={{borderTop:`1px solid ${LINE_STR}`}}>
       {routines.length===0&&<div className="py-10 text-center text-sm italic" style={{color:FAINT,fontFamily:serif}}>No routines yet.</div>}

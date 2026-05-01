@@ -716,12 +716,12 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
         <input type="text" value={tagSearch?`#${tagSearch}`:query} onChange={e=>{const v=e.target.value;if(v.startsWith('#')){setTagSearch(v.slice(1));setQuery('');}else{setQuery(v);setTagSearch('');}}} placeholder="Search or #tag…" style={{flex:1,background:'transparent',border:'none',color:TEXT,fontFamily:serifText,fontStyle:'italic',fontSize:'14px',outline:'none'}}/>
         {(query||tagSearch)&&<button onClick={()=>{setQuery('');setTagSearch('');}} style={{color:MUTED,background:'transparent',border:'none',cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase'}}>Clear</button>}
       </div>
-      {/* Header + New */}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 20px 4px'}}>
-        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'22px',color:TEXT,letterSpacing:'-0.01em'}}>
+      {/* Heading row — after search, correct order */}
+      <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',padding:'16px 20px 12px'}}>
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>
           {activeCategoryId==='__all'&&!tagSearch?'Notes':activeCategoryId==='__daily'?'Daily':activeCategoryId==='__repertoire'?'Logs':tagSearch?`#${tagSearch}`:activeCategoryId}
         </div>
-        <div style={{display:'flex',gap:'8px'}}>
+        <div style={{display:'flex',gap:'8px',alignItems:'center',paddingBottom:'8px'}}>
           {seedTestNotes&&<button onClick={seedTestNotes} style={{color:FAINT,fontFamily:sans,fontSize:'9px',letterSpacing:'0.18em',textTransform:'uppercase',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'4px 8px',cursor:'pointer'}}>Seed</button>}
           <button onClick={()=>setFilterSheetOpen(true)} style={{width:'36px',height:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid ${activeCategoryId!=='__all'||tagSearch?IKB:LINE_MED}`,borderRadius:'4px',cursor:'pointer',color:activeCategoryId!=='__all'||tagSearch?IKB:MUTED}} aria-label="Filter notes"><SlidersHorizontal size={14} strokeWidth={1.25}/></button>
           <button onClick={addNote} style={{minWidth:'36px',minHeight:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid ${LINE_MED}`,cursor:'pointer',color:MUTED}}><Plus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>

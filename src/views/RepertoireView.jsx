@@ -573,7 +573,7 @@ function MobileRepertoireList({items,sorted,grouped,groupByCollection,setGroupBy
     <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)'}}>
       {/* Header row */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 20px 8px'}}>
-        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'28px',letterSpacing:'-0.01em',color:TEXT}}>Répertoire</div>
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>Répertoire</div>
         <div style={{display:'flex',gap:'8px'}}>
           <button onClick={()=>setFilterSheetOpen(true)} style={{minWidth:'36px',minHeight:'36px',display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${hasFilters?IKB:LINE_MED}`,background:hasFilters?IKB_SOFT:'transparent',color:hasFilters?IKB:MUTED,cursor:'pointer'}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>

@@ -130,7 +130,7 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
           onBlur={e=>update({name:e.target.value.trim()||'Untitled program'})}
           placeholder="Untitled program"
           className="w-full focus:outline-none bg-transparent"
-          style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(32px,5vw,36px)',letterSpacing:'-0.02em',color:TEXT,lineHeight:1.1}}
+          style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:isMobile?'clamp(48px,13vw,56px)':'clamp(32px,5vw,36px)',letterSpacing:'-0.02em',color:TEXT,lineHeight:1.05}}
         />
       </div>
 
@@ -342,15 +342,20 @@ function ProgramsList({programs,items,onSelect,onNew}){
 
   return(
     <div className="max-w-4xl mx-auto px-12 py-14" style={isMobile?{paddingLeft:'20px',paddingRight:'20px',paddingTop:'12px',paddingBottom:'calc(var(--footer-height,160px) + 28px)'}:{}}>
-      <DisplayHeader eyebrow="Programs" title="Programs" right={
-        <button
-          onClick={onNew}
-          className="uppercase flex items-center gap-2 px-4 py-2 shrink-0"
-          style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:TEXT,border:`1px solid ${LINE_STR}`,background:'transparent',marginTop:'auto'}}
-        >
-          <Plus className="w-3 h-3" strokeWidth={1.25}/> New program
-        </button>
-      }/>
+      {isMobile?(
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:'16px'}}>
+          <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>Programs</div>
+          <button onClick={onNew} className="uppercase flex items-center gap-1.5 px-2.5 py-1.5 shrink-0" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:TEXT,border:`1px solid ${LINE_STR}`,background:'transparent',marginBottom:'8px'}}>
+            <Plus className="w-3 h-3" strokeWidth={1.25}/> New
+          </button>
+        </div>
+      ):(
+        <DisplayHeader eyebrow="Programs" title="Programs" right={
+          <button onClick={onNew} className="uppercase flex items-center gap-2 px-4 py-2 shrink-0" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:TEXT,border:`1px solid ${LINE_STR}`,background:'transparent',marginTop:'auto'}}>
+            <Plus className="w-3 h-3" strokeWidth={1.25}/> New program
+          </button>
+        }/>
+      )}
 
       {sorted.length===0&&(
         <div className="py-20 text-center">

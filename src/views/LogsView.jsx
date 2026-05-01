@@ -123,7 +123,7 @@ function LogsMobile({filtered,query,setQuery,kindFilter,setKindFilter,openLogEnt
       {/* Header */}
       <div style={{padding:'16px 20px 8px'}}>
         <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',marginBottom:'2px'}}>Archive</div>
-        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'28px',letterSpacing:'-0.01em',color:TEXT}}>Practice logs</div>
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>Practice logs</div>
       </div>
       {/* Search + filter button */}
       <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 20px',borderTop:`1px solid ${LINE_STR}`,borderBottom:`1px solid ${LINE}`}}>

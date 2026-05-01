@@ -16,6 +16,12 @@ export default function ReviewView(props){
 
   return (
     <div className="max-w-4xl mx-auto px-12 pt-14 pb-14" style={isMobile?{paddingLeft:'20px',paddingRight:'20px',paddingTop:'12px',paddingBottom:'calc(var(--footer-height,160px) + 28px)'}:{}}>
+      {/* Mobile: display heading + scale toggle on same row */}
+      {isMobile&&(
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT,marginBottom:'12px'}}>
+          {scale==='week'?'This week':scale==='month'?'This month':'Review'}
+        </div>
+      )}
       {/* Scale toggle — two quiet words, IKB underline on active — part of the heading area */}
       <div
         className="flex items-center gap-6 mb-3"
