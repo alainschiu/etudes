@@ -8,17 +8,17 @@ export default function TopBar({onMenu, activeItemId, onSettings}) {
   return (
     <div
       style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
         display: 'flex',
         alignItems: 'flex-end',
-        paddingTop: 'env(safe-area-inset-top, 0px)',
-        paddingBottom: '0px',
         minHeight: 'calc(44px + env(safe-area-inset-top, 0px))',
         padding: 'env(safe-area-inset-top, 0px) 8px 0',
         background: BG,
         borderBottom: `1px solid ${LINE}`,
-        position: 'relative',
         zIndex: Z_TOPBAR,
-        flexShrink: 0,
       }}
     >
       {/* Inner row sits below status bar, always 44px tall */}

@@ -149,7 +149,7 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
 
   const todayRec=recordingMeta?.[todayKey];
 
-  return (<footer className="shrink-0" style={{borderTop:`1px solid ${LINE_MED}`,background:BG}}>
+  return (<footer className={isMobile?'':'shrink-0'} style={{borderTop:`1px solid ${LINE_MED}`,background:BG,...(isMobile&&{position:'fixed',bottom:0,left:0,right:0,zIndex:Z_FOOTER})}}>
     <DevToolsBar/>
     {droneExpanded&&<DronePanel drone={drone} setDrone={setDrone} toggleDrone={toggleDrone} setDroneExpanded={setDroneExpanded}/>}
     {recExpanded&&(
