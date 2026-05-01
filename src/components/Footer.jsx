@@ -340,12 +340,12 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
         )}
 
         {/* Row 2 — Transport */}
-        <div style={{display:'flex',alignItems:'center',gap:'10px',padding:'12px 18px 10px'}}>
+        <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'10px 14px 8px'}}>
           {/* Play / Pause */}
           <button
             onClick={()=>activeItemId?stopItem():undefined}
             style={{
-              width:'48px',height:'48px',borderRadius:'999px',flexShrink:0,
+              width:'44px',height:'44px',borderRadius:'999px',flexShrink:0,
               border:`1px solid ${activeItemId?IKB:LINE_STR}`,
               background:activeItemId?IKB_SOFT:'transparent',
               color:activeItemId?IKB:MUTED,
@@ -361,23 +361,23 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
           </button>
 
           {/* Metronome widget */}
-          <div style={{flex:1,height:'40px',borderRadius:'4px',border:`1px solid ${metronome.running?IKB:LINE_STR}`,overflow:'hidden',display:'flex',minWidth:0}}>
+          <div style={{flex:1,height:'48px',borderRadius:'4px',border:`1px solid ${metronome.running?IKB:LINE_STR}`,overflow:'hidden',display:'flex',minWidth:0}}>
             {/* Zone 1 — beat bars (onClick = toggle) */}
             <button
               onClick={()=>setMetronome(m=>({...m,running:!m.running}))}
-              style={{flex:'1 1 0',minWidth:0,display:'flex',alignItems:'flex-end',gap:'2px',padding:'0 8px 6px',background:'transparent',border:'none',cursor:'pointer',overflow:'hidden'}}
+              style={{flex:'1 1 0',minWidth:0,display:'flex',alignItems:'flex-end',gap:'2px',padding:'0 8px 8px',background:'transparent',border:'none',cursor:'pointer',overflow:'hidden'}}
             >
               {Array.from({length:Math.min(metronome.beats,8)}).map((_,i)=>{
                 const isDotSub2=metronome.subdivision==='dot';
                 const effectiveSub2=isDotSub2?1:(typeof metronome.subdivision==='number'?metronome.subdivision:1);
                 const isA=metronome.running&&currentBeat===i;
                 const isBeat1=i===0;
-                return(
-                  <div key={i} style={{flex:1,display:'flex',alignItems:'flex-end',gap:'1px',height:'28px'}}>
+                  return(
+                  <div key={i} style={{flex:1,display:'flex',alignItems:'flex-end',gap:'1px',height:'34px'}}>
                     {/* downbeat bar */}
                     <div style={{
                       flex:1,
-                      height:isA&&isBeat1?'28px':isA?'20px':isBeat1?'18px':'13px',
+                      height:isA&&isBeat1?'34px':isA?'24px':isBeat1?'22px':'16px',
                       background:isA?IKB:isBeat1?DIM:`rgba(244,238,227,0.20)`,
                       borderRadius:'1px',
                       transition:isA?'none':'height 150ms ease-out',
@@ -416,26 +416,26 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
           <button
             onClick={handleRecordClick}
             disabled={dayClosed&&!anyRecording}
-            style={{width:'40px',height:'40px',borderRadius:'999px',flexShrink:0,border:`1px solid ${anyRecording?REC:'transparent'}`,background:anyRecording?'rgba(169,50,38,0.10)':'transparent',color:anyRecording?REC:(dayClosed?FAINT:MUTED),display:'flex',alignItems:'center',justifyContent:'center',cursor:dayClosed&&!anyRecording?'not-allowed':'pointer'}}
+            style={{width:'36px',height:'36px',borderRadius:'999px',flexShrink:0,border:`1px solid ${anyRecording?REC:'transparent'}`,background:anyRecording?'rgba(169,50,38,0.10)':'transparent',color:anyRecording?REC:(dayClosed?FAINT:MUTED),display:'flex',alignItems:'center',justifyContent:'center',cursor:dayClosed&&!anyRecording?'not-allowed':'pointer'}}
           >
-            {anyRecording?<Square size={15} strokeWidth={1.25} fill="currentColor"/>:<Mic size={15} strokeWidth={1.25}/>}
+            {anyRecording?<Square size={14} strokeWidth={1.25} fill="currentColor"/>:<Mic size={14} strokeWidth={1.25}/>}
           </button>
 
           {/* Tuner / Drone */}
           <button
             onClick={()=>setDroneExpanded(x=>!x)}
-            style={{width:'40px',height:'40px',borderRadius:'999px',flexShrink:0,border:`1px solid ${drone.running?IKB:'transparent'}`,background:drone.running?IKB_SOFT:'transparent',color:drone.running?IKB:MUTED,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+            style={{width:'36px',height:'36px',borderRadius:'999px',flexShrink:0,border:`1px solid ${drone.running?IKB:'transparent'}`,background:drone.running?IKB_SOFT:'transparent',color:drone.running?IKB:MUTED,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
             aria-label="Tuning"
           >
-            <AudioWaveform size={15} strokeWidth={1.25}/>
+            <AudioWaveform size={14} strokeWidth={1.25}/>
           </button>
 
           {/* Quick add / note */}
           <button
             onClick={()=>setQuickNoteOpen(true)}
-            style={{width:'40px',height:'40px',borderRadius:'999px',flexShrink:0,border:'1px solid transparent',background:'transparent',color:MUTED,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+            style={{width:'36px',height:'36px',borderRadius:'999px',flexShrink:0,border:'1px solid transparent',background:'transparent',color:MUTED,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
           >
-            <MessageSquarePlus size={15} strokeWidth={1.25}/>
+            <MessageSquarePlus size={14} strokeWidth={1.25}/>
           </button>
         </div>
 
