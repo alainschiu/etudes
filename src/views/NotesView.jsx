@@ -753,7 +753,10 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
                       h3:({children})=><h3 style={{fontSize:'1em',fontWeight:400,marginBottom:'0.3em',marginTop:'0.6em',opacity:0.8}}>{children}</h3>,
                       a:({href,children})=>{
                         const isWiki=href&&href.startsWith('etudes://');
-                        if(isWiki&&onWikiLinkClick){return <span onClick={()=>onWikiLinkClick({type:'note',target:href.replace('etudes://','')})} style={{color:IKB,cursor:'pointer',textDecoration:'underline'}}>{children}</span>;}
+                        if(isWiki){
+                          // Never render a real <a> with etudes:// — iOS would try to open it as a URL scheme
+                          return <span onClick={e=>{e.stopPropagation();if(onWikiLinkClick)onWikiLinkClick({type:'note',target:decodeURIComponent(href.replace('etudes://',''))});}} style={{color:IKB,cursor:'pointer',textDecoration:'underline'}}>{children}</span>;
+                        }
                         return <a href={href} target="_blank" rel="noopener noreferrer" style={{color:LINK,textDecoration:'underline'}}>{children}</a>;
                       },
                     }}>
