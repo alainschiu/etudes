@@ -399,8 +399,8 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
               })}
             </button>
             {/* Zone 2 — BPM + time sig (display only, no click) */}
-            <div style={{flexShrink:0,width:'52px',display:'flex',flexDirection:'column',alignItems:'flex-end',justifyContent:'center',padding:'0 8px',pointerEvents:'none'}}>
-              <span style={{fontFamily:mono,fontSize:'16px',fontWeight:500,color:metronome.running?IKB:MUTED,lineHeight:1}}>{metronome.bpm}</span>
+            <div style={{flexShrink:0,width:'42px',display:'flex',flexDirection:'column',alignItems:'flex-end',justifyContent:'center',padding:'0 6px',pointerEvents:'none'}}>
+              <span style={{fontFamily:mono,fontSize:'14px',fontWeight:500,color:metronome.running?IKB:MUTED,lineHeight:1}}>{metronome.bpm}</span>
               <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'11px',color:metronome.running?IKB:FAINT,lineHeight:1,marginTop:'2px'}}>{metronome.beats}/{isDotSub?'♩.':metronome.noteValue}</span>
             </div>
             {/* Zone 3 — chevron (onClick = sheet) */}
