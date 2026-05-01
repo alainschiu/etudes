@@ -182,7 +182,8 @@ function createWikiCompletion(itemsRef, historyRef) {
     if (!before) return null;
     // Require at least 2 chars after [[ before auto-showing (explicit = Ctrl+Space)
     const query = before.text.slice(2);
-    if (!ctx.explicit && query.length < 1) return null;
+    // Show completions immediately after [[ (no minimum query length)
+    if (!ctx.explicit && query.length < 0) return null;
 
     const items = itemsRef.current || [];
     const history = historyRef.current || [];
@@ -275,7 +276,7 @@ export function MarkdownEditor({
       EditorView.lineWrapping,
       buildBaseTheme(fontSize, minHeight),
       createWikiLinkPlugin(clickRef),
-      autocompletion({ override: [createWikiCompletion(itemsRef, historyRef)] }),
+      autocompletion({ override: [createWikiCompletion(itemsRef, historyRef)], activateOnTyping: true }),
     ];
     return exts;
   // Recreate only when layout hints change; all callbacks via refs
