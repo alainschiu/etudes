@@ -27,8 +27,9 @@ export default function useMetronome(){
       const vol=accent==='strong'?base:accent==='medium'?base*0.65:accent==='weak'?base*0.45:base*0.27;
       const isAccent=accent==='strong'||accent==='medium';
       const osc=ctx.createOscillator();const gain=ctx.createGain();
-      const f=metronome.sound==='wood'?(isAccent?900:600):metronome.sound==='beep'?(isAccent?1800:1200):(isAccent?1500:1000);
-      osc.frequency.value=f;osc.type=metronome.sound==='wood'?'triangle':'sine';
+      const sound=soundRef.current;
+      const f=sound==='wood'?(isAccent?900:600):sound==='beep'?(isAccent?1800:1200):(isAccent?1500:1000);
+      osc.frequency.value=f;osc.type=sound==='wood'?'triangle':'sine';
       gain.gain.setValueAtTime(vol,t);
       gain.gain.exponentialRampToValueAtTime(0.001,t+0.06);
       osc.connect(gain);gain.connect(ctx.destination);
@@ -41,9 +42,18 @@ export default function useMetronome(){
   const nextBeatTimeRef=useRef(0);      // audioCtx.currentTime for next beat to schedule
   const rafRef=useRef(null);            // RAF id
   const schedTimerRef=useRef(null);     // setTimeout id for scheduler loop
-  const metroStateRef=useRef(metronome);
   const bpmRef=useRef(metronome.bpm);
-  useEffect(()=>{metroStateRef.current=metronome;bpmRef.current=metronome.bpm;},[metronome]);
+  const beatsRef=useRef(metronome.beats);
+  const subRef=useRef(metronome.subdivision);
+  const soundRef=useRef(metronome.sound);
+  const compoundRef=useRef(metronome.compoundGroup);
+  const accelRef=useRef(metronome.accel);
+  useEffect(()=>{bpmRef.current=metronome.bpm;},[metronome.bpm]);
+  useEffect(()=>{beatsRef.current=metronome.beats;},[metronome.beats]);
+  useEffect(()=>{subRef.current=metronome.subdivision;},[metronome.subdivision]);
+  useEffect(()=>{soundRef.current=metronome.sound;},[metronome.sound]);
+  useEffect(()=>{compoundRef.current=metronome.compoundGroup;},[metronome.compoundGroup]);
+  useEffect(()=>{accelRef.current=metronome.accel;},[metronome.accel]);
 
   const accelCounterRef=useRef(0);
   const accelAccRef=useRef(0);
@@ -68,10 +78,9 @@ export default function useMetronome(){
     audioCtxRef.current?.resume();
 
     const ctx=ensureAudio();
-    const m=metroStateRef.current;
-    const isDot=m.subdivision==='dot';
-    const effectiveSub=isDot?1:(typeof m.subdivision==='number'?m.subdivision:1);
-    const compound=m.compoundGroup||0;
+    const isDot=subRef.current==='dot';
+    const effectiveSub=isDot?1:(typeof subRef.current==='number'?subRef.current:1);
+    const compound=compoundRef.current||0;
 
     let tc=0;
     accelAccRef.current=0;accelCounterRef.current=0;metroWasRunningRef.current=true;
@@ -86,31 +95,16 @@ export default function useMetronome(){
 
     const schedule=()=>{
       const ctx2=audioCtxRef.current;if(!ctx2)return;
-      const m2=metroStateRef.current;
-      const lookahead=0.25; // seconds
+      const lookahead=0.25;
       while(nextBeatTimeRef.current<ctx2.currentTime+lookahead){
-        const bi=Math.floor(tc/effectiveSub)%m2.beats;
+        const bi=Math.floor(tc/effectiveSub)%beatsRef.current;
         const si=tc%effectiveSub;
         const t=nextBeatTimeRef.current;
-        // Schedule audio
         if(si===0){const accent=bi===0?'strong':(compound>1&&bi%compound===0)?'medium':'weak';playClick(accent,t);}
         else if(effectiveSub>1){playClick('sub',t);}
-        // Push visual marker
         scheduledBeatsRef.current.push({beat:bi,sub:si,time:t});
-        // Accel
-        if(si===0&&m2.accel.enabled&&bpmRef.current<m2.accel.targetBpm){
-          const unit=m2.accel.unit||'bar';
-          const beatsPerInterval=unit==='bar'?(m2.beats*(m2.accel.every||1)):(m2.accel.every||1);
-          const rate=(m2.accel.stepBpm||1)/beatsPerInterval;
-          accelAccRef.current+=rate;
-          if(accelAccRef.current>=1){
-            const inc=Math.floor(accelAccRef.current);
-            accelAccRef.current-=inc;
-            const nb=Math.min(m2.accel.targetBpm,bpmRef.current+inc);
-            bpmRef.current=nb;
-            setMetronome(prev=>({...prev,bpm:nb}));
-          }
-        }
+        const accel=accelRef.current;
+        if(si===0&&accel.enabled&&bpmRef.current<accel.targetBpm){const unit=accel.unit||'bar';const beatsPerInterval=unit==='bar'?(beatsRef.current*(accel.every||1)):(accel.every||1);const rate=(accel.stepBpm||1)/beatsPerInterval;accelAccRef.current+=rate;if(accelAccRef.current>=1){const inc=Math.floor(accelAccRef.current);accelAccRef.current-=inc;const nb=Math.min(accel.targetBpm,bpmRef.current+inc);bpmRef.current=nb;setMetronome(prev=>({...prev,bpm:nb}));}}
         nextBeatTimeRef.current+=calcSubSec(bpmRef.current);
         tc++;
       }
@@ -142,7 +136,7 @@ export default function useMetronome(){
       scheduledBeatsRef.current=[];
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[metronome.running,metronome.beats,metronome.noteValue,metronome.subdivision,metronome.sound,metronome.compoundGroup,metronome.accel.enabled,metronome.accel.targetBpm,metronome.accel.stepBpm,metronome.accel.every,metronome.accel.unit]);
+  },[metronome.running]);
   useEffect(()=>{accelAccRef.current=0;accelCounterRef.current=0;},[metronome.accel.enabled,metronome.accel.targetBpm,metronome.accel.unit]);
 
   // ── Drone ──────────────────────────────────────────────────────────────────
