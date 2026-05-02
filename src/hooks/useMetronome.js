@@ -83,20 +83,6 @@ export default function useMetronome(){
     });
   },[metronome.beats]);
 
-  const prevBeatsForAutoRef=useRef(null);
-  useEffect(()=>{
-    const b=metronome.beats;
-    const prev=prevBeatsForAutoRef.current;
-    if(prev!==null&&prev===b)return;
-    prevBeatsForAutoRef.current=b;
-    if(metronome.compoundAuto===false)return;
-    if((metronome.compoundGroup||0)!==0)return;
-    if(metronome.subdivision!==1)return;
-    if(b!==6&&b!==9&&b!==12&&b!==15)return;
-    setMetronome(m=>({...m,beats:m.beats/3,subdivision:3,compoundGroup:3}));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[metronome.beats,metronome.subdivision,metronome.compoundGroup,metronome.compoundAuto]);
-
   const accelCounterRef=useRef(0);
   const accelAccRef=useRef(0);
   const metroWasRunningRef=useRef(false);
