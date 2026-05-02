@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
 import ReactCodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
@@ -182,7 +182,8 @@ function createWikiCompletion(itemsRef, historyRef) {
     if (!before) return null;
     // Require at least 2 chars after [[ before auto-showing (explicit = Ctrl+Space)
     const query = before.text.slice(2);
-    if (!ctx.explicit && query.length < 1) return null;
+    // Show completions immediately after [[ (no minimum query length)
+    if (!ctx.explicit && query.length < 0) return null;
 
     const items = itemsRef.current || [];
     const history = historyRef.current || [];
@@ -243,10 +244,30 @@ export function MarkdownEditor({
   const clickRef = useRef(onWikiLinkClick);
   const itemsRef = useRef(items);
   const historyRef = useRef(history);
+  const editorDomRef = useRef(null);
   // Keep refs fresh on every render without recreating extensions
   clickRef.current = onWikiLinkClick;
   itemsRef.current = items;
   historyRef.current = history;
+
+  // Direct non-passive touchstart listener — CodeMirror's eventHandlers cannot
+  // register passive:false, so we attach directly to the editor DOM node.
+  // This is the only reliable way to call preventDefault before iOS initiates navigation.
+  useEffect(() => {
+    const el = editorDomRef.current;
+    if (!el) return;
+    const handler = (e) => {
+      const wl = e.target?.closest?.('.cm-wikilink');
+      if (wl && clickRef.current) {
+        const raw = (wl.textContent || '').replace(/^\[\[|\]\]$/g, '');
+        e.preventDefault();
+        e.stopPropagation();
+        clickRef.current(raw);
+      }
+    };
+    el.addEventListener('touchstart', handler, {passive: false});
+    return () => el.removeEventListener('touchstart', handler);
+  }, []); // attach once — clickRef stays current via ref
 
   const extensions = useMemo(() => {
     const exts = [
@@ -255,7 +276,7 @@ export function MarkdownEditor({
       EditorView.lineWrapping,
       buildBaseTheme(fontSize, minHeight),
       createWikiLinkPlugin(clickRef),
-      autocompletion({ override: [createWikiCompletion(itemsRef, historyRef)] }),
+      autocompletion({ override: [createWikiCompletion(itemsRef, historyRef)], activateOnTyping: true }),
     ];
     return exts;
   // Recreate only when layout hints change; all callbacks via refs
@@ -263,6 +284,7 @@ export function MarkdownEditor({
   }, [fontSize, minHeight]);
 
   return (
+    <div ref={editorDomRef}>
     <ReactCodeMirror
       value={value}
       onChange={onChange}
@@ -288,5 +310,6 @@ export function MarkdownEditor({
         syntaxHighlighting: false,
       }}
     />
+    </div>
   );
 }

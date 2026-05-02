@@ -413,6 +413,25 @@ async function clearAllData() {
   });
 }
 
+// ── Exported runner (usable outside DevToolsBar, e.g. Settings modal) ────────
+export async function seedAll() {
+  Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
+  const pieces   = seedRepertoire();
+  const days     = seedHistory();
+  const notes    = seedNotes();
+  const routines = seedRoutines();
+  const programs = seedPrograms();
+  const ytLinks  = seedYouTubeLinks();
+  const recs     = await seedRecordings();
+  const refs     = await seedRefTracks();
+  window.dispatchEvent(new CustomEvent('etudes-dev-seed-complete'));
+  return {pieces,days,notes,routines,programs,ytLinks,recs,refs};
+}
+
+export async function clearAll() {
+  await clearAllData();
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 export default function DevToolsBar() {
   const [status, setStatus] = useState('');
@@ -427,42 +446,14 @@ export default function DevToolsBar() {
 
   async function handleSeedAll() {
     if (busy) return;
-    console.log('[dev] seed: start');
-    setBusy(true);
-    setStatus('starting…');
+    setBusy(true); setStatus('seeding…');
     try {
-      console.log('[dev] seed: clearing sb- keys');
-      Object.keys(localStorage).filter(k => k.startsWith('sb-')).forEach(k => localStorage.removeItem(k));
-
-      setStatus('seeding repertoire…');
-      const pieces = seedRepertoire();
-      console.log('[dev] seed: repertoire done', pieces);
-
-      setStatus('seeding history…');
-      const days = seedHistory();
-      console.log('[dev] seed: history done', days);
-
-      setStatus('seeding notes, routines, programs…');
-      const notes = seedNotes();
-      const routines = seedRoutines();
-      const programs = seedPrograms();
-      const ytLinks = seedYouTubeLinks();
-      console.log('[dev] seed: notes/routines/programs done', notes, routines, programs, ytLinks);
-
-      setStatus('seeding recordings & ref tracks…');
-      const recs = await seedRecordings();
-      const refs = await seedRefTracks();
-      console.log('[dev] seed: recordings/refs done', recs, refs);
-
-      console.log('[dev] seed: dispatching etudes-dev-seed-complete');
-      window.dispatchEvent(new CustomEvent('etudes-dev-seed-complete'));
-      setStatus(`✓ ${pieces} pieces · ${days} days · ${notes} notes · ${routines} routines · ${programs} programs · ${refs} refs · ${ytLinks} yt`);
-      setBusy(false);
+      const r = await seedAll();
+      setStatus(`✓ ${r.pieces} pieces · ${r.days} days · ${r.notes} notes · ${r.routines} routines · ${r.programs} programs · ${r.refs} refs · ${r.ytLinks} yt`);
     } catch (e) {
-      console.error('[dev] seed error:', e);
       setStatus(`✗ ${e.message || String(e)}`);
-      setBusy(false);
     }
+    setBusy(false);
   }
 
   async function handleClearAll() {

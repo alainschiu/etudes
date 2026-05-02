@@ -1,4 +1,5 @@
 import React, {useState, useMemo, useCallback, useEffect} from 'react';
+import useViewport from '../hooks/useViewport.js';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Plus from 'lucide-react/dist/esm/icons/plus';
@@ -7,6 +8,7 @@ import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import Folder from 'lucide-react/dist/esm/icons/folder';
 import FolderPlus from 'lucide-react/dist/esm/icons/folder-plus';
 import X from 'lucide-react/dist/esm/icons/x';
+import SlidersHorizontal from 'lucide-react/dist/esm/icons/sliders-horizontal';
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import Calendar from 'lucide-react/dist/esm/icons/calendar';
 import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
@@ -14,7 +16,8 @@ import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import Pencil from 'lucide-react/dist/esm/icons/pencil';
 import Check from 'lucide-react/dist/esm/icons/check';
 import Eye from 'lucide-react/dist/esm/icons/eye';
-import {TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, SURFACE, SURFACE2, BG, serif, sans, LINK} from '../constants/theme.js';
+import {TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, SURFACE, SURFACE2, BG, serif, serifText, sans, LINK} from '../constants/theme.js';
+const Z_SHEET_NOTES = 40;
 import {todayDateStr} from '../lib/dates.js';
 import {displayTitle, formatByline} from '../lib/items.js';
 import {resolveWikiLink, parseTagsFromBody} from '../lib/notes.js';
@@ -37,7 +40,7 @@ function DailyReflectionsView({history}){
         return (
           <div key={h.date} style={{borderBottom:`1px solid ${LINE}`,paddingBottom:'24px'}}>
             <div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>{d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>
-            <div style={{fontFamily:serif,fontSize:'16px',lineHeight:1.8,fontWeight:300}}>
+            <div style={{fontFamily:serifText,fontSize:'16px',lineHeight:1.8,fontWeight:300}}>
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{p:({children})=><p style={{marginBottom:'0.8em'}}>{children}</p>,h3:({children})=><h3 style={{fontSize:'1em',fontWeight:400,marginBottom:'0.35em',marginTop:'0.7em',opacity:0.75}}>{children}</h3>,hr:()=><hr style={{border:'none',borderTop:`1px solid rgba(244,238,227,0.12)`,margin:'0.75em 0'}}/>,a:({href,children})=><a href={href} target="_blank" rel="noopener noreferrer" style={{color:LINK,textDecoration:'underline'}}>{children}</a>}}>
                 {h.reflection}
               </ReactMarkdown>
@@ -73,7 +76,7 @@ function RepertoireLogsView({items}){
             {[...(item.noteLog||[])].reverse().map(entry=>(
               <div key={entry.id} style={{borderLeft:`2px solid ${IKB}30`,paddingLeft:'12px'}}>
                 <div className="uppercase mb-1" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>{entry.date}{entry.source==='manual'?' · manual':''}</div>
-                <div style={{fontFamily:serif,fontSize:'13px',lineHeight:1.65,color:TEXT,whiteSpace:'pre-wrap'}}>{entry.text}</div>
+                <div style={{fontFamily:serifText,fontSize:'13px',lineHeight:1.65,color:TEXT,whiteSpace:'pre-wrap'}}>{entry.text}</div>
               </div>
             ))}
           </div>
@@ -108,6 +111,7 @@ function SidebarSection({label,open,onToggle,count,children}){
 
 // ── Main NotesView ────────────────────────────────────────────────────────
 export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes,programs,setSelectedProgramId,requestedNoteId,setRequestedNoteId}){
+  const {isMobile}=useViewport();
   const [activeCategoryId,setActiveCategoryId]=useState('__all');
   const [activeNoteId,setActiveNoteId]=useState(freeNotes[0]?.id);
 
@@ -236,6 +240,32 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
     :activeCategoryId==='__all'?'Notes'
     :activeCategoryId;
 
+  // ── Mobile: note list + expand-in-place + edit sheet ──────────────────
+  if(isMobile){
+    return <NotesMobile
+      freeNotes={freeNotes}
+      filtered={filtered}
+      noteCategories={noteCategories}
+      allTags={allTags}
+      activeCategoryId={activeCategoryId}
+      setActiveCategoryId={setActiveCategoryId}
+      query={query}
+      setQuery={setQuery}
+      tagSearch={tagSearch}
+      setTagSearch={setTagSearch}
+      addNote={addNote}
+      updateNote={updateNote}
+      deleteNote={deleteNote}
+      seedTestNotes={seedTestNotes}
+      items={items}
+      history={history}
+      programs={programs}
+      notes={freeNotes}
+      onWikiLinkClick={handleWikiLinkClick}
+    />;
+  }
+
+  // ── Desktop view (unchanged) ───────────────────────────────────────────
   return (
     <div className="flex max-w-6xl mx-auto h-full">
       {/* ── Left sidebar — identical structure to Répertoire ── */}
@@ -389,7 +419,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
         {/* Heading — inside content column, no paddingLeft hack */}
         <div className="mb-6">
           <div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em',fontFamily:sans}}>Notes</div>
-          <h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'clamp(32px,6vw,56px)',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
+          <h1 className="leading-none" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(32px,6vw,56px)',fontStyle:'italic',letterSpacing:'-0.02em'}}>{viewTitle}</h1>
         </div>
 
         {/* Standard category views */}
@@ -576,7 +606,7 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
 
       {/* Body — preview or editor */}
       {viewMode?(
-        <div style={{fontFamily:serif,fontSize:'17px',lineHeight:1.75,fontWeight:300,color:TEXT}}>
+        <div style={{fontFamily:serifText,fontSize:'17px',lineHeight:1.75,fontWeight:300,color:TEXT}}>
           {note.body?(
             <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
               p:({children})=><p style={{marginBottom:'1em'}}>{children}</p>,
@@ -636,6 +666,180 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Mobile notes view ─────────────────────────────────────────────────────
+function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes,items,history,programs,notes,onWikiLinkClick}){
+  // MarkdownEditor calls onWikiLinkClick with a raw string; resolve it first
+  const handleMobileWikiClick=useCallback((raw)=>{
+    const resolved=resolveWikiLink(raw,items,history,programs,notes);
+    if(resolved&&onWikiLinkClick)onWikiLinkClick(resolved);
+  },[items,history,programs,notes,onWikiLinkClick]);
+  const [expandedId,setExpandedId]=useState(null);
+  const [editSheetId,setEditSheetId]=useState(null);
+  const [filterSheetOpen,setFilterSheetOpen]=useState(false);
+  const ZSHEET=40;
+
+  const ALL_CHIPS=[
+    {id:'__all',label:'All notes'},
+    {id:'__daily',label:'Daily'},
+    {id:'__repertoire',label:'Logs'},
+    ...noteCategories.map(c=>({id:c,label:c})),
+    ...allTags.slice(0,12).map(t=>({id:`#${t}`,label:`#${t}`,isTag:true})),
+  ];
+
+  const handleChip=(chip)=>{
+    if(chip.isTag){setTagSearch(tagSearch===chip.id.slice(1)?'':chip.id.slice(1));setActiveCategoryId('__all');}
+    else{setActiveCategoryId(chip.id);setTagSearch('');}
+  };
+
+  const editNote=freeNotes.find(n=>n.id===editSheetId);
+
+  const sheetStyle={
+    position:'fixed',bottom:0,left:0,right:0,height:'85vh',
+    background:BG,borderTop:`1px solid ${LINE_STR}`,zIndex:ZSHEET,
+    transform:editSheetId?'translateY(0)':'translateY(100%)',
+    transition:editSheetId?'transform 240ms ease-out':'transform 200ms ease-in',
+    display:'flex',flexDirection:'column',
+  };
+
+  return(
+    <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)'}}>
+      {/* Heading row — first */}
+      <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',padding:'20px 20px 12px'}}>
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>
+          {activeCategoryId==='__all'&&!tagSearch?'Notes':activeCategoryId==='__daily'?'Daily':activeCategoryId==='__repertoire'?'Logs':tagSearch?`#${tagSearch}`:activeCategoryId}
+        </div>
+        <div style={{display:'flex',gap:'8px',alignItems:'center',paddingBottom:'8px'}}>
+          {seedTestNotes&&<button onClick={seedTestNotes} style={{color:FAINT,fontFamily:sans,fontSize:'9px',letterSpacing:'0.18em',textTransform:'uppercase',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'4px 8px',cursor:'pointer'}}>Seed</button>}
+          <button onClick={()=>setFilterSheetOpen(true)} style={{width:'36px',height:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid ${activeCategoryId!=='__all'||tagSearch?IKB:LINE_MED}`,borderRadius:'4px',cursor:'pointer',color:activeCategoryId!=='__all'||tagSearch?IKB:MUTED}} aria-label="Filter notes"><SlidersHorizontal size={14} strokeWidth={1.25}/></button>
+          <button onClick={addNote} style={{minWidth:'36px',minHeight:'36px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:`1px solid ${LINE_MED}`,cursor:'pointer',color:MUTED}}><Plus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
+        </div>
+      </div>
+      {/* Search bar — after heading */}
+      <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 20px',borderBottom:`1px solid ${LINE}`}}>
+        <Search className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:FAINT}}/>
+        <input type="text" value={tagSearch?`#${tagSearch}`:query} onChange={e=>{const v=e.target.value;if(v.startsWith('#')){setTagSearch(v.slice(1));setQuery('');}else{setQuery(v);setTagSearch('');}}} placeholder="Search or #tag…" style={{flex:1,background:'transparent',border:'none',color:TEXT,fontFamily:serifText,fontStyle:'italic',fontSize:'14px',outline:'none'}}/>
+        {(query||tagSearch)&&<button onClick={()=>{setQuery('');setTagSearch('');}} style={{color:MUTED,background:'transparent',border:'none',cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase'}}>Clear</button>}
+      </div>
+      {/* Folder chip strip — after search, edge-to-edge */}
+      <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch',scrollbarWidth:'none',WebkitScrollbarWidth:'none',padding:'12px 20px',borderBottom:`1px solid ${LINE}`}}>
+        <div style={{display:'flex',gap:'8px',flexShrink:0,minWidth:'max-content'}}>
+          {ALL_CHIPS.map(chip=>{
+            const active=chip.isTag?tagSearch===chip.id.slice(1):activeCategoryId===chip.id&&!tagSearch;
+            return(
+              <button key={chip.id} onClick={()=>handleChip(chip)} style={{flexShrink:0,padding:'4px 12px',border:`1px solid ${active?IKB:LINE_STR}`,borderRadius:'999px',background:active?IKB_SOFT:'transparent',cursor:'pointer',fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',textTransform:'uppercase',color:active?TEXT:FAINT,whiteSpace:'nowrap'}}>
+                {chip.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+      {/* Note list */}
+      <div>
+        {filtered.length===0&&<div style={{padding:'32px 20px',fontFamily:serifText,fontStyle:'italic',fontSize:'14px',color:FAINT,textAlign:'center'}}>No notes yet.</div>}
+        {filtered.map(note=>{
+          const isExpanded=expandedId===note.id;
+          const preview=(note.body||'').replace(/^#+\s*/gm,'').replace(/[*_`#\[\]]/g,'').trim();
+          return(
+            <div key={note.id} style={{borderBottom:`1px solid ${LINE}`,padding:'18px 20px 14px'}}>
+              <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'12px',marginBottom:'6px',cursor:'pointer'}} onClick={()=>setExpandedId(isExpanded?null:note.id)}>
+                <div style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'20px',color:TEXT,lineHeight:1.2,flex:1,minWidth:0}}>{note.title||'Untitled'}</div>
+                <span style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',textTransform:'uppercase',color:FAINT,flexShrink:0,paddingTop:'4px'}}>{note.date}</span>
+              </div>
+              {!isExpanded&&preview&&<div onClick={()=>setExpandedId(note.id)} style={{fontFamily:serifText,fontSize:'14px',lineHeight:1.6,color:FAINT,display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',cursor:'pointer'}}>{preview}</div>}
+              {isExpanded&&(
+                <div>
+                  <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'14px',lineHeight:1.7,color:TEXT,marginTop:'4px'}}>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                      p:({children})=><p style={{marginBottom:'0.7em'}}>{children}</p>,
+                      h1:({children})=><h1 style={{fontSize:'1.2em',fontWeight:500,marginBottom:'0.4em',marginTop:'0.8em'}}>{children}</h1>,
+                      h2:({children})=><h2 style={{fontSize:'1.1em',fontWeight:500,marginBottom:'0.3em',marginTop:'0.7em'}}>{children}</h2>,
+                      h3:({children})=><h3 style={{fontSize:'1em',fontWeight:400,marginBottom:'0.3em',marginTop:'0.6em',opacity:0.8}}>{children}</h3>,
+                      a:({href,children})=>{
+                        const isWiki=href&&href.startsWith('etudes://');
+                        if(isWiki){
+                          // Never render a real <a> with etudes:// — iOS would try to open it as a URL scheme
+                          return <span onClick={e=>{e.stopPropagation();if(onWikiLinkClick)onWikiLinkClick({type:'note',target:decodeURIComponent(href.replace('etudes://',''))});}} style={{color:IKB,cursor:'pointer',textDecoration:'underline'}}>{children}</span>;
+                        }
+                        return <a href={href} target="_blank" rel="noopener noreferrer" onTouchStart={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} onClick={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} style={{color:LINK,textDecoration:'underline'}}>{children}</a>;
+                      },
+                    }}>
+                      {(note.body||'').replace(/\[\[(.+?)\]\]/g,(_,t)=>`[${t}](etudes://${t})`)}
+                    </ReactMarkdown>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:'12px',marginTop:'12px'}}>
+                    <button onClick={()=>setEditSheetId(note.id)} style={{display:'flex',alignItems:'center',gap:'4px',background:'transparent',border:`1px solid ${LINE_MED}`,padding:'5px 10px',cursor:'pointer',color:MUTED}}>
+                      <Pencil className="w-2.5 h-2.5" strokeWidth={1.25}/><span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Edit</span>
+                    </button>
+                    <button onClick={()=>deleteNote(note.id)} style={{display:'flex',alignItems:'center',gap:'4px',background:'transparent',border:'none',cursor:'pointer',color:FAINT,padding:'5px 0'}}>
+                      <Trash2 className="w-2.5 h-2.5" strokeWidth={1.25}/><span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      {/* Filter bottom sheet */}
+      {filterSheetOpen&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:ZSHEET-1}} onClick={()=>setFilterSheetOpen(false)}/>}
+      <div style={{position:'fixed',bottom:0,left:0,right:0,background:BG,borderTop:`1px solid ${LINE_STR}`,borderRadius:'12px 12px 0 0',zIndex:ZSHEET,paddingBottom:'env(safe-area-inset-bottom,16px)',transform:filterSheetOpen?'translateY(0)':'translateY(100%)',transition:filterSheetOpen?'transform 240ms ease-out':'transform 200ms ease-in',maxHeight:'70vh',overflowY:'auto'}}>
+        <div style={{width:'36px',height:'3px',background:LINE_STR,borderRadius:'999px',margin:'12px auto 0'}}/>
+        <div style={{padding:'16px 24px 12px',borderBottom:`1px solid ${LINE}`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+          <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.28em',color:FAINT}}>Filter notes</span>
+          {(activeCategoryId!=='__all'||tagSearch)&&<button onClick={()=>{setActiveCategoryId('__all');setTagSearch('');setFilterSheetOpen(false);}} style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:MUTED,background:'transparent',border:'none',cursor:'pointer'}}>Clear</button>}
+        </div>
+        {/* Folders */}
+        {[
+          {id:'__all',label:'All notes'},
+          {id:'__daily',label:'Daily Reflections'},
+          {id:'__repertoire',label:'Repertoire Logs'},
+          ...noteCategories.map(c=>({id:c,label:c})),
+        ].map(folder=>{
+          const active=activeCategoryId===folder.id&&!tagSearch;
+          return(
+            <button key={folder.id} onClick={()=>{setActiveCategoryId(folder.id);setTagSearch('');setFilterSheetOpen(false);}} style={{display:'flex',alignItems:'center',width:'100%',padding:'12px 24px',minHeight:'44px',background:active?IKB_SOFT:'transparent',borderLeft:`2px solid ${active?IKB:'transparent'}`,border:'none',borderLeftWidth:'2px',borderLeftStyle:'solid',borderLeftColor:active?IKB:'transparent',cursor:'pointer',textAlign:'left',fontFamily:sans,fontSize:'13px',fontWeight:500,color:active?TEXT:MUTED}}>
+              {folder.label}
+            </button>
+          );
+        })}
+        {/* Tags */}
+        {allTags.length>0&&(
+          <div style={{padding:'12px 24px 0',borderTop:`1px solid ${LINE}`}}>
+            <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,marginBottom:'10px'}}>Tags</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'8px',paddingBottom:'12px'}}>
+              {allTags.map(t=>{
+                const active=tagSearch===t;
+                return(
+                  <button key={t} onClick={()=>{setTagSearch(active?'':t);setActiveCategoryId('__all');setFilterSheetOpen(false);}} style={{padding:'4px 12px',border:`1px solid ${active?IKB:LINE_STR}`,borderRadius:'999px',background:active?IKB_SOFT:'transparent',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:active?TEXT:FAINT,cursor:'pointer'}}>#{t}</button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Edit bottom sheet */}
+      {editSheetId&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:ZSHEET-1}} onClick={()=>setEditSheetId(null)}/>}
+      <div style={sheetStyle}>
+        <div style={{display:'flex',justifyContent:'center',padding:'12px 0 4px',flexShrink:0}}><div style={{width:'36px',height:'3px',background:LINE_STR,borderRadius:'999px'}}/></div>
+        {editNote&&(
+          <>
+            <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'8px 20px',borderBottom:`1px solid ${LINE}`,flexShrink:0}}>
+              <input value={editNote.title||''} onChange={e=>updateNote(editNote.id,{title:e.target.value})} style={{flex:1,background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:serifText,fontStyle:'italic',fontSize:'20px',outline:'none',paddingBottom:'2px',minWidth:0}} placeholder="Untitled"/>
+              <button onClick={()=>setEditSheetId(null)} style={{flexShrink:0,minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer'}}>
+                <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',color:IKB}}>Done</span>
+              </button>
+            </div>
+            <div style={{flex:1,overflow:'hidden'}}>
+              <MarkdownEditor value={editNote.body||''} onChange={val=>updateNote(editNote.id,{body:val,tags:parseTagsFromBody(val)})} placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`} minHeight={400} fontSize="16px" items={items} history={history} onWikiLinkClick={handleMobileWikiClick}/>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

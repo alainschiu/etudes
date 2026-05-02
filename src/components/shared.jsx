@@ -24,7 +24,7 @@ import {idbGet} from '../lib/storage.js';
 import {daysUntil} from '../lib/dates.js';
 import {getItemTime, getSpotTime, displayTitle, formatByline} from '../lib/items.js';
 
-export function DisplayHeader({eyebrow,title,suffix,right,titleRight}){return (<div className="mb-12 flex items-end justify-between gap-6"><div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{eyebrow}</div><div className="flex items-end gap-5"><h1 className="leading-none" style={{fontFamily:serif,fontWeight:300,fontSize:'clamp(32px,6vw,56px)',letterSpacing:'-0.02em'}}><span style={{fontStyle:'italic'}}>{title}</span>{suffix&&<span style={{color:FAINT}}>{suffix}</span>}</h1>{titleRight&&<div className="pb-2">{titleRight}</div>}</div></div>{right}</div>);}
+export function DisplayHeader({eyebrow,title,suffix,right,titleRight}){return (<div className="mb-12 flex items-end justify-between gap-6"><div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{eyebrow}</div><div className="flex items-end gap-5"><h1 className="leading-none" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(32px,6vw,56px)',letterSpacing:'-0.02em'}}><span style={{fontStyle:'italic'}}>{title}</span>{suffix&&<span style={{color:FAINT}}>{suffix}</span>}</h1>{titleRight&&<div className="pb-2">{titleRight}</div>}</div></div>{right}</div>);}
 
 export function Ring({value,max,maxSize=180}){const pct=Math.min(100,(value/max)*100);return (<div className="relative flex items-center justify-center w-full mx-auto" style={{maxWidth:maxSize,aspectRatio:'1 / 1'}}><svg viewBox="0 0 100 100" className="w-full h-full -rotate-90" preserveAspectRatio="xMidYMid meet"><circle cx="50" cy="50" r="44" fill="none" stroke={LINE_MED} strokeWidth="5"/><circle cx="50" cy="50" r="44" fill="none" stroke={IKB} strokeWidth="5" strokeLinecap="round" strokeDasharray={2*Math.PI*44} strokeDashoffset={2*Math.PI*44*(1-pct/100)} style={{transition:'stroke-dashoffset 0.6s ease'}}/></svg><div className="absolute inset-0 flex flex-col items-center justify-center"><div className="tabular-nums" style={{fontFamily:serif,fontWeight:300,letterSpacing:'-0.02em',fontSize:'36px'}}>{value}<span style={{color:MUTED,fontSize:'18px'}}>′</span></div><div className="uppercase mt-1" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.25em'}}>of {max}′</div></div></div>);}
 
@@ -80,6 +80,7 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
     else then();
   };
   const play=async()=>{
+    wactxRef.current?.resume();
     const a=await ensure();if(!a)return;
     const ctx=wactxRef.current,g=gainRef.current;
     if(ctx&&g){if(ctx.state==='suspended')await ctx.resume();g.gain.cancelScheduledValues(ctx.currentTime);g.gain.setValueAtTime(0,ctx.currentTime);g.gain.linearRampToValueAtTime(1,ctx.currentTime+0.05);}
@@ -88,14 +89,14 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
   const pause=()=>{if(!audioRef.current)return;_rampDown(()=>{audioRef.current?.pause();setPlaying(false);});};
   const rewind=()=>{if(!audioRef.current)return;_rampDown(()=>{const a=audioRef.current;if(a){a.pause();a.currentTime=0;}setPlaying(false);setProgress(0);});};
 
-  // Real scrubbing: mousedown starts drag, mousemove tracks, mouseup commits
+  // Real scrubbing: mouse + touch unified
+  const getClientX=(e)=>e.touches?e.touches[0]?.clientX??e.changedTouches[0]?.clientX:e.clientX;
+
   const onScrubStart=async(e)=>{
     if(!peaks.length)return;
     e.preventDefault();
     wasPlayingRef.current=playing;
-    // Pause during scrub so audio doesn't race ahead
     if(audioRef.current){audioRef.current.pause();setPlaying(false);}
-    // Pre-load audio so mouseup can seek immediately
     ensure();
     scrubbingRef.current=true;
 
@@ -105,15 +106,19 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
       return Math.max(0,Math.min(1,(clientX-r.left)/r.width));
     };
 
-    // Set initial position immediately
-    setProgress(getFrac(e.clientX));
+    setProgress(getFrac(getClientX(e)));
 
-    const onMove=(mv)=>{setProgress(getFrac(mv.clientX));};
+    const onMove=(mv)=>{
+      if(mv.cancelable)mv.preventDefault();
+      setProgress(getFrac(getClientX(mv)));
+    };
     const onUp=async(up)=>{
       scrubbingRef.current=false;
       document.removeEventListener('mousemove',onMove);
       document.removeEventListener('mouseup',onUp);
-      const frac=getFrac(up.clientX);
+      document.removeEventListener('touchmove',onMove);
+      document.removeEventListener('touchend',onUp);
+      const frac=getFrac(getClientX(up));
       setProgress(frac);
       const a=audioRef.current;
       if(a&&a.duration&&!isNaN(a.duration)){
@@ -123,17 +128,15 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
     };
     document.addEventListener('mousemove',onMove);
     document.addEventListener('mouseup',onUp);
+    document.addEventListener('touchmove',onMove,{passive:false});
+    document.addEventListener('touchend',onUp);
   };
 
   useEffect(()=>()=>{if(audioRef.current)audioRef.current.pause();if(urlRef.current)URL.revokeObjectURL(urlRef.current);try{wactxRef.current?.close();}catch{}},[]);
 
-  // 2-pass smooth + normalize for display
+  // Normalize for display — peaks from computePeaks are already smoothed twice
   const rawPeaks=meta?.peaks||[];
-  const peaks=rawPeaks.length<3?rawPeaks:(()=>{
-    let s=[...rawPeaks];
-    for(let p=0;p<2;p++){const n=[...s];for(let i=1;i<s.length-1;i++)n[i]=s[i-1]*0.25+s[i]*0.5+s[i+1]*0.25;s=n;}
-    const mx=Math.max(...s,1e-6);return s.map(v=>v/mx);
-  })();
+  const peaks=rawPeaks.length<2?rawPeaks:(()=>{const mx=Math.max(...rawPeaks,1e-6);return rawPeaks.map(v=>v/mx);})();
 
   // Closed SVG path: smooth bezier top (L→R) + bottom (R→L)
   const shapePath=(()=>{
@@ -158,7 +161,8 @@ export function Waveform({date,meta,compact=false,blobLoader,actions,playbackRat
   const svgMarkup=(h)=>(
     <svg ref={svgRef} width="100%" height={h} viewBox="0 0 1000 100" preserveAspectRatio="none"
       style={{display:'block',cursor:peaks.length?'col-resize':'default',userSelect:'none'}}
-      onMouseDown={peaks.length?onScrubStart:undefined}>
+      onMouseDown={peaks.length?onScrubStart:undefined}
+      onTouchStart={peaks.length?onScrubStart:undefined}>
       <defs><clipPath id={clipId}><rect x="0" y="0" width={needleX} height="100"/></clipPath></defs>
       {peaks.length>0?(<>
         <path d={shapePath} fill={DIM}/>
@@ -298,10 +302,18 @@ const HAS_CUSTOM_LINK_RE=/(?:obsidian:\/\/|x-devonthink-item:\/\/)/;
 function MarkdownComponents({serif:serifFont}){
   return {
     a:({href,children,...rest})=>{
-      const isDeep=DEEP_LINK_SCHEMES.some(s=>href&&href.startsWith(s));
+      // Always prevent default navigation — any link that triggers browser navigation
+      // reloads the SPA and jumps to Today. Open externals in a new tab; swallow everything else.
       const isExternal=href&&(href.startsWith('http://')||href.startsWith('https://'));
-      const handleClick=(e)=>{if(isDeep||isExternal){e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}};
-      return (<a href={href} onClick={handleClick} style={{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'}} {...rest}>{children}</a>);
+      const isDeep=DEEP_LINK_SCHEMES.some(s=>href&&href.startsWith(s));
+      const suppress=(e)=>{e.preventDefault();e.stopPropagation();};
+      const handleClick=(e)=>{
+        suppress(e);
+        if((isExternal||isDeep)&&href)window.open(href,'_blank','noopener,noreferrer');
+      };
+      // touchstart must also preventDefault synchronously on iOS or the browser
+      // initiates navigation before onClick fires.
+      return (<a href={href} onClick={handleClick} onTouchStart={suppress} style={{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'}} {...rest}>{children}</a>);
     },
     p:({children})=><p style={{marginBottom:'0.85em',lineHeight:1.8}}>{children}</p>,
     h1:({children})=><h1 style={{fontSize:'1.3em',fontWeight:400,marginBottom:'0.5em',marginTop:'1em',borderBottom:`1px solid rgba(244,238,227,0.12)`,paddingBottom:'0.2em'}}>{children}</h1>,
@@ -323,7 +335,7 @@ export function MarkdownField({value,onChange,placeholder,minHeight=80,className
 
   if(readOnly){
     return (
-      <div className={className} style={{minHeight,padding:'12px 16px',fontFamily:serif,fontSize:'15px',lineHeight:1.8,fontWeight:300,color:TEXT,background:'transparent',border:`1px solid ${LINE}`,...style}}>
+      <div className={className} style={{minHeight,padding:'12px 16px',fontFamily:serifText,fontSize:'15px',lineHeight:1.8,fontWeight:300,color:TEXT,background:'transparent',border:`1px solid ${LINE}`,...style}}>
         {(value||'').trim()?(
           <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents({})}>{value}</ReactMarkdown>
         ):(

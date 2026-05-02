@@ -1,6 +1,9 @@
 import React,{useState,useEffect,Suspense,lazy} from 'react';
 import useViewport from './hooks/useViewport.js';
-import MobileBottomNav from './components/MobileBottomNav.jsx';
+// MobileBottomNav kept but no longer rendered — replaced by TopBar + Drawer
+// import MobileBottomNav from './components/MobileBottomNav.jsx';
+import TopBar from './components/TopBar.jsx';
+import Drawer from './components/Drawer.jsx';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
 import Plus from 'lucide-react/dist/esm/icons/plus';
@@ -17,7 +20,7 @@ import Lock from 'lucide-react/dist/esm/icons/lock';
 import Settings from 'lucide-react/dist/esm/icons/settings';
 import Keyboard from 'lucide-react/dist/esm/icons/keyboard';
 
-import {BG,SURFACE,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,serif,sans,mono} from './constants/theme.js';
+import {BG,SURFACE,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,serif,serifText,sans,mono} from './constants/theme.js';
 import {SECTION_CONFIG,APP_VERSION} from './constants/config.js';
 import {getItemTime,displayTitle,formatByline} from './lib/items.js';
 import {DisplayHeader,Ring,StageLabels,Waveform,ItemPickerPopup,TargetEdit,TimeWithTarget,ItemTimeEditor,fmtSpotTime,PerformanceChip,SpotRow,SpotsBlock,Tooltip} from './components/shared.jsx';
@@ -34,12 +37,14 @@ import UndoToast from './components/UndoToast.jsx';
 import {SettingsModal,HelpModal,ConfirmModal,PromptModal,SyncConflictModal} from './components/modals.jsx';
 const PdfDrawer = lazy(() => import('./components/PdfDrawer.jsx'));
 import useEtudesState from './state/useEtudesState.js';
+import {seedAll, clearAll} from './dev/DevToolsBar.jsx';
 
 const tabs=[{id:'today',label:'Today'},{id:'review',label:'Review'},{id:'repertoire',label:'Répertoire'},{id:'routines',label:'Routines'},{id:'logs',label:'Logs'},{id:'notes',label:'Notes'},{id:'programs',label:'Programs'}];
 
 export default function Etudes(){
   const {isMobile}=useViewport();
   const s=useEtudesState();
+  const [drawerOpen,setDrawerOpen]=useState(false);
   const [selectedProgramId,setSelectedProgramId]=useState(null);
   const [requestedNoteId,setRequestedNoteId]=useState(null);
   const [clockTime,setClockTime]=useState(()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;});
@@ -50,22 +55,45 @@ export default function Etudes(){
   const closeRefBar=()=>{setRefBarVisible(false);setTimeout(()=>s.setRefBarItemId(null),280);};
   const {view,setView,showSettings,setShowSettings,showHelp,setShowHelp,exportMenu,setExportMenu,confirmModal,setConfirmModal,promptModal,setPromptModal,syncConflictModal,quickNoteOpen,setQuickNoteOpen,restoreBusy,expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,logDrawerDate,logDrawerEntry,editingTimeItemId,setEditingTimeItemId,dragIdx,dragOverIdx,storageMode,storageQuotaHit,setStorageQuotaHit,items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,setTodaySessions,loadedRoutineId,routines,setRoutines,programs,setPrograms,dailyReflection,setDailyReflection,weekReflection,setWeekReflection,monthReflection,setMonthReflection,settings,setSettings,freeNotes,setFreeNotes,noteCategories,setNoteCategories,recordingMeta,history,dayClosed,trash,activeItemId,activeSpotId,activeSessionId,activeItem,activeSpot,activeIsWarmup,isResting,isRecording,recExpanded,setRecExpanded,metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,sessionRefs,reflectionRef,importInputRef,totalToday,effectiveTotalToday,sectionTimes,weekActualSeconds,monthActualSeconds,todayKey,pdfItem,loadedRoutine,todayHistoryEntry,fmt,fmtMin,updateItem,addItem,startItem,stopItem,toggleWorking,toggleRest,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,moveSpot,addPerformance,updatePerformance,deletePerformance,closeDay,reopenDay,endDay,deleteItem,undoDelete,dismissTrash,logTempo,addQuickNote,pdfLibrary,pdfUrlMap,addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,addBookmark,removeBookmark,renameBookmark,startRecording,stopRecording,deleteRecording,handleDragStart,handleDragOver,handleDrop,handleDragEnd,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,openLogEntry,closeLogDrawer,resolveDayEntry,exportJson,importJsonFile,buildZip,exportProgress,handleTap,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,saveFreeNote,seedTestNotes}=s;
 
+  // ── Recording soft mutex ──────────────────────────────────────────────────
+  const [mutexPrompt,setMutexPrompt]=useState(null); // null | {to:'piece'|'daily', toId:string|null}
+
+  const handleStartRecording=(type,itemId)=>{
+    if(type==='piece'){
+      if(s.pieceRecordingItemId===itemId){s.stopPieceRecording();return;}
+      if(s.pieceRecordingItemId||isRecording){setMutexPrompt({to:'piece',toId:itemId});return;}
+      s.startPieceRecording(itemId,metronome.bpm,items.find(i=>i.id===itemId)?.stage);
+    }else{
+      if(isRecording){stopRecording();return;}
+      if(s.pieceRecordingItemId){setMutexPrompt({to:'daily',toId:null});return;}
+      startRecording();
+    }
+  };
+
+  const confirmMutex=()=>{
+    if(!mutexPrompt)return;
+    if(s.pieceRecordingItemId)s.stopPieceRecording();
+    if(isRecording)stopRecording();
+    const {to,toId}=mutexPrompt;
+    setMutexPrompt(null);
+    // slight delay so stop has time to flush before new start
+    setTimeout(()=>{
+      if(to==='piece'&&toId)s.startPieceRecording(toId,metronome.bpm,items.find(i=>i.id===toId)?.stage);
+      else if(to==='daily')startRecording();
+    },80);
+  };
+
   const commonProps={items,history,settings,itemTimes,fmt,fmtMin,recordingMeta};
 
   return (
     <div className="h-screen flex flex-col" style={{background:BG,color:TEXT,fontFamily:sans}}>
       <style>{`.etudes-scroll::-webkit-scrollbar{height:4px;width:4px}.etudes-scroll::-webkit-scrollbar-track{background:transparent}.etudes-scroll::-webkit-scrollbar-thumb{background:rgba(244,238,227,0.15);border-radius:0}.etudes-scroll::-webkit-scrollbar-thumb:hover{background:rgba(244,238,227,0.32)}.etudes-scroll{scrollbar-width:thin;scrollbar-color:rgba(244,238,227,0.15) transparent}.drag-ghost{opacity:0.35}.target-hover-reveal{opacity:0;transition:opacity 0.15s}.group:hover .target-hover-reveal{opacity:1}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}.toast-enter{animation:slideUp 0.25s ease-out}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield;appearance:textfield}`}</style>
       {storageQuotaHit&&(<div className="shrink-0 px-10 py-2 flex items-center gap-3" style={{background:'#3D1A00',borderBottom:`1px solid rgba(201,126,74,0.4)`}}><span style={{color:WARM,fontSize:'11px',letterSpacing:'0.12em'}}>⚠ Storage full — new data is kept in memory only and will be lost when the tab closes. Export a backup to preserve your session.</span><button onClick={()=>setStorageQuotaHit(false)} style={{color:WARM,marginLeft:'auto',opacity:0.7,fontSize:'11px'}}>✕</button></div>)}
-      <header className="shrink-0" style={{borderBottom:`1px solid ${LINE_MED}`}}>
-        {isMobile?(
-          <div className="flex items-center px-4 h-11">
-            <div className="flex items-baseline gap-2"><div className="w-1.5 h-1.5 rounded-full" style={{background:IKB}}/><span style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'20px',letterSpacing:'-0.01em'}}>Études</span></div>
-            <div className="ml-auto flex items-center gap-3">
-              <Tooltip shortcut="?" label="Réglages"><button onClick={()=>setShowSettings(true)} style={{color:MUTED,display:'flex',alignItems:'center',padding:'6px'}}><Settings className="w-5 h-5" strokeWidth={1.25}/></button></Tooltip>
-              <input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)importJsonFile(f);e.target.value='';}}/>
-            </div>
-          </div>
-        ):(
+      {/* Mobile: TopBar is fixed-position, input hidden separately */}
+      {isMobile&&<TopBar onMenu={()=>setDrawerOpen(true)} activeItemId={activeItemId} onSettings={()=>setShowSettings(true)}/>}
+      {isMobile&&<input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)importJsonFile(f);e.target.value='';}}/>}
+      <header className="shrink-0" style={isMobile?{display:'none'}:{borderBottom:`1px solid ${LINE_MED}`}}>
+        {isMobile?null:(
           <>
           <div className="flex items-center px-10 h-16">
             <div className="flex items-baseline gap-3"><div className="w-1.5 h-1.5 rounded-full" style={{background:IKB}}/><span className="text-3xl tracking-tight" style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,letterSpacing:'-0.01em'}}>Études</span><span className="text-xs uppercase tracking-widest ml-2" style={{color:FAINT,fontWeight:300,fontSize:'10px',letterSpacing:'0.28em'}}>a practice journal</span></div>
@@ -84,10 +112,10 @@ export default function Etudes(){
       </header>
       {isMobile&&storageMode==='memory'&&(<div className="shrink-0 px-4 py-1.5 flex items-center justify-center" style={{background:SURFACE,borderBottom:`1px dashed ${LINE_MED}`}}><span className="uppercase tabular-nums" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.28em'}}>Storage unavailable · session will not be saved</span></div>)}
       <div className="flex-1 flex overflow-hidden">
-        <main className="flex-1 overflow-auto etudes-scroll">
-          {view==='today'&&<TodayView {...{...commonProps,view,setView,todaySessions,setTodaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,totalToday,effectiveTotalToday,warmupTimeToday,restToday,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,deleteRecording,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,isRecording,currentBpm:metronome.bpm,refTrackMeta:s.refTrackMeta,refBarItemId:s.refBarItemId,setRefBarItemId:s.setRefBarItemId}}/>}
+        <main className="flex-1 overflow-auto etudes-scroll" style={isMobile?{paddingTop:'calc(44px + env(safe-area-inset-top, 0px))'}:{}}>
+          {view==='today'&&<TodayView {...{...commonProps,view,setView,todaySessions,setTodaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,totalToday,effectiveTotalToday,warmupTimeToday,restToday,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,deleteRecording,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,handleStartRecording,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,isRecording,currentBpm:metronome.bpm,refTrackMeta:s.refTrackMeta,refBarItemId:s.refBarItemId,setRefBarItemId:s.setRefBarItemId}}/>}
           {view==='review'&&<ReviewView {...{...commonProps,weekActualSeconds,weekReflection,setWeekReflection,monthActualSeconds,monthReflection,setMonthReflection,effectiveTotalToday,warmupTimeToday,openLogEntry}}/>}
-          {view==='repertoire'&&<RepertoireView {...{...commonProps,setItems:s.setItems,updateItem,deleteItem,setPdfDrawerItemId,activeItemId,activeSpotId,startItem,stopItem,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta:s.pieceRecordingMeta,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,deletePieceRecording:s.deletePieceRecording,lockPieceRecording:s.lockPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,isRecording,currentBpm:metronome.bpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta:s.refTrackMeta,uploadRefTrack:s.uploadRefTrack,deleteRefTrack:s.deleteRefTrack,pdfUrlMap:s.pdfUrlMap,localPieceRecordingIds:s.localPieceRecordingIds,localRefTrackIds:s.localRefTrackIds}}/>}
+          {view==='repertoire'&&<RepertoireView {...{...commonProps,view,setItems:s.setItems,updateItem,deleteItem,setPdfDrawerItemId,activeItemId,activeSpotId,startItem,stopItem,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta:s.pieceRecordingMeta,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,deletePieceRecording:s.deletePieceRecording,lockPieceRecording:s.lockPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,isRecording,currentBpm:metronome.bpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta:s.refTrackMeta,uploadRefTrack:s.uploadRefTrack,deleteRefTrack:s.deleteRefTrack,pdfUrlMap:s.pdfUrlMap,localPieceRecordingIds:s.localPieceRecordingIds,localRefTrackIds:s.localRefTrackIds}}/>}
           {view==='programs'&&<ProgramsView items={items} programs={programs} setPrograms={setPrograms} selectedProgramId={selectedProgramId} setSelectedProgramId={setSelectedProgramId} setView={setView} freeNotes={freeNotes} setActiveNoteId={(id)=>{setRequestedNoteId(id);}}/>}
           {view==='routines'&&<RoutinesView {...{routines,setRoutines,loadRoutine,setPromptModal,todaySessions,setView,items,loadedRoutineId}}/>}
           {view==='logs'&&<LogsView {...{...commonProps,openLogEntry,freeNotes}}/>}
@@ -103,7 +131,7 @@ export default function Etudes(){
                 {items.filter(i=>workingOn.includes(i.id)).map((i,idx)=>{const isActive=activeItemId===i.id;const asl=isActive&&activeSpotId?(i.spots||[]).find(s=>s.id===activeSpotId)?.label:null;return (
                   <div key={i.id} className="py-4" style={idx!==0?{borderTop:`1px solid ${LINE}`}:{}}>
                     <div className="flex items-start justify-between gap-2 mb-1.5"><div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.25em'}}>{SECTION_CONFIG[i.type].label}</div><button onClick={()=>toggleWorking(i.id)} className="shrink-0" style={{color:DIM}}><X className="w-3 h-3" strokeWidth={1.25}/></button></div>
-                    <div className="text-sm leading-snug mb-0.5">{displayTitle(i)}</div>
+                    <div className="leading-snug mb-0.5" style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'15px',lineHeight:1.2}}>{displayTitle(i)}</div>
                     {formatByline(i)&&<div className="text-xs italic mb-2" style={{color:MUTED,fontFamily:serif}}>{formatByline(i)}</div>}
                     {asl&&<div className="italic mt-1 flex items-center gap-1" style={{color:IKB,fontFamily:serif,fontSize:'11px'}}><Crosshair className="w-2.5 h-2.5" strokeWidth={1.25}/>{asl}</div>}
                     <div className="flex items-center justify-between mt-3"><span className="font-mono tabular-nums" style={{color:MUTED,fontSize:'11px'}}>{fmt(getItemTime(itemTimes,i.id))}</span><button onClick={()=>isActive?stopItem():startItem(i.id)} disabled={dayClosed&&!isActive} className="uppercase flex items-center gap-1.5" style={{color:isActive?IKB:(dayClosed?FAINT:TEXT),fontSize:'10px',letterSpacing:'0.22em',cursor:(dayClosed&&!isActive)?'not-allowed':'pointer'}}>{isActive?<><Pause className="w-3 h-3" strokeWidth={1.25}/> Pause</>:<><Play className="w-3 h-3" strokeWidth={1.25}/> Start</>}</button></div>
@@ -145,10 +173,31 @@ export default function Etudes(){
           </div>
         );
       })()}
-      {isMobile&&<MobileBottomNav tabs={tabs} view={view} setView={setView}/>}
-      <Footer {...{isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,attachDailyToPiece:s.attachDailyToPiece,todaySessions,items}}/>
+      {/* TODO: mobile-etudes/ reference files are now obsolete — archive or delete in a subsequent cleanup commit */}
+      {isMobile&&(
+        <Drawer
+          open={drawerOpen}
+          onClose={()=>setDrawerOpen(false)}
+          view={view}
+          setView={(v)=>{setView(v);setDrawerOpen(false);}}
+          buildZip={buildZip}
+          setShowSettings={setShowSettings}
+          totalToday={totalToday}
+          settings={settings}
+        />
+      )}
+      {mutexPrompt&&(
+        <div style={{background:SURFACE,borderTop:`1px solid ${LINE_MED}`,padding:'10px 18px',display:'flex',alignItems:'center',gap:'10px',zIndex:50,position:'relative',flexShrink:0}}>
+          <span style={{fontFamily:sans,fontSize:'10px',color:MUTED,letterSpacing:'0.12em',flex:1}}>
+            Stop current recording and start {mutexPrompt.to==='piece'?'piece recording':'daily recording'}?
+          </span>
+          <button onClick={()=>setMutexPrompt(null)} style={{background:'transparent',border:`1px solid ${LINE_MED}`,color:FAINT,padding:'4px 10px',cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase'}}>Cancel</button>
+          <button onClick={confirmMutex} style={{background:IKB_SOFT,border:`1px solid ${IKB}`,color:TEXT,padding:'4px 10px',cursor:'pointer',fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase'}}>Confirm</button>
+        </div>
+      )}
+      <Footer {...{isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,attachDailyToPiece:s.attachDailyToPiece,todaySessions,items,settings,handleStartRecording}}/>
       {trash&&<UndoToast item={trash.item} onUndo={undoDelete} onDismiss={dismissTrash}/>}
-      {showSettings&&<SettingsModal settings={settings} setSettings={setSettings} storageMode={storageMode} onExportZip={buildZip} exportProgress={exportProgress} onExportJson={exportJson} onImportClick={()=>importInputRef.current?.click()} onClose={()=>setShowSettings(false)} user={s.user} signIn={s.signIn} signUp={s.signUp} signOut={s.signOut} signInWithGoogle={s.signInWithGoogle} syncStatus={s.syncStatus} lastSyncedAt={s.lastSyncedAt} syncNow={s.syncNow} syncPayloadWarning={s.syncPayloadWarning}/>}
+      {showSettings&&<SettingsModal settings={settings} setSettings={setSettings} storageMode={storageMode} onExportZip={buildZip} exportProgress={exportProgress} onExportJson={exportJson} onImportClick={()=>importInputRef.current?.click()} onClose={()=>setShowSettings(false)} user={s.user} signIn={s.signIn} signUp={s.signUp} signOut={s.signOut} signInWithGoogle={s.signInWithGoogle} syncStatus={s.syncStatus} lastSyncedAt={s.lastSyncedAt} syncNow={s.syncNow} syncPayloadWarning={s.syncPayloadWarning} seedTestNotes={seedTestNotes} devSeedAll={seedAll} devClearAll={clearAll}/>}
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
       {pdfItem&&<Suspense fallback={null}><PdfDrawer {...{pdfItem,items,pdfUrlMap,pdfLibrary,itemTimes,activeItemId,activeSpotId,startItem,stopItem,updateItem,addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,addBookmark,removeBookmark,renameBookmark,fmt,setPromptModal,setConfirmModal,onClose:()=>setPdfDrawerItemId(null),dayClosed,addSpot,updateSpot,deleteSpot,editSpotTime}}/></Suspense>}
       {logDrawerDate&&<LogDrawer entry={logDrawerEntry} dayData={logDrawerEntry?.kind==='day'?logDrawerEntry:(logDrawerEntry?null:resolveDayEntry(logDrawerDate))} items={items} recordingMeta={recordingMeta} freeNotes={freeNotes} onClose={closeLogDrawer} deleteRecording={deleteRecording}/>}

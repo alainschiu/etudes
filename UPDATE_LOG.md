@@ -1,5 +1,41 @@
 # Update Log
 
+## v0.97.7 — 2026-05-02
+
+- **Metronome — tempo matches the “Note” you pick** — BPM now follows the beat unit (e.g. eighth vs quarter), including in compound time, so the click spacing matches what you expect on the score
+- **Metronome — steadier when you tweak settings** — changing BPM, beats, subdivision, or sound while the metronome runs no longer resets the whole pulse; compound 6/8-style setups apply subdivisions as soon as you use **Auto** without restarting
+- **Metronome — clearer clicks** — click sound is shorter and more percussive (less like a held pitch)
+- **Metronome — optional accent pattern** — in the metronome drawer (and the desktop Réglages metronome panel), when you have more than two beats per bar, you can tap beats to mark which ones get a stronger accent; **Reset** returns to automatic accents
+- **Metronome — Auto for compound** — turning **Auto** **On** folds 6 / 9 / 12 / 15 beats (with one subdivision per beat and Group Off) into a triple-compound layout; leaving **Auto** off keeps six equal beats if that is what you want; changing the **Note** value alone does not trigger that fold
+- **Metronome sheet** — subdivision row shows plain **1 2 3 4** (plus dotted option) for readability; preset meter chips removed in favour of Auto + manual controls
+
+## v0.97.6 — 2026-05-01
+
+- **Metronome widget (mobile)** — beat bars are now the dominant visual element; whole left zone (bars + BPM/time sig) is a single touch target that toggles the metronome; time signature rendered larger; chevron opens the sheet as before
+- **Pulse mode** — new visual mode for the metronome widget: the entire box flashes briefly on each beat instead of showing bars. Beat 1 fires in IKB with a glow; other beats flash at reduced opacity. Toggle between Bars and Pulse in the metronome drawer.
+- **Metronome sheet (mobile)** — all control rows (Beats, Note, Sub, Sound, Vol, Accel) now share a consistent left-aligned label column; accelerando section exposes the Step and Every inputs so the ramp is actually configurable on mobile
+- **Today view items (mobile)** — tapping anywhere on an item row opens the inline edit panel (no longer requires the chevron); PDF icon appears inline next to the title and opens the score directly; expand panel shows Reference track, today's recording, today's note, and persistent notes in that order
+- **Tuning panel (mobile)** — dedicated `MobileDronePanel` layout: full-width 64 px piano keyboard, stacked A=/Oct/Temperament rows, collapsible root + offset table; desktop panel unchanged
+- **Audio — iOS playback fixes** — `AudioContext.resume()` called on user gesture for metronome, drone, and waveform playback (fixes silent audio on first tap on iOS); MIME type negotiation (`webm;codecs=opus → mp4 → fallback`) for `MediaRecorder` so recordings are playable on all platforms
+- **Audio — recording key collision** — piece recording IDB keys now include a timestamp suffix (`itemId__date__ts`) so same-day re-records no longer silently overwrite each other
+- **Audio — drone note change** — frequency transitions use an exponential ramp (30 ms) instead of an instant set, eliminating the audible click on note change
+- **Audio — waveform context limit** — `computePeaks` reuses a single module-level `AudioContext` instead of creating a new one per call (was hitting the 4-context iOS limit after a few recordings)
+- **Waveform display** — removed the redundant second smoothing pass in the display component (peaks are already smoothed twice in `computePeaks`); waveforms are slightly crisper
+- **Wiki links (mobile)** — `[[wiki-link]]` taps in the CodeMirror editor now use a direct non-passive `touchstart` DOM listener so `preventDefault` is called before iOS initiates navigation; read-only markdown links also intercept `touchstart` to prevent the SPA reload that was jumping back to Today
+- **Recording soft mutex** — starting a new recording while one is already running shows an inline "Stop current and start new?" confirmation banner above the footer instead of silently failing or using a modal
+
+## v0.97.5 — 2026-05-01
+
+- **Mobile navigation** — hamburger drawer replaces the bottom tab bar; primary views (Today, Répertoire, Programs, Logs, Notes) show icon + label + eyebrow; Review and Routines as secondary items; Export and Réglages as utility actions
+- **Today on mobile** — accordion sections, target progress bar, item rows with pulse dot when active, collapsible reflection, close-the-day pill
+- **Footer on mobile** — three-row transport: readout strip (active item + elapsed), Play/Pause · metronome widget · Record · Plus, status strip with today total and rest toggle; metronome opens a full bottom sheet
+- **Répertoire on mobile** — list view with filter sheet; tap a piece to open a full detail screen with Spots, Info, Recordings, and Score tabs
+- **Notes on mobile** — folder chip strip, search, expand-in-place, edit bottom sheet
+- **Logs on mobile** — vertical day list grouped by month, 2px section bar per day, reflection excerpt; taps open the existing log drawer
+- **Programs, Routines, Review on mobile** — reduced padding, minimum 44px touch targets throughout
+- **Typography (all screens)** — display headings weight 400; Répertoire and Today item titles in EB Garamond italic; reading prose (reflections, notes, spot annotations) in EB Garamond
+- **PWA** — iOS home screen meta tags; manifest theme colour aligned to app background; icon `any maskable`
+
 ## v0.97.0 — 2026-05-01
 
 - **Calmer copy** — placeholders and Settings text tightened across Today, Review (week/month), Routines, Répertoire, Logs search, and the footer quick-note bar; empty lists that used different phrases now say **Nothing here yet.** in one voice

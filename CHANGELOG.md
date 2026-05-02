@@ -1,5 +1,66 @@
 # Changelog
 
+## v0.97.7 — 2026-05-02
+
+### Metronome — timing, audio, and UI
+
+- **BPM and note value** — `calcSubMs` uses `beatInQuarters` from `noteValue` so BPM follows the selected denominator (quarter / eighth / half / sixteenth) and compound mode uses the dotted beat unit (`compoundGroup > 1`).
+- **Scheduler stability** — metronome `useEffect` depends only on `running`; beats, subdivision, sound, compound, accel, and note value sync through refs so changing controls does not tear down the look-ahead loop or reset phase.
+- **Live grid after auto-compound** — `schedule()` reads `subRef` / `compoundRef` (and nested `calcSubMs`) each tick so subdivisions apply immediately after the sheet folds 6/9/12/15 into triple compound without stop/start.
+- **RAF dedupe** — `lastShownBeatTimeRef` so `setCurrentBeat` fires once per scheduled event, not every animation frame.
+- **Click sound** — shorter gain envelope (12 ms); **click** timbre mixes a short white-noise burst with the oscillator to reduce pitched “note” bleed; wood/beep keep oscillator-only with the shorter decay.
+- **Accent pattern** — optional `accentPattern` (beat indices for medium accents); **Accent** row in mobile sheet and desktop footer metronome panel when `beats > 2`; shared [`MetronomeAccentEditor.jsx`](src/components/MetronomeAccentEditor.jsx); pattern trimmed when beat count drops; scheduler and mobile footer bar heights follow custom accents when set.
+- **Compound auto** — fold to triple compound (beats ÷ 3, sub 3, group 3) runs **only when turning Auto from Off to On** while beats are 6/9/12/15, Sub 1, and Group Off; changing beats to 6 with Auto already on no longer forces 6 → 2.
+- **Note value vs fold** — changing **Note** (e.g. to 8) alone never auto-collapses beats; no passive `useEffect` on `noteValue` for compound fold (QA: beats 6 + Sub 1 + Group 0, then change note — count stays 6 until **Auto On**).
+- **Auto toggle** — correct on/off handling and optional expand of a prior auto-fold when turning Auto off then on again.
+- **Metronome sheet (mobile)** — numeric subdivision labels (1–4 + dotted); copy for Auto; BPM/tap/handle hierarchy tweaks; **meter preset buttons removed** in favour of Auto + manual Beats/Sub/Group.
+- **Footer (mobile)** — beat visualiser uses thicker vertical bars and taller downbeats; compound grouping heights preserved when not using a custom accent pattern; desktop sheet Sub labels match; desktop expanded panel includes accent editor when `beats > 2`.
+
+## v0.97.6 — 2026-05-01
+
+### Mobile — Sprint Patch
+
+#### Metronome
+- **Widget redesign** — zones 1+2 merged into one `<button>`: beat bars fill the left region (`flex:1`), BPM + time sig (`16px serif`) sit in a fixed 46 px right column, chevron remains for sheet access. Single touch anywhere left of the chevron toggles on/off.
+- **Pulse mode** — `metronome.visualMode: 'bars' | 'pulse'` (new field, not persisted). In pulse mode the entire left zone flashes IKB on beat 1 and a dimmer blue on other beats; flash duration is 90 ms with a 200 ms ease-out decay. Toggle row `[Bars] [Pulse]` in `MetronomeSheet`.
+- **Sheet alignment** — shared `<Label>` component (`minWidth: 56px`) applied to every row in `MetronomeSheet`. Accel section now includes `stepBpm`, `every`, and `unit` controls so the ramp is configurable.
+
+#### Today view — item rows
+- **Tap to expand** — clicking the title area or chevron toggles the inline panel; previously only the chevron worked.
+- **PDF icon inline** — `FileText` icon rendered next to the title if PDFs are present; tapping it opens `PdfDrawer` directly without opening the expand panel.
+- **Expand panel order** — Reference track button → today's recording waveform → today's note (`MarkdownField`, editable) → persistent notes (`MarkdownField`, editable).
+
+#### Tuning
+- **`MobileDronePanel`** — separate component from desktop `DronePanel`. Full-width 64 px piano keyboard, stacked A=/Oct/Temperament rows (not flex-wrap), collapsible root selector + cent offset table. Desktop `DronePanel` unchanged.
+- **Label** — `aria-label` on mobile drone toggle: `"Tuner"` → `"Tuning"`.
+
+#### Recording
+- **Soft mutex** — `handleStartRecording(type, itemId)` in `App.jsx`: same recording → stop; conflict → `mutexPrompt` inline banner above footer with Confirm/Cancel; idle → start. No modal.
+- **MIME negotiation (15a)** — `preferredMime()` tries `audio/webm;codecs=opus → audio/mp4 → ''`; passed to `MediaRecorder` and `Blob`. `mimeType` stored in recording metadata.
+- **Key collision fix (15g)** — piece recording IDB key: `${itemId}__${date}` → `${itemId}__${date}__${Date.now()}`. Stored as `idbKey` in metadata. All consumer call sites (`deletePieceRecording`, `applyFifo`, `attachDailyToPiece`, `PieceRecordingsPanel`, `RepertoireView`, `TodayView`) use `entry.idbKey ?? fallback`.
+
+#### Audio — iOS fixes
+- **15b** — `wactxRef.current?.resume()` added synchronously before `await ensure()` in `Waveform.play()`. Web Audio graph and gain ramp kept intact.
+- **15c** — `audioCtxRef.current?.resume()` at top of metronome running branch and inside `toggleDrone`.
+- **15d** — `computePeaks` (`media.js`) reuses a module-level `_peaksCtx` singleton instead of `new AudioContext()` per call; avoids hitting the 4-context iOS limit.
+- **15e** — Drone frequency change uses `setValueAtTime` anchor + `exponentialRampToValueAtTime(freq, t+0.03)` to eliminate audible click on note change.
+
+#### Waveform display
+- **15f** — Removed second 2-pass smoothing in `Waveform` display component. `computePeaks` already smooths twice; the third pass was over-smoothing and flattening the shape.
+
+#### Wiki links
+- **CodeMirror editor** — direct DOM `addEventListener('touchstart', handler, {passive:false})` attached to the editor wrapper via `useEffect`. CodeMirror's `eventHandlers` cannot register non-passive listeners; this is the only mechanism that allows `preventDefault` to cancel iOS navigation.
+- **Read-only markdown** — `MarkdownComponents <a>` already calls `e.preventDefault()` unconditionally; `onTouchStart` handler added with same logic.
+- **`NotesMobile`** — plain `<a target="_blank">` links now also intercept `touchstart`.
+
+## v0.97.5 — 2026-05-01
+
+### Mobile adaptation (Tracks 1–9)
+
+See UPDATE_LOG for user-facing summary. Full technical detail in the sprint branch.
+
+---
+
 ## v0.97.0 — 2026-04-30
 
 ### Track 1 — Architecture & Navigation

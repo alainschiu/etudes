@@ -6,6 +6,7 @@ import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
 import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
+import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import ArrowUp from 'lucide-react/dist/esm/icons/arrow-up';
 import ArrowDown from 'lucide-react/dist/esm/icons/arrow-down';
@@ -24,7 +25,7 @@ import Calendar from 'lucide-react/dist/esm/icons/calendar';
 import Check from 'lucide-react/dist/esm/icons/check';
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import Mic from 'lucide-react/dist/esm/icons/mic';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, sans, mono} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, serifText, sans, mono} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
 import {daysUntil, todayDateStr} from '../lib/dates.js';
 import {idbGet} from '../lib/storage.js';
@@ -62,7 +63,7 @@ function BpmSparkline({log,target,compact=false}){if(!log||log.length<2)return n
 
 function StageDots({stage}){const idx=STAGES.findIndex(s=>s.key===stage);const retired=stage==='retired';return(<span className="flex items-center gap-1">{STAGES.map((_,i)=>(<span key={i} style={{width:'7px',height:'7px',borderRadius:'50%',flexShrink:0,background:i<=idx?(retired?DIM:IKB):'transparent',border:`1px solid ${i<=idx?(retired?DIM:IKB):DIM}`,opacity:i<=idx?1:0.3}}/>))}</span>);}
 
-function SpotEditor({spot,itemId,itemTimes,isActive,onStart,onStop,onUpdate,onDelete,onMoveUp,onMoveDown,canMoveUp,canMoveDown,onEditTime,dayClosed,itemPdfs=[]}){const [label,setLabel]=useState(spot.label);const [bpm,setBpm]=useState(spot.bpmTarget||'');const [note,setNote]=useState(spot.note||'');const [editingTime,setEditingTime]=useState(false);useEffect(()=>{setLabel(spot.label);setBpm(spot.bpmTarget||'');setNote(spot.note||'');},[spot.label,spot.bpmTarget,spot.note]);const time=getSpotTime(itemTimes,itemId,spot.id);const hbl=(spot.bpmLog||[]).length>=2;const cL=()=>{if(label.trim()&&label.trim()!==spot.label)onUpdate({label:label.trim()});else setLabel(spot.label);};const cB=()=>{const n=parseInt(bpm,10);const v=Number.isFinite(n)&&n>0?n:null;if(v!==spot.bpmTarget)onUpdate({bpmTarget:v});};const cN=()=>{if(note!==(spot.note||''))onUpdate({note});};return (<div className="group px-3 py-3 space-y-2" style={{background:isActive?IKB_SOFT:SURFACE2,borderLeft:isActive?`2px solid ${IKB}`:`2px solid transparent`}}><div className="flex items-center gap-3"><button onClick={()=>isActive?onStop():onStart()} disabled={dayClosed&&!isActive} className="shrink-0" style={{color:isActive?IKB:(dayClosed?FAINT:TEXT),filter:isActive?`drop-shadow(0 0 4px ${IKB})`:'none',cursor:(dayClosed&&!isActive)?'not-allowed':'pointer'}}>{isActive?<Pause className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>}</button><Crosshair className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:isActive?IKB:FAINT}}/><input value={label==='New spot'?'':label} onFocus={selectOnFocus} onChange={e=>setLabel(e.target.value)} onBlur={cL} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();}} placeholder="New spot" className="flex-1 focus:outline-none pb-0.5" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_MED}`,fontFamily:serif,fontSize:'14px',fontWeight:300}}/><div className="flex items-center gap-1 shrink-0"><span className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>♩</span><input value={bpm} onFocus={selectOnFocus} onChange={e=>setBpm(e.target.value.replace(/[^0-9]/g,''))} onBlur={cB} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();}} placeholder="—" className="w-12 text-right font-mono tabular-nums focus:outline-none pb-0.5" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_MED}`,fontSize:'11px'}}/></div>{editingTime?(<ItemTimeEditor seconds={time} onCommit={(v)=>{onEditTime(v);setEditingTime(false);}} onCancel={()=>setEditingTime(false)} small/>):(<><span className="font-mono tabular-nums shrink-0 w-14 text-right" style={{color:time>0?MUTED:FAINT,fontSize:'11px'}}>{time>0?fmtSpotTime(time):'—'}</span>{!dayClosed&&<button onClick={()=>setEditingTime(true)} className="target-hover-reveal shrink-0" style={{color:FAINT}}><Pencil className="w-3 h-3" strokeWidth={1.25}/></button>}</>)}<button onClick={onMoveUp} disabled={!canMoveUp} className="target-hover-reveal shrink-0" style={{color:canMoveUp?FAINT:DIM}}><ArrowUp className="w-3 h-3" strokeWidth={1.25}/></button><button onClick={onMoveDown} disabled={!canMoveDown} className="target-hover-reveal shrink-0" style={{color:canMoveDown?FAINT:DIM}}><ArrowDown className="w-3 h-3" strokeWidth={1.25}/></button><button onClick={onDelete} className="target-hover-reveal shrink-0" style={{color:FAINT}}><Trash2 className="w-3 h-3" strokeWidth={1.25}/></button></div>{hbl&&(<div className="pl-9 pt-1 flex items-center gap-3"><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Tempo</span><BpmSparkline log={spot.bpmLog} target={spot.bpmTarget} compact/><span className="tabular-nums shrink-0" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>{spot.bpmLog.length} log{spot.bpmLog.length===1?'':'s'}</span></div>)}<textarea value={note} onChange={e=>setNote(e.target.value)} onBlur={cN} placeholder="Persistent note…" className="w-full p-2 resize-none focus:outline-none" style={{background:BG,color:TEXT,border:`1px solid ${LINE}`,fontFamily:serif,fontSize:'12px',lineHeight:1.55,fontWeight:300,minHeight:'42px'}}/>{itemPdfs.length>0&&(()=>{const allBm=itemPdfs.flatMap(att=>(att.bookmarks||[]).map(bm=>({attId:att.id,bm})));const cur=spot.bookmarkId&&spot.pdfAttachmentId?allBm.find(x=>x.attId===spot.pdfAttachmentId&&x.bm.id===spot.bookmarkId):null;const val=cur?`${cur.attId}::${cur.bm.id}`:'';return(<div className="pl-0 flex items-center gap-2"><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>→ bookmark</span><select value={val} onChange={e=>{const v=e.target.value;if(!v){onUpdate({bookmarkId:null,pdfAttachmentId:null});return;}const[attId,bmId]=v.split('::');onUpdate({bookmarkId:bmId,pdfAttachmentId:attId});}} className="focus:outline-none" style={{background:BG,color:val?TEXT:FAINT,border:`1px solid ${LINE_MED}`,fontSize:'11px',padding:'1px 4px',cursor:'pointer'}}><option value="">— none —</option>{allBm.map(({attId,bm})=>(<option key={`${attId}::${bm.id}`} value={`${attId}::${bm.id}`}>{bm.name} · p.{bm.page}</option>))}</select></div>)})()}</div>);}
+function SpotEditor({spot,itemId,itemTimes,isActive,onStart,onStop,onUpdate,onDelete,onMoveUp,onMoveDown,canMoveUp,canMoveDown,onEditTime,dayClosed,itemPdfs=[]}){const [label,setLabel]=useState(spot.label);const [bpm,setBpm]=useState(spot.bpmTarget||'');const [note,setNote]=useState(spot.note||'');const [editingTime,setEditingTime]=useState(false);useEffect(()=>{setLabel(spot.label);setBpm(spot.bpmTarget||'');setNote(spot.note||'');},[spot.label,spot.bpmTarget,spot.note]);const time=getSpotTime(itemTimes,itemId,spot.id);const hbl=(spot.bpmLog||[]).length>=2;const cL=()=>{if(label.trim()&&label.trim()!==spot.label)onUpdate({label:label.trim()});else setLabel(spot.label);};const cB=()=>{const n=parseInt(bpm,10);const v=Number.isFinite(n)&&n>0?n:null;if(v!==spot.bpmTarget)onUpdate({bpmTarget:v});};const cN=()=>{if(note!==(spot.note||''))onUpdate({note});};return (<div className="group px-3 py-3 space-y-2" style={{background:isActive?IKB_SOFT:SURFACE2,borderLeft:isActive?`2px solid ${IKB}`:`2px solid transparent`}}><div className="flex items-center gap-3"><button onClick={()=>isActive?onStop():onStart()} disabled={dayClosed&&!isActive} className="shrink-0" style={{color:isActive?IKB:(dayClosed?FAINT:TEXT),filter:isActive?`drop-shadow(0 0 4px ${IKB})`:'none',cursor:(dayClosed&&!isActive)?'not-allowed':'pointer'}}>{isActive?<Pause className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>}</button><Crosshair className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:isActive?IKB:FAINT}}/><input value={label==='New spot'?'':label} onFocus={selectOnFocus} onChange={e=>setLabel(e.target.value)} onBlur={cL} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();}} placeholder="New spot" className="flex-1 focus:outline-none pb-0.5" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_MED}`,fontFamily:serif,fontSize:'14px',fontWeight:300}}/><div className="flex items-center gap-1 shrink-0"><span className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>♩</span><input value={bpm} onFocus={selectOnFocus} onChange={e=>setBpm(e.target.value.replace(/[^0-9]/g,''))} onBlur={cB} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();}} placeholder="—" className="w-12 text-right font-mono tabular-nums focus:outline-none pb-0.5" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_MED}`,fontSize:'11px'}}/></div>{editingTime?(<ItemTimeEditor seconds={time} onCommit={(v)=>{onEditTime(v);setEditingTime(false);}} onCancel={()=>setEditingTime(false)} small/>):(<><span className="font-mono tabular-nums shrink-0 w-14 text-right" style={{color:time>0?MUTED:FAINT,fontSize:'11px'}}>{time>0?fmtSpotTime(time):'—'}</span>{!dayClosed&&<button onClick={()=>setEditingTime(true)} className="target-hover-reveal shrink-0" style={{color:FAINT}}><Pencil className="w-3 h-3" strokeWidth={1.25}/></button>}</>)}<button onClick={onMoveUp} disabled={!canMoveUp} className="target-hover-reveal shrink-0" style={{color:canMoveUp?FAINT:DIM}}><ArrowUp className="w-3 h-3" strokeWidth={1.25}/></button><button onClick={onMoveDown} disabled={!canMoveDown} className="target-hover-reveal shrink-0" style={{color:canMoveDown?FAINT:DIM}}><ArrowDown className="w-3 h-3" strokeWidth={1.25}/></button><button onClick={onDelete} className="target-hover-reveal shrink-0" style={{color:FAINT}}><Trash2 className="w-3 h-3" strokeWidth={1.25}/></button></div>{hbl&&(<div className="pl-9 pt-1 flex items-center gap-3"><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Tempo</span><BpmSparkline log={spot.bpmLog} target={spot.bpmTarget} compact/><span className="tabular-nums shrink-0" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>{spot.bpmLog.length} log{spot.bpmLog.length===1?'':'s'}</span></div>)}<textarea value={note} onChange={e=>setNote(e.target.value)} onBlur={cN} placeholder="Persistent note…" className="w-full p-2 resize-none focus:outline-none" style={{background:BG,color:TEXT,border:`1px solid ${LINE}`,fontFamily:serifText,fontSize:'12px',lineHeight:1.55,fontWeight:300,minHeight:'42px'}}/>{itemPdfs.length>0&&(()=>{const allBm=itemPdfs.flatMap(att=>(att.bookmarks||[]).map(bm=>({attId:att.id,bm})));const cur=spot.bookmarkId&&spot.pdfAttachmentId?allBm.find(x=>x.attId===spot.pdfAttachmentId&&x.bm.id===spot.bookmarkId):null;const val=cur?`${cur.attId}::${cur.bm.id}`:'';return(<div className="pl-0 flex items-center gap-2"><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>→ bookmark</span><select value={val} onChange={e=>{const v=e.target.value;if(!v){onUpdate({bookmarkId:null,pdfAttachmentId:null});return;}const[attId,bmId]=v.split('::');onUpdate({bookmarkId:bmId,pdfAttachmentId:attId});}} className="focus:outline-none" style={{background:BG,color:val?TEXT:FAINT,border:`1px solid ${LINE_MED}`,fontSize:'11px',padding:'1px 4px',cursor:'pointer'}}><option value="">— none —</option>{allBm.map(({attId,bm})=>(<option key={`${attId}::${bm.id}`} value={`${attId}::${bm.id}`}>{bm.name} · p.{bm.page}</option>))}</select></div>)})()}</div>);}
 
 function SidebarFacet({title,icon,open,setOpen,entries,activeValue,onSelect,emptyText}){return (<div><button onClick={()=>setOpen(!open)} className="w-full flex items-center justify-between mb-3 group" style={{color:open?MUTED:FAINT,cursor:'pointer'}}><span className="uppercase flex items-center gap-1.5" style={{fontSize:'10px',letterSpacing:'0.28em'}}>{icon} {title}{entries.length>0&&<span style={{color:DIM,fontFamily:'ui-monospace,monospace',fontSize:'9px',letterSpacing:'0.1em',marginLeft:'2px'}}>{entries.length}</span>}</span>{open?<ChevronUp className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.25}/>:<ChevronDown className="w-3 h-3 opacity-60 group-hover:opacity-100 transition-opacity" strokeWidth={1.25}/>}</button>{open&&(<div className="space-y-0" style={{borderTop:`1px solid ${LINE}`}}>{entries.length===0&&<div className="py-3 italic text-xs" style={{color:FAINT,fontFamily:serif}}>{emptyText}</div>}{entries.map(({key,display,count})=>{const active=activeValue===display;return (<button key={key} onClick={()=>onSelect(active?'':display)} className="w-full text-left py-1.5 flex items-baseline justify-between gap-2" style={{borderBottom:`1px solid ${LINE}`,color:active?TEXT:MUTED,borderLeft:active?`2px solid ${IKB}`:'2px solid transparent',paddingLeft:active?'8px':'10px',paddingRight:'4px'}}><span className="italic truncate" style={{fontFamily:serif,fontSize:'13px',fontWeight:300}}>{display}</span><span className="tabular-nums shrink-0" style={{color:FAINT,fontSize:'10px'}}>{count}</span></button>);})}</div>)}</div>);}
 
@@ -74,7 +75,11 @@ const selectOnFocus=(e)=>e.currentTarget.select();
 
 export default function RepertoireView(p){
   const {isMobile}=useViewport();
-  const {items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta,uploadRefTrack,deleteRefTrack,pdfUrlMap,localPieceRecordingIds,localRefTrackIds}=p;
+  const {view,items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta,uploadRefTrack,deleteRefTrack,pdfUrlMap,localPieceRecordingIds,localRefTrackIds}=p;
+  // Mobile piece detail state
+  const [mobileDetailId,setMobileDetailId]=useState(null);
+  // Reset when navigating away from repertoire
+  useEffect(()=>{if(view!=='repertoire')setMobileDetailId(null);},[view]);
   const [search,setSearch]=useState('');const [filterType,setFilterType]=useState('');const [filterComposer,setFilterComposer]=useState('');const [filterStyle,setFilterStyle]=useState('');const [filterStatus,setFilterStatus]=useState('');const [filterInstrument,setFilterInstrument]=useState('');
   const [sortBy,setSortBy]=useState('');
   const [groupByCollection,setGroupByCollection]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(false);const [composerOpen,setComposerOpen]=useState(true);const [instrumentOpen,setInstrumentOpen]=useState(true);const [expandedId,setExpandedId]=useState(()=>expandedItemId||null);const [showMoreIds,setShowMoreIds]=useState({});
@@ -137,7 +142,7 @@ export default function RepertoireView(p){
         <div className="shrink-0 mt-0.5 tabular-nums" style={{color:MUTED,fontFamily:serif,fontStyle:'italic',fontSize:'14px',width:'28px'}}>{SECTION_CONFIG[i.type].roman}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-3 flex-wrap">
-            <span style={{fontFamily:sans,fontWeight:300,fontSize:'14px'}}>{displayTitle(i)}</span>
+            <span style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'15px',lineHeight:1.2}}>{displayTitle(i)}</span>
             {i.catalog&&<span className="tabular-nums" style={{color:FAINT,fontSize:'13px',fontFamily:serif,fontStyle:'italic'}}>{i.catalog}</span>}
             {formatByline(i)&&<span className="italic" style={{color:MUTED,fontFamily:serif,fontSize:'13px',fontWeight:300}}>{formatByline(i)}</span>}
             {perf&&<PerformanceChip perf={perf} compact/>}
@@ -225,6 +230,91 @@ export default function RepertoireView(p){
     </div>);
   };
 
+  // ── Mobile: list → detail ─────────────────────────────────────────────
+  if(isMobile){
+    if(mobileDetailId){
+      const detailItem=items.find(i=>i.id===mobileDetailId);
+      if(detailItem){
+        return <PieceDetailScreen
+          item={detailItem}
+          onBack={()=>setMobileDetailId(null)}
+          updateItem={updateItem}
+          deleteItem={deleteItem}
+          dayClosed={dayClosed}
+          activeItemId={activeItemId}
+          activeSpotId={activeSpotId}
+          startItem={startItem}
+          stopItem={stopItem}
+          itemTimes={itemTimes}
+          fmt={fmt}
+          fmtMin={fmtMin}
+          addSpot={addSpot}
+          updateSpot={updateSpot}
+          deleteSpot={deleteSpot}
+          editSpotTime={editSpotTime}
+          addPerformance={addPerformance}
+          updatePerformance={updatePerformance}
+          deletePerformance={deletePerformance}
+          pieceRecordingMeta={pieceRecordingMeta}
+          setPdfDrawerItemId={setPdfDrawerItemId}
+          history={history}
+          globalAbA={globalAbA}
+          globalAbB={globalAbB}
+          setGlobalAbA={setGlobalAbA}
+          setGlobalAbB={setGlobalAbB}
+          startPieceRecording={startPieceRecording}
+          stopPieceRecording={stopPieceRecording}
+          deletePieceRecording={deletePieceRecording}
+          lockPieceRecording={lockPieceRecording}
+          pieceRecordingItemId={pieceRecordingItemId}
+          refTrackMeta={refTrackMeta}
+          uploadRefTrack={uploadRefTrack}
+          deleteRefTrack={deleteRefTrack}
+          pdfUrlMap={pdfUrlMap}
+          localPieceRecordingIds={localPieceRecordingIds}
+          localRefTrackIds={localRefTrackIds}
+          addNoteLogEntry={addNoteLogEntry}
+          deleteNoteLogEntry={deleteNoteLogEntry}
+          updateNoteLogEntry={updateNoteLogEntry}
+          setExpandedItemId={setExpandedItemId}
+        />;
+      }
+    }
+    return <MobileRepertoireList
+      items={items}
+      sorted={sorted}
+      grouped={grouped}
+      groupByCollection={groupByCollection}
+      setGroupByCollection={setGroupByCollection}
+      search={search}
+      setSearch={setSearch}
+      filterType={filterType}
+      setFilterType={setFilterType}
+      filterStatus={filterStatus}
+      setFilterStatus={setFilterStatus}
+      filterComposer={filterComposer}
+      filterInstrument={filterInstrument}
+      hasFilters={hasFilters}
+      clearFilters={clearFilters}
+      allComposers={allComposers}
+      allInstruments={allInstruments}
+      activeItemId={activeItemId}
+      dayClosed={dayClosed}
+      handleAdd={handleAdd}
+      onTapItem={setMobileDetailId}
+      itemTimes={itemTimes}
+      fmtMin={fmtMin}
+      history={history}
+      globalAbA={globalAbA}
+      globalAbB={globalAbB}
+      setGlobalAbA={setGlobalAbA}
+      setGlobalAbB={setGlobalAbB}
+      pieceRecordingMeta={pieceRecordingMeta}
+      refTrackMeta={refTrackMeta}
+    />;
+  }
+
+  // ── Desktop view (unchanged) ──────────────────────────────────────────
   return (<><div className="flex max-w-6xl mx-auto">
     <datalist id="rep-composer-list">{uniqueComposerNames.map(c=>(<option key={c} value={c}/>))}</datalist>
     <datalist id="rep-instrument-list">{uniqueInstrumentNames.map(c=>(<option key={c} value={c}/>))}</datalist>
@@ -281,7 +371,7 @@ export default function RepertoireView(p){
   </div>
   {/* ── Global A/B comparison bar (cross-piece only) ──────────────────── */}
   {globalAbA&&globalAbB&&globalAbA.itemId!==globalAbB.itemId&&(
-    <div style={{position:'fixed',bottom:0,left:0,right:0,zIndex:40,background:BG,borderTop:`1px solid ${LINE_STR}`,boxShadow:'0 -4px 24px rgba(0,0,0,0.5)',...(isMobile&&{paddingBottom:'56px'})}}>
+    <div style={{position:'fixed',bottom:isMobile?'calc(var(--footer-height,160px))':0,left:0,right:0,zIndex:40,background:BG,borderTop:`1px solid ${LINE_STR}`,boxShadow:'0 -4px 24px rgba(0,0,0,0.5)'}}>
       <div className="max-w-6xl mx-auto px-12">
         {/* Header */}
         <div className="flex items-center gap-3 py-2" style={{borderBottom:`1px solid ${LINE}`}}>
@@ -309,7 +399,7 @@ export default function RepertoireView(p){
                 <span style={{fontFamily:mono,color:FAINT,fontSize:'9px',letterSpacing:'0.06em'}}>{ab.date}</span>
                 {ab.meta?.bpm&&<span style={{fontFamily:mono,color:FAINT,fontSize:'9px'}}>↓ {ab.meta.bpm}</span>}
               </div>
-              <Waveform blobLoader={()=>idbGet('pieceRecordings',`${ab.itemId}__${ab.date}`)} meta={ab.meta}/>
+              <Waveform blobLoader={()=>idbGet('pieceRecordings',ab.meta?.idbKey??`${ab.itemId}__${ab.date}`)} meta={ab.meta}/>
             </div>
           ))}
         </div>
@@ -376,7 +466,7 @@ function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,update
                 onChange={e=>setNewNoteText(e.target.value)}
                 placeholder="A note on this session."
                 className="w-full resize-none focus:outline-none"
-                style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'13px',lineHeight:1.65,minHeight:'60px',fontWeight:300}}
+                style={{background:'transparent',color:TEXT,fontFamily:serifText,fontSize:'13px',lineHeight:1.65,minHeight:'60px',fontWeight:300}}
               />
               <div className="flex gap-2 mt-2">
                 <button onClick={handleAdd} className="uppercase px-2 py-1 flex items-center gap-1" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}><Check className="w-2.5 h-2.5" strokeWidth={1.25}/> Save</button>
@@ -465,3 +555,308 @@ function LengthEditorRow({i,updateItem}){
   return(<EditorRow label="Length" hint="e.g. 3:45 or 4 (minutes)"><input type="text" value={val} onChange={e=>setVal(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter')e.currentTarget.blur();}} placeholder="—" style={{...eInM,fontSize:'14px'}}/></EditorRow>);
 }
 function formatLengthForInput(secs){if(!secs)return'';const m=Math.floor(secs/60),s=secs%60;return`${m}:${String(s).padStart(2,'0')}`;}
+
+// ── Mobile: Répertoire list ───────────────────────────────────────────────
+function MobileRepertoireList({items,sorted,grouped,groupByCollection,setGroupByCollection,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,filterComposer,filterInstrument,hasFilters,clearFilters,allComposers,allInstruments,activeItemId,dayClosed,handleAdd,onTapItem,itemTimes,fmtMin,history,globalAbA,globalAbB,setGlobalAbA,setGlobalAbB,pieceRecordingMeta,refTrackMeta}){
+  const [filterSheetOpen,setFilterSheetOpen]=useState(false);
+  const [composerOpen,setComposerOpen]=useState(true);
+  const [instrumentOpen,setInstrumentOpen]=useState(true);
+
+  const filterSheetStyle={
+    position:'fixed',bottom:0,left:0,right:0,height:'70vh',
+    background:'rgba(17,16,16,0.95)',backdropFilter:'blur(14px)',WebkitBackdropFilter:'blur(14px)',
+    borderTop:`1px solid ${LINE_STR}`,zIndex:40,
+    transform:filterSheetOpen?'translateY(0)':'translateY(100%)',
+    transition:filterSheetOpen?'transform 240ms ease-out':'transform 200ms ease-in',
+    display:'flex',flexDirection:'column',overflowY:'auto',
+  };
+
+  return(
+    <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)'}}>
+      {/* Header row */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 20px 8px'}}>
+        <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>Répertoire</div>
+        <div style={{display:'flex',gap:'8px'}}>
+          <button onClick={()=>setFilterSheetOpen(true)} style={{minWidth:'36px',minHeight:'36px',display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${hasFilters?IKB:LINE_MED}`,background:hasFilters?IKB_SOFT:'transparent',color:hasFilters?IKB:MUTED,cursor:'pointer'}}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+          </button>
+          <button onClick={()=>setGroupByCollection(v=>!v)} style={{minWidth:'36px',minHeight:'36px',display:'flex',alignItems:'center',justifyContent:'center',border:`1px solid ${groupByCollection?IKB:LINE_MED}`,background:groupByCollection?IKB_SOFT:'transparent',color:groupByCollection?IKB:MUTED,cursor:'pointer'}}>
+            <Layers size={14} strokeWidth={1.25}/>
+          </button>
+        </div>
+      </div>
+
+      {/* Search */}
+      <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 20px',borderBottom:`1px solid ${LINE}`}}>
+        <Search size={13} strokeWidth={1.25} style={{color:FAINT,flexShrink:0}}/>
+        <input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search…" style={{flex:1,background:'transparent',border:'none',color:TEXT,fontSize:'14px',outline:'none'}}/>
+        {search&&<button onClick={()=>setSearch('')} style={{color:FAINT,fontSize:'12px',background:'transparent',border:'none',cursor:'pointer'}}>✕</button>}
+      </div>
+
+      {/* Add row */}
+      <div style={{display:'flex',gap:'4px',padding:'10px 20px',borderBottom:`1px solid ${LINE}`,flexWrap:'wrap'}}>
+        <span className="uppercase" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em',fontFamily:sans,alignSelf:'center',marginRight:'4px'}}>Add</span>
+        {TYPES.map(t=>(
+          <button key={t} onClick={()=>handleAdd(t)} style={{display:'flex',alignItems:'baseline',gap:'4px',padding:'4px 8px',background:'transparent',border:`1px solid ${LINE_MED}`,cursor:'pointer',color:TEXT}}>
+            <span style={{fontFamily:serif,fontStyle:'italic',color:DIM,fontSize:'11px'}}>{SECTION_CONFIG[t].roman}.</span>
+            <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.18em'}}>{SECTION_CONFIG[t].label}</span>
+          </button>
+        ))}
+        {hasFilters&&<button onClick={clearFilters} style={{marginLeft:'auto',padding:'4px 8px',border:`1px solid ${LINE_MED}`,color:MUTED,fontFamily:sans,fontSize:'8px',letterSpacing:'0.22em',textTransform:'uppercase',cursor:'pointer',background:'transparent'}}>Clear</button>}
+      </div>
+
+      {/* List */}
+      <div style={{borderTop:`1px solid ${LINE_STR}`}}>
+        {items.length===0&&<div style={{padding:'48px 20px',textAlign:'center',fontFamily:serif,fontStyle:'italic',fontSize:'15px',color:DIM}}>Nothing here yet.</div>}
+        {!groupByCollection&&sorted.map(item=><MobileRepItem key={item.id} item={item} onTap={()=>onTapItem(item.id)} activeItemId={activeItemId} history={history} pieceRecordingMeta={pieceRecordingMeta} refTrackMeta={refTrackMeta}/>)}
+        {groupByCollection&&grouped&&(<>
+          {grouped.collections.map(({name,list})=>(
+            <div key={name}>
+              <div style={{padding:'12px 20px 8px',borderBottom:`1px solid ${LINE_MED}`,background:SURFACE,display:'flex',alignItems:'baseline',gap:'8px'}}>
+                <span style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'16px',color:MUTED}}>{name}</span>
+                <span style={{color:FAINT,fontSize:'10px',marginLeft:'auto'}}>{list.length} mvt{list.length===1?'':'s'}</span>
+              </div>
+              {list.map(item=><MobileRepItem key={item.id} item={item} onTap={()=>onTapItem(item.id)} activeItemId={activeItemId} history={history} pieceRecordingMeta={pieceRecordingMeta} refTrackMeta={refTrackMeta}/>)}
+            </div>
+          ))}
+          {grouped.standalone.length>0&&(<>
+            <div style={{padding:'12px 20px 8px',borderBottom:`1px solid ${LINE_MED}`,background:SURFACE}}><span className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.3em'}}>Standalone</span></div>
+            {grouped.standalone.map(item=><MobileRepItem key={item.id} item={item} onTap={()=>onTapItem(item.id)} activeItemId={activeItemId} history={history} pieceRecordingMeta={pieceRecordingMeta} refTrackMeta={refTrackMeta}/>)}
+          </>)}
+        </>)}
+        {items.length>0&&sorted.length===0&&<div style={{padding:'32px 20px',textAlign:'center',fontFamily:serif,fontStyle:'italic',fontSize:'14px',color:FAINT}}>Nothing matches.</div>}
+      </div>
+
+      {/* Filter sheet */}
+      {filterSheetOpen&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:39}} onClick={()=>setFilterSheetOpen(false)}/>}
+      <div style={filterSheetStyle}>
+        <div style={{display:'flex',justifyContent:'center',padding:'12px 0 4px',flexShrink:0}}><div style={{width:'36px',height:'3px',background:LINE_STR,borderRadius:'999px'}}/></div>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 20px',flexShrink:0,borderBottom:`1px solid ${LINE}`}}>
+          <span className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em',fontFamily:sans}}>Filter</span>
+          <button onClick={()=>setFilterSheetOpen(false)} style={{color:FAINT,background:'transparent',border:'none',cursor:'pointer',minWidth:'36px',minHeight:'36px',display:'flex',alignItems:'center',justifyContent:'center'}}><X size={16} strokeWidth={1.25}/></button>
+        </div>
+        <div style={{flex:1,overflowY:'auto',padding:'16px 20px 32px',display:'flex',flexDirection:'column',gap:'16px'}}>
+          <div>
+            <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,marginBottom:'8px'}}>Type</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+              {[{value:'',label:'All'},...TYPES.map(t=>({value:t,label:SECTION_CONFIG[t].label}))].map(o=>(
+                <button key={o.value} onClick={()=>setFilterType(o.value)} style={{padding:'6px 12px',border:`1px solid ${filterType===o.value?IKB:LINE_MED}`,background:filterType===o.value?IKB_SOFT:'transparent',color:filterType===o.value?TEXT:MUTED,fontFamily:sans,fontSize:'10px',letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{o.label}</button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,marginBottom:'8px'}}>Status</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'6px'}}>
+              {[{value:'',label:'All'},...STAGES.map(s=>({value:s.key,label:s.label}))].map(o=>(
+                <button key={o.value} onClick={()=>setFilterStatus(o.value)} style={{padding:'6px 12px',border:`1px solid ${filterStatus===o.value?IKB:LINE_MED}`,background:filterStatus===o.value?IKB_SOFT:'transparent',color:filterStatus===o.value?TEXT:MUTED,fontFamily:sans,fontSize:'10px',letterSpacing:'0.18em',textTransform:'uppercase',cursor:'pointer'}}>{o.label}</button>
+              ))}
+            </div>
+          </div>
+          <SidebarFacet title="Composers" icon={<Users size={11} strokeWidth={1.25}/>} open={composerOpen} setOpen={setComposerOpen} entries={allComposers} activeValue={filterComposer} onSelect={(v)=>{}} emptyText="No composers yet."/>
+          <SidebarFacet title="Instruments" icon={<Guitar size={11} strokeWidth={1.25}/>} open={instrumentOpen} setOpen={setInstrumentOpen} entries={allInstruments} activeValue={filterInstrument} onSelect={(v)=>{}} emptyText="No instruments set."/>
+          {hasFilters&&<button onClick={()=>{clearFilters();setFilterSheetOpen(false);}} style={{padding:'10px',border:`1px solid ${LINE_MED}`,color:MUTED,fontFamily:sans,fontSize:'10px',letterSpacing:'0.22em',textTransform:'uppercase',cursor:'pointer',background:'transparent',marginTop:'8px'}}>Clear all filters</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MobileRepItem({item,onTap,activeItemId,history,pieceRecordingMeta,refTrackMeta}){
+  const isActive=activeItemId===item.id;
+  const perf=nextPerformance(item.performances);
+  const spotCount=(item.spots||[]).length;
+  const hasPdf=(item.pdfs||[]).length>0;
+  const hasRecordings=!!(pieceRecordingMeta?.[item.id]&&Object.keys(pieceRecordingMeta[item.id]).length>0);
+  const hasRefTrack=!!(refTrackMeta?.[item.id]);
+  return(
+    <button onClick={onTap} style={{display:'flex',alignItems:'center',gap:'12px',width:'100%',padding:'14px 20px',background:isActive?IKB_SOFT:'transparent',minHeight:'52px',textAlign:'left',cursor:'pointer',border:'none',borderBottomWidth:'1px',borderBottomStyle:'solid',borderBottomColor:LINE}}>
+      <div style={{flexShrink:0,width:'24px'}}>
+        <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'11px',color:MUTED}}>{SECTION_CONFIG[item.type].roman}</span>
+      </div>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'16px',color:isActive?TEXT:'rgba(212,206,195,0.9)',lineHeight:1.2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{displayTitle(item)}</div>
+        {formatByline(item)&&<div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'12px',color:FAINT,marginTop:'2px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{formatByline(item)}</div>}
+        <div style={{display:'flex',alignItems:'center',gap:'8px',marginTop:'5px',flexWrap:'wrap'}}>
+          <StageDots stage={item.stage}/>
+          {spotCount>0&&<span style={{display:'flex',alignItems:'center',gap:'3px',color:FAINT}}><Crosshair size={9} strokeWidth={1.25}/><span style={{fontFamily:mono,fontSize:'9px'}}>{spotCount}</span></span>}
+          {hasRecordings&&<Mic size={9} strokeWidth={1.25} style={{color:FAINT}}/>}
+          {hasRefTrack&&<Music size={9} strokeWidth={1.25} style={{color:FAINT}}/>}
+          {hasPdf&&<FileText size={9} strokeWidth={1.25} style={{color:FAINT}}/>}
+          {perf&&<span style={{marginLeft:'auto'}}><PerformanceChip perf={perf} compact/></span>}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+// ── Mobile: Piece detail screen ───────────────────────────────────────────
+function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeItemId,activeSpotId,startItem,stopItem,itemTimes,fmt,fmtMin,addSpot,updateSpot,deleteSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,setPdfDrawerItemId,history,globalAbA,globalAbB,setGlobalAbA,setGlobalAbB,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,refTrackMeta,uploadRefTrack,deleteRefTrack,pdfUrlMap,localPieceRecordingIds,localRefTrackIds,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,setExpandedItemId}){
+  const [tab,setTab]=useState('spots');
+  const isActive=activeItemId===item.id;
+  const stage=STAGES.find(s=>s.key===item.stage)||STAGES[0];
+  const perf=nextPerformance(item.performances);
+  const totalTime=getItemTime(itemTimes,item.id);
+  const TABS=[{id:'spots',label:'Spots'},{id:'info',label:'Info'},{id:'recordings',label:'Recordings'},{id:'score',label:'Score'}];
+
+  return(
+    <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)'}}>
+      {/* Back button */}
+      <button onClick={onBack} style={{display:'flex',alignItems:'center',gap:'6px',padding:'12px 20px',minHeight:'44px',background:'transparent',border:'none',cursor:'pointer',borderBottom:`1px solid ${LINE}`,width:'100%'}}>
+        <ChevronLeft size={12} strokeWidth={1.5} style={{color:'rgba(196,188,179,0.7)',flexShrink:0}}/>
+        <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',color:'rgba(196,188,179,0.7)'}}>Répertoire</span>
+      </button>
+
+      {/* Header */}
+      <div style={{padding:'16px 20px'}}>
+        <div className="uppercase" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.28em',color:FAINT,marginBottom:'4px'}}>
+          {stage.label}{item.instrument?` · ${item.instrument}`:''}
+        </div>
+        <div style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'32px',letterSpacing:'-0.01em',color:TEXT,lineHeight:1.1,marginTop:'6px'}}>{displayTitle(item)}</div>
+        {formatByline(item)&&<div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'14px',color:FAINT,marginTop:'4px'}}>{formatByline(item)}</div>}
+        <div style={{marginTop:'12px'}}>
+          <StageLabels stage={item.stage} onChange={st=>updateItem(item.id,{stage:st})} compact/>
+        </div>
+      </div>
+
+      {/* Stats bar */}
+      <div style={{display:'flex',alignItems:'stretch',padding:'12px 20px',borderTop:`1px solid ${LINE_STR}`,borderBottom:`1px solid ${LINE}`,margin:'0',gap:'16px'}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'4px'}}>Total time</div>
+          <div style={{fontFamily:mono,fontSize:'18px',color:TEXT}}>{fmtMin(totalTime)}</div>
+        </div>
+        {perf&&(<>
+          <div style={{width:'1px',background:LINE,alignSelf:'stretch'}}/>
+          <div style={{flex:1,minWidth:0}}>
+            <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'4px'}}>Next perf.</div>
+            <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'13px',color:TEXT,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{perf.label||'performance'}</div>
+            <div style={{fontFamily:mono,fontSize:'10px',color:WARM}}>{daysUntil(perf.date)===0?'today':`${daysUntil(perf.date)} days`}</div>
+          </div>
+        </>)}
+      </div>
+
+      {/* Tab strip */}
+      <div style={{display:'flex',borderBottom:`1px solid ${LINE}`}}>
+        {TABS.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:'12px 0',minHeight:'44px',background:'transparent',border:'none',cursor:'pointer',borderBottom:`1px solid ${tab===t.id?IKB:'transparent'}`,marginBottom:'-1px'}}>
+            <span className="uppercase" style={{fontFamily:sans,fontSize:'11px',fontWeight:500,letterSpacing:'0.22em',color:tab===t.id?TEXT:FAINT}}>{t.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Spots tab */}
+      {tab==='spots'&&(
+        <div style={{padding:'0 0 16px'}}>
+          {(item.spots||[]).length===0&&<div style={{padding:'24px 20px',fontFamily:serif,fontStyle:'italic',fontSize:'13px',color:FAINT}}>No spots yet.</div>}
+          {(item.spots||[]).map((spot,idx)=>(
+            <div key={spot.id} style={{borderBottom:`1px solid ${LINE}`}}>
+              <SpotEditor spot={spot} itemId={item.id} itemTimes={itemTimes} isActive={activeItemId===item.id&&activeSpotId===spot.id} onStart={()=>startItem(item.id,spot.id)} onStop={stopItem} onUpdate={patch=>updateSpot(item.id,spot.id,patch)} onDelete={()=>deleteSpot(item.id,spot.id)} onMoveUp={()=>{}} onMoveDown={()=>{}} canMoveUp={idx>0} canMoveDown={idx<(item.spots||[]).length-1} onEditTime={v=>editSpotTime(item.id,spot.id,v)} dayClosed={dayClosed} itemPdfs={item.pdfs||[]}/>
+            </div>
+          ))}
+          <div style={{padding:'12px 20px'}}>
+            <button onClick={()=>addSpot(item.id,'New spot')} style={{display:'flex',alignItems:'center',gap:'6px',background:'transparent',border:'none',cursor:'pointer',color:MUTED}}>
+              <Plus size={11} strokeWidth={1.25}/>
+              <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Add spot</span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Info tab */}
+      {tab==='info'&&(
+        <div style={{padding:'0 20px 24px'}}>
+          {[
+            {label:'Work title',field:'title',type:'text',placeholder:'Untitled'},
+            {label:'Movement / part',field:'movement',type:'text',placeholder:'I. Prélude'},
+            {label:'Collection',field:'collection',type:'text',placeholder:'Suite Bergamasque'},
+            {label:'Composer',field:'composer',type:'text',placeholder:'Composer'},
+            {label:'Catalog',field:'catalog',type:'text',placeholder:'Op. 110'},
+            {label:'Instrument',field:'instrument',type:'text',placeholder:'Instrument'},
+          ].map(f=>(
+            <div key={f.field} style={{padding:'20px 0',borderBottom:`1px solid ${LINE}`}}>
+              <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'6px'}}>{f.label}</div>
+              <input
+                type={f.type}
+                value={item[f.field]||''}
+                onChange={e=>updateItem(item.id,{[f.field]:e.target.value})}
+                placeholder={f.placeholder}
+                style={{width:'100%',background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:serifText,fontSize:'15px',padding:'8px 0',outline:'none',boxSizing:'border-box'}}
+              />
+            </div>
+          ))}
+          {/* Length + BPM side by side */}
+          <div style={{display:'flex',gap:'16px',padding:'20px 0',borderBottom:`1px solid ${LINE}`}}>
+            <div style={{flex:1}}>
+              <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'6px'}}>Length</div>
+              <input type="text" value={item.lengthSecs!=null?formatLengthForInput(item.lengthSecs):''} onChange={e=>{const s=parseLengthInput(e.target.value);updateItem(item.id,{lengthSecs:s});}} placeholder="—" style={{width:'100%',background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:mono,fontSize:'14px',padding:'8px 0',outline:'none',boxSizing:'border-box'}}/>
+            </div>
+            <div style={{flex:1}}>
+              <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'6px'}}>Tempo</div>
+              <input type="number" min="40" max="300" value={item.bpmTarget??''} onChange={e=>{const n=parseInt(e.target.value,10);updateItem(item.id,{bpmTarget:Number.isFinite(n)&&n>0?n:null});}} placeholder="— bpm" style={{width:'100%',background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:mono,fontSize:'14px',padding:'8px 0',outline:'none',boxSizing:'border-box'}}/>
+            </div>
+          </div>
+          {/* Tags */}
+          <div style={{padding:'20px 0',borderBottom:`1px solid ${LINE}`}}>
+            <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'8px'}}>Tags</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'6px',marginBottom:'8px'}}>
+              {(item.tags||[]).map(t=>(
+                <span key={t} style={{display:'flex',alignItems:'center',gap:'4px',padding:'3px 8px',background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'9px',letterSpacing:'0.18em',textTransform:'uppercase',color:MUTED}}>
+                  {t}
+                  <button onClick={()=>updateItem(item.id,{tags:item.tags.filter(x=>x!==t)})} style={{color:FAINT,background:'transparent',border:'none',cursor:'pointer',padding:0,lineHeight:1}}><X size={10} strokeWidth={1.25}/></button>
+                </span>
+              ))}
+            </div>
+            <input type="text" placeholder="add + enter" onKeyDown={e=>{if(e.key==='Enter'&&e.target.value.trim()){const tag=e.target.value.trim().replace(/^#/,'');if(!(item.tags||[]).includes(tag))updateItem(item.id,{tags:[...(item.tags||[]),tag]});e.target.value='';}}} style={{background:SURFACE2,border:`1px solid ${LINE_MED}`,color:TEXT,padding:'6px 10px',fontSize:'12px',outline:'none',width:'100%',boxSizing:'border-box'}}/>
+          </div>
+          {/* Notes */}
+          <div style={{padding:'20px 0'}}>
+            <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'8px'}}>Notes</div>
+            <MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={120} style={{background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'15px'}}/>
+          </div>
+          {/* Delete */}
+          <button onClick={()=>{deleteItem(item.id);onBack();}} style={{display:'flex',alignItems:'center',gap:'6px',padding:'10px 0',color:FAINT,background:'transparent',border:'none',cursor:'pointer',marginTop:'8px'}}>
+            <Trash2 size={12} strokeWidth={1.25}/>
+            <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Delete</span>
+          </button>
+        </div>
+      )}
+
+      {/* Recordings tab */}
+      {tab==='recordings'&&(
+        <div style={{padding:'16px 20px'}}>
+          <PieceRecordingsPanel
+            item={item}
+            pieceRecordingMeta={pieceRecordingMeta}
+            deletePieceRecording={deletePieceRecording}
+            lockPieceRecording={lockPieceRecording}
+            pieceRecordingItemId={pieceRecordingItemId}
+            dayClosed={dayClosed}
+            globalAbA={globalAbA}
+            globalAbB={globalAbB}
+            setGlobalAbA={setGlobalAbA}
+            setGlobalAbB={setGlobalAbB}
+            refTrackMeta={refTrackMeta}
+            uploadRefTrack={uploadRefTrack}
+            deleteRefTrack={deleteRefTrack}
+          />
+        </div>
+      )}
+
+      {/* Score tab */}
+      {tab==='score'&&(
+        <div style={{padding:'16px 20px'}}>
+          {(item.pdfs||[]).length>0?(
+            <button onClick={()=>setPdfDrawerItemId(item.id)} style={{display:'flex',alignItems:'center',gap:'8px',padding:'12px 16px',border:`1px solid ${LINE_MED}`,background:SURFACE2,cursor:'pointer',width:'100%',color:TEXT}}>
+              <FileText size={14} strokeWidth={1.25} style={{color:IKB}}/>
+              <span style={{fontFamily:sans,fontSize:'12px'}}>Open score viewer</span>
+            </button>
+          ):(
+            <button onClick={()=>setPdfDrawerItemId(item.id)} style={{display:'flex',alignItems:'center',gap:'8px',padding:'12px 16px',border:`1px dashed ${LINE_STR}`,background:'transparent',cursor:'pointer',width:'100%',color:FAINT}}>
+              <FileText size={14} strokeWidth={1.25}/>
+              <span style={{fontFamily:sans,fontSize:'12px'}}>Upload a PDF score</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

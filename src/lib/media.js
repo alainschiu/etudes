@@ -1,9 +1,11 @@
 export function blobToBase64(blob){return new Promise((res,rej)=>{const r=new FileReader();r.onloadend=()=>{const s=r.result||'';const i=s.indexOf(',');res(i>=0?s.slice(i+1):'');};r.onerror=()=>rej(r.error);r.readAsDataURL(blob);});}
 export function base64ToBlob(b64,type){try{const bin=atob(b64);const arr=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);return new Blob([arr],{type:type||'application/octet-stream'});}catch{return null;}}
 
+let _peaksCtx=null;
 export async function computePeaks(blob,buckets=120){
   try{
-    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    if(!_peaksCtx||_peaksCtx.state==='closed')_peaksCtx=new(window.AudioContext||window.webkitAudioContext)();
+    const ctx=_peaksCtx;
     const buf=await ctx.decodeAudioData(await blob.arrayBuffer());
     const d=buf.getChannelData(0);
     const bs=Math.max(1,Math.floor(d.length/buckets));
@@ -24,7 +26,6 @@ export async function computePeaks(blob,buckets=120){
     // Normalize so the tallest bar fills the display
     const mx=Math.max(...peaks,1e-6);
     peaks=peaks.map(p=>p/mx);
-    try{ctx.close();}catch{}
     return peaks;
   }catch{return[];}
 }

@@ -13,7 +13,9 @@ const SHORTCUTS=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
 const USER_GUIDE_URL='https://etudes.me/guide';
 
-export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning}){
+export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll}){
+  const [devBusy,setDevBusy]=useState(false);
+  const [devStatus,setDevStatus]=useState('');
   const [tab,setTab]=useState('settings');
   const [authMode,setAuthMode]=useState('signin'); // 'signin'|'signup'
   const [authEmail,setAuthEmail]=useState('');
@@ -131,7 +133,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
           </div>
           <div className="uppercase shrink-0" style={{color:MUTED,fontSize:'10px',letterSpacing:'0.22em'}}>v{APP_VERSION}</div>
         </div>
-        <div className="flex items-baseline justify-between gap-4 pt-3">
+        <div className="flex items-baseline justify-between gap-4 py-3" style={{borderBottom:`1px solid ${LINE}`}}>
           <div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>User Guide</div>
           <a
             href={USER_GUIDE_URL}
@@ -146,6 +148,43 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
             }}
           >etudes.me/guide →</a>
         </div>
+        {(seedTestNotes||devSeedAll||devClearAll)&&(
+          <div className="pt-3">
+            <div className="uppercase mb-2" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>Debug</div>
+            <div className="flex flex-col gap-2">
+              {devSeedAll&&<button
+                disabled={devBusy}
+                onClick={async()=>{
+                  setDevBusy(true);setDevStatus('seeding…');
+                  try{const r=await devSeedAll();setDevStatus(`✓ ${r.pieces} pieces · ${r.days} days · ${r.notes} notes · ${r.recs} recordings · ${r.refs} refs`);setTimeout(()=>window.location.reload(),800);}
+                  catch(e){setDevStatus(`✗ ${e.message||String(e)}`);}
+                  setDevBusy(false);
+                }}
+                className="uppercase text-left"
+                style={{color:devBusy?FAINT:'#C97E4A',border:`1px solid ${devBusy?LINE:'#5a3a10'}`,background:'transparent',padding:'4px 12px',fontSize:'9px',letterSpacing:'0.22em',cursor:devBusy?'not-allowed':'pointer'}}
+              >Seed all (50 pieces · audio · notes · routines)</button>}
+              {seedTestNotes&&<button
+                disabled={devBusy}
+                onClick={()=>{seedTestNotes();onClose();}}
+                className="uppercase text-left"
+                style={{color:FAINT,border:`1px solid ${LINE_MED}`,background:'transparent',padding:'4px 12px',fontSize:'9px',letterSpacing:'0.22em',cursor:'pointer'}}
+              >Seed notes &amp; history only</button>}
+              {devClearAll&&<button
+                disabled={devBusy}
+                onClick={async()=>{
+                  if(!window.confirm('Clear all Études data? This cannot be undone.'))return;
+                  setDevBusy(true);setDevStatus('clearing…');
+                  await devClearAll();
+                  setDevStatus('✓ cleared — reloading…');
+                  setTimeout(()=>window.location.reload(),600);
+                }}
+                className="uppercase text-left"
+                style={{color:'#c0614a',border:`1px solid #6a2e20`,background:'transparent',padding:'4px 12px',fontSize:'9px',letterSpacing:'0.22em',cursor:'pointer'}}
+              >Clear all data</button>}
+              {devStatus&&<span style={{color:FAINT,fontSize:'9px',letterSpacing:'0.1em'}}>{devStatus}</span>}
+            </div>
+          </div>
+        )}
       </div>
     )}
     <div className="px-8 py-5" style={{borderTop:`1px solid ${LINE}`}}><button onClick={onClose} className="w-full py-3 uppercase" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.32em'}}>Done</button></div>

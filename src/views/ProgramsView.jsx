@@ -1,4 +1,5 @@
 import React,{useState,useMemo,useCallback} from 'react';
+import useViewport from '../hooks/useViewport.js';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Plus from 'lucide-react/dist/esm/icons/plus';
@@ -59,6 +60,7 @@ function ItemPicker({items,existingIds,onPick,onClose}){
 
 // ── Program editor ───────────────────────────────────────────────────────────
 function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiveNoteId}){
+  const {isMobile}=useViewport();
   const [showPicker,setShowPicker]=useState(false);
   const [dragIdx,setDragIdx]=useState(null);
   const [dragOverIdx,setDragOverIdx]=useState(null);
@@ -114,9 +116,9 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
   };
 
   return(
-    <div className="max-w-4xl mx-auto px-12 py-14">
+    <div className="max-w-4xl mx-auto px-12 py-14" style={isMobile?{paddingLeft:'20px',paddingRight:'20px',paddingTop:'12px',paddingBottom:'calc(var(--footer-height,160px) + 28px)'}:{}}>
       {/* Back */}
-      <button onClick={onBack} className="flex items-center gap-2 mb-8 uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans}}>
+      <button onClick={onBack} className="flex items-center gap-2 mb-8 uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,minHeight:'44px'}}>
         <ChevronLeft className="w-3 h-3" strokeWidth={1.5}/> All programs
       </button>
 
@@ -128,7 +130,7 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
           onBlur={e=>update({name:e.target.value.trim()||'Untitled program'})}
           placeholder="Untitled program"
           className="w-full focus:outline-none bg-transparent"
-          style={{fontFamily:serif,fontStyle:'italic',fontWeight:300,fontSize:'clamp(32px,5vw,36px)',letterSpacing:'-0.02em',color:TEXT,lineHeight:1.1}}
+          style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:isMobile?'clamp(48px,13vw,56px)':'clamp(32px,5vw,36px)',letterSpacing:'-0.02em',color:TEXT,lineHeight:1.05}}
         />
       </div>
 
@@ -216,7 +218,7 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
               style={{borderBottom:`1px solid ${LINE}`,background:isDragOver?IKB_SOFT:'transparent',opacity:dragIdx===idx?0.4:1,transition:'background 0.1s'}}
             >
               <div className="flex items-start gap-3 px-0 py-3">
-                <span className="cursor-grab active:cursor-grabbing shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{color:DIM}}>
+                <span className={isMobile?'shrink-0 mt-0.5':'cursor-grab active:cursor-grabbing shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity'} style={{color:DIM,opacity:isMobile?0.3:undefined,pointerEvents:isMobile?'none':undefined}}>
                   <GripVertical className="w-3.5 h-3.5" strokeWidth={1.25}/>
                 </span>
                 <span className="tabular-nums shrink-0 mt-0.5" style={{color:DIM,fontFamily:serif,fontStyle:'italic',fontSize:'11px',minWidth:'18px'}}>{idx+1}.</span>
@@ -235,7 +237,7 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
                 <span className="tabular-nums shrink-0 mt-0.5" style={{fontFamily:mono,fontSize:'11px',color:it.lengthSecs?DIM:DIM}}>
                   {it.lengthSecs?fmtDuration(it.lengthSecs):'—'}
                 </span>
-                <button onClick={()=>removePiece(it.id)} className="shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{color:FAINT}}>
+                <button onClick={()=>removePiece(it.id)} className={isMobile?'shrink-0 mt-0.5':'shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity'} style={{color:FAINT,minWidth:isMobile?'32px':undefined,minHeight:isMobile?'32px':undefined}}>
                   <X className="w-3.5 h-3.5" strokeWidth={1.25}/>
                 </button>
               </div>
@@ -331,6 +333,7 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
 
 // ── Programs list ────────────────────────────────────────────────────────────
 function ProgramsList({programs,items,onSelect,onNew}){
+  const {isMobile}=useViewport();
   const sorted=useMemo(()=>{
     const dated=programs.filter(p=>p.performanceDate).sort((a,b)=>b.performanceDate.localeCompare(a.performanceDate));
     const undated=programs.filter(p=>!p.performanceDate).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
@@ -338,16 +341,21 @@ function ProgramsList({programs,items,onSelect,onNew}){
   },[programs]);
 
   return(
-    <div className="max-w-4xl mx-auto px-12 py-14">
-      <DisplayHeader eyebrow="Programs" title="Programs" right={
-        <button
-          onClick={onNew}
-          className="uppercase flex items-center gap-2 px-4 py-2 shrink-0"
-          style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:TEXT,border:`1px solid ${LINE_STR}`,background:'transparent',marginTop:'auto'}}
-        >
-          <Plus className="w-3 h-3" strokeWidth={1.25}/> New program
-        </button>
-      }/>
+    <div className="max-w-4xl mx-auto px-12 py-14" style={isMobile?{paddingLeft:'20px',paddingRight:'20px',paddingTop:'12px',paddingBottom:'calc(var(--footer-height,160px) + 28px)'}:{}}>
+      {isMobile?(
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:'16px',paddingTop:'8px'}}>
+          <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>Programs</div>
+          <button onClick={onNew} className="uppercase flex items-center gap-1.5 px-2.5 py-1.5 shrink-0" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:TEXT,border:`1px solid ${LINE_STR}`,background:'transparent',marginBottom:'8px'}}>
+            <Plus className="w-3 h-3" strokeWidth={1.25}/> New
+          </button>
+        </div>
+      ):(
+        <DisplayHeader eyebrow="Programs" title="Programs" right={
+          <button onClick={onNew} className="uppercase flex items-center gap-2 px-4 py-2 shrink-0" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:TEXT,border:`1px solid ${LINE_STR}`,background:'transparent',marginTop:'auto'}}>
+            <Plus className="w-3 h-3" strokeWidth={1.25}/> New program
+          </button>
+        }/>
+      )}
 
       {sorted.length===0&&(
         <div className="py-20 text-center">
@@ -367,7 +375,7 @@ function ProgramsList({programs,items,onSelect,onNew}){
             style={{borderBottom:`1px solid ${LINE}`}}
           >
             <div className="flex items-baseline justify-between gap-4">
-              <span className="italic" style={{fontFamily:serif,fontWeight:300,fontSize:'clamp(18px,2.5vw,22px)',color:TEXT}}>{p.name||'Untitled program'}</span>
+              <span className="italic" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(18px,2.5vw,22px)',color:TEXT}}>{p.name||'Untitled program'}</span>
               <span className="tabular-nums shrink-0" style={{fontFamily:mono,fontSize:'11px',color:totalSecs>0?DIM:DIM}}>
                 {totalSecs>0?fmtDuration(totalSecs):''}
               </span>
@@ -392,6 +400,7 @@ function ProgramsList({programs,items,onSelect,onNew}){
 
 // ── Main view ────────────────────────────────────────────────────────────────
 export default function ProgramsView({items,programs,setPrograms,selectedProgramId,setSelectedProgramId,setView,freeNotes,setActiveNoteId}){
+  const {isMobile}=useViewport();
   const selectedProgram=programs.find(p=>p.id===selectedProgramId)||null;
 
   const createProgram=()=>{
@@ -404,6 +413,8 @@ export default function ProgramsView({items,programs,setPrograms,selectedProgram
   };
 
   const updateProgram=(updated)=>setPrograms(prev=>prev.map(p=>p.id===updated.id?updated:p));
+
+  const mobilePad={padding:isMobile?'12px 20px 28px':undefined};
 
   if(selectedProgram){
     return(
