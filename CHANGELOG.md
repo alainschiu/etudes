@@ -9,11 +9,12 @@
 - **Live grid after auto-compound** — `schedule()` reads `subRef` / `compoundRef` (and nested `calcSubMs`) each tick so subdivisions apply immediately after the sheet folds 6/9/12/15 into triple compound without stop/start.
 - **RAF dedupe** — `lastShownBeatTimeRef` so `setCurrentBeat` fires once per scheduled event, not every animation frame.
 - **Click sound** — shorter gain envelope (12 ms); **click** timbre mixes a short white-noise burst with the oscillator to reduce pitched “note” bleed; wood/beep keep oscillator-only with the shorter decay.
-- **Accent pattern** — optional `accentPattern` (beat indices for medium accents); sheet **Accent** row when `beats > 3`; pattern trimmed when beat count drops; scheduler and mobile footer bar heights follow custom accents when set.
+- **Accent pattern** — optional `accentPattern` (beat indices for medium accents); **Accent** row in mobile sheet and desktop footer metronome panel when `beats > 2`; shared [`MetronomeAccentEditor.jsx`](src/components/MetronomeAccentEditor.jsx); pattern trimmed when beat count drops; scheduler and mobile footer bar heights follow custom accents when set.
 - **Compound auto** — fold to triple compound (beats ÷ 3, sub 3, group 3) runs **only when turning Auto from Off to On** while beats are 6/9/12/15, Sub 1, and Group Off; changing beats to 6 with Auto already on no longer forces 6 → 2.
+- **Note value vs fold** — changing **Note** (e.g. to 8) alone never auto-collapses beats; no passive `useEffect` on `noteValue` for compound fold (QA: beats 6 + Sub 1 + Group 0, then change note — count stays 6 until **Auto On**).
 - **Auto toggle** — correct on/off handling and optional expand of a prior auto-fold when turning Auto off then on again.
 - **Metronome sheet (mobile)** — numeric subdivision labels (1–4 + dotted); copy for Auto; BPM/tap/handle hierarchy tweaks; **meter preset buttons removed** in favour of Auto + manual Beats/Sub/Group.
-- **Footer (mobile)** — beat visualiser uses thicker vertical bars and taller downbeats; compound grouping heights preserved when not using a custom accent pattern; desktop sheet Sub labels match.
+- **Footer (mobile)** — beat visualiser uses thicker vertical bars and taller downbeats; compound grouping heights preserved when not using a custom accent pattern; desktop sheet Sub labels match; desktop expanded panel includes accent editor when `beats > 2`.
 
 ## v0.97.6 — 2026-05-01
 

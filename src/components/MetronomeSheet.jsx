@@ -6,6 +6,7 @@ import {
   LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, serif, sans, mono,
   Z_SHEET,
 } from '../constants/theme.js';
+import {MetronomeAccentEditor} from './MetronomeAccentEditor.jsx';
 
 // Consistent label width so all button rows left-align
 const LABEL_W = '56px';
@@ -47,40 +48,6 @@ function Seg({value, active, onClick, label, mono: useMono, dense}) {
     >
       {label??value}
     </button>
-  );
-}
-
-function AccentEditor({beats, accentPattern, onChange}) {
-  const pat=accentPattern||[];
-  const isStrong=(i)=>i===0||pat.includes(i);
-  const toggle=(i)=>{
-    if(i===0)return;
-    const next=pat.includes(i)?pat.filter(x=>x!==i):[...pat,i].sort((a,b)=>a-b);
-    onChange(next);
-  };
-  return (
-    <Row>
-      <Label>Accent</Label>
-      <div style={{display:'flex',alignItems:'flex-end',gap:'4px'}}>
-        {Array.from({length:beats},(_,i)=>(
-          <div key={i} role="button" tabIndex={0} onClick={()=>toggle(i)} onKeyDown={e=>{if(e.key==='Enter'||e.key===' ')toggle(i);}} style={{
-            width:'11px',
-            height:isStrong(i)?'24px':'8px',
-            background:isStrong(i)?IKB:LINE_MED,
-            cursor:i===0?'default':'pointer',
-            transition:'height 100ms ease, background 100ms ease',
-            borderRadius:'2px',
-          }}/>
-        ))}
-      </div>
-      {pat.length>0&&(
-        <button type="button" onClick={()=>onChange([])} style={{
-          color:FAINT,fontSize:'9px',fontFamily:sans,
-          background:'none',border:'none',cursor:'pointer',
-          letterSpacing:'0.18em',textTransform:'uppercase',marginLeft:'8px',
-        }}>reset</button>
-      )}
-    </Row>
   );
 }
 
@@ -158,11 +125,7 @@ export default function MetronomeSheet({open, onClose, metronome, setMetronome, 
           </Row>
 
           {metronome.beats>2&&(
-            <AccentEditor
-              beats={metronome.beats}
-              accentPattern={metronome.accentPattern||[]}
-              onChange={pat=>setMetronome(m=>({...m,accentPattern:pat}))}
-            />
+            <MetronomeAccentEditor showLabel beats={metronome.beats} accentPattern={metronome.accentPattern||[]} onChange={pat=>setMetronome(m=>({...m,accentPattern:pat}))}/>
           )}
 
           {/* Note value */}
