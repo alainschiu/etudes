@@ -42,6 +42,7 @@ export default function useMetronome(){
   const nextBeatTimeRef=useRef(0);      // audioCtx.currentTime for next beat to schedule
   const rafRef=useRef(null);            // RAF id
   const schedTimerRef=useRef(null);     // setTimeout id for scheduler loop
+  const lastShownBeatTimeRef=useRef(-1);
   const bpmRef=useRef(metronome.bpm);
   const beatsRef=useRef(metronome.beats);
   const subRef=useRef(metronome.subdivision);
@@ -72,6 +73,7 @@ export default function useMetronome(){
       if(schedTimerRef.current){clearTimeout(schedTimerRef.current);schedTimerRef.current=null;}
       if(rafRef.current){cancelAnimationFrame(rafRef.current);rafRef.current=null;}
       scheduledBeatsRef.current=[];
+      lastShownBeatTimeRef.current=-1;
       return;
     }
 
@@ -85,11 +87,13 @@ export default function useMetronome(){
     let tc=0;
     accelAccRef.current=0;accelCounterRef.current=0;metroWasRunningRef.current=true;
     scheduledBeatsRef.current=[];
+    lastShownBeatTimeRef.current=-1;
     nextBeatTimeRef.current=ctx.currentTime+0.05; // slight delay on start
 
     const calcSubMs=(bpm)=>{
-      const beatMs=isDot?(60000/bpm)*1.5:60000/bpm;
-      return compound>1?beatMs/compound/effectiveSub:beatMs/effectiveSub;
+      const isCompound=compound>1;
+      const beatMs=isCompound?(60000/bpm)*1.5:isDot?(60000/bpm)*1.5:60000/bpm;
+      return isCompound?beatMs/compound/effectiveSub:beatMs/effectiveSub;
     };
     const calcSubSec=(bpm)=>calcSubMs(bpm)/1000;
 
@@ -120,7 +124,8 @@ export default function useMetronome(){
       // find the latest entry whose time <= now
       let idx=-1;
       for(let i=0;i<arr.length;i++){if(arr[i].time<=now)idx=i;else break;}
-      if(idx>=0){
+      if(idx>=0&&arr[idx].time!==lastShownBeatTimeRef.current){
+        lastShownBeatTimeRef.current=arr[idx].time;
         const entry=arr[idx];
         setCurrentBeat(entry.beat);
         setCurrentSub(entry.sub);
