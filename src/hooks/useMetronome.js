@@ -3,7 +3,7 @@ import {noteToFreqFull} from '../lib/music.js';
 import {getCentOffset} from '../lib/music.js';
 
 export default function useMetronome(){
-  const [metronome,setMetronome]=useState({running:false,bpm:92,beats:4,noteValue:'4',subdivision:1,sound:'click',clickVolume:0.22,compoundGroup:0,visualMode:'bars',accel:{enabled:false,targetBpm:120,stepBpm:2,every:8,unit:'beat'}});
+  const [metronome,setMetronome]=useState({running:false,bpm:92,beats:4,noteValue:'4',subdivision:1,sound:'click',clickVolume:0.22,compoundGroup:0,compoundAuto:true,visualMode:'bars',accel:{enabled:false,targetBpm:120,stepBpm:2,every:8,unit:'beat'}});
   const [metroExpanded,setMetroExpanded]=useState(false);
   const [currentBeat,setCurrentBeat]=useState(-1);
   const [currentSub,setCurrentSub]=useState(-1);
@@ -25,10 +25,12 @@ export default function useMetronome(){
       const t=time??ctx.currentTime;
       const base=clickVolumeRef.current;
       const vol=accent==='strong'?base:accent==='medium'?base*0.65:accent==='weak'?base*0.45:base*0.27;
-      const isAccent=accent==='strong'||accent==='medium';
       const osc=ctx.createOscillator();const gain=ctx.createGain();
       const sound=soundRef.current;
-      const f=sound==='wood'?(isAccent?900:600):sound==='beep'?(isAccent?1800:1200):(isAccent?1500:1000);
+      let f;
+      if(sound==='wood'){f=accent==='strong'?900:accent==='medium'?720:accent==='weak'?600:500;}
+      else if(sound==='beep'){f=accent==='strong'?1800:accent==='medium'?1400:accent==='weak'?1200:900;}
+      else{f=accent==='strong'?1500:accent==='medium'?1180:accent==='weak'?1000:850;}
       osc.frequency.value=f;osc.type=sound==='wood'?'triangle':'sine';
       gain.gain.setValueAtTime(vol,t);
       gain.gain.exponentialRampToValueAtTime(0.001,t+0.06);
@@ -57,6 +59,16 @@ export default function useMetronome(){
   useEffect(()=>{compoundRef.current=metronome.compoundGroup;},[metronome.compoundGroup]);
   useEffect(()=>{accelRef.current=metronome.accel;},[metronome.accel]);
   useEffect(()=>{noteValueRef.current=metronome.noteValue;},[metronome.noteValue]);
+
+  useEffect(()=>{
+    if(metronome.compoundAuto===false)return;
+    if((metronome.compoundGroup||0)!==0)return;
+    if(metronome.subdivision!==1)return;
+    const b=metronome.beats;
+    if(b!==6&&b!==9&&b!==12&&b!==15)return;
+    setMetronome(m=>({...m,beats:m.beats/3,subdivision:3,compoundGroup:3}));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[metronome.beats,metronome.subdivision,metronome.compoundGroup,metronome.compoundAuto]);
 
   const accelCounterRef=useRef(0);
   const accelAccRef=useRef(0);

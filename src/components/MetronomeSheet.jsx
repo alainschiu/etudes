@@ -54,18 +54,6 @@ export default function MetronomeSheet({open, onClose, metronome, setMetronome, 
   const isDotSub = metronome.subdivision === 'dot';
   const noteValOpts = [{v:'2',label:'2'},{v:'4',label:'4'},{v:'8',label:'8'},{v:'16',label:'16'}];
   const subOpts = [{value:1,label:'♩'},{value:2,label:'♫'},{value:3,label:'♩₃'},{value:4,label:'♬'},{value:'dot',label:'♩.'}];
-  /* Preset label = notated compound meter; beats = dotted-pulse count per bar (scheduler). Footer shows beats/noteValue (e.g. 6/4 preset → 2/4) — label is the notated-meter hint. */
-  const meterPresets=[
-    {label:'6/8',beats:2,subdivision:3,compoundGroup:3,noteValue:'8'},
-    {label:'9/8',beats:3,subdivision:3,compoundGroup:3,noteValue:'8'},
-    {label:'12/8',beats:4,subdivision:3,compoundGroup:3,noteValue:'8'},
-    {label:'6/4',beats:2,subdivision:3,compoundGroup:3,noteValue:'4'},
-    {label:'9/4',beats:3,subdivision:3,compoundGroup:3,noteValue:'4'},
-    {label:'12/4',beats:4,subdivision:3,compoundGroup:3,noteValue:'4'},
-    {label:'6/2',beats:2,subdivision:3,compoundGroup:3,noteValue:'2'},
-    {label:'9/2',beats:3,subdivision:3,compoundGroup:3,noteValue:'2'},
-    {label:'12/2',beats:4,subdivision:3,compoundGroup:3,noteValue:'2'},
-  ];
   const tempos = [
     {bpm:60,name:'Larghetto'},{bpm:72,name:'Adagio'},{bpm:92,name:'Andante'},
     {bpm:108,name:'Moderato'},{bpm:120,name:'Allegro'},{bpm:144,name:'Vivace'},{bpm:176,name:'Presto'},
@@ -150,6 +138,12 @@ export default function MetronomeSheet({open, onClose, metronome, setMetronome, 
             </div>
           </Row>
 
+          <Row>
+            <Label>Auto</Label>
+            <button type="button" onClick={()=>setMetronome(m=>({...m,compoundAuto:m.compoundAuto===false}))} style={{padding:'5px 12px',border:`1px solid ${metronome.compoundAuto!==false?IKB:LINE_MED}`,background:metronome.compoundAuto!==false?IKB_SOFT:'transparent',color:metronome.compoundAuto!==false?TEXT:MUTED,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',cursor:'pointer'}}>{metronome.compoundAuto!==false?'On':'Off'}</button>
+          </Row>
+          <div style={{color:FAINT,fontFamily:sans,fontSize:'9px',lineHeight:'1.5'}}>When <span style={{color:MUTED}}>Auto</span> is on, <span style={{color:MUTED}}>Beats</span> 6/9/12/15 with <span style={{color:MUTED}}>Sub&nbsp;♩</span> and <span style={{color:MUTED}}>Group&nbsp;Off</span> folds to triple compound. Turn <span style={{color:MUTED}}>Auto</span> off for a simple bar of six (or nine, twelve, fifteen) equal pulses.</div>
+
           {/* Sound */}
           <Row>
             <Label>Sound</Label>
@@ -167,9 +161,6 @@ export default function MetronomeSheet({open, onClose, metronome, setMetronome, 
             <span style={{fontFamily:mono,color:MUTED,fontSize:'10px',minWidth:'32px',textAlign:'right'}}>{Math.round(((metronome.clickVolume??0.22)/0.6)*100)}%</span>
           </Row>
 
-          {/* Meter presets */}
-          <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}><span className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em',fontFamily:sans}}>Presets</span>{meterPresets.map(p=>(<button key={p.label} onClick={()=>setMetronome(m=>({...m,beats:p.beats,subdivision:p.subdivision,compoundGroup:p.compoundGroup,noteValue:p.noteValue}))} style={{padding:'4px 10px',border:`1px solid ${LINE_MED}`,background:'transparent',color:MUTED,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',cursor:'pointer'}}>{p.label}</button>))}</div>
-          <div style={{color:FAINT,fontFamily:sans,fontSize:'9px',lineHeight:'1.5',marginTop:'-4px'}}>BPM = beats per minute of the <span style={{color:MUTED}}>Note</span> value. Triple compound: set <span style={{color:MUTED}}>Group&nbsp;3</span>; <span style={{color:MUTED}}>Beats</span> = dotted pulses per bar (presets match 6/8, 9/4, etc. — display shows pulses, e.g. 6/4 → 2/4).</div>
           {/* Accel */}
           <div style={{borderTop:`1px solid ${LINE}`,paddingTop:'12px',display:'flex',flexDirection:'column',gap:'10px'}}>
             <Row>
