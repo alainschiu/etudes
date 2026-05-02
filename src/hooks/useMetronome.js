@@ -1,9 +1,8 @@
 import {useState,useEffect,useRef} from 'react';
 import {noteToFreqFull} from '../lib/music.js';
-import {getCentOffset} from '../lib/music.js';
 
 export default function useMetronome(){
-  const [metronome,setMetronome]=useState({running:false,bpm:92,beats:4,noteValue:'4',subdivision:1,sound:'click',clickVolume:0.22,compoundGroup:0,compoundAuto:true,visualMode:'bars',accel:{enabled:false,targetBpm:120,stepBpm:2,every:8,unit:'beat'}});
+  const [metronome,setMetronome]=useState({running:false,bpm:92,beats:4,noteValue:'4',subdivision:1,sound:'click',clickVolume:0.22,compoundGroup:0,compoundAuto:true,accentPattern:[],visualMode:'bars',accel:{enabled:false,targetBpm:120,stepBpm:2,every:8,unit:'beat'}});
   const [metroExpanded,setMetroExpanded]=useState(false);
   const [currentBeat,setCurrentBeat]=useState(-1);
   const [currentSub,setCurrentSub]=useState(-1);
@@ -25,17 +24,30 @@ export default function useMetronome(){
       const t=time??ctx.currentTime;
       const base=clickVolumeRef.current;
       const vol=accent==='strong'?base:accent==='medium'?base*0.65:accent==='weak'?base*0.45:base*0.27;
-      const osc=ctx.createOscillator();const gain=ctx.createGain();
       const sound=soundRef.current;
       let f;
       if(sound==='wood'){f=accent==='strong'?900:accent==='medium'?720:accent==='weak'?600:500;}
       else if(sound==='beep'){f=accent==='strong'?1800:accent==='medium'?1400:accent==='weak'?1200:900;}
       else{f=accent==='strong'?1500:accent==='medium'?1180:accent==='weak'?1000:850;}
+      const osc=ctx.createOscillator();const gain=ctx.createGain();
       osc.frequency.value=f;osc.type=sound==='wood'?'triangle':'sine';
       gain.gain.setValueAtTime(vol,t);
-      gain.gain.exponentialRampToValueAtTime(0.001,t+0.06);
+      gain.gain.exponentialRampToValueAtTime(0.001,t+0.012);
       osc.connect(gain);gain.connect(ctx.destination);
-      osc.start(t);osc.stop(t+0.07);
+      osc.start(t);osc.stop(t+0.015);
+      if(sound==='click'){
+        const bufSize=Math.floor(ctx.sampleRate*0.012);
+        const buf=ctx.createBuffer(1,bufSize,ctx.sampleRate);
+        const data=buf.getChannelData(0);
+        for(let i=0;i<bufSize;i++)data[i]=Math.random()*2-1;
+        const noise=ctx.createBufferSource();
+        const noiseGain=ctx.createGain();
+        noise.buffer=buf;
+        noiseGain.gain.setValueAtTime(vol*0.35,t);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001,t+0.012);
+        noise.connect(noiseGain);noiseGain.connect(ctx.destination);
+        noise.start(t);noise.stop(t+0.015);
+      }
     }catch{}
   };
 
@@ -52,6 +64,7 @@ export default function useMetronome(){
   const compoundRef=useRef(metronome.compoundGroup);
   const accelRef=useRef(metronome.accel);
   const noteValueRef=useRef(metronome.noteValue);
+  const accentPatternRef=useRef(metronome.accentPattern);
   useEffect(()=>{bpmRef.current=metronome.bpm;},[metronome.bpm]);
   useEffect(()=>{beatsRef.current=metronome.beats;},[metronome.beats]);
   useEffect(()=>{subRef.current=metronome.subdivision;},[metronome.subdivision]);
@@ -59,12 +72,26 @@ export default function useMetronome(){
   useEffect(()=>{compoundRef.current=metronome.compoundGroup;},[metronome.compoundGroup]);
   useEffect(()=>{accelRef.current=metronome.accel;},[metronome.accel]);
   useEffect(()=>{noteValueRef.current=metronome.noteValue;},[metronome.noteValue]);
+  useEffect(()=>{accentPatternRef.current=metronome.accentPattern||[];},[metronome.accentPattern]);
 
   useEffect(()=>{
+    setMetronome(m=>{
+      const pat=m.accentPattern;
+      if(!pat||!pat.length)return m;
+      const f=pat.filter(i=>i<m.beats);
+      return f.length===pat.length?m:{...m,accentPattern:f};
+    });
+  },[metronome.beats]);
+
+  const prevBeatsForAutoRef=useRef(null);
+  useEffect(()=>{
+    const b=metronome.beats;
+    const prev=prevBeatsForAutoRef.current;
+    if(prev!==null&&prev===b)return;
+    prevBeatsForAutoRef.current=b;
     if(metronome.compoundAuto===false)return;
     if((metronome.compoundGroup||0)!==0)return;
     if(metronome.subdivision!==1)return;
-    const b=metronome.beats;
     if(b!==6&&b!==9&&b!==12&&b!==15)return;
     setMetronome(m=>({...m,beats:m.beats/3,subdivision:3,compoundGroup:3}));
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -94,9 +121,6 @@ export default function useMetronome(){
     audioCtxRef.current?.resume();
 
     const ctx=ensureAudio();
-    const isDot=subRef.current==='dot';
-    const effectiveSub=isDot?1:(typeof subRef.current==='number'?subRef.current:1);
-    const compound=compoundRef.current||0;
 
     let tc=0;
     accelAccRef.current=0;accelCounterRef.current=0;metroWasRunningRef.current=true;
@@ -104,25 +128,32 @@ export default function useMetronome(){
     lastShownBeatTimeRef.current=-1;
     nextBeatTimeRef.current=ctx.currentTime+0.05; // slight delay on start
 
-    const calcSubMs=(bpm)=>{
-      const nv=noteValueRef.current||'4';
-      const d=parseInt(nv,10);
-      const beatInQuarters=Number.isFinite(d)&&d>0?4/d:1;
-      const quarterMs=60000/bpm;
-      const isCompound=compound>1;
-      const beatMs=isCompound?quarterMs*beatInQuarters*1.5:isDot?quarterMs*beatInQuarters*1.5:quarterMs*beatInQuarters;
-      return isCompound?beatMs/compound/effectiveSub:beatMs/effectiveSub;
-    };
-    const calcSubSec=(bpm)=>calcSubMs(bpm)/1000;
-
     const schedule=()=>{
       const ctx2=audioCtxRef.current;if(!ctx2)return;
+      const isDot=subRef.current==='dot';
+      const effectiveSub=isDot?1:(typeof subRef.current==='number'?subRef.current:1);
+      const compound=compoundRef.current||0;
+      const calcSubMs=(bpm)=>{
+        const nv=noteValueRef.current||'4';
+        const d=parseInt(nv,10);
+        const beatInQuarters=Number.isFinite(d)&&d>0?4/d:1;
+        const quarterMs=60000/bpm;
+        const isCompound=compound>1;
+        const beatMs=isCompound?quarterMs*beatInQuarters*1.5:isDot?quarterMs*beatInQuarters*1.5:quarterMs*beatInQuarters;
+        return isCompound?beatMs/compound/effectiveSub:beatMs/effectiveSub;
+      };
+      const calcSubSec=(bpm)=>calcSubMs(bpm)/1000;
       const lookahead=0.25;
       while(nextBeatTimeRef.current<ctx2.currentTime+lookahead){
         const bi=Math.floor(tc/effectiveSub)%beatsRef.current;
         const si=tc%effectiveSub;
         const t=nextBeatTimeRef.current;
-        if(si===0){const accent=bi===0?'strong':(compound>1&&bi%compound===0)?'medium':'weak';playClick(accent,t);}
+        if(si===0){
+          const pat=accentPatternRef.current;
+          const hasCustom=Array.isArray(pat)&&pat.length>0;
+          const accent=bi===0?'strong':hasCustom&&pat.includes(bi)?'medium':hasCustom?'weak':(compound>1&&bi%compound===0)?'medium':'weak';
+          playClick(accent,t);
+        }
         else if(effectiveSub>1){playClick('sub',t);}
         scheduledBeatsRef.current.push({beat:bi,sub:si,time:t});
         const accel=accelRef.current;

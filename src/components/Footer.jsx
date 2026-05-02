@@ -221,7 +221,7 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
   const handleBpmMouseDown=(e)=>{e.preventDefault();const startY=e.clientY;const startBpm=metronome.bpm;const onMove=(e)=>{const delta=Math.round((startY-e.clientY)/2);const next=Math.max(40,Math.min(240,startBpm+delta));setMetronome(m=>({...m,bpm:next}));};const onUp=()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);bpmDragRef.current=null;};document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);bpmDragRef.current={onMove,onUp};};
   // noteValue is always a string: '2','4','8','16','d4'
   const noteValOpts=[{v:'2',label:'2'},{v:'4',label:'4'},{v:'8',label:'8'},{v:'16',label:'16'}];
-  const subOpt=[{value:1,label:'♩'},{value:2,label:'♫'},{value:3,label:'♩₃'},{value:4,label:'♬'},{value:'dot',label:'♩.'}];
+  const subOpt=[{value:1,label:'1'},{value:2,label:'2'},{value:3,label:'3'},{value:4,label:'4'},{value:'dot',label:'♩.'}];
   const canLog=metronome.running&&!!activeItemId;
   const submit=()=>{if(quickNoteText.trim()){addQuickNote(quickNoteText);setQuickNoteText('');}setQuickNoteOpen(false);};
   useEffect(()=>{if(!quickNoteOpen)setQuickNoteText('');},[quickNoteOpen]);
@@ -305,7 +305,7 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
         <div className="uppercase shrink-0" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em',fontFamily:serif,fontStyle:'italic'}}>Time</div>
         <div className="flex items-center gap-3"><span className="uppercase" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.22em'}}>Beats</span><button onClick={()=>setMetronome(m=>({...m,beats:Math.max(1,m.beats-1)}))} className="w-6 h-6 flex items-center justify-center" style={{border:`1px solid ${LINE_MED}`,color:TEXT}}>−</button><div className="tabular-nums text-center" style={{fontFamily:serif,fontWeight:300,fontSize:'22px',minWidth:'24px'}}>{metronome.beats}</div><button onClick={()=>setMetronome(m=>({...m,beats:Math.min(16,m.beats+1)}))} className="w-6 h-6 flex items-center justify-center" style={{border:`1px solid ${LINE_MED}`,color:TEXT}}>+</button></div>
         <div className="flex items-center gap-2 shrink-0"><span className="uppercase" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.22em'}}>Group</span><div className="flex">{[{v:0,label:'Off'},{v:2,label:'2'},{v:3,label:'3'}].map(g=>(<button key={g.v} onClick={()=>setMetronome(m=>({...m,compoundGroup:g.v}))} className="px-2.5 py-1" style={{border:`1px solid ${(metronome.compoundGroup||0)===g.v?IKB:LINE_MED}`,background:(metronome.compoundGroup||0)===g.v?IKB_SOFT:'transparent',color:(metronome.compoundGroup||0)===g.v?TEXT:MUTED,fontSize:'11px',marginLeft:'-1px'}}>{g.label}</button>))}</div></div>
-        <div className="flex items-center gap-2 shrink-0"><span className="uppercase" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.22em'}}>Auto</span><button type="button" onClick={()=>setMetronome(m=>({...m,compoundAuto:m.compoundAuto===false}))} className="px-2.5 py-1 uppercase" style={{border:`1px solid ${metronome.compoundAuto!==false?IKB:LINE_MED}`,background:metronome.compoundAuto!==false?IKB_SOFT:'transparent',color:metronome.compoundAuto!==false?TEXT:MUTED,fontSize:'10px',letterSpacing:'0.18em'}}>{metronome.compoundAuto!==false?'On':'Off'}</button></div>
+        <div className="flex items-center gap-2 shrink-0"><span className="uppercase" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.22em'}}>Auto</span><button type="button" onClick={()=>setMetronome(m=>{const on=m.compoundAuto!==false;if(on){return{...m,compoundAuto:false};}const folded=(m.compoundGroup===3&&m.subdivision===3&&m.beats>=2&&m.beats<=5);if(folded)return{...m,compoundAuto:true,beats:m.beats*3,subdivision:1,compoundGroup:0};return{...m,compoundAuto:true};})} className="px-2.5 py-1 uppercase" style={{border:`1px solid ${metronome.compoundAuto!==false?IKB:LINE_MED}`,background:metronome.compoundAuto!==false?IKB_SOFT:'transparent',color:metronome.compoundAuto!==false?TEXT:MUTED,fontSize:'10px',letterSpacing:'0.18em'}}>{metronome.compoundAuto!==false?'On':'Off'}</button></div>
         <div className="flex items-center gap-3"><span className="uppercase" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.22em'}}>Note Value</span><div className="flex">{noteValOpts.map(o=>(<button key={o.v} onClick={()=>setMetronome(m=>({...m,noteValue:o.v}))} className="px-3 py-1 tabular-nums" style={{border:`1px solid ${metronome.noteValue===o.v?IKB:LINE_MED}`,background:metronome.noteValue===o.v?IKB_SOFT:'transparent',color:metronome.noteValue===o.v?TEXT:MUTED,fontFamily:serif,fontWeight:300,fontSize:'14px',marginLeft:'-1px'}}>{o.label}</button>))}</div></div>
         <div className="flex items-center gap-3"><span className="uppercase" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.22em'}}>Sub</span><div className="flex">{subOpt.map(s=>(<button key={s.value} onClick={()=>setMetronome(m=>({...m,subdivision:s.value}))} className="px-3 py-1" style={{border:`1px solid ${metronome.subdivision===s.value?IKB:LINE_MED}`,background:metronome.subdivision===s.value?IKB_SOFT:'transparent',color:metronome.subdivision===s.value?TEXT:MUTED,fontSize:'14px',fontFamily:serif,marginLeft:'-1px'}}>{s.label}</button>))}</div></div>
       </div>
@@ -390,27 +390,38 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
                 style={{flex:'1 1 0',minWidth:0,display:'flex',alignItems:'center',border:'none',cursor:'pointer',padding:'0',background:'transparent',overflow:'hidden'}}
               >
                 {/* Beat bars */}
-                <div style={{flex:1,minWidth:0,display:'flex',alignItems:'flex-end',gap:'2px',padding:'0 8px 8px',height:'100%',overflow:'hidden'}}>
+                <div style={{flex:1,minWidth:0,display:'flex',alignItems:'flex-end',gap:'3px',padding:'0 8px 8px',height:'100%',overflow:'hidden'}}>
                   {Array.from({length:Math.min(metronome.beats,8)}).map((_,i)=>{
                     const isDotSub2=metronome.subdivision==='dot';
                     const effectiveSub2=isDotSub2?1:(typeof metronome.subdivision==='number'?metronome.subdivision:1);
                     const isA=metronome.running&&currentBeat===i;
-                    const isBeat1=i===0;
+                    const pat=metronome.accentPattern||[];
+                    const hasCustom=pat.length>0;
                     const compoundMob=metronome.compoundGroup||0;
                     const isGroupStart=(j)=>compoundMob>1?j%compoundMob===0:j===0;
                     const isGroupDown=isGroupStart(i);
+                    const isBeat1=i===0;
+                    let h;
+                    if(hasCustom){
+                      const idle=i===0?26:pat.includes(i)?22:12;
+                      const act=i===0?40:pat.includes(i)?32:20;
+                      h=`${isA?act:idle}px`;
+                    }else{
+                      h=isA&&isBeat1?'40px':isA&&isGroupDown?'32px':isA?'24px':isBeat1?'26px':isGroupDown?'20px':'14px';
+                    }
+                    const bg=isA?IKB:hasCustom?(i===0||pat.includes(i)?DIM:`rgba(244,238,227,0.14)`):(isBeat1?DIM:isGroupDown?DIM:`rgba(244,238,227,0.12)`);
                     return(
-                      <div key={i} style={{flex:1,display:'flex',alignItems:'flex-end',gap:'1px',height:'34px'}}>
+                      <div key={i} style={{flex:1,minWidth:'5px',display:'flex',alignItems:'flex-end',gap:'2px',height:'40px'}}>
                         <div style={{
-                          flex:1,
-                          height:isA&&isBeat1?'34px':isA&&isGroupDown?'28px':isA?'20px':isBeat1?'22px':isGroupDown?'16px':'10px',
-                          background:isA?IKB:isBeat1?DIM:isGroupDown?DIM:`rgba(244,238,227,0.12)`,
-                          borderRadius:'1px',
+                          flex:1,minWidth:'5px',
+                          height:h,
+                          background:bg,
+                          borderRadius:'2px',
                           transition:isA?'none':'height 150ms ease-out',
                         }}/>
                         {effectiveSub2>1&&Array.from({length:effectiveSub2-1}).map((_,si)=>{
                           const isAS=metronome.running&&currentBeat===i&&currentSub===si+1;
-                          return <div key={si} style={{width:'2px',height:isAS?'14px':'9px',background:isAS?IKB:'rgba(244,238,227,0.10)',borderRadius:'1px',transition:isAS?'none':'height 150ms ease-out',flexShrink:0}}/>;
+                          return <div key={si} style={{width:'4px',height:isAS?'18px':'12px',background:isAS?IKB:'rgba(244,238,227,0.12)',borderRadius:'2px',transition:isAS?'none':'height 150ms ease-out',flexShrink:0}}/>;
                         })}
                       </div>
                     );
