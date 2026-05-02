@@ -54,7 +54,18 @@ export default function MetronomeSheet({open, onClose, metronome, setMetronome, 
   const isDotSub = metronome.subdivision === 'dot';
   const noteValOpts = [{v:'2',label:'2'},{v:'4',label:'4'},{v:'8',label:'8'},{v:'16',label:'16'}];
   const subOpts = [{value:1,label:'♩'},{value:2,label:'♫'},{value:3,label:'♩₃'},{value:4,label:'♬'},{value:'dot',label:'♩.'}];
-  const meterPresets=[{label:'6/8',beats:2,subdivision:3,compoundGroup:3,noteValue:'8'}];
+  /* Preset label = notated compound meter; beats = dotted-pulse count per bar (scheduler). Footer shows beats/noteValue (e.g. 6/4 preset → 2/4) — label is the notated-meter hint. */
+  const meterPresets=[
+    {label:'6/8',beats:2,subdivision:3,compoundGroup:3,noteValue:'8'},
+    {label:'9/8',beats:3,subdivision:3,compoundGroup:3,noteValue:'8'},
+    {label:'12/8',beats:4,subdivision:3,compoundGroup:3,noteValue:'8'},
+    {label:'6/4',beats:2,subdivision:3,compoundGroup:3,noteValue:'4'},
+    {label:'9/4',beats:3,subdivision:3,compoundGroup:3,noteValue:'4'},
+    {label:'12/4',beats:4,subdivision:3,compoundGroup:3,noteValue:'4'},
+    {label:'6/2',beats:2,subdivision:3,compoundGroup:3,noteValue:'2'},
+    {label:'9/2',beats:3,subdivision:3,compoundGroup:3,noteValue:'2'},
+    {label:'12/2',beats:4,subdivision:3,compoundGroup:3,noteValue:'2'},
+  ];
   const tempos = [
     {bpm:60,name:'Larghetto'},{bpm:72,name:'Adagio'},{bpm:92,name:'Andante'},
     {bpm:108,name:'Moderato'},{bpm:120,name:'Allegro'},{bpm:144,name:'Vivace'},{bpm:176,name:'Presto'},
@@ -158,7 +169,7 @@ export default function MetronomeSheet({open, onClose, metronome, setMetronome, 
 
           {/* Meter presets */}
           <div style={{display:'flex',alignItems:'center',gap:'8px',flexWrap:'wrap'}}><span className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em',fontFamily:sans}}>Presets</span>{meterPresets.map(p=>(<button key={p.label} onClick={()=>setMetronome(m=>({...m,beats:p.beats,subdivision:p.subdivision,compoundGroup:p.compoundGroup,noteValue:p.noteValue}))} style={{padding:'4px 10px',border:`1px solid ${LINE_MED}`,background:'transparent',color:MUTED,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',cursor:'pointer'}}>{p.label}</button>))}</div>
-          <div style={{color:FAINT,fontFamily:sans,fontSize:'9px',lineHeight:'1.5',marginTop:'-4px'}}>For compound meters (6/8, 9/8, 12/8), BPM = dotted-quarter tempo. For 6/8 use <span style={{color:MUTED}}>Beats&nbsp;=&nbsp;2</span> and <span style={{color:MUTED}}>Sub&nbsp;=&nbsp;3</span> — or tap the 6/8 preset.</div>
+          <div style={{color:FAINT,fontFamily:sans,fontSize:'9px',lineHeight:'1.5',marginTop:'-4px'}}>BPM = beats per minute of the <span style={{color:MUTED}}>Note</span> value. Triple compound: set <span style={{color:MUTED}}>Group&nbsp;3</span>; <span style={{color:MUTED}}>Beats</span> = dotted pulses per bar (presets match 6/8, 9/4, etc. — display shows pulses, e.g. 6/4 → 2/4).</div>
           {/* Accel */}
           <div style={{borderTop:`1px solid ${LINE}`,paddingTop:'12px',display:'flex',flexDirection:'column',gap:'10px'}}>
             <Row>

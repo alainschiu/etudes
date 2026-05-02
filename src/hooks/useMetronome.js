@@ -49,12 +49,14 @@ export default function useMetronome(){
   const soundRef=useRef(metronome.sound);
   const compoundRef=useRef(metronome.compoundGroup);
   const accelRef=useRef(metronome.accel);
+  const noteValueRef=useRef(metronome.noteValue);
   useEffect(()=>{bpmRef.current=metronome.bpm;},[metronome.bpm]);
   useEffect(()=>{beatsRef.current=metronome.beats;},[metronome.beats]);
   useEffect(()=>{subRef.current=metronome.subdivision;},[metronome.subdivision]);
   useEffect(()=>{soundRef.current=metronome.sound;},[metronome.sound]);
   useEffect(()=>{compoundRef.current=metronome.compoundGroup;},[metronome.compoundGroup]);
   useEffect(()=>{accelRef.current=metronome.accel;},[metronome.accel]);
+  useEffect(()=>{noteValueRef.current=metronome.noteValue;},[metronome.noteValue]);
 
   const accelCounterRef=useRef(0);
   const accelAccRef=useRef(0);
@@ -91,8 +93,12 @@ export default function useMetronome(){
     nextBeatTimeRef.current=ctx.currentTime+0.05; // slight delay on start
 
     const calcSubMs=(bpm)=>{
+      const nv=noteValueRef.current||'4';
+      const d=parseInt(nv,10);
+      const beatInQuarters=Number.isFinite(d)&&d>0?4/d:1;
+      const quarterMs=60000/bpm;
       const isCompound=compound>1;
-      const beatMs=isCompound?(60000/bpm)*1.5:isDot?(60000/bpm)*1.5:60000/bpm;
+      const beatMs=isCompound?quarterMs*beatInQuarters*1.5:isDot?quarterMs*beatInQuarters*1.5:quarterMs*beatInQuarters;
       return isCompound?beatMs/compound/effectiveSub:beatMs/effectiveSub;
     };
     const calcSubSec=(bpm)=>calcSubMs(bpm)/1000;

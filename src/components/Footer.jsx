@@ -395,12 +395,15 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
                     const effectiveSub2=isDotSub2?1:(typeof metronome.subdivision==='number'?metronome.subdivision:1);
                     const isA=metronome.running&&currentBeat===i;
                     const isBeat1=i===0;
+                    const compoundMob=metronome.compoundGroup||0;
+                    const isGroupStart=(j)=>compoundMob>1?j%compoundMob===0:j===0;
+                    const isGroupDown=isGroupStart(i);
                     return(
                       <div key={i} style={{flex:1,display:'flex',alignItems:'flex-end',gap:'1px',height:'34px'}}>
                         <div style={{
                           flex:1,
-                          height:isA&&isBeat1?'34px':isA?'24px':isBeat1?'22px':'16px',
-                          background:isA?IKB:isBeat1?DIM:`rgba(244,238,227,0.20)`,
+                          height:isA&&isBeat1?'34px':isA&&isGroupDown?'28px':isA?'20px':isBeat1?'22px':isGroupDown?'16px':'10px',
+                          background:isA?IKB:isBeat1?DIM:isGroupDown?DIM:`rgba(244,238,227,0.12)`,
                           borderRadius:'1px',
                           transition:isA?'none':'height 150ms ease-out',
                         }}/>
