@@ -1,4 +1,4 @@
-# Études — v0.97.7
+# Études — v0.97.8
 
 A practice journal for musicians. Seven views: Today, Review, Répertoire, Routines, Logs, Notes, Programs. Works offline as a PWA — install from the browser on any device.
 
@@ -22,11 +22,18 @@ A practice journal for musicians. Seven views: Today, Review, Répertoire, Routi
 - **Daily reminder** — optional push notification at a chosen time (requires notification permission)
 - **Mobile PWA** — bottom tab navigation (7 tabs), compact header, mobile-optimised footer bar, Répertoire sidebar as full-screen overlay sheet, PDF drawer full-screen on mobile; installable from any browser
 
+## PWA / offline
+
+- **Install & shell** — [`public/site.webmanifest`](public/site.webmanifest) (linked from [`index.html`](index.html)) defines name, theme, `start_url`, `scope`, `id`, `lang`, and icons for Add to Home Screen.
+- **Service worker** — production builds emit `sw.js` + Workbox via **vite-plugin-pwa**; the app shell and static assets are precached. The **pdfjs worker** (`.mjs` chunk) is included in the precache glob so the PDF viewer can load after one online visit.
+- **Updates** — `registerType: 'prompt'` with an in-app **Update available → Reload** bar ([`UpdatePrompt.jsx`](src/components/UpdatePrompt.jsx), `useRegisterSW` from `virtual:pwa-register/react`) so a new deploy does not silently take over the tab until you confirm.
+- **Preview** — `npm run preview` serves `dist/` with the service worker active (unlike `npm run dev`).
+
 ## Tech Stack
 
 - React 19 + Vite 8
 - Tailwind CSS
-- vite-plugin-pwa / Workbox (service worker, offline caching)
+- vite-plugin-pwa / Workbox (service worker, offline precache, runtime caches for Supabase + fonts; in-app update prompt)
 - react-pdf / pdfjs-dist (PDF rendering)
 - JSZip (ZIP export)
 - Supabase (auth + PostgreSQL, optional)

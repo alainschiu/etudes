@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.97.8 — 2026-05-02
+
+### PWA / service worker
+
+- **Update UX** — `registerType: 'prompt'`, `injectRegister: false`, `workbox.skipWaiting: false` in [`vite.config.js`](vite.config.js); single registration via [`useRegisterSW`](https://vite-pwa-org.netlify.app/frameworks/react.html) from `virtual:pwa-register/react` in new [`UpdatePrompt.jsx`](src/components/UpdatePrompt.jsx) (mounted in [`App.jsx`](src/App.jsx)): bottom bar when a new worker is waiting, **Reload** / **Later**.
+- **Precache** — `globPatterns` extended with `mjs` so `pdf.worker.min.*.mjs` is included in the Workbox precache for offline PDF viewing.
+- **Web manifest** — [`public/site.webmanifest`](public/site.webmanifest): `id`, `scope`, `lang`, `description` (icon `purpose` unchanged pending Android QA).
+
 ## v0.97.7 — 2026-05-02
 
 ### Metronome — timing, audio, and UI

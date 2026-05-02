@@ -1,5 +1,11 @@
 # Update Log
 
+## v0.97.8 — 2026-05-02
+
+- **PWA — gentler updates** — when a new version is published, a small bar at the bottom offers **Reload** or **Later** instead of the tab switching over without warning
+- **PWA — offline PDF worker** — the score viewer’s worker file is cached with the rest of the app so PDFs are more likely to open after you have used the app online once, then go offline
+- **PWA — install card** — the web manifest now includes a short description and explicit scope/language fields for clearer install / store-style listings where the browser shows them
+
 ## v0.97.7 — 2026-05-02
 
 - **Metronome — tempo matches the “Note” you pick** — BPM now follows the beat unit (e.g. eighth vs quarter), including in compound time, so the click spacing matches what you expect on the score
