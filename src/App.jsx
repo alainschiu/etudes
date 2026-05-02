@@ -34,6 +34,7 @@ import NotesView from './views/NotesView.jsx';
 import ProgramsView from './views/ProgramsView.jsx';
 import Footer from './components/Footer.jsx';
 import UndoToast from './components/UndoToast.jsx';
+import UpdatePrompt from './components/UpdatePrompt.jsx';
 import {SettingsModal,HelpModal,ConfirmModal,PromptModal,SyncConflictModal} from './components/modals.jsx';
 const PdfDrawer = lazy(() => import('./components/PdfDrawer.jsx'));
 import useEtudesState from './state/useEtudesState.js';
@@ -197,6 +198,7 @@ export default function Etudes(){
       )}
       <Footer {...{isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,attachDailyToPiece:s.attachDailyToPiece,todaySessions,items,settings,handleStartRecording}}/>
       {trash&&<UndoToast item={trash.item} onUndo={undoDelete} onDismiss={dismissTrash}/>}
+      <UpdatePrompt />
       {showSettings&&<SettingsModal settings={settings} setSettings={setSettings} storageMode={storageMode} onExportZip={buildZip} exportProgress={exportProgress} onExportJson={exportJson} onImportClick={()=>importInputRef.current?.click()} onClose={()=>setShowSettings(false)} user={s.user} signIn={s.signIn} signUp={s.signUp} signOut={s.signOut} signInWithGoogle={s.signInWithGoogle} syncStatus={s.syncStatus} lastSyncedAt={s.lastSyncedAt} syncNow={s.syncNow} syncPayloadWarning={s.syncPayloadWarning} seedTestNotes={seedTestNotes} devSeedAll={seedAll} devClearAll={clearAll}/>}
       {showHelp&&<HelpModal onClose={()=>setShowHelp(false)}/>}
       {pdfItem&&<Suspense fallback={null}><PdfDrawer {...{pdfItem,items,pdfUrlMap,pdfLibrary,itemTimes,activeItemId,activeSpotId,startItem,stopItem,updateItem,addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,addBookmark,removeBookmark,renameBookmark,fmt,setPromptModal,setConfirmModal,onClose:()=>setPdfDrawerItemId(null),dayClosed,addSpot,updateSpot,deleteSpot,editSpotTime}}/></Suspense>}
