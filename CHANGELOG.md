@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.97.7 — 2026-05-02
+
+### Metronome — timing, audio, and UI
+
+- **BPM and note value** — `calcSubMs` uses `beatInQuarters` from `noteValue` so BPM follows the selected denominator (quarter / eighth / half / sixteenth) and compound mode uses the dotted beat unit (`compoundGroup > 1`).
+- **Scheduler stability** — metronome `useEffect` depends only on `running`; beats, subdivision, sound, compound, accel, and note value sync through refs so changing controls does not tear down the look-ahead loop or reset phase.
+- **Live grid after auto-compound** — `schedule()` reads `subRef` / `compoundRef` (and nested `calcSubMs`) each tick so subdivisions apply immediately after the sheet folds 6/9/12/15 into triple compound without stop/start.
+- **RAF dedupe** — `lastShownBeatTimeRef` so `setCurrentBeat` fires once per scheduled event, not every animation frame.
+- **Click sound** — shorter gain envelope (12 ms); **click** timbre mixes a short white-noise burst with the oscillator to reduce pitched “note” bleed; wood/beep keep oscillator-only with the shorter decay.
+- **Accent pattern** — optional `accentPattern` (beat indices for medium accents); sheet **Accent** row when `beats > 3`; pattern trimmed when beat count drops; scheduler and mobile footer bar heights follow custom accents when set.
+- **Compound auto** — fold to triple compound (beats ÷ 3, sub 3, group 3) runs **only when turning Auto from Off to On** while beats are 6/9/12/15, Sub 1, and Group Off; changing beats to 6 with Auto already on no longer forces 6 → 2.
+- **Auto toggle** — correct on/off handling and optional expand of a prior auto-fold when turning Auto off then on again.
+- **Metronome sheet (mobile)** — numeric subdivision labels (1–4 + dotted); copy for Auto; BPM/tap/handle hierarchy tweaks; **meter preset buttons removed** in favour of Auto + manual Beats/Sub/Group.
+- **Footer (mobile)** — beat visualiser uses thicker vertical bars and taller downbeats; compound grouping heights preserved when not using a custom accent pattern; desktop sheet Sub labels match.
+
 ## v0.97.6 — 2026-05-01
 
 ### Mobile — Sprint Patch

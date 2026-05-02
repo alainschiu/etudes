@@ -1,5 +1,14 @@
 # Update Log
 
+## v0.97.7 — 2026-05-02
+
+- **Metronome — tempo matches the “Note” you pick** — BPM now follows the beat unit (e.g. eighth vs quarter), including in compound time, so the click spacing matches what you expect on the score
+- **Metronome — steadier when you tweak settings** — changing BPM, beats, subdivision, or sound while the metronome runs no longer resets the whole pulse; compound 6/8-style setups apply subdivisions as soon as you use **Auto** without restarting
+- **Metronome — clearer clicks** — click sound is shorter and more percussive (less like a held pitch)
+- **Metronome — optional accent pattern** — in the metronome drawer, when you have more than two beats per bar, you can tap beats to mark which ones get a stronger accent; **Reset** returns to automatic accents
+- **Metronome — Auto for compound** — turning **Auto** **On** folds 6 / 9 / 12 / 15 beats (with one subdivision per beat and Group Off) into a triple-compound layout; leaving **Auto** off keeps six equal beats if that is what you want
+- **Metronome sheet** — subdivision row shows plain **1 2 3 4** (plus dotted option) for readability; preset meter chips removed in favour of Auto + manual controls
+
 ## v0.97.6 — 2026-05-01
 
 - **Metronome widget (mobile)** — beat bars are now the dominant visual element; whole left zone (bars + BPM/time sig) is a single touch target that toggles the metronome; time signature rendered larger; chevron opens the sheet as before
