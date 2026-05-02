@@ -1,6 +1,10 @@
 {
+  "id": "/",
   "name": "Études",
   "short_name": "Études",
+  "lang": "en",
+  "description": "A practice journal for musicians. Seven views: Today, Review, Répertoire, Routines, Logs, Notes, Programs. Works offline as a PWA.",
+  "scope": "/",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

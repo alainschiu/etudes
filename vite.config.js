@@ -6,11 +6,14 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // 'prompt' + injectRegister:false: single registration via useRegisterSW (App) so users see UpdatePrompt before reload
+      registerType: 'prompt',
+      injectRegister: false,
       manifest: false, // use existing public/site.webmanifest
       workbox: {
+        skipWaiting: false,
         clientsClaim: true,
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,mjs}'],
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,

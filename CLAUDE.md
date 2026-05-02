@@ -4,7 +4,7 @@ Before doing anything, read `North_Star_V2.3.md`. It is the authoritative
 product document and supersedes all other instructions.
 
 Current version: v2.3
-Current app version: v0.97.7
+Current app version: v0.97.8
 
 ---
 
@@ -12,7 +12,7 @@ Current app version: v0.97.7
 
 - **React 19 + Vite 8** — SPA, no SSR
 - **Tailwind CSS** — layout and spacing only; all colour/typography via design tokens
-- **vite-plugin-pwa / Workbox** — service worker, `clientsClaim: true`, `registerType: autoUpdate`
+- **vite-plugin-pwa / Workbox** — service worker, `clientsClaim: true`, `registerType: prompt`, `injectRegister: false` (registration via `useRegisterSW` / `UpdatePrompt.jsx`), `skipWaiting: false` until user reloads; precache glob includes `mjs` (PDF worker)
 - **react-pdf / pdfjs-dist** — PDF rendering in `PdfViewer.jsx`
 - **Supabase** — auth (email + Google + Apple OAuth) + PostgreSQL sync; optional
 - **lucide-react** — icons imported individually: `import X from 'lucide-react/dist/esm/icons/x'` (never barrel import)
