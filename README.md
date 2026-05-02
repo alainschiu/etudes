@@ -26,6 +26,7 @@ A practice journal for musicians. Seven views: Today, Review, Répertoire, Routi
 
 - **Install & shell** — [`public/site.webmanifest`](public/site.webmanifest) (linked from [`index.html`](index.html)) defines name, theme, `start_url`, `scope`, `id`, `lang`, and icons for Add to Home Screen.
 - **Service worker** — production builds emit `sw.js` + Workbox via **vite-plugin-pwa**; the app shell and static assets are precached. The **pdfjs worker** (`.mjs` chunk) is included in the precache glob so the PDF viewer can load after one online visit.
+- **Offline cue (mobile)** — [`TopBar.jsx`](src/components/TopBar.jsx) shows an **Offline** chip when `navigator.onLine` is false (browser `online` / `offline` events), next to the settings control.
 - **Updates** — `registerType: 'prompt'` with an in-app **Update available → Reload** bar ([`UpdatePrompt.jsx`](src/components/UpdatePrompt.jsx), `useRegisterSW` from `virtual:pwa-register/react`) so a new deploy does not silently take over the tab until you confirm.
 - **Preview** — `npm run preview` serves `dist/` with the service worker active (unlike `npm run dev`).
 

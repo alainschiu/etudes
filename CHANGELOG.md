@@ -4,7 +4,8 @@
 
 ### PWA / service worker
 
-- **Update UX** — `registerType: 'prompt'`, `injectRegister: false`, `workbox.skipWaiting: false` in [`vite.config.js`](vite.config.js); single registration via [`useRegisterSW`](https://vite-pwa-org.netlify.app/frameworks/react.html) from `virtual:pwa-register/react` in new [`UpdatePrompt.jsx`](src/components/UpdatePrompt.jsx) (mounted in [`App.jsx`](src/App.jsx)): bottom bar when a new worker is waiting, **Reload** / **Later**.
+- **Mobile TopBar — offline** — [`TopBar.jsx`](src/components/TopBar.jsx) listens to `window` `online` / `offline` and shows a compact **Offline** chip (wifi-off + label) to the left of settings when there is no network (installed PWA and flaky connections).
+- **Update UX** — `registerType: 'prompt'`, `injectRegister: false`, `workbox.skipWaiting: false` in [`vite.config.js`](vite.config.js); single registration via `useRegisterSW` from `virtual:pwa-register/react` in new [`UpdatePrompt.jsx`](src/components/UpdatePrompt.jsx) (mounted in [`App.jsx`](src/App.jsx)): bottom bar when a new worker is waiting, **Reload** / **Later**.
 - **Precache** — `globPatterns` extended with `mjs` so `pdf.worker.min.*.mjs` is included in the Workbox precache for offline PDF viewing.
 - **Web manifest** — [`public/site.webmanifest`](public/site.webmanifest): `id`, `scope`, `lang`, `description` (icon `purpose` unchanged pending Android QA).
 
