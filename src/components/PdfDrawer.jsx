@@ -518,6 +518,7 @@ export default function PdfDrawer({
                             onRename={(label)=>updateSpot(pdfItem.id,s.id,{label})}
                             onDelete={()=>deleteSpot(pdfItem.id,s.id)}
                             onEditTime={editSpotTime?(v)=>editSpotTime(pdfItem.id,s.id,v):undefined}
+                            onPdfPageJump={s.pdfPage?(pg)=>viewerRef.current?.jumpToPage(pg):undefined}
                             dayClosed={dayClosed} compact/>
                           {activeUrl&&(
                             <SpotPdfPageRow

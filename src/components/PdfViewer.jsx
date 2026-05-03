@@ -118,14 +118,19 @@ const PdfViewer=forwardRef(function PdfViewer({
   const curPageBms=(bookmarks||[]).filter(b=>b.page===currentPage);
   const hasBookmarkHere=curPageBms.length>0;
 
-  // Measure container (ResizeObserver gives content rect, excluding CSS padding)
+  // Measure container — debounced so sidebar collapse/expand transitions don't
+  // cause a mid-animation re-render (flash) of the PDF pages.
   useEffect(()=>{
     if(!containerRef.current)return;
+    let timer=null;
     const ro=new ResizeObserver(entries=>{
-      for(const e of entries){setContainerW(e.contentRect.width);setContainerH(e.contentRect.height);}
+      clearTimeout(timer);
+      timer=setTimeout(()=>{
+        for(const e of entries){setContainerW(e.contentRect.width);setContainerH(e.contentRect.height);}
+      },120);
     });
     ro.observe(containerRef.current);
-    return()=>ro.disconnect();
+    return()=>{ro.disconnect();clearTimeout(timer);};
   },[]);
 
   useEffect(()=>{setCurrentPage(effectiveStart);setNumPages(null);},[url,effectiveStart]);// eslint-disable-line

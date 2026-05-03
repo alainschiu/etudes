@@ -13,6 +13,8 @@ import ArrowUp from 'lucide-react/dist/esm/icons/arrow-up';
 import ArrowDown from 'lucide-react/dist/esm/icons/arrow-down';
 import Crosshair from 'lucide-react/dist/esm/icons/crosshair';
 import Pencil from 'lucide-react/dist/esm/icons/pencil';
+import Clock from 'lucide-react/dist/esm/icons/clock';
+import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Check from 'lucide-react/dist/esm/icons/check';
 import Music from 'lucide-react/dist/esm/icons/music';
 import Calendar from 'lucide-react/dist/esm/icons/calendar';
@@ -283,7 +285,68 @@ export function fmtSpotTime(s){s=s||0;const m=Math.floor(s/60);const sec=s%60;re
 
 export function PerformanceChip({perf,compact=false}){if(!perf||!perf.date)return null;const days=daysUntil(perf.date);if(days===null||days<-30)return null;let color,text;if(days<0){color=MUTED;text=`${Math.abs(days)}d ago`;}else if(days===0){color=WARM;text='today';}else if(days<=7){color=WARM;text=`${days}d`;}else if(days<=30){color=IKB;text=`${days}d`;}else{color=FAINT;text=`${days}d`;}const label=perf.label||'perf';return (<span className="inline-flex items-center gap-1 uppercase" title={`${label} · ${perf.date}`} style={{color,fontSize:compact?'9px':'10px',letterSpacing:'0.22em',padding:compact?'1px 5px':'2px 6px',border:`1px solid ${color}40`,background:(days<=7&&days>=0)?`${color}15`:'transparent'}}><Calendar className="w-2.5 h-2.5" strokeWidth={1.25}/>{label} · {text}</span>);}
 
-export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,onDelete,onEditTime,dayClosed,compact=false}){const [editing,setEditing]=useState(false);const [val,setVal]=useState(spot.label);const [editingTime,setEditingTime]=useState(false);const time=getSpotTime(itemTimes,itemId,spot.id);const commit=()=>{if(val.trim())onRename(val.trim());else setVal(spot.label);setEditing(false);};return (<div className="group flex items-center gap-3 py-2 px-2" style={{background:isActive?IKB_SOFT:'transparent',borderLeft:isActive?`2px solid ${IKB}`:`2px solid transparent`}}><button onClick={()=>isActive?onStop():onStart()} disabled={dayClosed&&!isActive} className="shrink-0" style={{color:isActive?IKB:(dayClosed?FAINT:TEXT),cursor:(dayClosed&&!isActive)?'not-allowed':'pointer'}}>{isActive?<Pause className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>}</button><Crosshair className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:isActive?IKB:FAINT}}/>{editing?(<input autoFocus value={val} onChange={e=>setVal(e.target.value)} onBlur={commit} onKeyDown={e=>{if(e.key==='Enter')commit();else if(e.key==='Escape'){setVal(spot.label);setEditing(false);}}} className="flex-1 focus:outline-none pb-0.5" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:compact?'13px':'14px',fontWeight:300}}/>):(<span onDoubleClick={()=>setEditing(true)} className="flex-1 cursor-text" style={{fontFamily:serif,fontSize:compact?'13px':'14px',fontWeight:300}}>{spot.label}</span>)}{spot.bpmTarget&&<span className="font-mono tabular-nums shrink-0" style={{color:FAINT,fontSize:'10px'}}>♩ {spot.bpmTarget}</span>}{editingTime?(<ItemTimeEditor seconds={time} onCommit={(v)=>{onEditTime&&onEditTime(v);setEditingTime(false);}} onCancel={()=>setEditingTime(false)} small/>):(<><span className="font-mono tabular-nums shrink-0" style={{color:time>0?MUTED:FAINT,fontSize:'11px',fontWeight:300}}>{time>0?fmtSpotTime(time):'—'}</span>{!dayClosed&&onEditTime&&<button onClick={()=>setEditingTime(true)} className="target-hover-reveal shrink-0" style={{color:FAINT}} title="Edit minutes"><Pencil className="w-3 h-3" strokeWidth={1.25}/></button>}</>)}{!editing&&!editingTime&&(<><button onClick={()=>setEditing(true)} className="target-hover-reveal shrink-0" style={{color:FAINT}} title="Rename"><Pencil className="w-3 h-3" strokeWidth={1.25}/></button><button onClick={onDelete} className="target-hover-reveal shrink-0" style={{color:FAINT}} title="Delete spot"><X className="w-3 h-3" strokeWidth={1.25}/></button></>)}</div>);}
+export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,onDelete,onEditTime,onPdfPageJump,dayClosed,compact=false}){
+  const [editing,setEditing]=useState(false);
+  const [val,setVal]=useState(spot.label);
+  const [editingTime,setEditingTime]=useState(false);
+  const time=getSpotTime(itemTimes,itemId,spot.id);
+  const commit=()=>{if(val.trim())onRename(val.trim());else setVal(spot.label);setEditing(false);};
+  return (
+    <div className="group flex items-center gap-2 py-2 px-2" style={{background:isActive?IKB_SOFT:'transparent',borderLeft:isActive?`2px solid ${IKB}`:`2px solid transparent`}}>
+      {/* Play / pause */}
+      <button onClick={()=>isActive?onStop():onStart()} disabled={dayClosed&&!isActive} className="shrink-0" style={{color:isActive?IKB:(dayClosed?FAINT:TEXT),cursor:(dayClosed&&!isActive)?'not-allowed':'pointer'}}>
+        {isActive?<Pause className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor"/>}
+      </button>
+      <Crosshair className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:isActive?IKB:FAINT}}/>
+      {/* Label + rename pencil (right next to name) + PDF badge */}
+      <div className="flex items-center gap-1 flex-1 min-w-0">
+        {editing?(
+          <input autoFocus value={val} onChange={e=>setVal(e.target.value)} onBlur={commit}
+            onKeyDown={e=>{if(e.key==='Enter')commit();else if(e.key==='Escape'){setVal(spot.label);setEditing(false);}}}
+            className="flex-1 min-w-0 focus:outline-none pb-0.5"
+            style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:compact?'13px':'14px',fontWeight:300}}/>
+        ):(
+          <span onDoubleClick={()=>setEditing(true)} className="flex-1 min-w-0 cursor-text truncate"
+            style={{fontFamily:serif,fontSize:compact?'13px':'14px',fontWeight:300}}>{spot.label}</span>
+        )}
+        {!editing&&!editingTime&&(
+          <button onClick={()=>setEditing(true)} className="target-hover-reveal shrink-0" style={{color:FAINT,background:'transparent',border:'none',cursor:'pointer',padding:'1px'}} title="Rename spot">
+            <Pencil className="w-3 h-3" strokeWidth={1.25}/>
+          </button>
+        )}
+        {spot.pdfPage&&(
+          <button onClick={onPdfPageJump?()=>onPdfPageJump(spot.pdfPage):undefined}
+            className="shrink-0 flex items-center gap-0.5"
+            style={{color:IKB,fontSize:'9px',fontFamily:mono,cursor:onPdfPageJump?'pointer':'default',background:'transparent',border:'none',padding:'1px 3px',lineHeight:1}}
+            title={`Score p.${spot.pdfPage}`}>
+            <FileText className="w-2.5 h-2.5" strokeWidth={1.5}/>
+            {spot.pdfPage}
+          </button>
+        )}
+      </div>
+      {spot.bpmTarget&&<span className="font-mono tabular-nums shrink-0" style={{color:FAINT,fontSize:'10px'}}>♩ {spot.bpmTarget}</span>}
+      {/* Time display / editor */}
+      {editingTime?(
+        <ItemTimeEditor seconds={time} onCommit={(v)=>{onEditTime&&onEditTime(v);setEditingTime(false);}} onCancel={()=>setEditingTime(false)} small/>
+      ):(
+        <>
+          <span className="font-mono tabular-nums shrink-0" style={{color:time>0?MUTED:FAINT,fontSize:'11px',fontWeight:300}}>{time>0?fmtSpotTime(time):'—'}</span>
+          {!dayClosed&&onEditTime&&(
+            <button onClick={()=>setEditingTime(true)} className="target-hover-reveal shrink-0" style={{color:FAINT,background:'transparent',border:'none',cursor:'pointer'}} title="Edit practice time">
+              <Clock className="w-3 h-3" strokeWidth={1.25}/>
+            </button>
+          )}
+        </>
+      )}
+      {/* Delete */}
+      {!editing&&!editingTime&&(
+        <button onClick={onDelete} className="target-hover-reveal shrink-0" style={{color:FAINT,background:'transparent',border:'none',cursor:'pointer'}} title="Delete spot">
+          <X className="w-3 h-3" strokeWidth={1.25}/>
+        </button>
+      )}
+    </div>
+  );
+}
 
 export function Tooltip({children,shortcut,label}){
   const [vis,setVis]=useState(false);
