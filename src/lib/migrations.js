@@ -28,6 +28,12 @@ export const IMPORT_MIGRATIONS=[
     const items=(s.items||[]).map(i=>({...i,noteLog:Array.isArray(i.noteLog)?i.noteLog:[]}));
     return {...d,schemaVersion:8,state:{...s,items}};
   }},
+  {from:8,to:9,migrate:(d)=>({...d,schemaVersion:9})},
+  {from:9,to:10,migrate:(d)=>{
+    const s=d.state||{};
+    const programs=(s.programs||[]).map(p=>({venue:null,audience:null,itemNotes:{},intention:null,reflection:null,body:null,...p,itemNotes:(p.itemNotes&&typeof p.itemNotes==='object')?p.itemNotes:{}}));
+    return {...d,schemaVersion:10,state:{...s,programs}};
+  }},
 ];
 export function migrateImport(data){let c=data;let v=c.schemaVersion||1;for(const m of IMPORT_MIGRATIONS){if(m.from===v){c=m.migrate(c);v=m.to;c.schemaVersion=v;}}return c;}
 

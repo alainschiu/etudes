@@ -4,7 +4,7 @@ Before doing anything, read `North_Star_V2.3.md`. It is the authoritative
 product document and supersedes all other instructions.
 
 Current version: v2.3
-Current app version: v0.97.10
+Current app version: v0.97.11
 
 ---
 
@@ -70,7 +70,7 @@ Single central hook: `src/state/useEtudesState.js`. All views receive props from
 - `src/constants/config.js` → `APP_VERSION` (footer badge)
 - `package.json` → `version` (Settings modal reads `appPkg.version` directly)
 
-`SCHEMA_VERSION` in `config.js` — increment only when the persisted state shape changes. Current: `9`.
+`SCHEMA_VERSION` in `config.js` — increment only when the persisted state shape changes. Current: `10`.
 
 ## File Map
 
