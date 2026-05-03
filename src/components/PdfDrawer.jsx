@@ -22,9 +22,8 @@ import {displayTitle,formatByline,getItemTime} from '../lib/items.js';
 import {SpotRow} from './shared.jsx';
 import PdfViewer from './PdfViewer.jsx';
 
-const MIN_SIDEBAR=220;
-const MAX_SIDEBAR=520;
-const DEFAULT_SIDEBAR=300;
+const SIDEBAR_W=300;
+const MIN_DRAWER_H=320;
 
 // ── Spot → PDF page link row ──────────────────────────────────────────────────
 // Compact sub-row rendered beneath each SpotRow in the PDF drawer spots tab.
@@ -113,9 +112,8 @@ export default function PdfDrawer({
   const [renamingId,setRenamingId]=useState(null);
   const [renameVal,setRenameVal]=useState('');
   const [sidebarTab,setSidebarTab]=useState('spots'); // 'spots' | 'bookmarks' | 'library'
-  const [sidebarW,setSidebarW]=useState(DEFAULT_SIDEBAR);
-  const [dragging,setDragging]=useState(false);
-  const [handleHover,setHandleHover]=useState(false);
+  const [drawerH,setDrawerH]=useState(null); // null = fill available height
+  const [drawerResizing,setDrawerResizing]=useState(false);
   const [showLibrary,setShowLibrary]=useState(false);
   const [pageRangeEdit,setPageRangeEdit]=useState(null); // attachId being edited
   const [pageRangeVals,setPageRangeVals]=useState({start:'',end:''});
@@ -164,26 +162,29 @@ export default function PdfDrawer({
     });
   };
 
-  // Sidebar resize
-  const dragStartX=useRef(0);
-  const dragStartW=useRef(0);
-  const onResizeMouseDown=(e)=>{
+  // Outer drawer height resize
+  const drawerResizeDragStartY=useRef(0);
+  const drawerResizeDragStartH=useRef(0);
+  const onDrawerResizeMouseDown=(e)=>{
     e.preventDefault();
-    dragStartX.current=e.clientX;
-    dragStartW.current=sidebarW;
-    setDragging(true);
+    e.stopPropagation();
+    const currentH=drawerH||(window.innerHeight-48);
+    drawerResizeDragStartY.current=e.clientY;
+    drawerResizeDragStartH.current=currentH;
+    setDrawerResizing(true);
   };
   useEffect(()=>{
-    if(!dragging)return;
+    if(!drawerResizing)return;
+    const maxH=window.innerHeight-48;
     const move=(e)=>{
-      const delta=dragStartX.current-e.clientX;
-      setSidebarW(Math.max(MIN_SIDEBAR,Math.min(MAX_SIDEBAR,dragStartW.current+delta)));
+      const delta=e.clientY-drawerResizeDragStartY.current;
+      setDrawerH(Math.max(MIN_DRAWER_H,Math.min(maxH,drawerResizeDragStartH.current+delta)));
     };
-    const up=()=>setDragging(false);
+    const up=()=>setDrawerResizing(false);
     window.addEventListener('mousemove',move);
     window.addEventListener('mouseup',up);
     return()=>{window.removeEventListener('mousemove',move);window.removeEventListener('mouseup',up);};
-  },[dragging]);
+  },[drawerResizing]);
 
   const isActiveWhole=activeItemId===pdfItem.id&&!activeSpotId;
   const isActiveAny=activeItemId===pdfItem.id;
@@ -257,7 +258,7 @@ export default function PdfDrawer({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{padding:(isMobile||expanded)?0:'24px',background:'rgba(0,0,0,0.85)',backdropFilter:'blur(8px)'}}>
       <div className="absolute inset-0" onClick={onClose}/>
-      <div className="relative w-full h-full flex flex-col" style={{maxWidth:expanded?'100%':'112rem',background:BG,border:expanded?'none':`1px solid ${LINE_STR}`,boxShadow:expanded?'none':'0 20px 60px rgba(0,0,0,0.8)'}}>
+      <div className="relative flex flex-col" style={{width:'100%',maxWidth:expanded?'100%':'112rem',height:(drawerH&&!expanded)?`${drawerH}px`:'100%',background:BG,border:expanded?'none':`1px solid ${LINE_STR}`,boxShadow:expanded?'none':'0 20px 60px rgba(0,0,0,0.8)'}}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 gap-3 shrink-0" style={{borderBottom:`1px solid ${LINE_MED}`}}>
@@ -369,7 +370,7 @@ export default function PdfDrawer({
         )}
 
         {/* Main body: viewer + sidebar */}
-        <div className="flex-1 flex overflow-hidden" style={{userSelect:dragging?'none':'auto',flexDirection:isMobile?'column':'row'}}>
+        <div className="flex-1 flex overflow-hidden" style={{userSelect:drawerResizing?'none':'auto',flexDirection:isMobile?'column':'row'}}>
 
           {/* PDF viewer area */}
           <div className="flex-1 relative overflow-hidden"
@@ -385,6 +386,7 @@ export default function PdfDrawer({
                 endPage={activePdf?.endPage||null}
                 bookmarks={activePdf?.bookmarks||[]}
                 onPageChange={setCurrentViewPage}
+                dragging={drawerResizing}
                 onAddBookmark={addBookmark?(name,page)=>{
                   addBookmark(pdfItem.id,activePdfId,name,page);
                 }:undefined}
@@ -416,25 +418,6 @@ export default function PdfDrawer({
             )}
           </div>
 
-          {/* Resize handle — desktop only, hidden when sidebar is collapsed */}
-          {!isMobile&&!sidebarCollapsed&&(
-            <div
-              onMouseDown={onResizeMouseDown}
-              onMouseEnter={()=>setHandleHover(true)}
-              onMouseLeave={()=>setHandleHover(false)}
-              style={{width:'10px',cursor:'col-resize',flexShrink:0,
-                background:dragging?IKB:handleHover?'rgba(244,238,227,0.18)':'rgba(244,238,227,0.06)',
-                transition:'background 0.12s',
-                display:'flex',alignItems:'center',justifyContent:'center'}}
-            >
-              <div style={{width:'3px',height:'36px',borderRadius:'2px',
-                background:dragging?'rgba(255,255,255,0.8)':handleHover?'rgba(255,255,255,0.45)':'rgba(255,255,255,0.2)',
-                transition:'background 0.12s',
-                backgroundImage:'radial-gradient(circle,currentColor 1px,transparent 1px)',
-                backgroundSize:'3px 6px',
-                color:dragging?'rgba(255,255,255,0.9)':handleHover?'rgba(255,255,255,0.5)':'rgba(255,255,255,0.25)'}}/>
-            </div>
-          )}
 
           {/* Collapsed stub — desktop (right strip) or mobile (bottom bar) */}
           {sidebarCollapsed&&(isMobile?(
@@ -466,7 +449,7 @@ export default function PdfDrawer({
 
           {/* Sidebar — visible when expanded */}
           {!sidebarCollapsed&&(
-          <div style={isMobile?{height:'240px',flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderTop:`1px solid ${LINE_MED}`}:{width:sidebarW,flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderLeft:`1px solid ${LINE_MED}`}}>
+          <div style={isMobile?{height:'240px',flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderTop:`1px solid ${LINE_MED}`}:{width:SIDEBAR_W,flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderLeft:`1px solid ${LINE_MED}`}}>
             {/* Sidebar tabs + collapse button */}
             <div className="flex items-center shrink-0" style={{borderBottom:`1px solid ${LINE}`}}>
               {[{id:'spots',icon:<Crosshair className="w-3 h-3" strokeWidth={1.25}/>,label:'Spots'},
@@ -625,6 +608,23 @@ export default function PdfDrawer({
           </div>
           )}
         </div>
+
+        {/* Bottom resize handle — drag to resize the whole drawer height */}
+        {!isMobile&&!expanded&&(
+          <div
+            onMouseDown={onDrawerResizeMouseDown}
+            style={{height:'10px',flexShrink:0,cursor:'row-resize',
+              background:drawerResizing?IKB:'rgba(244,238,227,0.05)',
+              transition:'background 0.12s',
+              display:'flex',alignItems:'center',justifyContent:'center',
+              borderTop:`1px solid ${LINE}`}}
+          >
+            <div style={{height:'3px',width:'40px',borderRadius:'2px',
+              backgroundImage:'radial-gradient(circle,currentColor 1px,transparent 1px)',
+              backgroundSize:'6px 3px',
+              color:drawerResizing?'rgba(255,255,255,0.9)':'rgba(255,255,255,0.25)'}}/>
+          </div>
+        )}
       </div>
     </div>
   );

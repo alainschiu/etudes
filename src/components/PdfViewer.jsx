@@ -74,7 +74,7 @@ function TBtn({active,disabled,onClick,children,label,extra,btnRef:extRef}){
 // ──────────────────────────────────────────────────────────────────────────────
 const PdfViewer=forwardRef(function PdfViewer({
   url,startPage=1,endPage=null,bookmarks=[],
-  onPageChange,onAddBookmark,
+  onPageChange,onAddBookmark,dragging=false,
 },ref){
   const [numPages,setNumPages]=useState(null);
   const [currentPage,setCurrentPage]=useState(startPage||1);
@@ -118,20 +118,26 @@ const PdfViewer=forwardRef(function PdfViewer({
   const curPageBms=(bookmarks||[]).filter(b=>b.page===currentPage);
   const hasBookmarkHere=curPageBms.length>0;
 
-  // Measure container — debounced so sidebar collapse/expand transitions don't
-  // cause a mid-animation re-render (flash) of the PDF pages.
+  // Measure container. During active drag-resize we debounce (80ms) to avoid
+  // re-rendering every animation frame. For discrete changes (sidebar collapse,
+  // initial mount) we update immediately so there's no stale-width flash.
   useEffect(()=>{
     if(!containerRef.current)return;
     let timer=null;
     const ro=new ResizeObserver(entries=>{
-      clearTimeout(timer);
-      timer=setTimeout(()=>{
+      if(dragging){
+        clearTimeout(timer);
+        timer=setTimeout(()=>{
+          for(const e of entries){setContainerW(e.contentRect.width);setContainerH(e.contentRect.height);}
+        },80);
+      }else{
+        clearTimeout(timer);
         for(const e of entries){setContainerW(e.contentRect.width);setContainerH(e.contentRect.height);}
-      },120);
+      }
     });
     ro.observe(containerRef.current);
     return()=>{ro.disconnect();clearTimeout(timer);};
-  },[]);
+  },[dragging]);
 
   useEffect(()=>{setCurrentPage(effectiveStart);setNumPages(null);},[url,effectiveStart]);// eslint-disable-line
 
