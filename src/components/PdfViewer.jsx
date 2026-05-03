@@ -86,14 +86,21 @@ const PdfViewer=forwardRef(function PdfViewer({
   const [pageSize,setPageSize]=useState({width:612,height:792});
   const [bmPopover,setBmPopover]=useState(false);  // bookmark popover open
   const [bmName,setBmName]=useState('');           // new bookmark name draft
+  const [pageEditing,setPageEditing]=useState(false);
+  const [pageInputVal,setPageInputVal]=useState('');
   const containerRef=useRef(null);
   const pageRefs=useRef({});
   const bmBtnRef=useRef(null);
   const bmPopRef=useRef(null);
+  const currentPageRef=useRef(currentPage);
+  const wheelAccum=useRef(0);
 
   const effectiveStart=startPage||1;
   const effectiveEnd=endPage&&numPages?Math.min(endPage,numPages):numPages;
   const totalPages=effectiveEnd?effectiveEnd-effectiveStart+1:numPages;
+  // Only restrict backwards nav when BOTH start and end are set (explicit range).
+  // startPage alone means "open here" — allow browsing the full document.
+  const clampStart=(startPage&&endPage)?effectiveStart:1;
 
   // Close bookmark popover on outside click
   useEffect(()=>{
@@ -123,6 +130,9 @@ const PdfViewer=forwardRef(function PdfViewer({
 
   useEffect(()=>{setCurrentPage(effectiveStart);setNumPages(null);},[url,effectiveStart]);// eslint-disable-line
 
+  // Keep a ref so the wheel handler always reads the latest page without stale closure
+  useEffect(()=>{currentPageRef.current=currentPage;},[currentPage]);
+
   const onDocLoaded=({numPages:n})=>setNumPages(n);
   const onPageLoaded=(pg)=>setPageSize({width:pg.originalWidth,height:pg.originalHeight});
 
@@ -143,8 +153,8 @@ const PdfViewer=forwardRef(function PdfViewer({
 
   const clamp=useCallback((pg)=>{
     const end=effectiveEnd||numPages||pg;
-    return Math.max(effectiveStart,Math.min(end,pg));
-  },[effectiveStart,effectiveEnd,numPages]);
+    return Math.max(clampStart,Math.min(end,pg));
+  },[clampStart,effectiveEnd,numPages]);
 
   const jumpToPage=useCallback((pg)=>{
     const c=clamp(pg);
@@ -157,6 +167,25 @@ const PdfViewer=forwardRef(function PdfViewer({
   },[clamp,mode,onPageChange]);
 
   useImperativeHandle(ref,()=>({jumpToPage}),[jumpToPage]);
+
+  // Non-passive wheel listener — flips pages in single/spread mode
+  const jumpToPageRef2=useRef(jumpToPage);
+  useEffect(()=>{jumpToPageRef2.current=jumpToPage;},[jumpToPage]);
+  useEffect(()=>{
+    const el=containerRef.current;
+    if(!el)return;
+    const handler=(e)=>{
+      if(mode==='continuous')return; // native scroll handles it
+      e.preventDefault();
+      wheelAccum.current+=e.deltaY;
+      if(Math.abs(wheelAccum.current)<80)return;
+      const dir=wheelAccum.current>0?1:-1;
+      wheelAccum.current=0;
+      jumpToPageRef2.current(currentPageRef.current+dir*(mode==='spread'?2:1));
+    };
+    el.addEventListener('wheel',handler,{passive:false});
+    return()=>el.removeEventListener('wheel',handler);
+  },[mode]);
 
   const prevPage=()=>jumpToPage(currentPage-(mode==='spread'?2:1));
   const nextPage=()=>jumpToPage(currentPage+(mode==='spread'?2:1));
@@ -283,9 +312,30 @@ const PdfViewer=forwardRef(function PdfViewer({
         <TBtn label="Previous page" disabled={isAtStart} onClick={prevPage}>
           <ChevronLeft style={{width:12,height:12}}/>
         </TBtn>
-        <span style={{color:TEXT,fontSize:'11px',fontFamily:mono,minWidth:60,textAlign:'center',flexShrink:0}}>
-          {pageLabel}{totalLabel}
-        </span>
+        {pageEditing?(
+          <input
+            autoFocus
+            type="text"
+            inputMode="numeric"
+            value={pageInputVal}
+            onChange={e=>setPageInputVal(e.target.value)}
+            onKeyDown={e=>{
+              if(e.key==='Enter'){const n=parseInt(pageInputVal,10);if(!isNaN(n))jumpToPage(n);setPageEditing(false);}
+              else if(e.key==='Escape')setPageEditing(false);
+            }}
+            onBlur={()=>{const n=parseInt(pageInputVal,10);if(!isNaN(n))jumpToPage(n);setPageEditing(false);}}
+            style={{color:TEXT,fontSize:'11px',fontFamily:mono,width:'44px',textAlign:'center',flexShrink:0,
+              background:'transparent',border:`1px solid ${LINE_MED}`,outline:'none',padding:'1px 3px'}}
+          />
+        ):(
+          <span
+            onClick={()=>{setPageEditing(true);setPageInputVal(String(currentPage));}}
+            title="Click to jump to page"
+            style={{color:TEXT,fontSize:'11px',fontFamily:mono,minWidth:60,textAlign:'center',flexShrink:0,
+              cursor:'text',borderBottom:`1px dotted ${LINE_MED}`}}>
+            {pageLabel}{totalLabel}
+          </span>
+        )}
         <TBtn label="Next page" disabled={isAtEnd} onClick={nextPage}>
           <ChevronRight style={{width:12,height:12}}/>
         </TBtn>

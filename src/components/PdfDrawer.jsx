@@ -365,6 +365,15 @@ export default function PdfDrawer({
             <div className="flex-1 overflow-auto">
               {sidebarTab==='spots'&&(
                 <div className="px-4 py-3">
+                  {activePdf?.startPage&&activeUrl&&(
+                    <button
+                      onClick={()=>viewerRef.current?.jumpToPage(activePdf.startPage)}
+                      className="flex items-center gap-1.5 mb-3 uppercase"
+                      style={{color:IKB,fontSize:'9px',letterSpacing:'0.22em',fontFamily:sans}}>
+                      <Crosshair className="w-3 h-3" strokeWidth={1.25}/>
+                      Jump to piece start · p.{activePdf.startPage}
+                    </button>
+                  )}
                   {spots.length>0&&(
                     <div style={{background:SURFACE2,border:`1px solid ${LINE}`,marginBottom:'8px'}}>
                       {spots.map((s,idx)=>(
@@ -394,8 +403,19 @@ export default function PdfDrawer({
 
               {sidebarTab==='bookmarks'&&(
                 <div className="px-4 py-3">
-                  {/* Current page indicator */}
-                  {activeUrl&&<div style={{color:FAINT,fontSize:'10px',fontFamily:mono,marginBottom:'10px'}}>Viewing p.{currentViewPage}</div>}
+                  {/* Current page indicator + jump to piece start */}
+                  <div className="flex items-center justify-between mb-3">
+                    {activeUrl&&<div style={{color:FAINT,fontSize:'10px',fontFamily:mono}}>Viewing p.{currentViewPage}</div>}
+                    {activePdf?.startPage&&activeUrl&&(
+                      <button
+                        onClick={()=>viewerRef.current?.jumpToPage(activePdf.startPage)}
+                        className="flex items-center gap-1 uppercase"
+                        style={{color:IKB,fontSize:'9px',letterSpacing:'0.22em',fontFamily:sans}}>
+                        <Crosshair className="w-3 h-3" strokeWidth={1.25}/>
+                        p.{activePdf.startPage}
+                      </button>
+                    )}
+                  </div>
 
                   {/* Bookmark list */}
                   {bookmarks.length>0&&(
