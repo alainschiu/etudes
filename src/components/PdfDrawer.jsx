@@ -115,6 +115,7 @@ export default function PdfDrawer({
   const [sidebarTab,setSidebarTab]=useState('spots'); // 'spots' | 'bookmarks' | 'library'
   const [sidebarW,setSidebarW]=useState(DEFAULT_SIDEBAR);
   const [dragging,setDragging]=useState(false);
+  const [handleHover,setHandleHover]=useState(false);
   const [showLibrary,setShowLibrary]=useState(false);
   const [pageRangeEdit,setPageRangeEdit]=useState(null); // attachId being edited
   const [pageRangeVals,setPageRangeVals]=useState({start:'',end:''});
@@ -419,13 +420,19 @@ export default function PdfDrawer({
           {!isMobile&&!sidebarCollapsed&&(
             <div
               onMouseDown={onResizeMouseDown}
-              style={{width:'8px',cursor:'col-resize',flexShrink:0,
-                background:dragging?IKB:`${LINE_MED}`,transition:'background 0.12s',
+              onMouseEnter={()=>setHandleHover(true)}
+              onMouseLeave={()=>setHandleHover(false)}
+              style={{width:'10px',cursor:'col-resize',flexShrink:0,
+                background:dragging?IKB:handleHover?'rgba(244,238,227,0.18)':'rgba(244,238,227,0.06)',
+                transition:'background 0.12s',
                 display:'flex',alignItems:'center',justifyContent:'center'}}
             >
-              <div style={{width:'2px',height:'32px',borderRadius:'1px',
-                background:dragging?'rgba(255,255,255,0.55)':'rgba(255,255,255,0.18)',
-                transition:'background 0.12s'}}/>
+              <div style={{width:'3px',height:'36px',borderRadius:'2px',
+                background:dragging?'rgba(255,255,255,0.8)':handleHover?'rgba(255,255,255,0.45)':'rgba(255,255,255,0.2)',
+                transition:'background 0.12s',
+                backgroundImage:'radial-gradient(circle,currentColor 1px,transparent 1px)',
+                backgroundSize:'3px 6px',
+                color:dragging?'rgba(255,255,255,0.9)':handleHover?'rgba(255,255,255,0.5)':'rgba(255,255,255,0.25)'}}/>
             </div>
           )}
 
