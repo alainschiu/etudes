@@ -62,8 +62,8 @@ export default function TopBar({onMenu, activeItemId, onSettings, onScrollToTop}
         onClick={onScrollToTop}
         style={{
           position: 'absolute',
-          left: 0,
-          right: 0,
+          left: '44px',
+          right: '44px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
