@@ -1,4 +1,4 @@
-import React,{useState,useEffect,Suspense,lazy} from 'react';
+import React,{useState,useEffect,useCallback,Suspense,lazy} from 'react';
 import useViewport from './hooks/useViewport.js';
 // MobileBottomNav kept but no longer rendered — replaced by TopBar + Drawer
 // import MobileBottomNav from './components/MobileBottomNav.jsx';
@@ -23,6 +23,7 @@ import Keyboard from 'lucide-react/dist/esm/icons/keyboard';
 import {BG,SURFACE,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM,serif,serifText,sans,mono} from './constants/theme.js';
 import {SECTION_CONFIG,APP_VERSION} from './constants/config.js';
 import {getItemTime,displayTitle,formatByline} from './lib/items.js';
+import {resolveWikiLink} from './lib/notes.js';
 import {DisplayHeader,Ring,StageLabels,Waveform,ItemPickerPopup,TargetEdit,TimeWithTarget,ItemTimeEditor,fmtSpotTime,PerformanceChip,SpotRow,SpotsBlock,Tooltip} from './components/shared.jsx';
 import {idbGet} from './lib/storage.js';
 import TodayView from './views/TodayView.jsx';
@@ -84,7 +85,28 @@ export default function Etudes(){
     },80);
   };
 
-  const commonProps={items,history,settings,itemTimes,fmt,fmtMin,recordingMeta};
+  const handleWikiLinkClick=useCallback((rawText)=>{
+    const resolved=resolveWikiLink(rawText,items,history,programs,freeNotes);
+    if(!resolved)return;
+    if(resolved.type==='day'){
+      const entry=history.find(h=>(h.kind==='day'||!h.kind)&&h.date===resolved.target);
+      if(entry&&openLogEntry)openLogEntry(entry);
+    }else if(resolved.type==='item'){
+      setExpandedItemId(resolved.target);
+      setView('repertoire');
+    }else if(resolved.type==='spot'){
+      setExpandedItemId(resolved.target.itemId);
+      setView('repertoire');
+    }else if(resolved.type==='program'){
+      setSelectedProgramId(resolved.target);
+      setView('programs');
+    }else if(resolved.type==='note'){
+      setRequestedNoteId(resolved.target);
+      setView('notes');
+    }
+  },[items,history,programs,freeNotes,openLogEntry,setExpandedItemId,setView,setSelectedProgramId,setRequestedNoteId]);
+
+  const commonProps={items,history,settings,itemTimes,fmt,fmtMin,recordingMeta,onWikiLinkClick:handleWikiLinkClick};
 
   return (
     <div className="h-screen flex flex-col" style={{background:BG,color:TEXT,fontFamily:sans}}>
