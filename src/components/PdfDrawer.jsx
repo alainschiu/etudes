@@ -22,6 +22,77 @@ const MIN_SIDEBAR=220;
 const MAX_SIDEBAR=520;
 const DEFAULT_SIDEBAR=300;
 
+// ── Spot → PDF page link row ──────────────────────────────────────────────────
+// Compact sub-row rendered beneath each SpotRow in the PDF drawer spots tab.
+// Stores a direct page number on the spot (spot.pdfPage) so activating it
+// auto-jumps the viewer to that page.
+function SpotPdfPageRow({page,onSet,onJump}){
+  const [editing,setEditing]=useState(false);
+  const [val,setVal]=useState('');
+
+  const commit=(raw)=>{
+    const n=parseInt(raw,10);
+    if(!isNaN(n)&&n>0)onSet(n); else if(page)onSet(page);
+    setEditing(false);
+  };
+
+  if(editing){
+    return(
+      <div style={{paddingLeft:'40px',paddingBottom:'5px',display:'flex',alignItems:'center',gap:'6px'}}>
+        <input
+          autoFocus
+          type="text"
+          inputMode="numeric"
+          placeholder="page #"
+          value={val}
+          onChange={e=>setVal(e.target.value)}
+          onKeyDown={e=>{if(e.key==='Enter')commit(val);else if(e.key==='Escape')setEditing(false);}}
+          onBlur={()=>commit(val)}
+          style={{width:'52px',background:'transparent',color:TEXT,border:`1px solid ${LINE_MED}`,
+            fontSize:'11px',padding:'2px 5px',outline:'none',fontFamily:mono,textAlign:'center'}}
+        />
+        <span style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.18em'}}>PDF page</span>
+      </div>
+    );
+  }
+
+  if(page){
+    return(
+      <div style={{paddingLeft:'40px',paddingBottom:'5px',display:'flex',alignItems:'center',gap:'8px'}}>
+        <button
+          onClick={()=>onJump(page)}
+          style={{display:'flex',alignItems:'center',gap:'4px',color:IKB,fontSize:'9px',
+            letterSpacing:'0.18em',fontFamily:sans,background:'transparent',border:'none',cursor:'pointer'}}>
+          <Crosshair style={{width:9,height:9}} strokeWidth={1.5}/>
+          p.{page}
+        </button>
+        <button
+          onClick={()=>{setVal(String(page));setEditing(true);}}
+          style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.18em',
+            background:'transparent',border:'none',cursor:'pointer'}}>
+          edit
+        </button>
+        <button
+          onClick={()=>onSet(null)}
+          style={{color:FAINT,background:'transparent',border:'none',cursor:'pointer',lineHeight:1}}>
+          <X style={{width:9,height:9}} strokeWidth={1.5}/>
+        </button>
+      </div>
+    );
+  }
+
+  return(
+    <div style={{paddingLeft:'40px',paddingBottom:'5px'}}>
+      <button
+        onClick={()=>{setVal('');setEditing(true);}}
+        style={{color:FAINT,fontSize:'9px',letterSpacing:'0.18em',fontFamily:sans,
+          background:'transparent',border:'none',cursor:'pointer'}}>
+        + link page
+      </button>
+    </div>
+  );
+}
+
 export default function PdfDrawer({
   pdfItem,items,pdfUrlMap,pdfLibrary=[],itemTimes,
   activeItemId,activeSpotId,
@@ -151,19 +222,24 @@ export default function PdfDrawer({
     viewerRef.current?.jumpToPage(bm.page);
   };
 
-  // P6: Auto-jump when a spot with a linked bookmark becomes active
+  // P6: Auto-jump when a spot with a linked bookmark or pdfPage becomes active
   useEffect(()=>{
     if(!activeSpotId||activeItemId!==pdfItem.id)return;
     const spot=(pdfItem.spots||[]).find(s=>s.id===activeSpotId);
-    if(!spot||!spot.bookmarkId||!spot.pdfAttachmentId)return;
-    const att=(pdfItem.pdfs||[]).find(p=>p.id===spot.pdfAttachmentId);
-    if(!att)return;
-    const bm=(att.bookmarks||[]).find(b=>b.id===spot.bookmarkId);
-    if(!bm)return;
-    // Switch to this attachment tab
-    setActivePdfId(att.id);
-    // Jump after a tick so PdfViewer has time to mount
-    setTimeout(()=>{viewerRef.current?.jumpToPage(bm.page);},80);
+    if(!spot)return;
+    // Bookmark-linked jump (existing)
+    if(spot.bookmarkId&&spot.pdfAttachmentId){
+      const att=(pdfItem.pdfs||[]).find(p=>p.id===spot.pdfAttachmentId);
+      if(!att)return;
+      const bm=(att.bookmarks||[]).find(b=>b.id===spot.bookmarkId);
+      if(!bm)return;
+      setActivePdfId(att.id);
+      setTimeout(()=>{viewerRef.current?.jumpToPage(bm.page);},80);
+    }
+    // Direct page jump (new — spot.pdfPage)
+    else if(spot.pdfPage){
+      setTimeout(()=>{viewerRef.current?.jumpToPage(spot.pdfPage);},80);
+    }
   },[activeSpotId,activeItemId,pdfItem.id,pdfItem.spots,pdfItem.pdfs]);
 
   // Library: PDFs in library not yet attached to this item
@@ -385,6 +461,13 @@ export default function PdfDrawer({
                             onDelete={()=>deleteSpot(pdfItem.id,s.id)}
                             onEditTime={editSpotTime?(v)=>editSpotTime(pdfItem.id,s.id,v):undefined}
                             dayClosed={dayClosed} compact/>
+                          {activeUrl&&(
+                            <SpotPdfPageRow
+                              page={s.pdfPage||null}
+                              onSet={(pg)=>updateSpot(pdfItem.id,s.id,{pdfPage:pg})}
+                              onJump={(pg)=>viewerRef.current?.jumpToPage(pg)}
+                            />
+                          )}
                         </div>
                       ))}
                     </div>
