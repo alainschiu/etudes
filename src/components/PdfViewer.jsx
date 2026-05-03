@@ -10,10 +10,12 @@ import ZoomOut from 'lucide-react/dist/esm/icons/zoom-out';
 import Maximize2 from 'lucide-react/dist/esm/icons/maximize-2';
 import BookMarked from 'lucide-react/dist/esm/icons/book-marked';
 import AlignJustify from 'lucide-react/dist/esm/icons/align-justify';
+import List from 'lucide-react/dist/esm/icons/list';
 import Columns2 from 'lucide-react/dist/esm/icons/columns-2';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
+import useViewport from '../hooks/useViewport.js';
 import {BG,TEXT,MUTED,FAINT,LINE,LINE_MED,IKB,IKB_SOFT,serif,sans,mono} from '../constants/theme.js';
 
 const BTN_BASE={cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',flexShrink:0,background:'transparent',border:`1px solid ${LINE_MED}`,color:TEXT};
@@ -76,6 +78,7 @@ const PdfViewer=forwardRef(function PdfViewer({
   url,startPage=1,endPage=null,bookmarks=[],
   onPageChange,onAddBookmark,dragging=false,
 },ref){
+  const {isMobile}=useViewport();
   const [numPages,setNumPages]=useState(null);
   const [currentPage,setCurrentPage]=useState(startPage||1);
   const [zoom,setZoom]=useState(1.0);
@@ -273,18 +276,19 @@ const PdfViewer=forwardRef(function PdfViewer({
     <div style={{display:'flex',flexDirection:'column',height:'100%',background:BG,overflow:'hidden'}}>
 
       {/* ── Toolbar ── */}
-      <div style={{display:'flex',alignItems:'center',gap:'3px',padding:'5px 10px',
-        borderBottom:`1px solid ${LINE}`,flexShrink:0}}>
+      <div style={{display:'flex',alignItems:'center',gap:'3px',padding:'5px 8px',
+        borderBottom:`1px solid ${LINE}`,flexShrink:0,overflowX:'auto',scrollbarWidth:'none'}}>
 
-        {/* Fit */}
-        <TBtn active={fitMode==='width'} label="Fit to width" onClick={()=>setFitMode('width')}>
-          <AlignJustify style={{width:12,height:12}}/>
-        </TBtn>
-        <TBtn active={fitMode==='page'} label="Fit to page" onClick={()=>setFitMode('page')}>
-          <Maximize2 style={{width:12,height:12}}/>
-        </TBtn>
-
-        <SEP/>
+        {/* Fit — hidden on mobile (always width-fit on small screens) */}
+        {!isMobile&&(<>
+          <TBtn active={fitMode==='width'} label="Fit to width" onClick={()=>setFitMode('width')}>
+            <AlignJustify style={{width:12,height:12}}/>
+          </TBtn>
+          <TBtn active={fitMode==='page'} label="Fit to page" onClick={()=>setFitMode('page')}>
+            <Maximize2 style={{width:12,height:12}}/>
+          </TBtn>
+          <SEP/>
+        </>)}
 
         {/* Zoom */}
         <TBtn label="Zoom out" onClick={zoomOut}><ZoomOut style={{width:12,height:12}}/></TBtn>
@@ -295,15 +299,17 @@ const PdfViewer=forwardRef(function PdfViewer({
 
         <SEP/>
 
-        {/* View mode */}
+        {/* View mode — spread hidden on mobile (too narrow) */}
         <TBtn active={mode==='single'} label="Single page" onClick={()=>setMode('single')}>
           <FileText style={{width:12,height:12}}/>
         </TBtn>
-        <TBtn active={mode==='spread'} label="Two-page spread" onClick={()=>setMode('spread')}>
-          <Columns2 style={{width:12,height:12}}/>
-        </TBtn>
+        {!isMobile&&(
+          <TBtn active={mode==='spread'} label="Two-page spread" onClick={()=>setMode('spread')}>
+            <Columns2 style={{width:12,height:12}}/>
+          </TBtn>
+        )}
         <TBtn active={mode==='continuous'} label="Continuous scroll" onClick={()=>setMode('continuous')}>
-          <AlignJustify style={{width:12,height:12}}/>
+          <List style={{width:12,height:12}}/>
         </TBtn>
 
         <SEP/>
@@ -342,7 +348,7 @@ const PdfViewer=forwardRef(function PdfViewer({
           <span
             onClick={()=>{setPageEditing(true);setPageInputVal(String(currentPage));}}
             title="Click to jump to page"
-            style={{color:TEXT,fontSize:'11px',fontFamily:mono,minWidth:60,textAlign:'center',flexShrink:0,
+            style={{color:TEXT,fontSize:'11px',fontFamily:mono,minWidth:isMobile?48:60,textAlign:'center',flexShrink:0,
               cursor:'text',borderBottom:`1px dotted ${LINE_MED}`}}>
             {pageLabel}{totalLabel}
           </span>
