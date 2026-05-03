@@ -15,6 +15,8 @@ import Maximize2 from 'lucide-react/dist/esm/icons/maximize-2';
 import Minimize2 from 'lucide-react/dist/esm/icons/minimize-2';
 import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
+import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,serif,sans,mono} from '../constants/theme.js';
 import {displayTitle,formatByline,getItemTime} from '../lib/items.js';
 import {SpotRow} from './shared.jsx';
@@ -427,8 +429,21 @@ export default function PdfDrawer({
             </div>
           )}
 
-          {/* Collapsed stub — desktop only */}
-          {!isMobile&&sidebarCollapsed&&(
+          {/* Collapsed stub — desktop (right strip) or mobile (bottom bar) */}
+          {sidebarCollapsed&&(isMobile?(
+            <div style={{height:'36px',flexShrink:0,borderTop:`1px solid ${LINE_MED}`,
+              display:'flex',alignItems:'center',justifyContent:'center',background:SURFACE}}>
+              <button
+                onClick={()=>setSidebarCollapsed(false)}
+                title="Expand panel"
+                style={{display:'flex',alignItems:'center',gap:'5px',color:FAINT,
+                  background:'transparent',border:'none',cursor:'pointer',
+                  fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase'}}>
+                <ChevronUp className="w-3.5 h-3.5" strokeWidth={1.25}/>
+                Spots &amp; Marks
+              </button>
+            </div>
+          ):(
             <div style={{width:'28px',flexShrink:0,borderLeft:`1px solid ${LINE_MED}`,
               display:'flex',flexDirection:'column',alignItems:'center',paddingTop:'8px',
               background:SURFACE}}>
@@ -440,12 +455,12 @@ export default function PdfDrawer({
                 <ChevronLeft className="w-3.5 h-3.5" strokeWidth={1.25}/>
               </button>
             </div>
-          )}
+          ))}
 
-          {/* Sidebar — expanded (desktop) or always (mobile) */}
-          {(isMobile||!sidebarCollapsed)&&(
+          {/* Sidebar — visible when expanded */}
+          {!sidebarCollapsed&&(
           <div style={isMobile?{height:'240px',flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderTop:`1px solid ${LINE_MED}`}:{width:sidebarW,flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderLeft:`1px solid ${LINE_MED}`}}>
-            {/* Sidebar tabs + desktop collapse button */}
+            {/* Sidebar tabs + collapse button */}
             <div className="flex items-center shrink-0" style={{borderBottom:`1px solid ${LINE}`}}>
               {[{id:'spots',icon:<Crosshair className="w-3 h-3" strokeWidth={1.25}/>,label:'Spots'},
                 {id:'bookmarks',icon:<Bookmark className="w-3 h-3" strokeWidth={1.25}/>,label:'Marks'},
@@ -456,15 +471,15 @@ export default function PdfDrawer({
                   {t.icon}{t.label}
                 </button>
               ))}
-              {!isMobile&&(
-                <button
-                  onClick={()=>setSidebarCollapsed(true)}
-                  title="Collapse panel"
-                  style={{marginLeft:'auto',padding:'0 10px',color:FAINT,height:'100%',display:'flex',
-                    alignItems:'center',background:'transparent',border:'none',cursor:'pointer'}}>
-                  <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.25}/>
-                </button>
-              )}
+              <button
+                onClick={()=>setSidebarCollapsed(true)}
+                title="Collapse panel"
+                style={{marginLeft:'auto',padding:'0 10px',color:FAINT,height:'100%',display:'flex',
+                  alignItems:'center',background:'transparent',border:'none',cursor:'pointer'}}>
+                {isMobile
+                  ?<ChevronDown className="w-3.5 h-3.5" strokeWidth={1.25}/>
+                  :<ChevronRight className="w-3.5 h-3.5" strokeWidth={1.25}/>}
+              </button>
             </div>
 
             {/* Time row */}
