@@ -1011,16 +1011,20 @@
       <section class="section" id="reference-track">
         <div class="section-eyebrow"><span class="section-num">13</span>Library</div>
         <h2 class="section-title">Reference Track</h2>
-        <p class="section-lead">Each piece can carry a URL to an external recording — a reference performance, a teacher's recording, a score video.</p>
+        <p class="section-lead">Each piece can carry a URL to a reference recording — a canonical performance, a teacher's recording, a score video. Recognised services embed inline; everything else opens in a new tab.</p>
 
         <h3>Attaching a reference</h3>
-        <p>In a piece's expanded view in Repertoire, paste a URL into the <em>Reference</em> field. Any URL is accepted — Spotify, YouTube, a personal cloud link, a library database entry. No validation, no embedding.</p>
+        <p>In a piece's expanded view in Repertoire, paste a URL into the <em>Reference</em> field. Any URL is accepted — no validation is applied. For YouTube, Spotify, and Apple Music links an embedded player appears directly within the expanded piece panel; no tab switch is needed. All other URLs open in a new browser tab.</p>
 
-        <h3>Opening the reference</h3>
-        <p>A small music note icon appears alongside the piece in Today and Repertoire when a reference URL is set. Clicking opens the URL in a new browser tab. The reference never plays inside Études — it opens externally, intentionally. Études is not a player.</p>
+        <h3>Embedded players</h3>
+        <ul class="detail-list">
+          <li><span class="term">YouTube</span><span class="def">An iframe embed appears in the expanded panel. Playback is contained; no redirect.</span></li>
+          <li><span class="term">Spotify</span><span class="def">A compact player for tracks and episodes; a full-height player for albums and playlists.</span></li>
+          <li><span class="term">Apple Music</span><span class="def">An embed.music.apple.com iframe. Requires an active Apple Music subscription for full playback.</span></li>
+        </ul>
 
-        <h3>What it is not</h3>
-        <p>YouTube references embed inline when the URL is a YouTube link — an iframe player appears in the expanded item panel in Today and Répertoire. All other URLs open in a new tab. The reference field is otherwise a plain text link.</p>
+        <h3>Opening non-embedded references</h3>
+        <p>A small music note icon appears alongside the piece in Today and Repertoire when a reference URL is set. For URLs that do not match YouTube, Spotify, or Apple Music, clicking this icon opens the link in a new browser tab.</p>
       </section>
 
 
@@ -1302,6 +1306,14 @@
 
         <h3>Sync status</h3>
         <p>The Settings panel shows one of three states: idle (a cloud icon), <em>Syncing…</em> (a spinning loader), or <em>Sync error</em> (a cloud-off icon in muted red). A sync error means the last attempt failed — usually a network issue. Press <em>Sync now</em> to retry.</p>
+
+        <h3>Google Drive sync</h3>
+        <p>An independent, optional sync layer is available via Google Drive. Connect it from the <em>Google Drive</em> section in Settings — no Supabase account is required. When connected, Études uses a single app folder in your Drive (<em>drive.file</em> scope only — no access to other Drive files) to store a JSON manifest of journal state. Blobs (audio, PDFs) are uploaded and restored from Drive separately from the metadata manifest.</p>
+        <p>Google Drive sync operates alongside Supabase sync, not instead of it. Metadata changes queue immediately and upload on the next sync cycle. A built-in circuit breaker pauses the queue if repeated errors occur; the pause state persists across page reloads and is displayed in Settings. To clear a circuit-breaker pause manually, use the <em>Reset</em> control in the Drive section.</p>
+
+        <div class="callout callout-warm">
+          <p>As with Supabase sync, audio recordings and PDF scores are stored separately from metadata. If blob uploads fail during a restore (for example, due to quota or network issues), the number of files that could not be restored is shown quietly in the Drive section after the restore completes. Metadata is always restored first; blob failures do not block the rest of the restore.</p>
+        </div>
       </section>
 
 
@@ -1433,6 +1445,7 @@
           <span class="data-key">etudes-dayClosed</span>
           <span class="data-key">etudes-localDirtyAt</span>
           <span class="data-key">etudes-lastCloudSyncAt</span>
+          <span class="data-key">etudes-driveCircuit</span>
         </div>
 
         <h3>IndexedDB</h3>
