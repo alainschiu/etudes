@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.97.11 — 2026-05-03
+
+### Google Drive — sync layer hardening
+
+- **Conflict detection NaN guard** — `pullJournalFromDrive`: `Date.parse()` result on remote/local timestamps validated with `Number.isFinite`; malformed RFC3339 strings no longer silently suppress the conflict prompt (treated as `Infinity` gap, always prompts).
+- **Circuit breaker persistence** ([`driveQueueCircuit.js`](src/lib/driveQueueCircuit.js)) — `pausedUntil` and `pauseMessage` written to `localStorage` (`etudes-driveCircuit`) when a rate-limit cooldown is set; restored on the first `getDriveQueueCircuitState()` call after a page reload; cleared by `clearDriveQueueCircuitPause()`. Previously the 5-minute pause was lost on reload.
+- **Blob restore failure visibility** — `restoreBlobsFromDrive` ([`driveSync.js`](src/lib/driveSync.js)) now returns `{ failed: [{ns, store, key}] }` instead of `void`; `useDriveSync` tracks the count and surfaces it in Settings → Sync as a quiet italic note after restore completes (*"N files could not be restored from Drive."*). Partial restores are still accepted; this makes failures visible.
+- **`null` confirmFn documented** ([`driveSync.js`](src/lib/driveSync.js) `restoreManifestFromDriveIfNeeded`) — inline comment clarifies that passing `null` auto-proceeds without user confirmation, which is safe because the function only runs past its early-return guard when the local manifest is blank.
+
 ## v0.97.10 — 2026-05-03
 
 ### Google Drive — Phase 3+ (journal push/pull/restore)

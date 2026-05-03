@@ -1,5 +1,11 @@
 # Update Log
 
+## v0.97.11 — 2026-05-03
+
+- **Google Drive — more reliable conflict detection** — a rare edge case where corrupted timestamps could silently skip the "newer backup found" prompt is now fixed; the prompt always appears when remote and local journals differ
+- **Google Drive — rate-limit pause survives reload** — if Drive sync is paused because Google is throttling requests, the pause now persists across page reloads so the cooldown is honoured instead of immediately retrying
+- **Google Drive — restore failures reported** — if one or more recordings or scores can't be downloaded during a Drive restore, a note appears in Settings after the restore finishes instead of silently continuing
+
 ## v0.97.10 — 2026-05-03
 
 - **Google Drive — full backup flow** — after connecting Drive, you can **Backup now**, **Restore from Drive**, and turn on **auto-backup** (journal every 10 minutes, new recordings/PDFs debounced). A small manifest file on Drive helps recover file links if this device’s storage is cleared. Conflicts with a newer Drive journal show **Load from Drive** or **Keep local**.
