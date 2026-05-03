@@ -183,6 +183,7 @@ export default function TodayView(p){
               if(isCollapsed&&isActiveAny){return(<div key={`${session.id}-${item.id}`} style={{borderBottom:`1px solid ${LINE}`,background:IKB_SOFT}}><div className="py-2.5 px-2 flex items-center gap-4"><button onClick={e=>{e.stopPropagation();if(isActiveAny)stopItem();else startItem(item.id,null,session.id);}} className="shrink-0" style={{color:IKB,filter:`drop-shadow(0 0 6px ${IKB})`}}><Pause className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/></button><span style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'15px',lineHeight:1.2,color:TEXT,flex:1,minWidth:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{displayTitle(item)}</span></div></div>);}
               return (<div key={`${session.id}-${item.id}`} data-today-item={item.id} style={{borderBottom:`1px solid ${LINE}`}}>
                 <div onClick={()=>{if(!isEditingTime)setExpandedItemId(expanded?null:item.id);}} className="group py-2.5 px-2 flex items-center gap-4 cursor-pointer" style={{background:isActiveAny?IKB_SOFT:'transparent'}}>
+                  {item.type==='piece'&&hasPdf&&<button onClick={e=>{e.stopPropagation();setPdfDrawerItemId(item.id);}} className="shrink-0" title="Open score" style={{color:FAINT,cursor:'pointer'}}><FileText className="w-3.5 h-3.5" strokeWidth={1.25}/></button>}
                   <button onClick={e=>{e.stopPropagation();if(isActiveAny)stopItem();else startItem(item.id,null,session.id);}} disabled={dayClosed&&!isActiveAny} className="shrink-0" style={{color:isActiveWhole?IKB:(isActiveAny?MUTED:(dayClosed?FAINT:TEXT)),filter:isActiveWhole?`drop-shadow(0 0 6px ${IKB})`:'none',cursor:(dayClosed&&!isActiveAny)?'not-allowed':'pointer'}}>{isActiveAny?<Pause className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>:<Play className="w-4 h-4" strokeWidth={1.25} fill="currentColor"/>}</button>
                   {(()=>{const isPieceRec=pieceRecordingItemId===item.id;const blocked=(dayClosed&&!isPieceRec)||(pieceRecordingItemId&&!isPieceRec)||isRecording;return(<button onClick={e=>{e.stopPropagation();isPieceRec?stopPieceRecording():startPieceRecording(item.id,currentBpm,item.stage);}} disabled={!!blocked} className="shrink-0" title={isPieceRec?'Stop recording':'Record this piece'} style={{color:isPieceRec?REC:blocked?DIM:FAINT,cursor:blocked?'not-allowed':'pointer'}}>{isPieceRec?<Square className="w-3.5 h-3.5" strokeWidth={1.25} fill="currentColor" style={{animation:'pulse 1s infinite'}}/>:<Mic className="w-3.5 h-3.5" strokeWidth={1.25}/>}</button>);})()}
                   {refTrackMeta?.[item.id]&&(<button onClick={e=>{e.stopPropagation();setRefBarItemId(prev=>prev===item.id?null:item.id);}} className="shrink-0" title="Reference track" style={{color:refBarItemId===item.id?MUTED:FAINT,cursor:'pointer'}}><Music className="w-3.5 h-3.5" strokeWidth={1.25}/></button>)}
@@ -281,6 +282,17 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
     <div style={{borderBottom:`1px solid ${LINE}`,background:isActiveAny?IKB_SOFT:'transparent'}}>
       {/* Main row — tapping the title area toggles expand */}
       <div {...longPress} style={{padding:'12px 16px',display:'flex',alignItems:'center',gap:'8px',minHeight:'44px',userSelect:'none',touchAction:'none'}}>
+        {/* PDF button — left of Start */}
+        {item.type==='piece'&&hasPdf&&setPdfDrawerItemId&&(
+          <button
+            onTouchStart={e=>e.stopPropagation()}
+            onMouseDown={e=>e.stopPropagation()}
+            onClick={e=>{e.stopPropagation();setPdfDrawerItemId(item.id);}}
+            style={{flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',padding:'2px',cursor:'pointer'}}
+          >
+            <FileText size={13} strokeWidth={1.25} style={{color:FAINT}}/>
+          </button>
+        )}
         {/* Play / pulse dot */}
         <button
           onClick={e=>{e.stopPropagation();isActiveAny?stopItem():startItem(item.id,null,session.id);}}
