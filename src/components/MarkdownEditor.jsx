@@ -176,17 +176,17 @@ function createWikiLinkPlugin(clickRef) {
 
 // ── Wiki-link autocomplete source ────────────────────────────────────────────
 
-function createWikiCompletion(itemsRef, historyRef) {
+function createWikiCompletion(itemsRef, historyRef, programsRef, notesRef) {
   return (ctx) => {
     const before = ctx.matchBefore(/\[\[[^\]]*$/);
     if (!before) return null;
-    // Require at least 2 chars after [[ before auto-showing (explicit = Ctrl+Space)
     const query = before.text.slice(2);
-    // Show completions immediately after [[ (no minimum query length)
     if (!ctx.explicit && query.length < 0) return null;
 
     const items = itemsRef.current || [];
     const history = historyRef.current || [];
+    const programs = programsRef?.current || [];
+    const notes = notesRef?.current || [];
     const options = [];
 
     items.forEach((i) => {
@@ -205,6 +205,14 @@ function createWikiCompletion(itemsRef, historyRef) {
       .forEach((h) => {
         options.push({ label: h.date, detail: 'day', apply: `[[${h.date}]]` });
       });
+
+    programs.forEach((p) => {
+      if (p.name) options.push({ label: p.name, detail: 'program', apply: `[[${p.name}]]` });
+    });
+
+    notes.forEach((n) => {
+      if (n.title) options.push({ label: n.title, detail: 'note', apply: `[[${n.title}]]` });
+    });
 
     let filtered = options;
     if (query) {
@@ -239,16 +247,22 @@ export function MarkdownEditor({
   // Wiki-link props (optional — omit to disable autocomplete/click)
   items,
   history,
+  programs,
+  notes,
   onWikiLinkClick,
 }) {
   const clickRef = useRef(onWikiLinkClick);
   const itemsRef = useRef(items);
   const historyRef = useRef(history);
+  const programsRef = useRef(programs);
+  const notesRef = useRef(notes);
   const editorDomRef = useRef(null);
   // Keep refs fresh on every render without recreating extensions
   clickRef.current = onWikiLinkClick;
   itemsRef.current = items;
   historyRef.current = history;
+  programsRef.current = programs;
+  notesRef.current = notes;
 
   // Direct non-passive touchstart listener — CodeMirror's eventHandlers cannot
   // register passive:false, so we attach directly to the editor DOM node.
@@ -276,7 +290,7 @@ export function MarkdownEditor({
       EditorView.lineWrapping,
       buildBaseTheme(fontSize, minHeight),
       createWikiLinkPlugin(clickRef),
-      autocompletion({ override: [createWikiCompletion(itemsRef, historyRef)], activateOnTyping: true }),
+      autocompletion({ override: [createWikiCompletion(itemsRef, historyRef, programsRef, notesRef)], activateOnTyping: true }),
     ];
     return exts;
   // Recreate only when layout hints change; all callbacks via refs

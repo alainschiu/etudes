@@ -648,6 +648,8 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
           fontSize="17px"
           items={items}
           history={history}
+          programs={programs}
+          notes={notes}
           onWikiLinkClick={handleWikiClick}
         />
       )}
@@ -680,7 +682,21 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
   const [expandedId,setExpandedId]=useState(null);
   const [editSheetId,setEditSheetId]=useState(null);
   const [filterSheetOpen,setFilterSheetOpen]=useState(false);
+  const [sheetBottom,setSheetBottom]=useState(0);
   const ZSHEET=40;
+
+  // Slide the edit sheet above the virtual keyboard using VisualViewport API
+  useEffect(()=>{
+    const vv=window.visualViewport;
+    if(!vv)return;
+    const update=()=>{
+      const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);
+      setSheetBottom(kb);
+    };
+    vv.addEventListener('resize',update);
+    vv.addEventListener('scroll',update);
+    return()=>{vv.removeEventListener('resize',update);vv.removeEventListener('scroll',update);};
+  },[]);
 
   const ALL_CHIPS=[
     {id:'__all',label:'All notes'},
@@ -698,7 +714,7 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
   const editNote=freeNotes.find(n=>n.id===editSheetId);
 
   const sheetStyle={
-    position:'fixed',bottom:0,left:0,right:0,height:'85vh',
+    position:'fixed',bottom:sheetBottom,left:0,right:0,height:'85vh',
     background:BG,borderTop:`1px solid ${LINE_STR}`,zIndex:ZSHEET,
     transform:editSheetId?'translateY(0)':'translateY(100%)',
     transition:editSheetId?'transform 240ms ease-out':'transform 200ms ease-in',
@@ -762,7 +778,9 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
                         const isWiki=href&&href.startsWith('etudes://');
                         if(isWiki){
                           // Never render a real <a> with etudes:// — iOS would try to open it as a URL scheme
-                          return <span onClick={e=>{e.stopPropagation();if(onWikiLinkClick)onWikiLinkClick({type:'note',target:decodeURIComponent(href.replace('etudes://',''))});}} style={{color:IKB,cursor:'pointer',textDecoration:'underline'}}>{children}</span>;
+                          const raw=decodeURIComponent(href.replace('etudes://',''));
+                          const resolved=resolveWikiLink(raw,items,history,programs,notes);
+                          return <span onClick={e=>{e.stopPropagation();if(resolved&&onWikiLinkClick)onWikiLinkClick(resolved);}} style={{color:IKB,cursor:'pointer',textDecoration:'underline'}}>{children}</span>;
                         }
                         return <a href={href} target="_blank" rel="noopener noreferrer" onTouchStart={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} onClick={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} style={{color:LINK,textDecoration:'underline'}}>{children}</a>;
                       },
@@ -835,7 +853,7 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
               </button>
             </div>
             <div style={{flex:1,overflow:'hidden'}}>
-              <MarkdownEditor value={editNote.body||''} onChange={val=>updateNote(editNote.id,{body:val,tags:parseTagsFromBody(val)})} placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`} minHeight={400} fontSize="16px" items={items} history={history} onWikiLinkClick={handleMobileWikiClick}/>
+              <MarkdownEditor value={editNote.body||''} onChange={val=>updateNote(editNote.id,{body:val,tags:parseTagsFromBody(val)})} placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`} minHeight={400} fontSize="16px" items={items} history={history} programs={programs} notes={notes} onWikiLinkClick={handleMobileWikiClick}/>
             </div>
           </>
         )}
