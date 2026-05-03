@@ -62,7 +62,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 Run `supabase/migrations/001_user_state.sql` in the Supabase SQL editor and enable Email and Google auth under Authentication → Providers.
 
-Optional **Google Drive backup** (in progress): set `VITE_GOOGLE_CLIENT_ID` to your OAuth 2.0 Web client ID (Google Cloud Console). The app uses Google Identity Services with the `drive.file` scope for user-owned backups — independent of Supabase tokens. Settings → Sync → **Connect Google Drive** verifies the link; full journal/blob sync ships in follow-up commits.
+Optional **Google Drive backup**: set `VITE_GOOGLE_CLIENT_ID` to your OAuth 2.0 Web client ID (Google Cloud Console). The app uses Google Identity Services with the `drive.file` scope for user-owned backups — independent of Supabase. After **Connect Google Drive**, use **Backup now** / **Restore from Drive** and optional **auto-backup** (journal JSON about every 10 minutes; new recordings/PDFs debounced ~30s). There is **no** flush-on-tab-close for Drive. A small `etudes-drive-manifest.json` on Drive helps recover file IDs if local storage is cleared.
 
 ### Google Drive — silent token renewal (merge gate)
 

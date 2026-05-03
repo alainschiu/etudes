@@ -8,7 +8,7 @@ const LOCKED_LIMIT  = 20;
 
 const preferredMime=()=>{for(const t of['audio/webm;codecs=opus','audio/mp4','']){if(!t||MediaRecorder.isTypeSupported(t))return t;}return'';};
 
-export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal,pieceRecordingMeta,setPieceRecordingMeta,setPieceRecordingItemId}){
+export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal,pieceRecordingMeta,setPieceRecordingMeta,setPieceRecordingItemId,onBlobWritten}){
   const mediaRecorderRef=useRef(null);
   const recordedChunksRef=useRef([]);
   const pieceMediaRecorderRef=useRef(null);
@@ -25,7 +25,7 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
         const mr=new MediaRecorder(stream,...(mimeType?[{mimeType}]:[]));
         recordedChunksRef.current=[];
         mr.ondataavailable=(e)=>{if(e.data.size>0)recordedChunksRef.current.push(e.data);};
-        mr.onstop=async()=>{if(mediaRecorderRef.current!==mr)return;const blob=new Blob(recordedChunksRef.current,{type:mimeType||'audio/webm'});const peaks=await computePeaks(blob,60);await idbPut('recordings',tk,blob);setRecordingMeta(m=>({...m,[tk]:{peaks,size:blob.size,ts:Date.now(),mimeType:mimeType||'audio/webm'}}));stream.getTracks().forEach(t=>t.stop());};
+        mr.onstop=async()=>{if(mediaRecorderRef.current!==mr)return;const blob=new Blob(recordedChunksRef.current,{type:mimeType||'audio/webm'});const peaks=await computePeaks(blob,60);await idbPut('recordings',tk,blob);onBlobWritten?.();setRecordingMeta(m=>({...m,[tk]:{peaks,size:blob.size,ts:Date.now(),mimeType:mimeType||'audio/webm'}}));stream.getTracks().forEach(t=>t.stop());};
         mediaRecorderRef.current=mr;mr.start();setIsRecording(true);
       }catch(e){setConfirmModal({message:'Microphone unavailable. Check browser permissions.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
     };
@@ -75,6 +75,7 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
           const blob=new Blob(pieceChunksRef.current,{type:mimeType||'audio/webm'});
           const peaks=await computePeaks(blob,120);
           await idbPut('pieceRecordings',idbKey,blob);
+          onBlobWritten?.();
           setPieceRecordingMeta(m=>{
             const prev=m[itemId]||{};
             const updated={...prev,[date]:{peaks,size:blob.size,ts:Date.now(),bpm:bpm||null,stage:stage||'',locked:false,mimeType:mimeType||'audio/webm',idbKey}};
@@ -133,6 +134,7 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
     const idbKey=`${itemId}__${date}__${Date.now()}`;
     const peaks=await computePeaks(blob,120);
     await idbPut('pieceRecordings',idbKey,blob);
+    onBlobWritten?.();
     setPieceRecordingMeta(m=>{
       const prev=m[itemId]||{};
       const updated={...prev,[date]:{peaks,size:blob.size,ts:Date.now(),bpm:bpm||null,stage:stage||'',locked:false,idbKey}};

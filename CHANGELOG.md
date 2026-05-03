@@ -2,6 +2,14 @@
 
 ## v0.97.10 — 2026-05-03
 
+### Google Drive — Phase 3+ (journal push/pull/restore)
+
+- **`journalPayload.js`** — `buildFullJournalPayload` / `applyJournalPayload` shared by JSON backup and Drive; JSON export includes `programs`.
+- **`driveApi.js`** — metadata, multipart create, media update, binary download helpers (still using `driveFetchRaw` backoff).
+- **`driveSync.js`** — `pushToDrive` (single-flight, `full` coalescing), `pullJournalFromDrive`, `restoreBlobsFromDrive`, manifest snapshot on Drive; integrates **`notifyDriveQueueOperationResult`** on push completion/failure.
+- **`useDriveSync.js`** — 10 min JSON + 30 s debounced blob push, `driveBackgroundError`, restore path; **`useEtudesState`** + **`useRecording`** / PDF / ref-track `notifyBlobWrite`.
+- **UI** — **`DriveConflictModal`**; Sync tab: backup/restore/auto-backup, `onSyncTabVisible` pull check; `formatDriveOAuthError` coerces non-string errors.
+
 ### Google Drive — pre–Phase 3 hardening
 
 - **Silent renewal spike (dev)** — [`driveAuth.js`](src/lib/driveAuth.js): optional `VITE_DRIVE_TOKEN_TTL_SEC` (dev only) shortens cached token lifetime; [`spikeSilentDriveRenewal`](src/lib/driveSync.js) exercises **only** `getDriveAccessToken({ interactive: false })` + Drive `about`. Settings → Sync (dev): **Test silent renewal** / **Force expire token**. README documents the merge gate.

@@ -16,7 +16,7 @@ const SHORTCUTS=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
 const USER_GUIDE_URL='https://etudes.me/guide';
 
-export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll}){
+export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBackgroundError,onDismissDriveError,driveBlobRestoreProgress,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect}){
   const [devBusy,setDevBusy]=useState(false);
   const [devStatus,setDevStatus]=useState('');
   const [driveBusy,setDriveBusy]=useState(false);
@@ -39,7 +39,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
     {/* Tab strip */}
     <div className="flex px-8" style={{borderBottom:`1px solid ${LINE}`}}>
       {[{id:'settings',label:'Settings'},{id:'shortcuts',label:'Shortcuts'},{id:'sync',label:'Sync'},{id:'export',label:'Export'},{id:'about',label:'About'}].map(t=>(
-        <button key={t.id} onClick={()=>setTab(t.id)} className="relative py-3 mr-5 uppercase shrink-0" style={{color:tab===t.id?TEXT:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>
+        <button key={t.id} onClick={()=>{setTab(t.id);if(t.id==='sync')onSyncTabVisible?.();}} className="relative py-3 mr-5 uppercase shrink-0" style={{color:tab===t.id?TEXT:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>
           {t.label}{tab===t.id&&<span className="absolute bottom-0 left-0 right-0" style={{height:'1px',background:IKB}}/>}
         </button>
       ))}
@@ -74,13 +74,15 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
             <button onClick={signOut} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><CloudOff className="w-3 h-3" strokeWidth={1.25}/> Sign out</button>
             {syncPayloadWarning&&(<div className="px-3 py-2" style={{background:'rgba(184,150,104,0.12)',border:'1px solid rgba(184,150,104,0.3)'}}><div className="italic" style={{color:'#B89668',fontFamily:serif,fontSize:'11px',lineHeight:1.5}}>Your journal is large. Export a backup to protect your data.</div></div>)}
             <div className="pt-2 pb-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>
-              <span style={{color:MUTED}}>What syncs:</span> repertoire, practice history, notes, settings, and recording metadata.<br/>
-              <span style={{color:MUTED}}>Local only:</span> audio recordings and PDF scores stay on the device unless you use Google Drive backup (below) or Export.
+              <span style={{color:MUTED}}>Cloud sync (account):</span> repertoire, practice history, notes, settings, and recording metadata.<br/>
+              <span style={{color:MUTED}}>Not in the cloud:</span> audio and PDF files. Connect Google Drive below for optional backup, or use Export for a file backup.
             </div>
+            {driveBackgroundError&&(<div className="flex items-start justify-between gap-2 px-3 py-2 mt-3" style={{background:'rgba(184,150,104,0.12)',border:'1px solid rgba(184,150,104,0.3)'}}><div className="italic" style={{color:'#B89668',fontFamily:serif,fontSize:'11px',lineHeight:1.5}}>{driveBackgroundError}</div>{onDismissDriveError&&<button type="button" onClick={onDismissDriveError} className="shrink-0 uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.18em'}}>Dismiss</button>}</div>)}
+            {driveBlobRestoreProgress&&<div className="text-xs italic mt-2" style={{color:MUTED,fontFamily:serif}}>Restoring media {driveBlobRestoreProgress.done} / {driveBlobRestoreProgress.total}…</div>}
             <div className="pt-5 mt-4" style={{borderTop:`1px solid ${LINE}`}}>
               <div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Google Drive backup</div>
               {!isDriveConfigured() ? (
-                <p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Drive backup requires <span style={{fontFamily:'ui-monospace,monospace',fontSize:'10px'}}>VITE_GOOGLE_CLIENT_ID</span> (OAuth Web client with Drive scope). Full upload and restore are not wired yet — this step verifies Google sign-in to Drive only.</p>
+                <p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Drive backup requires <span style={{fontFamily:'ui-monospace,monospace',fontSize:'10px'}}>VITE_GOOGLE_CLIENT_ID</span> (OAuth Web client with Drive scope).</p>
               ) : (
                 <div className="space-y-3">
                   <p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Separate from Supabase: uses Google Identity Services with access only to files the app creates in your Drive.</p>
@@ -91,10 +93,8 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
                       onClick={async()=>{
                         setDriveBusy(true);setDriveLine('');
                         try{
-                          await getDriveAccessToken({interactive:true});
-                          const r=await probeDriveConnection();
-                          if(r.ok)setDriveLine(r.user?.emailAddress?`Connected (${r.user.emailAddress})`:'Connected to Drive');
-                          else setDriveLine(r.error||'Connection failed');
+                          if(onDriveConnect){await onDriveConnect();const r=await probeDriveConnection();if(r.ok)setDriveLine(r.user?.emailAddress?`Connected (${r.user.emailAddress})`:'Connected to Drive');else setDriveLine(r.error||'Connection failed');}
+                          else{await getDriveAccessToken({interactive:true});const r=await probeDriveConnection();if(r.ok)setDriveLine(r.user?.emailAddress?`Connected (${r.user.emailAddress})`:'Connected to Drive');else setDriveLine(r.error||'Connection failed');}
                         }catch(e){setDriveLine(formatDriveOAuthError(e instanceof Error?e.message:String(e)));}
                         finally{setDriveBusy(false);}
                       }}
@@ -105,17 +105,22 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
                       Connect Google Drive
                     </button>
                     {hasDriveToken()&&(
-                      <button
-                        type="button"
-                        disabled={driveBusy}
-                        onClick={()=>{clearDriveSession();setDriveLine('Signed out of Drive on this device');}}
-                        className="uppercase px-3 py-2"
-                        style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}
-                      >
-                        Disconnect Drive
-                      </button>
+                      <>
+                        {onBackupDrive&&<button type="button" disabled={driveBusy} onClick={()=>{onBackupDrive();setDriveLine('Backup queued…');}} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}>Backup now</button>}
+                        {onRestoreFromDrive&&<button type="button" disabled={driveBusy} onClick={()=>{onRestoreFromDrive();}} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}>Restore from Drive</button>}
+                        <button
+                          type="button"
+                          disabled={driveBusy}
+                          onClick={()=>{if(onDriveDisconnectSession)onDriveDisconnectSession();else{clearDriveSession();}setDriveLine('Signed out of Drive on this device');}}
+                          className="uppercase px-3 py-2"
+                          style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}
+                        >
+                          Disconnect Drive
+                        </button>
+                      </>
                     )}
                   </div>
+                  {hasDriveToken()&&onBackupDrive&&(<div className="flex items-center justify-between gap-4 pt-1"><div className="text-xs italic" style={{color:FAINT,fontFamily:serif}}>Auto-backup journal and new recordings to Drive</div><button type="button" onClick={()=>setSettings({...settings,driveAutoBackup:!settings.driveAutoBackup})} className="uppercase px-3 py-1 shrink-0" style={{color:settings.driveAutoBackup?TEXT:FAINT,border:`1px solid ${settings.driveAutoBackup?IKB:LINE_STR}`,background:settings.driveAutoBackup?IKB_SOFT:'transparent',fontSize:'9px',letterSpacing:'0.22em'}}>{settings.driveAutoBackup?'On':'Off'}</button></div>)}
                   {driveLine&&<div className="text-xs italic" style={{color:MUTED,fontFamily:serif}}>{driveLine}</div>}
                   {import.meta.env.DEV&&(
                     <div className="pt-3 space-y-2" style={{borderTop:`1px dashed ${LINE_MED}`}}>
@@ -178,7 +183,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
               {authMode==='signin'?'No account — create one':'Already have an account — sign in'}
             </button>
             <div className="pt-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>
-              Sync covers repertoire, history, notes, and settings. Recordings and PDFs stay on this device — use Export to back them up.
+              After you sign in, cloud sync covers repertoire, history, notes, and settings. Audio and PDFs are not uploaded to the cloud; optional Google Drive backup appears on the Sync tab once signed in, or use Export for a file backup.
             </div>
           </form>
           </div>
@@ -272,6 +277,21 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
 }
 
 export function HelpModal({onClose}){const rows=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k:'M',v:'Toggle metronome'},{k:'D',v:'Toggle tuning drone'},{k:'T',v:'Tap tempo'},{k:'L',v:'Log BPM'},{k:'N',v:'Quick note'},{k:'1 – 4',v:'Jump to section'},{k:'?',v:'Open Réglages (includes shortcuts)'},{k:'Esc',v:'Close'}];return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onClose}><div className="max-w-md w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}><div className="px-8 py-6 flex items-baseline justify-between" style={{borderBottom:`1px solid ${LINE_MED}`}}><div><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Reference</div><h2 className="text-3xl mt-1" style={{fontFamily:serif,fontStyle:'italic',fontWeight:300}}>Shortcuts</h2></div><button onClick={onClose} style={{color:FAINT}}><X className="w-4 h-4" strokeWidth={1.25}/></button></div><div className="px-8 py-6">{rows.map((r,i)=>(<div key={r.k} className="flex items-baseline justify-between gap-6 py-3" style={{borderBottom:i<rows.length-1?`1px solid ${LINE}`:'none'}}><kbd className="font-mono px-2.5 py-1 tabular-nums" style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'12px'}}>{r.k}</kbd><span style={{color:MUTED,fontFamily:serif,fontSize:'14px',fontStyle:'italic',fontWeight:300}}>{r.v}</span></div>))}<div className="mt-5 italic" style={{color:FAINT,fontFamily:serif,fontSize:'12px',lineHeight:1.6}}>Shortcuts are disabled while typing in a field.</div></div></div></div>);}
+
+export function DriveConflictModal({remoteModified,localMarker,onLoadFromDrive,onKeepLocal}){
+  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}}><div className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
+    <div className="px-8 py-7">
+      <div className="uppercase mb-4" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Google Drive — newer backup</div>
+      <p style={{fontFamily:serif,fontSize:'15px',lineHeight:1.7,fontWeight:300}}>A different journal on Google Drive may be newer than what you last matched on this device.</p>
+      {(remoteModified||localMarker)&&<p className="mt-3 text-xs italic" style={{color:MUTED,fontFamily:serif}}>Drive: {remoteModified||'—'} · Last matched: {localMarker||'—'}</p>}
+      <p className="mt-3" style={{fontFamily:serif,fontSize:'12px',lineHeight:1.6,fontWeight:300,color:FAINT,fontStyle:'italic'}}>Load from Drive replaces journal state and then downloads missing recordings and scores. Local blobs already on this device are kept.</p>
+    </div>
+    <div className="px-8 pb-6 flex flex-col gap-2" style={{borderTop:`1px solid ${LINE}`,paddingTop:'20px'}}>
+      <button onClick={onLoadFromDrive} className="w-full py-2.5 uppercase" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'}}>Load from Drive</button>
+      <button onClick={onKeepLocal} className="w-full py-2.5 uppercase" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Keep local</button>
+    </div>
+  </div></div>);
+}
 
 export function SyncConflictModal({localCount,remoteCount,hasOverlap,onMerge,onKeepLocal,onKeepCloud}){
   const overlapNote=hasOverlap

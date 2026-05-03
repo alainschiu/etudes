@@ -4,7 +4,7 @@
  * @returns {string}
  */
 export function formatDriveOAuthError(raw) {
-  const s = (raw || '').trim();
+  const s = String(raw ?? '').trim();
   const lower = s.toLowerCase();
   if (lower.includes('invalid_client') || lower.includes('unauthorized_client')) {
     return 'Google OAuth client misconfiguration — check VITE_GOOGLE_CLIENT_ID in the deploy environment.';

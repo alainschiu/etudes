@@ -4,6 +4,7 @@
  */
 
 const DRIVE_V3 = 'https://www.googleapis.com/drive/v3';
+const DRIVE_UPLOAD = 'https://www.googleapis.com/upload/drive/v3';
 
 /** Thrown when Drive returns 403 rate limits after all per-request retries (driveSync queue circuit breaker hooks this). */
 export class DriveRateLimitExhausted extends Error {
@@ -125,4 +126,92 @@ export async function driveCreateFolder(accessToken, name, parentId = 'root') {
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(metadata),
   });
+}
+
+/**
+ * @param {string} accessToken
+ * @param {string} fileId
+ * @param {string} fields
+ */
+export async function driveGetFileMetadata(accessToken, fileId, fields = 'id,name,mimeType,modifiedTime') {
+  const enc = encodeURIComponent(fileId);
+  return driveFetchJson(accessToken, `/files/${enc}?fields=${encodeURIComponent(fields)}`);
+}
+
+/**
+ * @param {string} accessToken
+ * @param {string} fileId
+ * @param {Record<string, unknown>} body
+ */
+export async function driveCopyFile(accessToken, fileId, body) {
+  const enc = encodeURIComponent(fileId);
+  return driveFetchJson(accessToken, `/files/${enc}/copy?fields=id,name`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body),
+  });
+}
+
+/**
+ * @param {string} accessToken
+ * @param {string} fileId
+ */
+export async function driveDeleteFile(accessToken, fileId) {
+  const enc = encodeURIComponent(fileId);
+  await driveFetchRaw(accessToken, `/files/${enc}`, {method: 'DELETE'});
+}
+
+/**
+ * Multipart create (metadata + media).
+ * @param {string} accessToken
+ * @param {Record<string, unknown>} metadata
+ * @param {Blob} mediaBlob
+ * @param {string} mimeType
+ */
+export async function driveMultipartCreate(accessToken, metadata, mediaBlob, mimeType) {
+  const boundary = `etudes_${Math.random().toString(36).slice(2)}`;
+  const metaPart = JSON.stringify(metadata);
+  const ab = await mediaBlob.arrayBuffer();
+  const pre = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metaPart}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`;
+  const post = `\r\n--${boundary}--`;
+  const enc = new TextEncoder();
+  const body = new Blob([enc.encode(pre), ab, enc.encode(post)]);
+  const url = `${DRIVE_UPLOAD}/files?uploadType=multipart&fields=id,name`;
+  return driveFetchJson(accessToken, url, {
+    method: 'POST',
+    headers: {'Content-Type': `multipart/related; boundary=${boundary}`},
+    body,
+  });
+}
+
+/**
+ * @param {string} accessToken
+ * @param {string} fileId
+ * @param {Blob} mediaBlob
+ * @param {string} mimeType
+ */
+export async function driveMediaUpdate(accessToken, fileId, mediaBlob, mimeType) {
+  const enc = encodeURIComponent(fileId);
+  const url = `${DRIVE_UPLOAD}/files/${enc}?uploadType=media`;
+  const res = await driveFetchRaw(accessToken, url, {
+    method: 'PATCH',
+    headers: {'Content-Type': mimeType},
+    body: mediaBlob,
+  });
+  if (res.status === 204) return null;
+  const ct = res.headers.get('content-type') || '';
+  if (ct.includes('application/json')) return res.json();
+  return null;
+}
+
+/**
+ * @param {string} accessToken
+ * @param {string} fileId
+ * @returns {Promise<Blob>}
+ */
+export async function driveDownloadBlob(accessToken, fileId) {
+  const enc = encodeURIComponent(fileId);
+  const url = `${DRIVE_V3}/files/${enc}?alt=media`;
+  const res = await driveFetchRaw(accessToken, url, {method: 'GET'});
+  return res.blob();
 }

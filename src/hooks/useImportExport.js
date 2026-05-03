@@ -1,11 +1,11 @@
 import {useState} from 'react';
 import JSZip from 'jszip';
-import {APP_VERSION,SCHEMA_VERSION,TYPES,SECTION_CONFIG,DEFAULT_SESSIONS,ROLLOVER_KEY,WEEK_ROLLOVER_KEY,MONTH_ROLLOVER_KEY} from '../constants/config.js';
 import {idbPut,idbDel,idbGet,idbAllKeys,lsGet,lsSet} from '../lib/storage.js';
-import {blobToBase64,base64ToBlob,triggerDownload} from '../lib/media.js';
+import {buildFullJournalPayload,applyJournalPayload} from '../lib/journalPayload.js';
+import {triggerDownload} from '../lib/media.js';
 import {todayDateStr,getWeekStart,getMonthKey} from '../lib/dates.js';
 import {formatForMarkdown,resolveHistoryItem} from '../lib/items.js';
-import {migrateImport,migrateItems,migrateSessions,migrateRoutines,migrateHistory,migratePrograms} from '../lib/migrations.js';
+import {migrateImport} from '../lib/migrations.js';
 import {toSlug,uniqueSlug} from '../lib/slug.js';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -288,7 +288,7 @@ export default function useImportExport({
   pieceRecordingMeta,noteCategories,refTrackMeta,programs,
   pdfUrlMap,todayHistoryEntry,
   setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
-  setRoutines,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
+  setRoutines,setPrograms,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
   setRecordingMeta,setHistory,setDayClosed,setPdfUrlMap,
   setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,
   setLocalPieceRecordingIds,setLocalRefTrackIds,
@@ -302,11 +302,11 @@ export default function useImportExport({
   const exportJson=async()=>{
     try{
       setRestoreBusy(true);
-      const pk=await idbAllKeys('pdfs');const pb={};for(const k of pk){const b=await idbGet('pdfs',k);if(b)pb[String(k)]=await blobToBase64(b);}
-      const rk=await idbAllKeys('recordings');const rb={};for(const k of rk){const b=await idbGet('recordings',k);if(b)rb[String(k)]=await blobToBase64(b);}
-      const prk=await idbAllKeys('pieceRecordings');const prb={};for(const k of prk){const b=await idbGet('pieceRecordings',k);if(b)prb[String(k)]=await blobToBase64(b);}
-      const rtk=await idbAllKeys('refTracks');const rtb={};for(const k of rtk){const b=await idbGet('refTracks',k);if(b)rtb[String(k)]={d:await blobToBase64(b),t:b.type||'audio/mpeg'};}
-      const payload={app:'Etudes',appVersion:APP_VERSION,schemaVersion:SCHEMA_VERSION,exportedAt:new Date().toISOString(),state:{items:items.map(i=>{const {pdfUrl,...r}=i;return r;}),itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,loadedRoutineId,routines,dailyReflection,weekReflection,monthReflection,settings,freeNotes,recordingMeta,pieceRecordingMeta,noteCategories,refTrackMeta,history,dayClosed,rolloverKeys:{day:lsGet(ROLLOVER_KEY,null),week:lsGet(WEEK_ROLLOVER_KEY,null),month:lsGet(MONTH_ROLLOVER_KEY,null)}},blobs:{pdfs:pb,recordings:rb,pieceRecordings:prb,refTracks:rtb}};
+      const payload=await buildFullJournalPayload({
+        items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,loadedRoutineId,routines,programs,
+        dailyReflection,weekReflection,monthReflection,settings,freeNotes,recordingMeta,history,dayClosed,
+        pieceRecordingMeta,noteCategories,refTrackMeta,
+      },lsGet);
       const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
       triggerDownload(blob,`etudes-backup-${todayKey}.json`);setExportMenu(false);
     }catch(e){setConfirmModal({message:'Export failed: '+(e.message||'unknown error'),confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
@@ -460,38 +460,15 @@ export default function useImportExport({
   const applyImport=async(data)=>{
     try{
       setRestoreBusy(true);
-      const npb={};for(const [k,b] of Object.entries(data.blobs?.pdfs||{})){const bl=base64ToBlob(b,'application/pdf');if(bl)npb[k]=bl;}
-      const nrb={};for(const [k,b] of Object.entries(data.blobs?.recordings||{})){const bl=base64ToBlob(b,'audio/webm');if(bl)nrb[k]=bl;}
-      const nprb={};for(const [k,b] of Object.entries(data.blobs?.pieceRecordings||{})){const bl=base64ToBlob(b,'audio/webm');if(bl)nprb[k]=bl;}
-      const nrtb={};for(const [k,v] of Object.entries(data.blobs?.refTracks||{})){const entry=typeof v==='object'?v:{d:v,t:'audio/mpeg'};const bl=base64ToBlob(entry.d,entry.t||'audio/mpeg');if(bl)nrtb[k]=bl;}
-      Object.values(pdfUrlMap).forEach(u=>{try{URL.revokeObjectURL(u);}catch{}});
-      for(const k of await idbAllKeys('pdfs'))await idbDel('pdfs',k);
-      for(const k of await idbAllKeys('recordings'))await idbDel('recordings',k);
-      const hasPieceRec=data.blobs?.pieceRecordings!==undefined;
-      const hasRefTracks=data.blobs?.refTracks!==undefined;
-      if(hasPieceRec){for(const k of await idbAllKeys('pieceRecordings'))await idbDel('pieceRecordings',k);}
-      if(hasRefTracks){for(const k of await idbAllKeys('refTracks'))await idbDel('refTracks',k);}
-      const newUrl={};for(const [k,b] of Object.entries(npb)){await idbPut('pdfs',k,b);newUrl[k]=URL.createObjectURL(b);}
-      for(const [k,b] of Object.entries(nrb)){await idbPut('recordings',k,b);}
-      for(const [k,b] of Object.entries(nprb)){await idbPut('pieceRecordings',k,b);}
-      for(const [k,b] of Object.entries(nrtb)){await idbPut('refTracks',k,b);}
-      const st=data.state||{};
-      const importedRecKeys=new Set(Object.keys(nrb));
-      const reconciledMeta=Object.fromEntries(Object.entries(st.recordingMeta||{}).filter(([k])=>importedRecKeys.has(k)));
-      setItems(migrateItems(st.items||[]));setItemTimes(st.itemTimes||{});setWarmupTimeToday(st.warmupTimeToday||0);setRestToday(st.restToday||0);setWorkingOn(Array.isArray(st.workingOn)?st.workingOn:[]);setTodaySessions(migrateSessions(st.todaySessions||DEFAULT_SESSIONS));setLoadedRoutineId(st.loadedRoutineId||null);setRoutines(migrateRoutines(st.routines||[]));setDailyReflection(st.dailyReflection||'');setWeekReflection(st.weekReflection||{notes:'',goals:''});setMonthReflection(st.monthReflection||{notes:'',goals:''});setSettings(st.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setFreeNotes(Array.isArray(st.freeNotes)?st.freeNotes:[]);
-      if(st.noteCategories!==undefined)setNoteCategories(Array.isArray(st.noteCategories)?st.noteCategories:[]);
-      setRecordingMeta(reconciledMeta);
-      if(hasPieceRec)setPieceRecordingMeta(st.pieceRecordingMeta||{});
-      if(hasRefTracks)setRefTrackMeta(st.refTrackMeta||{});
-      setHistory(migrateHistory(st.history||[]));setDayClosed(!!st.dayClosed);setPdfUrlMap(newUrl);
-      if(hasPieceRec)setLocalPieceRecordingIds(new Set(Object.keys(nprb).map(k=>k.split('__')[0])));
-      else idbAllKeys('pieceRecordings').then(keys=>setLocalPieceRecordingIds(new Set(keys.map(k=>String(k).split('__')[0]))));
-      if(hasRefTracks)setLocalRefTrackIds(new Set(Object.keys(nrtb)));
-      else idbAllKeys('refTracks').then(keys=>setLocalRefTrackIds(new Set(keys.map(k=>String(k)))));
-      setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);setIsResting(false);setExpandedItemId(null);setPdfDrawerItemId(null);
-      if(st.rolloverKeys?.day)lsSet(ROLLOVER_KEY,st.rolloverKeys.day);else lsSet(ROLLOVER_KEY,todayDateStr());
-      if(st.rolloverKeys?.week)lsSet(WEEK_ROLLOVER_KEY,st.rolloverKeys.week);else lsSet(WEEK_ROLLOVER_KEY,getWeekStart(todayDateStr()));
-      if(st.rolloverKeys?.month)lsSet(MONTH_ROLLOVER_KEY,st.rolloverKeys.month);else lsSet(MONTH_ROLLOVER_KEY,getMonthKey(todayDateStr()));
+      await applyJournalPayload(data,{blobMode:'embedded'},{
+        idbPut,idbDel,idbGet,idbAllKeys,lsSet,pdfUrlMap,
+        setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
+        setRoutines,setPrograms,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
+        setRecordingMeta,setHistory,setDayClosed,setPdfUrlMap,
+        setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,
+        setLocalPieceRecordingIds,setLocalRefTrackIds,
+        setActiveItemId,setActiveSpotId,setActiveSessionId,setIsResting,setExpandedItemId,setPdfDrawerItemId,
+      });
       setRestoreBusy(false);setConfirmModal({message:'Backup restored successfully.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
     }catch(e){setRestoreBusy(false);setConfirmModal({message:'Restore failed: '+(e.message||'unknown error'),confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
   };

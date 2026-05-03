@@ -13,6 +13,10 @@ import useMetronome from '../hooks/useMetronome.js';
 import useRecording from '../hooks/useRecording.js';
 import useImportExport from '../hooks/useImportExport.js';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts.js';
+import useDriveSync from '../hooks/useDriveSync.js';
+import {applyJournalPayload} from '../lib/journalPayload.js';
+import {restoreBlobsFromDrive} from '../lib/driveSync.js';
+import {writeDriveManifest} from '../lib/driveManifest.js';
 
 export default function useEtudesState(){
   // ── UI state ──────────────────────────────────────────────────────────────
@@ -23,6 +27,7 @@ export default function useEtudesState(){
   const [confirmModal,setConfirmModal]=useState(null);
   const [promptModal,setPromptModal]=useState(null);
   const [syncConflictModal,setSyncConflictModal]=useState(null);
+  const [driveConflictModal,setDriveConflictModal]=useState(null);
   const pendingRemoteRef=useRef(null);
   const applyingCloudRef=useRef(false);
   const mountedRef=useRef(false);
@@ -179,11 +184,62 @@ export default function useEtudesState(){
   useEffect(()=>{rolloverRef.current={totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection,settings};});
 
   // ── Cloud sync state ──────────────────────────────────────────────────────
-  const coldState=useMemo(()=>({items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday}),[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
+  const coldState=useMemo(()=>({items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,noteCategories,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday}),[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,noteCategories,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
   const syncPayloadKB=useMemo(()=>measureSyncPayload(coldState),[coldState]);
   const syncPayloadWarning=syncPayloadKB>500;
   const syncStateRef=useRef({});
   useEffect(()=>{syncStateRef.current={...coldState,itemTimes,restToday};});
+
+  const driveApplyDeps=useMemo(()=>({
+    idbPut,idbDel,idbGet,idbAllKeys,lsSet,pdfUrlMap,
+    setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
+    setRoutines,setPrograms,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
+    setRecordingMeta,setHistory,setDayClosed,setPdfUrlMap,
+    setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,
+    setLocalPieceRecordingIds,setLocalRefTrackIds,
+    setActiveItemId,setActiveSpotId,setActiveSessionId,setIsResting,setExpandedItemId,setPdfDrawerItemId,
+  }),[pdfUrlMap,setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,setRoutines,setPrograms,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,setRecordingMeta,setHistory,setDayClosed,setPdfUrlMap,setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,setLocalPieceRecordingIds,setLocalRefTrackIds,setActiveItemId,setActiveSpotId,setActiveSessionId,setIsResting,setExpandedItemId,setPdfDrawerItemId]);
+
+  const driveColdSlice=useCallback(()=>({...coldState,itemTimes,restToday}),[coldState,itemTimes,restToday]);
+
+  const driveBlobProgressRef=useRef(()=>{});
+  const onDriveConflict=useCallback((payload)=>{
+    const{remoteState,meta,getToken,applyDeps:ad,setRestoreBusy:setBusy,setConfirmModal:setC}=payload;
+    setDriveConflictModal({
+      remoteModified:meta?.remoteModified,
+      localMarker:meta?.localMarker,
+      onLoadFromDrive:async()=>{
+        setDriveConflictModal(null);
+        setBusy(true);
+        try{
+          await applyJournalPayload(remoteState,{blobMode:'none'},ad);
+          await restoreBlobsFromDrive(remoteState,getToken,driveBlobProgressRef.current);
+          if(meta?.remoteModified)writeDriveManifest({journalRemoteModifiedTime:meta.remoteModified,lastPulledAt:new Date().toISOString()});
+          const pdfKeys=await idbAllKeys('pdfs');
+          const newUrl={};
+          for(const k of pdfKeys){const b=await idbGet('pdfs',k);if(b)newUrl[String(k)]=URL.createObjectURL(b);}
+          ad.setPdfUrlMap(newUrl);
+          setC({message:'Restored from Google Drive.',confirmLabel:'OK',onConfirm:()=>setC(null)});
+        }catch(e){setC({message:String(e.message||e),confirmLabel:'OK',onConfirm:()=>setC(null)});}
+        finally{setBusy(false);}
+      },
+      onKeepLocal:()=>{
+        setDriveConflictModal(null);
+        if(meta?.remoteModified)writeDriveManifest({journalRemoteModifiedTime:meta.remoteModified,lastJsonPushAt:Date.now()});
+      },
+    });
+  },[]);
+
+  const driveSync=useDriveSync({
+    settings,setSettings,
+    coldSlice:driveColdSlice,
+    lsGet,
+    applyDeps:driveApplyDeps,
+    setRestoreBusy,setConfirmModal,
+    onDriveConflict,
+  });
+  driveBlobProgressRef.current=driveSync.setDriveBlobRestoreProgress;
+
   const doSync=useCallback(async()=>{if(!userRef.current)return;setSyncStatus('syncing');const ok=await syncToCloud(userRef.current.id,syncStateRef.current);if(ok){const now=Date.now();setLastSyncedAt(now);lsSet('etudes-localDirtyAt',0);setSyncStatus('idle');}else{setSyncStatus('error');}},[]);// eslint-disable-line
   useEffect(()=>{
     const check=()=>{
@@ -390,6 +446,7 @@ export default function useEtudesState(){
     const attachId=mkAttachId();
     const displayName=name||file.name.replace(/\.pdf$/i,'');
     await idbPut('pdfs',libraryId,file);
+    driveSync.notifyBlobWrite();
     const url=URL.createObjectURL(file);
     setPdfUrlMap(m=>({...m,[libraryId]:url}));
     setPdfLibrary(prev=>[...prev,{id:libraryId,name:displayName}]);
@@ -444,11 +501,8 @@ export default function useEtudesState(){
   const removeBookmark=(itemId,attachId,bmId)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,bookmarks:(x.bookmarks||[]).filter(b=>b.id!==bmId)}:x)}));
   const renameBookmark=(itemId,attachId,bmId,name)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,bookmarks:(x.bookmarks||[]).map(b=>b.id===bmId?{...b,name}:b)}:x)}));
 
-  // ── Recording (delegated) ─────────────────────────────────────────────────
-  const {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,attachDailyToPiece}=useRecording({dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal,pieceRecordingMeta,setPieceRecordingMeta,setPieceRecordingItemId});
-
   // ── Reference track management ─────────────────────────────────────────────
-  const uploadRefTrack=async(itemId,file,peaks)=>{await idbPut('refTracks',itemId,file);setRefTrackMeta(m=>({...m,[itemId]:{peaks,filename:file.name}}));};
+  const uploadRefTrack=async(itemId,file,peaks)=>{await idbPut('refTracks',itemId,file);driveSync.notifyBlobWrite();setRefTrackMeta(m=>({...m,[itemId]:{peaks,filename:file.name}}));};
   const deleteRefTrack=(itemId)=>{idbDel('refTracks',itemId);setRefTrackMeta(m=>{const c={...m};delete c[itemId];return c;});};
 
   // ── Session / routine management ──────────────────────────────────────────
@@ -488,6 +542,11 @@ export default function useEtudesState(){
     setLocalPieceRecordingIds,setLocalRefTrackIds,
     setActiveItemId,setActiveSpotId,setActiveSessionId,setIsResting,setExpandedItemId,setPdfDrawerItemId,
     setRestoreBusy,setExportMenu,setConfirmModal,importInputRef,
+  });
+
+  const {startRecording,stopRecording,deleteRecording,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,attachDailyToPiece}=useRecording({
+    dayClosed,recordingMeta,setRecordingMeta,setIsRecording,setConfirmModal,pieceRecordingMeta,setPieceRecordingMeta,setPieceRecordingItemId,
+    onBlobWritten:driveSync.notifyBlobWrite,
   });
 
   // ── Cloud sync effects ─────────────────────────────────────────────────────
@@ -572,7 +631,7 @@ export default function useEtudesState(){
   // ── Return everything ─────────────────────────────────────────────────────
   return {
     view,setView,showSettings,setShowSettings,showHelp,setShowHelp,
-    exportMenu,setExportMenu,confirmModal,setConfirmModal,promptModal,setPromptModal,syncConflictModal,
+    exportMenu,setExportMenu,confirmModal,setConfirmModal,promptModal,setPromptModal,syncConflictModal,driveConflictModal,
     quickNoteOpen,setQuickNoteOpen,restoreBusy,
     expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,
     logDrawerDate,logDrawerEntry,editingTimeItemId,setEditingTimeItemId,
@@ -616,5 +675,13 @@ export default function useEtudesState(){
     exportJson,importJsonFile,buildZip,exportProgress,
     handleTap,
     user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow:doSync,syncPayloadWarning,
+    connectDrive:driveSync.connectDrive,
+    disconnectDrive:driveSync.disconnectDrive,
+    backupDriveNow:driveSync.backupNow,
+    restoreFromDrive:driveSync.restoreFromDrive,
+    maybePullDriveOnSyncTab:driveSync.maybePullOnOpen,
+    driveBackgroundError:driveSync.driveBackgroundError,
+    setDriveBackgroundError:driveSync.setDriveBackgroundError,
+    driveBlobRestoreProgress:driveSync.driveBlobRestoreProgress,
   };
 }

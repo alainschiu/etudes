@@ -2,6 +2,7 @@
 
 ## v0.97.10 — 2026-05-03
 
+- **Google Drive — full backup flow** — after connecting Drive, you can **Backup now**, **Restore from Drive**, and turn on **auto-backup** (journal every 10 minutes, new recordings/PDFs debounced). A small manifest file on Drive helps recover file links if this device’s storage is cleared. Conflicts with a newer Drive journal show **Load from Drive** or **Keep local**.
 - **Google Drive (dev tools)** — if you use Drive backup in development, you can run a **silent renewal** check from Settings → Sync (short-lived token + test button) so background sync is safe to build on
 - **Drive rate limits** — groundwork for pausing bulk upload when Google throttles, instead of retrying silently for a long time
 
