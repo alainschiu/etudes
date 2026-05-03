@@ -5,6 +5,7 @@ let _peaksCtx=null;
 export async function computePeaks(blob,buckets=120){
   try{
     if(!_peaksCtx||_peaksCtx.state==='closed')_peaksCtx=new(window.AudioContext||window.webkitAudioContext)();
+    if(_peaksCtx.state==='suspended')await _peaksCtx.resume();
     const ctx=_peaksCtx;
     const buf=await ctx.decodeAudioData(await blob.arrayBuffer());
     const d=buf.getChannelData(0);

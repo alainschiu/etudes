@@ -215,7 +215,10 @@ export function RefTrackPlayer({meta,blobLoader,onUpload,onDelete}){
   const fileRef=useRef(null);
 
   const processFile=async(file)=>{
-    if(!file||!file.type.startsWith('audio/'))return;
+    if(!file)return;
+    // iOS types .m4a as video/mp4; also accept empty type (some Android browsers)
+    const okType=file.type.startsWith('audio/')||file.type==='video/mp4'||file.type===''||/\.(mp3|wav|flac|m4a|aac|ogg|opus)$/i.test(file.name);
+    if(!okType)return;
     setUploading(true);
     try{const peaks=await computePeaks(file);await onUpload(file,peaks);}
     finally{setUploading(false);}
