@@ -5,6 +5,16 @@
 
 const DRIVE_V3 = 'https://www.googleapis.com/drive/v3';
 
+/** Thrown when Drive returns 403 rate limits after all per-request retries (driveSync queue circuit breaker hooks this). */
+export class DriveRateLimitExhausted extends Error {
+  constructor(message = 'Drive rate limit — retries exhausted') {
+    super(message);
+    this.name = 'DriveRateLimitExhausted';
+    /** @type {'DriveRateLimitExhausted'} */
+    this.code = 'DriveRateLimitExhausted';
+  }
+}
+
 /** @param {unknown} body */
 function isDriveRateLimit(status, body) {
   if (status !== 403 || !body || typeof body !== 'object') return false;
@@ -52,6 +62,9 @@ export async function driveFetchRaw(accessToken, path, init = {}, attempt = 0) {
       const delay = Math.min(60_000, base + jitter);
       await new Promise((r) => setTimeout(r, delay));
       return driveFetchRaw(accessToken, path, init, attempt + 1);
+    }
+    if (isDriveRateLimit(403, body)) {
+      throw new DriveRateLimitExhausted();
     }
     const e = new Error(/** @type {{ error?: { message?: string } }} */ (body).error?.message || 'Drive forbidden');
     e.code = 'DriveForbidden';

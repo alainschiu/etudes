@@ -1,5 +1,10 @@
 # Update Log
 
+## v0.97.10 — 2026-05-03
+
+- **Google Drive (dev tools)** — if you use Drive backup in development, you can run a **silent renewal** check from Settings → Sync (short-lived token + test button) so background sync is safe to build on
+- **Drive rate limits** — groundwork for pausing bulk upload when Google throttles, instead of retrying silently for a long time
+
 ## v0.97.9 — 2026-05-03
 
 - **Google Drive (early)** — Settings → Sync includes **Connect Google Drive** using Google’s sign-in (separate from your Supabase account). Full backup to Drive is still being built; this release wires the first step so we can verify your OAuth client.

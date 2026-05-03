@@ -46,8 +46,21 @@ let rejectPending = null;
 /** @type {Promise<string> | null} */
 let inflightToken = null;
 
+/** Effective access-token lifetime (ms). Dev: VITE_DRIVE_TOKEN_TTL_SEC for silent-renewal spike; prod: use expires_in from Google. */
+function effectiveTokenTtlMs() {
+  const raw = import.meta.env.VITE_DRIVE_TOKEN_TTL_SEC;
+  if (import.meta.env.DEV && raw !== undefined && raw !== '') {
+    const n = Number.parseInt(String(raw), 10);
+    if (Number.isFinite(n) && n > 0) return n * 1000;
+  }
+  return null;
+}
+
 function isTokenValid() {
-  return !!cachedAccessToken && Date.now() < cachedExpiresAt - 30_000;
+  if (!cachedAccessToken) return false;
+  const ttlOverride = effectiveTokenTtlMs();
+  if (ttlOverride != null) return Date.now() < cachedExpiresAt - Math.min(5000, ttlOverride * 0.1);
+  return Date.now() < cachedExpiresAt - 30_000;
 }
 
 function ensureTokenClient() {
@@ -76,7 +89,13 @@ function ensureTokenClient() {
         return;
       }
       cachedAccessToken = resp.access_token;
-      const sec = typeof resp.expires_in === 'number' ? resp.expires_in : 3600;
+      const ttlOverride = effectiveTokenTtlMs();
+      const sec =
+        ttlOverride != null
+          ? Math.round(ttlOverride / 1000)
+          : typeof resp.expires_in === 'number'
+            ? resp.expires_in
+            : 3600;
       cachedExpiresAt = Date.now() + sec * 1000;
       resolve(resp.access_token);
     },
@@ -130,4 +149,9 @@ export function isDriveConfigured() {
 
 export function hasDriveToken() {
   return isTokenValid();
+}
+
+/** Dev / spike: force the next getDriveAccessToken to treat the cache as expired (silent renewal test). */
+export function forceExpireCachedDriveToken() {
+  cachedExpiresAt = 0;
 }

@@ -1,6 +1,7 @@
 import React, {useState} from 'react';
-import {isDriveConfigured, getDriveAccessToken, clearDriveSession, hasDriveToken} from '../lib/driveAuth.js';
-import {probeDriveConnection} from '../lib/driveSync.js';
+import {isDriveConfigured, getDriveAccessToken, clearDriveSession, hasDriveToken, forceExpireCachedDriveToken} from '../lib/driveAuth.js';
+import {probeDriveConnection, spikeSilentDriveRenewal} from '../lib/driveSync.js';
+import {formatDriveOAuthError} from '../lib/driveOAuthMessages.js';
 import X from 'lucide-react/dist/esm/icons/x';
 import Download from 'lucide-react/dist/esm/icons/download';
 import Archive from 'lucide-react/dist/esm/icons/archive';
@@ -94,7 +95,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
                           const r=await probeDriveConnection();
                           if(r.ok)setDriveLine(r.user?.emailAddress?`Connected (${r.user.emailAddress})`:'Connected to Drive');
                           else setDriveLine(r.error||'Connection failed');
-                        }catch(e){setDriveLine(e instanceof Error?e.message:String(e));}
+                        }catch(e){setDriveLine(formatDriveOAuthError(e instanceof Error?e.message:String(e)));}
                         finally{setDriveBusy(false);}
                       }}
                       className="uppercase flex items-center gap-1.5 px-3 py-2"
@@ -116,6 +117,38 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
                     )}
                   </div>
                   {driveLine&&<div className="text-xs italic" style={{color:MUTED,fontFamily:serif}}>{driveLine}</div>}
+                  {import.meta.env.DEV&&(
+                    <div className="pt-3 space-y-2" style={{borderTop:`1px dashed ${LINE_MED}`}}>
+                      <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Dev — silent renewal spike</div>
+                      <p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'10px',lineHeight:1.5}}>
+                        Set <span style={{fontFamily:'ui-monospace,monospace'}}>VITE_DRIVE_TOKEN_TTL_SEC=30</span> in <span style={{fontFamily:'ui-monospace,monospace'}}>.env.local</span>, restart dev, connect once, wait 31s, then run <strong>Test silent renewal</strong> (no interactive fallback). See README.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={driveBusy}
+                          onClick={async()=>{
+                            setDriveBusy(true);setDriveLine('');
+                            try{
+                              const r=await spikeSilentDriveRenewal();
+                              if(r.ok)setDriveLine(r.email?`Silent OK — ${r.email}`:'Silent OK — Drive about succeeded');
+                              else setDriveLine(`Silent FAILED — ${r.error}`);
+                            }catch(e){setDriveLine(formatDriveOAuthError(e instanceof Error?e.message:String(e)));}
+                            finally{setDriveBusy(false);}
+                          }}
+                          className="uppercase px-2 py-1.5"
+                          style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'8px',letterSpacing:'0.18em'}}
+                        >Test silent renewal</button>
+                        <button
+                          type="button"
+                          disabled={driveBusy}
+                          onClick={()=>{forceExpireCachedDriveToken();setDriveLine('Token cache forced expired — use Test silent renewal after ~31s if TTL=30');}}
+                          className="uppercase px-2 py-1.5"
+                          style={{color:FAINT,border:`1px solid ${LINE_MED}`,fontSize:'8px',letterSpacing:'0.18em'}}
+                        >Force expire token</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

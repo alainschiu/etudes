@@ -4,7 +4,7 @@ Before doing anything, read `North_Star_V2.3.md`. It is the authoritative
 product document and supersedes all other instructions.
 
 Current version: v2.3
-Current app version: v0.97.9
+Current app version: v0.97.10
 
 ---
 

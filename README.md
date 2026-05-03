@@ -1,4 +1,4 @@
-# Études — v0.97.9
+# Études — v0.97.10
 
 A practice journal for musicians. Seven views: Today, Review, Répertoire, Routines, Logs, Notes, Programs. Works offline as a PWA — install from the browser on any device.
 
@@ -63,6 +63,27 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 Run `supabase/migrations/001_user_state.sql` in the Supabase SQL editor and enable Email and Google auth under Authentication → Providers.
 
 Optional **Google Drive backup** (in progress): set `VITE_GOOGLE_CLIENT_ID` to your OAuth 2.0 Web client ID (Google Cloud Console). The app uses Google Identity Services with the `drive.file` scope for user-owned backups — independent of Supabase tokens. Settings → Sync → **Connect Google Drive** verifies the link; full journal/blob sync ships in follow-up commits.
+
+### Google Drive — silent token renewal (merge gate)
+
+The 10‑minute JSON push assumes GIS can renew access with **`requestAccessToken({ prompt: '' })`** (no popup) while the user remains signed in to Google. **Verify locally before merging Drive work:**
+
+1. Add to `.env.local` (dev only, never commit):
+
+   ```
+   VITE_GOOGLE_CLIENT_ID=your-web-client-id.apps.googleusercontent.com
+   VITE_DRIVE_TOKEN_TTL_SEC=30
+   ```
+
+2. `npm run dev`, open **Réglages → Sync → Google Drive backup**, click **Connect Google Drive** once (consent).
+
+3. Wait **at least 31 seconds** (or click **Force expire token** in the dev strip after connecting).
+
+4. Click **Test silent renewal** — it calls `getDriveAccessToken({ interactive: false })` and Drive `about?fields=user` **without** the interactive fallback. Expect **`Silent OK — …`** in the status line. If you see **`Silent FAILED`**, fix OAuth client / origins / GIS config before relying on background sync.
+
+5. Remove `VITE_DRIVE_TOKEN_TTL_SEC` for normal dev; it is ignored in production builds.
+
+Cloudflare Pages: set `VITE_GOOGLE_CLIENT_ID` (and optional preview values) under **Settings → Environment variables** for **Production** and **Preview** if deploy previews should test Drive.
 
 ## Project Structure
 

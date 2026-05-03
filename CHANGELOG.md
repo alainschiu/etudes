@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.97.10 — 2026-05-03
+
+### Google Drive — pre–Phase 3 hardening
+
+- **Silent renewal spike (dev)** — [`driveAuth.js`](src/lib/driveAuth.js): optional `VITE_DRIVE_TOKEN_TTL_SEC` (dev only) shortens cached token lifetime; [`spikeSilentDriveRenewal`](src/lib/driveSync.js) exercises **only** `getDriveAccessToken({ interactive: false })` + Drive `about`. Settings → Sync (dev): **Test silent renewal** / **Force expire token**. README documents the merge gate.
+- **Queue circuit breaker (scaffold)** — [`driveQueueCircuit.js`](src/lib/driveQueueCircuit.js): after **3** consecutive [`DriveRateLimitExhausted`](src/lib/driveApi.js) outcomes, pause **5 minutes** with user-facing message; re-exported from [`driveSync.js`](src/lib/driveSync.js). Phase 3 bulk queue must call `notifyDriveQueueOperationResult` per operation.
+- **`DriveRateLimitExhausted`** — thrown when per-request backoff exhausts on rate-limit 403s ([`driveApi.js`](src/lib/driveApi.js)).
+- **OAuth copy** — [`driveOAuthMessages.js`](src/lib/driveOAuthMessages.js) maps common GIS errors to plain English for Settings.
+- **Manifest invariants** — JSDoc on [`driveManifest.js`](src/lib/driveManifest.js): namespaced `driveFileIndex` keys, `schemaVersion`, `journalRemoteModifiedTime` semantics.
+
 ## v0.97.9 — 2026-05-03
 
 ### Google Drive backup (foundation)
