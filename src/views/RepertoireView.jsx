@@ -75,7 +75,7 @@ const selectOnFocus=(e)=>e.currentTarget.select();
 
 export default function RepertoireView(p){
   const {isMobile}=useViewport();
-  const {view,items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta,uploadRefTrack,deleteRefTrack,pdfUrlMap,localPieceRecordingIds,localRefTrackIds,onWikiLinkClick}=p;
+  const {view,items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta,uploadRefTrack,deleteRefTrack,pdfUrlMap,localPieceRecordingIds,localRefTrackIds,onWikiLinkClick,wikiCompletionData}=p;
   // Mobile piece detail state
   const [mobileDetailId,setMobileDetailId]=useState(null);
   // Reset when navigating away from repertoire
@@ -210,7 +210,7 @@ export default function RepertoireView(p){
               {isBpmOpen(i.id)&&<BpmSparkline log={i.bpmLog} target={i.bpmTarget}/>}
             </div>)}
             {pieceRecordingMeta&&<PieceRecordingsPanel item={i} pieceRecordingMeta={pieceRecordingMeta} deletePieceRecording={deletePieceRecording} lockPieceRecording={lockPieceRecording} pieceRecordingItemId={pieceRecordingItemId} dayClosed={dayClosed} globalAbA={globalAbA} globalAbB={globalAbB} setGlobalAbA={setGlobalAbA} setGlobalAbB={setGlobalAbB} refTrackMeta={refTrackMeta} uploadRefTrack={uploadRefTrack} deleteRefTrack={deleteRefTrack}/>}
-            <LogBookPanel item={i} updateItem={updateItem} addNoteLogEntry={addNoteLogEntry} deleteNoteLogEntry={deleteNoteLogEntry} updateNoteLogEntry={updateNoteLogEntry} onWikiLinkClick={onWikiLinkClick}/>
+            <LogBookPanel item={i} updateItem={updateItem} addNoteLogEntry={addNoteLogEntry} deleteNoteLogEntry={deleteNoteLogEntry} updateNoteLogEntry={updateNoteLogEntry} onWikiLinkClick={onWikiLinkClick} wikiCompletionData={wikiCompletionData}/>
           </div>
           <div className="col-span-4 space-y-4 min-w-0">
             <div><div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Total time</div><div className="tabular-nums" style={{fontFamily:serif,fontWeight:300,letterSpacing:'-0.01em',fontSize:'32px'}}>{fmt(getItemTime(itemTimes,i.id))}</div>{hasSpots&&<div className="italic mt-1" style={{color:FAINT,fontFamily:serif,fontSize:'11px'}}>whole piece + spots</div>}</div>
@@ -278,6 +278,7 @@ export default function RepertoireView(p){
           updateNoteLogEntry={updateNoteLogEntry}
           setExpandedItemId={setExpandedItemId}
           onWikiLinkClick={onWikiLinkClick}
+          wikiCompletionData={wikiCompletionData}
         />;
       }
     }
@@ -410,7 +411,7 @@ export default function RepertoireView(p){
   </>);
 }
 
-function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,onWikiLinkClick}){
+function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,onWikiLinkClick,wikiCompletionData}){
   const [logSearch,setLogSearch]=useState('');
   const [addingNote,setAddingNote]=useState(false);
   const [newNoteText,setNewNoteText]=useState('');
@@ -441,7 +442,9 @@ function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,update
             style={{background:BG,border:`1px solid ${LINE}`,padding:'10px 12px'}}
             showDeepLinkHint
             onWikiLinkClick={onWikiLinkClick}
+            completionData={wikiCompletionData}
           />
+
         )}
       </div>
 
@@ -692,7 +695,7 @@ function MobileRepItem({item,onTap,activeItemId,history,pieceRecordingMeta,refTr
 }
 
 // ── Mobile: Piece detail screen ───────────────────────────────────────────
-function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeItemId,activeSpotId,startItem,stopItem,itemTimes,fmt,fmtMin,addSpot,updateSpot,deleteSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,setPdfDrawerItemId,history,globalAbA,globalAbB,setGlobalAbA,setGlobalAbB,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,refTrackMeta,uploadRefTrack,deleteRefTrack,pdfUrlMap,localPieceRecordingIds,localRefTrackIds,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,setExpandedItemId,onWikiLinkClick}){
+function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeItemId,activeSpotId,startItem,stopItem,itemTimes,fmt,fmtMin,addSpot,updateSpot,deleteSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,setPdfDrawerItemId,history,globalAbA,globalAbB,setGlobalAbA,setGlobalAbB,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,refTrackMeta,uploadRefTrack,deleteRefTrack,pdfUrlMap,localPieceRecordingIds,localRefTrackIds,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,setExpandedItemId,onWikiLinkClick,wikiCompletionData}){
   const [tab,setTab]=useState('recordings');
   const isActive=activeItemId===item.id;
   const stage=STAGES.find(s=>s.key===item.stage)||STAGES[0];
@@ -812,7 +815,7 @@ function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeIt
           {/* Notes */}
           <div style={{padding:'20px 0'}}>
             <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'8px'}}>Notes</div>
-            <MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={120} style={{background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'15px'}} onWikiLinkClick={onWikiLinkClick}/>
+            <MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={120} style={{background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'15px'}} onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
           </div>
           {/* Delete */}
           <button onClick={()=>{deleteItem(item.id);onBack();}} style={{display:'flex',alignItems:'center',gap:'6px',padding:'10px 0',color:FAINT,background:'transparent',border:'none',cursor:'pointer',marginTop:'8px'}}>

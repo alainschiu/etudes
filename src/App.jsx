@@ -106,7 +106,8 @@ export default function Etudes(){
     }
   },[items,history,programs,freeNotes,openLogEntry,setExpandedItemId,setView,setSelectedProgramId,setRequestedNoteId]);
 
-  const commonProps={items,history,settings,itemTimes,fmt,fmtMin,recordingMeta,onWikiLinkClick:handleWikiLinkClick};
+  const wikiCompletionData={items,history,programs,notes:freeNotes};
+  const commonProps={items,history,settings,itemTimes,fmt,fmtMin,recordingMeta,onWikiLinkClick:handleWikiLinkClick,wikiCompletionData};
 
   return (
     <div className="h-screen flex flex-col" style={{background:BG,color:TEXT,fontFamily:sans}}>

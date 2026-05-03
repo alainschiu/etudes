@@ -339,7 +339,7 @@ function MarkdownComponents({onWikiLinkClick}){
   };
 }
 
-export function MarkdownField({value,onChange,placeholder,minHeight=80,className='',style={},readOnly=false,showDeepLinkHint=false,onWikiLinkClick}){
+export function MarkdownField({value,onChange,placeholder,minHeight=80,className='',style={},readOnly=false,showDeepLinkHint=false,onWikiLinkClick,completionData}){
   const {fontSize:styleFontSize,background,border,...wrapStyle}=style||{};
   const hasCustomLink=HAS_CUSTOM_LINK_RE.test(value||'');
   const showHint=showDeepLinkHint&&hasCustomLink;
@@ -367,6 +367,10 @@ export function MarkdownField({value,onChange,placeholder,minHeight=80,className
         minHeight={minHeight}
         fontSize={styleFontSize||'15px'}
         onWikiLinkClick={onWikiLinkClick}
+        items={completionData?.items}
+        history={completionData?.history}
+        programs={completionData?.programs}
+        notes={completionData?.notes}
       />
       {showHint&&(
         <div style={{padding:'4px 16px 8px',fontSize:'11px',color:FAINT,fontStyle:'italic',fontFamily:serif}}>
