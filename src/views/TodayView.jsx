@@ -225,6 +225,7 @@ export default function TodayView(p){
                   <div><div className="uppercase mb-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}>Notes <span style={{color:DIM,letterSpacing:'0.2em'}}>· persistent</span></div><MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={80} style={{background:SURFACE2}} showDeepLinkHint/></div>
                   <div className="flex items-center gap-2 text-xs flex-wrap">
                     <button onClick={()=>{setExpandedItemId(item.id);setView('repertoire');}} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Edit in Repertoire</button>
+                    {hasPdf&&<button onClick={()=>setPdfDrawerItemId(item.id)} className="uppercase px-3 py-1.5 flex items-center gap-1.5" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><FileText className="w-3 h-3" strokeWidth={1.25}/>Open Score</button>}
                     <button onClick={()=>toggleWorking(item.id)} className="ml-auto px-3 py-1 uppercase" style={workingOn.includes(item.id)?{background:IKB,color:TEXT,border:`1px solid ${IKB}`,fontSize:'10px',letterSpacing:'0.22em'}:{background:'transparent',color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>{workingOn.includes(item.id)?'★ En cours':'Pin'}</button>
                   </div>
                 </div>)}
@@ -423,6 +424,20 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
                 editSpotTime={editSpotTime}
                 dayClosed={dayClosed}
               />
+            </div>
+          )}
+          {/* Action footer */}
+          {(hasPdf&&setPdfDrawerItemId)&&(
+            <div style={{display:'flex',gap:'8px',flexWrap:'wrap',paddingTop:'4px',borderTop:`1px solid ${LINE}`}}>
+              {hasPdf&&setPdfDrawerItemId&&(
+                <button
+                  onClick={()=>setPdfDrawerItemId(item.id)}
+                  style={{display:'flex',alignItems:'center',gap:'6px',padding:'7px 12px',
+                    border:`1px solid ${LINE_STR}`,background:'transparent',cursor:'pointer',
+                    color:MUTED,fontFamily:sans,fontSize:'10px',letterSpacing:'0.22em',textTransform:'uppercase'}}>
+                  <FileText size={12} strokeWidth={1.25}/>Open Score
+                </button>
+              )}
             </div>
           )}
         </div>
