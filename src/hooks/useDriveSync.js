@@ -20,6 +20,7 @@ export default function useDriveSync({
 }) {
   const [driveBackgroundError, setDriveBackgroundError] = useState(null);
   const [driveBlobRestoreProgress, setDriveBlobRestoreProgress] = useState(null);
+  const [driveBlobFailedCount, setDriveBlobFailedCount] = useState(0);
   const blobTimerRef = useRef(null);
   const intervalRef = useRef(null);
 
@@ -88,6 +89,7 @@ export default function useDriveSync({
 
   const restoreFromDrive = useCallback(async () => {
     setDriveBackgroundError(null);
+    setDriveBlobFailedCount(0);
     setRestoreBusy(true);
     try {
       await restoreManifestFromDriveIfNeeded(() => getDriveAccessToken({interactive: false}), null);
@@ -111,9 +113,12 @@ export default function useDriveSync({
         return;
       }
       await applyJournalPayload(pull.remoteState, {blobMode: 'none'}, applyDeps);
-      await restoreBlobsFromDrive(pull.remoteState, () => getDriveAccessToken({interactive: false}), (p) =>
-        setDriveBlobRestoreProgress(p),
+      const {failed} = await restoreBlobsFromDrive(
+        pull.remoteState,
+        () => getDriveAccessToken({interactive: false}),
+        (p) => setDriveBlobRestoreProgress(p),
       );
+      if (failed.length > 0) setDriveBlobFailedCount(failed.length);
       const meta = pull.meta;
       if (meta?.remoteModified) {
         writeDriveManifest({journalRemoteModifiedTime: meta.remoteModified, lastPulledAt: new Date().toISOString()});
@@ -166,6 +171,7 @@ export default function useDriveSync({
     setDriveBackgroundError,
     driveBlobRestoreProgress,
     setDriveBlobRestoreProgress,
+    driveBlobFailedCount,
     isDriveConfigured,
     isDriveConnected: hasDriveToken,
   };

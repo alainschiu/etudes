@@ -16,7 +16,7 @@ const SHORTCUTS=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
 const USER_GUIDE_URL='https://etudes.me/guide';
 
-export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBackgroundError,onDismissDriveError,driveBlobRestoreProgress,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect}){
+export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBackgroundError,onDismissDriveError,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect}){
   const [devBusy,setDevBusy]=useState(false);
   const [devStatus,setDevStatus]=useState('');
   const [driveBusy,setDriveBusy]=useState(false);
@@ -79,6 +79,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
             </div>
             {driveBackgroundError&&(<div className="flex items-start justify-between gap-2 px-3 py-2 mt-3" style={{background:'rgba(184,150,104,0.12)',border:'1px solid rgba(184,150,104,0.3)'}}><div className="italic" style={{color:'#B89668',fontFamily:serif,fontSize:'11px',lineHeight:1.5}}>{driveBackgroundError}</div>{onDismissDriveError&&<button type="button" onClick={onDismissDriveError} className="shrink-0 uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.18em'}}>Dismiss</button>}</div>)}
             {driveBlobRestoreProgress&&<div className="text-xs italic mt-2" style={{color:MUTED,fontFamily:serif}}>Restoring media {driveBlobRestoreProgress.done} / {driveBlobRestoreProgress.total}…</div>}
+            {!driveBlobRestoreProgress&&driveBlobFailedCount>0&&<div className="text-xs italic mt-1" style={{color:FAINT,fontFamily:serif}}>{driveBlobFailedCount} file{driveBlobFailedCount===1?'':'s'} could not be restored from Drive.</div>}
             <div className="pt-5 mt-4" style={{borderTop:`1px solid ${LINE}`}}>
               <div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Google Drive backup</div>
               {!isDriveConfigured() ? (

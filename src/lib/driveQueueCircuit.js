@@ -5,6 +5,7 @@
  */
 
 import {DriveRateLimitExhausted} from './driveApi.js';
+import {lsGet, lsSet} from './storage.js';
 
 const K_CONSECUTIVE = 3;
 const COOLDOWN_MS = 5 * 60 * 1000;
@@ -27,6 +28,7 @@ export function notifyDriveQueueOperationResult(error) {
       pausedUntil = Date.now() + COOLDOWN_MS;
       pauseMessage =
         'Drive is rate-limiting. Pausing sync for 5 minutes. You can retry from Settings when the pause ends.';
+      lsSet('etudes-driveCircuit', {pausedUntil, pauseMessage});
     }
     return;
   }
@@ -38,6 +40,13 @@ export function notifyDriveQueueOperationResult(error) {
  */
 export function getDriveQueueCircuitState() {
   const now = Date.now();
+  if (pausedUntil === 0) {
+    const persisted = lsGet('etudes-driveCircuit', null);
+    if (persisted?.pausedUntil) {
+      pausedUntil = persisted.pausedUntil;
+      pauseMessage = persisted.pauseMessage || '';
+    }
+  }
   const paused = now < pausedUntil;
   if (!paused) {
     pauseMessage = '';
@@ -55,6 +64,7 @@ export function clearDriveQueueCircuitPause() {
   pausedUntil = 0;
   pauseMessage = '';
   consecutiveRateLimitExhaustions = 0;
+  lsSet('etudes-driveCircuit', {pausedUntil: 0, pauseMessage: ''});
 }
 
 /**

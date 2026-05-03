@@ -286,7 +286,8 @@ export async function pullJournalFromDrive(getAccessToken) {
   const fmeta = await driveGetFileMetadata(token, fileId, 'id,modifiedTime');
   const remoteModified = fmeta.modifiedTime;
   const localMarker = m.journalRemoteModifiedTime || null;
-  const gapMs = localMarker ? Math.abs(Date.parse(remoteModified) - Date.parse(localMarker)) : Infinity;
+  const rawGap = localMarker ? Math.abs(Date.parse(remoteModified) - Date.parse(localMarker)) : Infinity;
+  const gapMs = Number.isFinite(rawGap) ? rawGap : Infinity;
   const text = await (async () => {
     const blob = await driveDownloadBlob(token, fileId);
     return blob.text();
@@ -320,6 +321,7 @@ export async function restoreManifestFromDriveIfNeeded(getAccessToken, confirm) 
   if (!snapId) throw new Error('No manifest snapshot on Drive.');
   const blob = await driveDownloadBlob(token, snapId);
   const snap = JSON.parse(await blob.text());
+  // confirm=null → auto-proceed; only reached when local manifest is blank (no data loss risk)
   if (confirm && !(await confirm(snap))) return readDriveManifest();
   writeDriveManifest({
     driveRootFolderId: snap.driveRootFolderId || rootId,
@@ -336,6 +338,7 @@ export async function restoreBlobsFromDrive(remoteState, getAccessToken, onProgr
   const token = await getAccessToken();
   const m = readDriveManifest();
   const idx = m.driveFileIndex || {};
+  const failed = [];
   let done = 0;
   const total = refs.length;
   for (const {store, key, ns} of refs) {
@@ -355,11 +358,12 @@ export async function restoreBlobsFromDrive(remoteState, getAccessToken, onProgr
       const blob = await driveDownloadBlob(token, fileId);
       await idbPut(store, key, blob);
     } catch {
-      /* skip */
+      failed.push({ns, store, key});
     }
     done++;
     onProgress?.({done, total});
   }
+  return {failed};
 }
 
 export function formatDriveError(err) {

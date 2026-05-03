@@ -683,5 +683,6 @@ export default function useEtudesState(){
     driveBackgroundError:driveSync.driveBackgroundError,
     setDriveBackgroundError:driveSync.setDriveBackgroundError,
     driveBlobRestoreProgress:driveSync.driveBlobRestoreProgress,
+    driveBlobFailedCount:driveSync.driveBlobFailedCount,
   };
 }
