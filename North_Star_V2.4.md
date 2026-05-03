@@ -1,4 +1,4 @@
-# Études — North Star AI Primer v2.3
+# Études — North Star AI Primer v2.4
 ### Canonical brief for any AI writing copy, generating code, proposing features, or extending the product.
 ### Read this before touching anything. This document supersedes all prior versions.
 
@@ -141,7 +141,7 @@ One item is active at a time. Pressing play on a different item moves the clock.
 BPM, time signature, subdivision, tap tempo, tempo name presets, and minimal click sounds. The footer visualizer shows beats and subdivisions as marks — a quiet oscilloscope, not a drumline. A single control marks the current tempo to the active item, building a sparse history over time. An accelerando mode ramps tempo automatically toward a target — step size and interval are set by the musician. Useful for systematic tempo development on a difficult passage; not a substitute for deliberate practice.
 
 **4. It records sound.**  
-A rolling archive of takes per piece. Stored locally, rendered as a waveform in IKB, playable inline. Takes can be locked to protect them from the FIFO rolling limit; locked rows carry gold — the color of preservation. Any two recordings — within the same piece or across two different pieces — can be placed in an A/B comparison: two waveforms side by side, one in IKB (the primary), one in gold (the comparator). A cross-piece comparison bar persists while navigating Répertoire. Reference recordings attached to a piece — a teacher's demo, a model performance — render in `--muted`, subordinate to the musician's own IKB takes. Études is not a player; reference recordings that are external URLs open in a new tab. This is how Études treats sound: as a stratum of the journal equal to the written reflection.
+A rolling archive of takes per piece. Stored locally, rendered as a waveform in IKB, playable inline. Takes can be locked to protect them from the FIFO rolling limit; locked rows carry gold — the color of preservation. Any two recordings — within the same piece or across two different pieces — can be placed in an A/B comparison: two waveforms side by side, one in IKB (the primary), one in gold (the comparator). A cross-piece comparison bar persists while navigating Répertoire. Reference recordings attached to a piece — a teacher's demo, a model performance — render in `--muted`, subordinate to the musician's own IKB takes. Reference URLs that point to YouTube, Spotify, or Apple Music render as embedded inline players within the piece panel; all other reference URLs open in a new tab. This is how Études treats sound: as a stratum of the journal equal to the written reflection.
 
 **5. It sustains a drone.**  
 A configurable reference pitch for intonation work — three A= reference standards (440 Hz, 432 Hz, 415 Hz), three temperaments (Equal, Just, Meantone ¼-comma), selectable note and octave, adjustable volume. For the player working through a Bach partita in meantone, or a string player tuning open strings against a tonic pedal, this is the tool. No pitch detection is performed. The drone is a reference, not a judge.
@@ -251,7 +251,7 @@ Do not add without deliberation: difficulty scores, ratings, mood enums, XP, bad
 
 **Dense modal dialogs with tabs.** If a modal has tabs, it should be a view.
 
-**Third-party embeds of any kind.** Reference recordings are external links — a URL, a new tab, nothing more. Études is not a player. No iframes, no embedded audio players, no YouTube embeds, anywhere.
+**General-purpose third-party embeds.** Reference recording URLs for YouTube, Spotify, and Apple Music embed inline within the piece panel — this is the single, bounded exception for recognised reference services. Every other URL opens in a new tab. No chat embeds, no general iframes, no third-party widgets. The embed is a convenience for reference listening, not a media player feature.
 
 **Multiple recordings per day in the daily journal slot.** The constraint is the feature. The Rolling Archive per piece is separate and additive.
 
@@ -281,9 +281,9 @@ When a user asks for one of these, ask what quieter underlying need they are exp
 
 ---
 
-## XIV. Current state — v0.97
+## XIV. Current state — v0.97.11
 
-Seven views are implemented: Today, Week, Month, Répertoire, Routines, Logs, Notes. **In progress:** Week and Month are being consolidated into a single Review tab with a scale selector; Programs is being built as the seventh tab to replace them.
+Eight views are fully implemented: Today, Review (Week + Month, single tab with scale selector), Répertoire, Routines, Logs, Notes, Programs. The navigation is seven primary tabs. The seven-view mental model is complete.
 
 The session model is free-or-prescribed. Today defaults to free mode. Loading a routine prescribes sessions — ordered, named, with pinned pieces, optional intentions, and optional targets.
 
@@ -295,25 +295,25 @@ The metronome is substantial. BPM slider, tap tempo, beats-per-bar, note value, 
 
 The tuning and drone panel is accessible from the footer. A=440/432/415 Hz, three temperaments (Equal, Just, Meantone ¼), full chromatic note selection, cent offset display, adjustable volume. No pitch detection.
 
-Audio recording is a Rolling Archive — up to ten unlocked takes per piece (FIFO), up to twenty locked takes per piece (exempt from FIFO), rendered in IKB. Locked rows carry gold. A/B comparison is available for any two recordings within or across pieces — the primary track in IKB, the comparator in gold. Reference audio attached to a piece renders in `--muted`. Stored in IndexedDB. Cross-device delivery path planned via Cloudflare R2 for Pro tier.
+Audio recording is a Rolling Archive — up to ten unlocked takes per piece (FIFO), up to twenty locked takes per piece (exempt from FIFO), rendered in IKB. Locked rows carry gold. A/B comparison is available for any two recordings within or across pieces — the primary track in IKB, the comparator in gold. Reference audio attached to a piece renders in `--muted`. Stored in IndexedDB. Cross-device delivery path planned via Cloudflare R2 for Pro tier. Reference URLs for YouTube, Spotify, and Apple Music embed inline within the piece panel; all other URLs open in a new tab.
 
 Notes are wiki-style markdown with internal linking and folder organization. A note can reference a piece, a log entry, another note, or a program. This is the knowledge layer — a musician's private commonplace book that connects across the entire journal.
 
-Répertoire is the deepest view. Items have a five-stage arc (queued → learning → polishing → maintenance → retired), accumulated time, last-practiced date, tempo history sparkline, spots, notes, tags, PDF scores, reference recordings (external URL — opens in a new tab; reference audio — stored locally, rendered in `--muted`), and full editing. Collections group movements. Filtering by type, stage, composer, instrument, and tag.
+Répertoire is the deepest view. Items have a five-stage arc (queued → learning → polishing → maintenance → retired), accumulated time, last-practiced date, tempo history sparkline, spots, notes, tags, PDF scores, reference recordings, and full editing. Collections group movements. Filtering by type, stage, composer, instrument, and tag.
 
-Logs are a horizontal scroll gallery in three card types: daily, weekly, and monthly. Log drawer is the canonical day-review surface — opened from Review, or Logs — showing date, total minutes, recording waveform, items and spots by section, and full reflection.
+Logs are a horizontal scroll gallery in three card types: daily, weekly, and monthly. Log drawer is the canonical day-review surface — opened from Review or Logs — showing date, total minutes, recording waveform, items and spots by section, and full reflection.
 
 Auth is email-based via Supabase. Google OAuth is live. Apple OAuth is deferred — required if the app is ever wrapped for App Store submission. Sync is optional metadata-to-Supabase; full audio and PDF cloud sync via Cloudflare R2 is planned for Pro tier.
 
-Mobile PWA adaptation is in active development on a feature branch. Bottom tab navigation, responsive layouts, service worker offline cache, safe-area insets. The seven-view mental model is preserved.
+**Google Drive sync** is implemented as an independent optional sync layer — no Supabase account required. Metadata queues and uploads automatically; blobs (audio, PDFs) sync separately. A circuit breaker pauses the queue after repeated failures; pause state persists across page reloads via localStorage. Blob restore failures are surfaced quietly in Settings after a restore completes. Schema version is 10.
 
-**Three open items — resolve before beta:**
+Mobile PWA is substantially complete. Bottom tab navigation, responsive layouts, service worker offline cache, safe-area insets, touch-drag fixes, recording panel mobile layout. The seven-view mental model is preserved across all screen sizes.
+
+**Two open items — resolve before beta:**
 
 1. **Export format.** The long-stated commitment was a zip of Markdown files with YAML frontmatter. The current export is a single `.md` file. Replace with the ZIP format specified in the export track. Do not ship a paid tier before resolving this.
 
-2. **Programs view.** The data model is implemented. The view is not. Programs requires its own tab in the primary navigation, built to the full shape specified in §XI. The Week/Month consolidation into a single Review tab (with scale selector) is the architectural change that keeps the nav at seven tabs while Programs takes its place. Complete this consolidation and build the Programs view together as a single piece of work.
-
-3. **Design system consistency.** Heading scale, margin architecture, and token audit need a dedicated pass before the app is shown to new users. Inconsistencies between views are visible on close inspection.
+2. **Design system consistency.** Heading scale, margin architecture, and token audit need a dedicated pass before the app is shown to new users. Inconsistencies between views are visible on close inspection.
 
 ---
 
@@ -338,4 +338,4 @@ If the answer to any of these is no, stop and reconsider. If the answer to all i
 
 ---
 
-*North Star AI Primer v2.3 — April 2026 — supersedes v2.2*
+*North Star AI Primer v2.4 — May 2026 — supersedes v2.3*
