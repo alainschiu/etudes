@@ -431,12 +431,8 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
           )}
           {/* Action footer */}
           <div className="flex items-center gap-2 flex-wrap" style={{paddingTop:'4px'}}>
-            {setView&&setExpandedItemId&&(
-              <button onClick={()=>{setExpandedItemId(item.id);setView('repertoire');}} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Edit in Repertoire</button>
-            )}
-            {toggleWorking&&(
-              <button onClick={()=>toggleWorking(item.id)} className="ml-auto px-3 py-1 uppercase" style={workingOn&&workingOn.includes(item.id)?{background:IKB,color:TEXT,border:`1px solid ${IKB}`,fontSize:'10px',letterSpacing:'0.22em'}:{background:'transparent',color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>{workingOn&&workingOn.includes(item.id)?'★ En cours':'Pin'}</button>
-            )}
+            <button onClick={()=>{if(setExpandedItemId)setExpandedItemId(item.id);if(setView)setView('repertoire');}} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Edit in Repertoire</button>
+            <button onClick={()=>toggleWorking&&toggleWorking(item.id)} className="ml-auto px-3 py-1 uppercase" style={workingOn&&workingOn.includes(item.id)?{background:IKB,color:TEXT,border:`1px solid ${IKB}`,fontSize:'10px',letterSpacing:'0.22em'}:{background:'transparent',color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>{workingOn&&workingOn.includes(item.id)?'★ En cours':'Pin'}</button>
           </div>
         </div>
       )}
