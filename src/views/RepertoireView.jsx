@@ -691,7 +691,7 @@ function MobileRepItem({item,onTap,activeItemId,history,pieceRecordingMeta,refTr
 
 // ── Mobile: Piece detail screen ───────────────────────────────────────────
 function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeItemId,activeSpotId,startItem,stopItem,itemTimes,fmt,fmtMin,addSpot,updateSpot,deleteSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,setPdfDrawerItemId,history,globalAbA,globalAbB,setGlobalAbA,setGlobalAbB,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,refTrackMeta,uploadRefTrack,deleteRefTrack,pdfUrlMap,localPieceRecordingIds,localRefTrackIds,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,setExpandedItemId}){
-  const [tab,setTab]=useState('spots');
+  const [tab,setTab]=useState('recordings');
   const isActive=activeItemId===item.id;
   const stage=STAGES.find(s=>s.key===item.stage)||STAGES[0];
   const perf=nextPerformance(item.performances);
