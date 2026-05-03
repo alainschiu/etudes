@@ -243,7 +243,7 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
     <DevToolsBar/>
     {droneExpanded&&(isMobile?<MobileDronePanel drone={drone} setDrone={setDrone} toggleDrone={toggleDrone} setDroneExpanded={setDroneExpanded}/>:<DronePanel drone={drone} setDrone={setDrone} toggleDrone={toggleDrone} setDroneExpanded={setDroneExpanded}/>)}
     {recExpanded&&(
-      <div className="px-10 py-6" style={{borderBottom:`1px solid ${LINE}`,background:SURFACE}}>
+      <div className={isMobile?'px-4 py-5':'px-10 py-6'} style={{borderBottom:`1px solid ${LINE}`,background:SURFACE}}>
         <div className="flex items-center justify-between mb-5">
           <div>
             <div className="uppercase flex items-center gap-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>
@@ -289,12 +289,12 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
         {todayRec&&!anyRecording&&attachDailyToPiece&&routinePieceItems.length>0&&(
           <div className="mt-5 pt-4" style={{borderTop:`1px solid ${LINE}`}}>
             <div className="uppercase mb-3" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>Attach to piece in routine</div>
-            <div className="flex items-center gap-3">
-              <select value={attachTarget} onChange={e=>setAttachTarget(e.target.value)} className="flex-1 px-2 py-1 text-xs focus:outline-none" style={{background:SURFACE2,color:attachTarget?TEXT:MUTED,border:`1px solid ${LINE_MED}`,fontFamily:sans}}>
+            <div className={isMobile?'flex flex-col gap-2':'flex items-center gap-3'}>
+              <select value={attachTarget} onChange={e=>setAttachTarget(e.target.value)} className={isMobile?'w-full px-2 py-2 text-xs focus:outline-none':'flex-1 px-2 py-1 text-xs focus:outline-none'} style={{background:SURFACE2,color:attachTarget?TEXT:MUTED,border:`1px solid ${LINE_MED}`,fontFamily:sans,maxWidth:'100%'}}>
                 <option value="" style={{background:SURFACE}}>— select piece —</option>
-                {routinePieceItems.map(item=>(<option key={item.id} value={item.id} style={{background:SURFACE}}>{formatByline(item)?`${formatByline(item)} — `+displayTitle(item):displayTitle(item)}</option>))}
+                {routinePieceItems.map(item=>{const full=formatByline(item)?`${formatByline(item)} — `+displayTitle(item):displayTitle(item);const label=isMobile&&full.length>38?full.slice(0,37)+'…':full;return(<option key={item.id} value={item.id} style={{background:SURFACE}}>{label}</option>);})}
               </select>
-              <button onClick={async()=>{if(!attachTarget)return;await attachDailyToPiece(attachTarget,null,null);setAttachTarget('');}} disabled={!attachTarget} className="uppercase px-3 py-1.5 shrink-0" style={{border:`1px solid ${attachTarget?IKB:LINE_MED}`,color:attachTarget?TEXT:FAINT,background:attachTarget?IKB_SOFT:'transparent',fontSize:'10px',letterSpacing:'0.22em',cursor:attachTarget?'pointer':'not-allowed'}}>Attach</button>
+              <button onClick={async()=>{if(!attachTarget)return;await attachDailyToPiece(attachTarget,null,null);setAttachTarget('');}} disabled={!attachTarget} className={isMobile?'w-full uppercase py-2':'uppercase px-3 py-1.5 shrink-0'} style={{border:`1px solid ${attachTarget?IKB:LINE_MED}`,color:attachTarget?TEXT:FAINT,background:attachTarget?IKB_SOFT:'transparent',fontSize:'10px',letterSpacing:'0.22em',cursor:attachTarget?'pointer':'not-allowed'}}>Attach</button>
             </div>
           </div>
         )}
@@ -336,7 +336,7 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
       {accel.enabled&&<AccelProgress metronome={metronome}/>}
     </div>)}
 
-    {quickNoteOpen&&(<div className="px-10 py-3 flex items-center gap-3" style={{borderBottom:`1px solid ${LINE}`,background:SURFACE}}><MessageSquarePlus className="w-3.5 h-3.5 shrink-0" strokeWidth={1.25} style={{color:IKB}}/><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Note {activeSpot&&<span style={{color:IKB,marginLeft:'6px'}}>· {activeSpot.label}</span>}</span><input autoFocus value={quickNoteText} onChange={e=>setQuickNoteText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submit();else if(e.key==='Escape'){setQuickNoteText('');setQuickNoteOpen(false);}}} onBlur={submit} placeholder="A note for this session…" className="flex-1 text-sm focus:outline-none" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_MED}`,fontFamily:serif,fontSize:'14px',paddingBottom:'2px'}}/><span className="uppercase shrink-0" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>Enter to save · Esc to cancel</span></div>)}
+    {quickNoteOpen&&(<div className={isMobile?'px-4 py-3 flex items-center gap-3':'px-10 py-3 flex items-center gap-3'} style={{borderBottom:`1px solid ${LINE}`,background:SURFACE}}><MessageSquarePlus className="w-3.5 h-3.5 shrink-0" strokeWidth={1.25} style={{color:IKB}}/><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Note {activeSpot&&<span style={{color:IKB,marginLeft:'6px'}}>· {activeSpot.label}</span>}</span><input autoFocus value={quickNoteText} onChange={e=>setQuickNoteText(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')submit();else if(e.key==='Escape'){setQuickNoteText('');setQuickNoteOpen(false);}}} onBlur={submit} placeholder="A note for this session…" className="flex-1 text-sm focus:outline-none" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_MED}`,fontFamily:serif,fontSize:'14px',paddingBottom:'2px'}}/>{!isMobile&&<span className="uppercase shrink-0" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>Enter to save · Esc to cancel</span>}</div>)}
 
     {isMobile?(
       /* ── Mobile 3-row transport ─────────────────────────────────────────── */
