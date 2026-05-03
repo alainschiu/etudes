@@ -1,4 +1,4 @@
-import React,{useState,useEffect,useCallback,Suspense,lazy} from 'react';
+import React,{useState,useEffect,useCallback,useRef,Suspense,lazy} from 'react';
 import useViewport from './hooks/useViewport.js';
 // MobileBottomNav kept but no longer rendered — replaced by TopBar + Drawer
 // import MobileBottomNav from './components/MobileBottomNav.jsx';
@@ -51,6 +51,8 @@ export default function Etudes(){
   const [requestedNoteId,setRequestedNoteId]=useState(null);
   const [clockTime,setClockTime]=useState(()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;});
   useEffect(()=>{const tick=()=>{const n=new Date();setClockTime(`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`);};const id=setInterval(tick,10000);return()=>clearInterval(id);},[]);
+  const mainScrollRef=useRef(null);
+  const scrollToTop=()=>mainScrollRef.current?.scrollTo({top:0,behavior:'smooth'});
   const [refBarVisible,setRefBarVisible]=useState(false);
   const [refBarSpeed,setRefBarSpeed]=useState(1.0);
   useEffect(()=>{if(s.refBarItemId){setRefBarSpeed(1.0);const id=requestAnimationFrame(()=>setRefBarVisible(true));return()=>cancelAnimationFrame(id);}else{setRefBarVisible(false);};},[s.refBarItemId]);
@@ -114,7 +116,7 @@ export default function Etudes(){
       <style>{`.etudes-scroll::-webkit-scrollbar{height:4px;width:4px}.etudes-scroll::-webkit-scrollbar-track{background:transparent}.etudes-scroll::-webkit-scrollbar-thumb{background:rgba(244,238,227,0.15);border-radius:0}.etudes-scroll::-webkit-scrollbar-thumb:hover{background:rgba(244,238,227,0.32)}.etudes-scroll{scrollbar-width:thin;scrollbar-color:rgba(244,238,227,0.15) transparent}.drag-ghost{opacity:0.35}.target-hover-reveal{opacity:0;transition:opacity 0.15s}.group:hover .target-hover-reveal{opacity:1}@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}.toast-enter{animation:slideUp 0.25s ease-out}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}input[type=number]{-moz-appearance:textfield;appearance:textfield}`}</style>
       {storageQuotaHit&&(<div className="shrink-0 px-10 py-2 flex items-center gap-3" style={{background:'#3D1A00',borderBottom:`1px solid rgba(201,126,74,0.4)`}}><span style={{color:WARM,fontSize:'11px',letterSpacing:'0.12em'}}>⚠ Storage full — new data is kept in memory only and will be lost when the tab closes. Export a backup to preserve your session.</span><button onClick={()=>setStorageQuotaHit(false)} style={{color:WARM,marginLeft:'auto',opacity:0.7,fontSize:'11px'}}>✕</button></div>)}
       {/* Mobile: TopBar is fixed-position, input hidden separately */}
-      {isMobile&&<TopBar onMenu={()=>setDrawerOpen(true)} activeItemId={activeItemId} onSettings={()=>setShowSettings(true)}/>}
+      {isMobile&&<TopBar onMenu={()=>setDrawerOpen(true)} activeItemId={activeItemId} onSettings={()=>setShowSettings(true)} onScrollToTop={scrollToTop}/>}
       {isMobile&&<input ref={importInputRef} type="file" accept="application/json" className="hidden" onChange={e=>{const f=e.target.files?.[0];if(f)importJsonFile(f);e.target.value='';}}/>}
       <header className="shrink-0" style={isMobile?{display:'none'}:{borderBottom:`1px solid ${LINE_MED}`}}>
         {isMobile?null:(
@@ -136,7 +138,7 @@ export default function Etudes(){
       </header>
       {isMobile&&storageMode==='memory'&&(<div className="shrink-0 px-4 py-1.5 flex items-center justify-center" style={{background:SURFACE,borderBottom:`1px dashed ${LINE_MED}`}}><span className="uppercase tabular-nums" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.28em'}}>Storage unavailable · session will not be saved</span></div>)}
       <div className="flex-1 flex overflow-hidden">
-        <main className="flex-1 overflow-auto etudes-scroll" style={isMobile?{paddingTop:'calc(44px + env(safe-area-inset-top, 0px))'}:{}}>
+        <main ref={mainScrollRef} className="flex-1 overflow-auto etudes-scroll" style={isMobile?{paddingTop:'calc(44px + env(safe-area-inset-top, 0px))'}:{}}>
           {view==='today'&&<TodayView {...{...commonProps,view,setView,todaySessions,setTodaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,totalToday,effectiveTotalToday,warmupTimeToday,restToday,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,deleteRecording,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,handleStartRecording,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,isRecording,currentBpm:metronome.bpm,refTrackMeta:s.refTrackMeta,refBarItemId:s.refBarItemId,setRefBarItemId:s.setRefBarItemId}}/>}
           {view==='review'&&<ReviewView {...{...commonProps,weekActualSeconds,weekReflection,setWeekReflection,monthActualSeconds,monthReflection,setMonthReflection,effectiveTotalToday,warmupTimeToday,openLogEntry}}/>}
           {view==='repertoire'&&<RepertoireView {...{...commonProps,view,setItems:s.setItems,updateItem,deleteItem,setPdfDrawerItemId,activeItemId,activeSpotId,startItem,stopItem,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta:s.pieceRecordingMeta,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,deletePieceRecording:s.deletePieceRecording,lockPieceRecording:s.lockPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,isRecording,currentBpm:metronome.bpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta:s.refTrackMeta,uploadRefTrack:s.uploadRefTrack,deleteRefTrack:s.deleteRefTrack,pdfUrlMap:s.pdfUrlMap,localPieceRecordingIds:s.localPieceRecordingIds,localRefTrackIds:s.localRefTrackIds}}/>}
