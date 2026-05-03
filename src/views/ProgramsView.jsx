@@ -324,6 +324,7 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
             onChange={v=>update({body:v||null})}
             placeholder="Program notes, quotes, ideas — anything belonging to this program's world."
             minHeight={120}
+            onWikiLinkClick={handleBodyWikiClick}
           />
         )}
       </div>

@@ -180,8 +180,7 @@ function createWikiCompletion(itemsRef, historyRef, programsRef, notesRef) {
   return (ctx) => {
     const before = ctx.matchBefore(/\[\[[^\]]*$/);
     if (!before) return null;
-    const query = before.text.slice(2);
-    if (!ctx.explicit && query.length < 0) return null;
+    const query = before.text.slice(2); // text after [[
 
     const items = itemsRef.current || [];
     const history = historyRef.current || [];
@@ -214,17 +213,25 @@ function createWikiCompletion(itemsRef, historyRef, programsRef, notesRef) {
       if (n.title) options.push({ label: n.title, detail: 'note', apply: `[[${n.title}]]` });
     });
 
-    let filtered = options;
+    let filtered;
     if (query) {
       const qSlug = slugify(query);
       filtered = options
         .map((o) => ({ ...o, _score: scoreMatch(qSlug, slugify(o.label)) }))
         .filter((o) => o._score > 0)
         .sort((a, b) => b._score - a._score);
+    } else {
+      // No query yet — show all, items first (already boosted)
+      filtered = options;
     }
 
     if (!filtered.length) return null;
-    return { from: before.from, options: filtered.slice(0, 25) };
+
+    // filter:false prevents CodeMirror from applying its own secondary fuzzy
+    // filter on top of our results. Without this, CodeMirror compares the filter
+    // text ("[[query") against option labels (which don't contain "[["), causing
+    // the list to vanish as soon as the user types any character after "[[".
+    return { from: before.from, filter: false, options: filtered.slice(0, 30) };
   };
 }
 

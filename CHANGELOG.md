@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.97.12 — 2026-05-03
+
+### Mobile & wiki-link improvements
+
+- **`[[wiki-links]]` clickable everywhere** — `MarkdownField` (read-only and edit modes) and `MarkdownEditor` now fire navigation on tap/click in every view: Today notes, daily/weekly/monthly reflections, Répertoire pinned notes and log entries, Programs body. In read-only mode `[[text]]` is preprocessed to a tappable inline link; in edit mode the CodeMirror `touchstart` handler fires on iOS. Navigation resolves the link and jumps to the correct view (day → Logs, item/spot → Répertoire, program → Programs, note → Notes).
+- **Wiki-link autocomplete fixed** — `MarkdownField` now forwards `completionData` (`items`, `history`, `programs`, `notes`) to the CodeMirror autocomplete source. `App.jsx` builds `wikiCompletionData` once and passes it through `commonProps` so all views receive it automatically — no per-call-site data fetching needed.
+- **Obsidian-style autocomplete filtering** — `scoreMatch` rewritten with word-prefix scoring so typing `[[2` surfaces dates and titles whose words start with `2`; `filter: false` on the `CompletionResult` prevents CodeMirror's own fuzzy pass from overriding the results.
+- **"Edit in Répertoire" on mobile today** — Expanded item row in Today (mobile) now has an action footer matching the desktop: **Edit in Répertoire** button (navigates to Répertoire with the item pre-expanded) and **Pin / ★ En cours** toggle.
+- **Recordings tab default** — Mobile piece detail screen (Répertoire) opens on the **Recordings** tab instead of Spots; the recordings accordion inside `PieceRecordingsPanel` also defaults to open.
+- **Tap title to scroll to top** — Tapping the "Études" wordmark in the mobile TopBar smooth-scrolls the current view back to the top, matching the native iOS/Android title-bar convention.
+- **Scroll drift fixed** — `html` and `body` now carry `overflow: hidden; overscroll-behavior: none` and the main scroll container uses `overscroll-behavior: contain`, eliminating the iOS rubber-band body bleed-through that caused the page to drift when scrolling in Répertoire and other long lists.
+
 ## v0.97.11 — 2026-05-03
 
 ### Google Drive — sync layer hardening

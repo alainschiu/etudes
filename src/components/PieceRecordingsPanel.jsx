@@ -29,7 +29,7 @@ export default function PieceRecordingsPanel({
   uploadRefTrack,
   deleteRefTrack,
 }){
-  const [open,setOpen]=useState(false);
+  const [open,setOpen]=useState(true);
   const [selected,setSelected]=useState(null);
 
   const itemMeta=pieceRecordingMeta?.[item.id]||{};

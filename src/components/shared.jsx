@@ -365,21 +365,29 @@ export function Tooltip({children,shortcut,label}){
 const DEEP_LINK_SCHEMES=['obsidian://','x-devonthink-item://'];
 const HAS_CUSTOM_LINK_RE=/(?:obsidian:\/\/|x-devonthink-item:\/\/)/;
 
-function MarkdownComponents({serif:serifFont}){
+function preprocessWikiLinks(text){
+  return (text||'').replace(/\[\[([^\]\n]+)\]\]/g,(_,inner)=>`[${inner}](wikilink://${encodeURIComponent(inner)})`);
+}
+
+function MarkdownComponents({onWikiLinkClick}){
   return {
     a:({href,children,...rest})=>{
-      // Always prevent default navigation — any link that triggers browser navigation
-      // reloads the SPA and jumps to Today. Open externals in a new tab; swallow everything else.
       const isExternal=href&&(href.startsWith('http://')||href.startsWith('https://'));
       const isDeep=DEEP_LINK_SCHEMES.some(s=>href&&href.startsWith(s));
+      const isWiki=href&&href.startsWith('wikilink://');
       const suppress=(e)=>{e.preventDefault();e.stopPropagation();};
       const handleClick=(e)=>{
         suppress(e);
-        if((isExternal||isDeep)&&href)window.open(href,'_blank','noopener,noreferrer');
+        if(isWiki&&onWikiLinkClick){
+          onWikiLinkClick(decodeURIComponent(href.slice('wikilink://'.length)));
+        }else if((isExternal||isDeep)&&href){
+          window.open(href,'_blank','noopener,noreferrer');
+        }
       };
+      const wikilinkStyle=isWiki?{color:LINK,borderBottom:`1px solid ${LINK}55`,cursor:'pointer',textDecoration:'none'}:{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'};
       // touchstart must also preventDefault synchronously on iOS or the browser
       // initiates navigation before onClick fires.
-      return (<a href={href} onClick={handleClick} onTouchStart={suppress} style={{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'}} {...rest}>{children}</a>);
+      return (<a href={href} onClick={handleClick} onTouchStart={suppress} style={wikilinkStyle} {...rest}>{children}</a>);
     },
     p:({children})=><p style={{marginBottom:'0.85em',lineHeight:1.8}}>{children}</p>,
     h1:({children})=><h1 style={{fontSize:'1.3em',fontWeight:400,marginBottom:'0.5em',marginTop:'1em',borderBottom:`1px solid rgba(244,238,227,0.12)`,paddingBottom:'0.2em'}}>{children}</h1>,
@@ -394,7 +402,7 @@ function MarkdownComponents({serif:serifFont}){
   };
 }
 
-export function MarkdownField({value,onChange,placeholder,minHeight=80,className='',style={},readOnly=false,showDeepLinkHint=false}){
+export function MarkdownField({value,onChange,placeholder,minHeight=80,className='',style={},readOnly=false,showDeepLinkHint=false,onWikiLinkClick,completionData}){
   const {fontSize:styleFontSize,background,border,...wrapStyle}=style||{};
   const hasCustomLink=HAS_CUSTOM_LINK_RE.test(value||'');
   const showHint=showDeepLinkHint&&hasCustomLink;
@@ -403,7 +411,9 @@ export function MarkdownField({value,onChange,placeholder,minHeight=80,className
     return (
       <div className={className} style={{minHeight,padding:'12px 16px',fontFamily:serifText,fontSize:'15px',lineHeight:1.8,fontWeight:300,color:TEXT,background:'transparent',border:`1px solid ${LINE}`,...style}}>
         {(value||'').trim()?(
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents({})}>{value}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents({onWikiLinkClick})}>
+            {onWikiLinkClick?preprocessWikiLinks(value):value}
+          </ReactMarkdown>
         ):(
           <span style={{color:FAINT,fontStyle:'italic',fontSize:'14px'}}>{placeholder||'Nothing here yet.'}</span>
         )}
@@ -419,6 +429,11 @@ export function MarkdownField({value,onChange,placeholder,minHeight=80,className
         placeholder={placeholder}
         minHeight={minHeight}
         fontSize={styleFontSize||'15px'}
+        onWikiLinkClick={onWikiLinkClick}
+        items={completionData?.items}
+        history={completionData?.history}
+        programs={completionData?.programs}
+        notes={completionData?.notes}
       />
       {showHint&&(
         <div style={{padding:'4px 16px 8px',fontSize:'11px',color:FAINT,fontStyle:'italic',fontFamily:serif}}>

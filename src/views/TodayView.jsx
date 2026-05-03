@@ -52,7 +52,7 @@ function AnalogClock({size=40}){
 
 export default function TodayView(p){
   const {isMobile}=useViewport();
-  const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm,refTrackMeta,refBarItemId,setRefBarItemId}=p;
+  const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm,refTrackMeta,refBarItemId,setRefBarItemId,onWikiLinkClick,wikiCompletionData}=p;
   const today=new Date();const todayKey=todayDateStr();
   const [routineMenu,setRoutineMenu]=useState(false);const [addMenu,setAddMenu]=useState(false);const [pickerSessionId,setPickerSessionId]=useState(null);const [quickAdd,setQuickAdd]=useState(null);const [confirmClose,setConfirmClose]=useState(false);
   // Click-outside to collapse expanded item panel
@@ -220,10 +220,10 @@ export default function TodayView(p){
                   {quickAdd?.itemId===item.id&&(<div className="space-y-3 pb-4" style={{borderBottom:`1px solid ${LINE}`}}><input autoFocus value={item.title==='Untitled'?'':item.title} onChange={e=>updateItem(item.id,{title:e.target.value})} placeholder="Title" onKeyDown={e=>{if(e.key==='Escape')setQuickAdd(null);}} className="w-full focus:outline-none pb-0.5" style={{background:'transparent',color:TEXT,fontFamily:sans,fontWeight:300,fontSize:'15px',borderBottom:`1px solid ${LINE_MED}`}}/><input value={item.composer||''} onChange={e=>updateItem(item.id,{composer:e.target.value})} placeholder="Composer" onKeyDown={e=>{if(e.key==='Enter'||e.key==='Escape')setQuickAdd(null);}} className="w-full focus:outline-none pb-0.5" style={{background:'transparent',color:TEXT,fontFamily:sans,fontWeight:300,fontSize:'13px',borderBottom:`1px solid ${LINE_MED}`}}/><div className="flex justify-end"><button onClick={()=>setQuickAdd(null)} className="uppercase flex items-center gap-1.5 px-3 py-1" style={{color:IKB,border:`1px solid ${IKB}40`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}><Check className="w-3 h-3" strokeWidth={1.25}/> Done</button></div></div>)}
                   {/* Recording — shown first if present */}
                   {(()=>{const todayEntry=pieceRecordingMeta?.[item.id]?.[todayKey];if(!todayEntry)return null;const bkey=todayEntry.idbKey??`${item.id}__${todayKey}`;return(<Waveform key={todayEntry.ts} compact blobLoader={()=>idbGet('pieceRecordings',bkey)} meta={todayEntry}/>);})()}
-                  <div><div className="uppercase mb-1.5 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><MessageSquarePlus className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Today</div><MarkdownField value={item.todayNote||''} onChange={v=>updateItem(item.id,{todayNote:v})} placeholder="What happened." minHeight={80} style={{background:SURFACE2,border:`1px solid ${IKB}40`}} showDeepLinkHint/></div>
+                  <div><div className="uppercase mb-1.5 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><MessageSquarePlus className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Today</div><MarkdownField value={item.todayNote||''} onChange={v=>updateItem(item.id,{todayNote:v})} placeholder="What happened." minHeight={80} style={{background:SURFACE2,border:`1px solid ${IKB}40`}} showDeepLinkHint onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/></div>
                   {item.type==='piece'&&<SpotsBlock item={item} itemTimes={itemTimes} activeItemId={activeItemId} activeSpotId={activeSpotId} startItem={(id,sid)=>startItem(id,sid,session.id)} stopItem={stopItem} addSpot={addSpot} updateSpot={updateSpot} deleteSpot={deleteSpot} editSpotTime={editSpotTime} dayClosed={dayClosed}/>}
                   {item.referenceUrl&&(()=>{const embed=getEmbedInfo(item.referenceUrl);return(<div><div className="uppercase mb-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}>Reference</div>{embed?.type==='youtube'?(<div style={{position:'relative',paddingBottom:'56.25%',height:0,overflow:'hidden',background:SURFACE2,borderRadius:2}}><iframe src={embed.src} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allowFullScreen loading="lazy" title="Reference"/></div>):embed?.type==='spotify'?(<iframe src={embed.src} width="100%" height={embed.compact?152:352} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Reference"/>):embed?.type==='apple'?(<iframe src={embed.src} width="100%" height={175} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay *; encrypted-media *; fullscreen *" loading="lazy" title="Reference"/>):(<a href={item.referenceUrl} target="_blank" rel="noopener noreferrer" className="uppercase flex items-center gap-1" style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em'}}>Open reference ↗</a>)}</div>);})()}
-                  <div><div className="uppercase mb-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}>Notes <span style={{color:DIM,letterSpacing:'0.2em'}}>· persistent</span></div><MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={80} style={{background:SURFACE2}} showDeepLinkHint/></div>
+                  <div><div className="uppercase mb-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}>Notes <span style={{color:DIM,letterSpacing:'0.2em'}}>· persistent</span></div><MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={80} style={{background:SURFACE2}} showDeepLinkHint onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/></div>
                   <div className="flex items-center gap-2 text-xs flex-wrap">
                     <button onClick={()=>{setExpandedItemId(item.id);setView('repertoire');}} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Edit in Repertoire</button>
                     {hasPdf&&<button onClick={()=>setPdfDrawerItemId(item.id)} className="uppercase px-3 py-1.5 flex items-center gap-1.5" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><FileText className="w-3 h-3" strokeWidth={1.25}/>Open Score</button>}
@@ -255,13 +255,13 @@ export default function TodayView(p){
           <button onClick={()=>setConfirmClose(true)} className="uppercase flex items-center gap-2 px-4 py-2.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'10px',letterSpacing:'0.28em'}} title="Finalize today and lock timer edits"><Lock className="w-3 h-3" strokeWidth={1.25}/> Close the day</button>
         )}
       </div>
-      <div className="mt-16"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Reflection</div><h3 className="text-4xl mb-6 leading-none" style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,letterSpacing:'-0.015em'}}>Journal du jour</h3><MarkdownField value={dailyReflection||''} onChange={setDailyReflection} placeholder="How today felt. What surprised you." minHeight={176} style={{background:SURFACE,fontSize:'16px'}} showDeepLinkHint/><div ref={reflectionRef}/></div>
+      <div className="mt-16"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Reflection</div><h3 className="text-4xl mb-6 leading-none" style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,letterSpacing:'-0.015em'}}>Journal du jour</h3><MarkdownField value={dailyReflection||''} onChange={setDailyReflection} placeholder="How today felt. What surprised you." minHeight={176} style={{background:SURFACE,fontSize:'16px'}} showDeepLinkHint onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/><div ref={reflectionRef}/></div>
     </div>
   );
 }
 
 // ── Mobile item row — extracted so useLongPress is called at component top-level
-function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta,addSpot,updateSpot,deleteSpot,editSpotTime,workingOn,toggleWorking}){
+function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta,addSpot,updateSpot,deleteSpot,editSpotTime,onWikiLinkClick,completionData,setView,setExpandedItemId,workingOn,toggleWorking}){
   const isActiveAny = activeItemId === item.id && activeSessionId === session.id;
   const isActiveWhole = isActiveAny && !activeSpotId;
   const time = getItemTime(itemTimes, item.id);
@@ -403,6 +403,8 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
                 placeholder="What happened."
                 minHeight={60}
                 style={{background:SURFACE2,border:`1px solid ${IKB}40`,fontSize:'13px'}}
+                onWikiLinkClick={onWikiLinkClick}
+                completionData={completionData}
               />
             </div>
           )}
@@ -416,6 +418,8 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
                 placeholder="Long-running notes…"
                 minHeight={60}
                 style={{background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'13px'}}
+                onWikiLinkClick={onWikiLinkClick}
+                completionData={completionData}
               />
             </div>
           )}
@@ -469,6 +473,13 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
                 <FileText size={12} strokeWidth={1.25}/>Open Score
               </button>
             )}
+            <button
+              onClick={()=>{if(setExpandedItemId)setExpandedItemId(item.id);if(setView)setView('repertoire');}}
+              style={{display:'flex',alignItems:'center',gap:'6px',padding:'7px 12px',
+                border:`1px solid ${LINE_STR}`,background:'transparent',cursor:'pointer',
+                color:MUTED,fontFamily:sans,fontSize:'10px',letterSpacing:'0.22em',textTransform:'uppercase'}}>
+              Edit in Répertoire
+            </button>
             {toggleWorking&&(
               <button
                 onClick={()=>toggleWorking(item.id)}
@@ -704,6 +715,10 @@ function TodayMobile(p){
                     updateSpot={p.updateSpot}
                     deleteSpot={p.deleteSpot}
                     editSpotTime={p.editSpotTime}
+                    onWikiLinkClick={p.onWikiLinkClick}
+                    completionData={p.wikiCompletionData}
+                    setView={setView}
+                    setExpandedItemId={p.setExpandedItemId}
                     workingOn={p.workingOn}
                     toggleWorking={p.toggleWorking}
                   />
@@ -756,6 +771,8 @@ function TodayMobile(p){
               minHeight={100}
               style={{background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'14px'}}
               showDeepLinkHint
+              onWikiLinkClick={p.onWikiLinkClick}
+              completionData={p.wikiCompletionData}
             />
           </div>
         )}

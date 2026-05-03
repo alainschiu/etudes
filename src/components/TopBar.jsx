@@ -5,7 +5,7 @@ import WifiOff from 'lucide-react/dist/esm/icons/wifi-off';
 import {BG, IKB, TEXT, MUTED, LINE, serif, sans, SURFACE2, LINE_MED} from '../constants/theme.js';
 import {Z_TOPBAR} from '../constants/theme.js';
 
-export default function TopBar({onMenu, activeItemId, onSettings}) {
+export default function TopBar({onMenu, activeItemId, onSettings, onScrollToTop}) {
   const [online, setOnline] = useState(() => (typeof navigator !== 'undefined' ? navigator.onLine : true));
 
   useEffect(() => {
@@ -57,8 +57,9 @@ export default function TopBar({onMenu, activeItemId, onSettings}) {
         <Menu size={18} strokeWidth={1.5} />
       </button>
 
-      {/* Center — wordmark */}
-      <div
+      {/* Center — wordmark; tap scrolls to top of current view */}
+      <button
+        onClick={onScrollToTop}
         style={{
           position: 'absolute',
           left: 0,
@@ -67,8 +68,13 @@ export default function TopBar({onMenu, activeItemId, onSettings}) {
           alignItems: 'center',
           justifyContent: 'center',
           gap: '7px',
-          pointerEvents: 'none',
+          background: 'transparent',
+          border: 'none',
+          cursor: 'pointer',
+          padding: 0,
+          height: '44px',
         }}
+        aria-label="Scroll to top"
       >
         <div
           className={activeItemId ? 'animate-pulse' : ''}
@@ -92,7 +98,7 @@ export default function TopBar({onMenu, activeItemId, onSettings}) {
         >
           Études
         </span>
-      </div>
+      </button>
 
       {/* Right — offline (PWA / flaky network) + settings */}
       <div style={{marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6}}>

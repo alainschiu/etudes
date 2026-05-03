@@ -11,10 +11,19 @@ export function slugify(s){
 
 export function scoreMatch(querySlug,candidateSlug){
   if(!querySlug||!candidateSlug)return 0;
-  if(querySlug===candidateSlug)return 3;
+  if(querySlug===candidateSlug)return 10;
+  // Prefix match on full string
+  if(candidateSlug.startsWith(querySlug))return 8;
   const words=querySlug.split(' ').filter(Boolean);
-  if(words.length>0&&words.every(w=>candidateSlug.includes(w)))return 2;
-  if(words.some(w=>w.length>2&&candidateSlug.includes(w)))return 1;
+  const candWords=candidateSlug.split(' ').filter(Boolean);
+  // Every query word matches the start of some candidate word (word-prefix)
+  if(words.every(qw=>candWords.some(cw=>cw.startsWith(qw))))return 6;
+  // Every query word appears somewhere in candidate
+  if(words.every(w=>candidateSlug.includes(w)))return 4;
+  // At least one query word (even 1-char) starts a candidate word
+  if(words.some(w=>candWords.some(cw=>cw.startsWith(w))))return 2;
+  // At least one query word (>1 char) appears anywhere
+  if(words.some(w=>w.length>1&&candidateSlug.includes(w)))return 1;
   return 0;
 }
 
