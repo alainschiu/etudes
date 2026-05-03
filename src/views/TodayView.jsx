@@ -147,7 +147,7 @@ export default function TodayView(p){
             {/* Section header — click to collapse/expand */}
             <div className="group flex items-center justify-between py-3 px-2 cursor-pointer" style={{borderBottom:`1px solid ${LINE}`}} onClick={()=>toggleCollapsed(session.id)}>
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <span onClick={e=>{e.stopPropagation();}} draggable onDragStart={()=>handleDragStart(idx)} onDragEnd={handleDragEnd} className="cursor-grab active:cursor-grabbing inline-flex items-center shrink-0" style={{color:FAINT,padding:'0 2px'}}><GripVertical className="w-3.5 h-3.5" strokeWidth={1.25}/></span>
+                <span onClick={e=>{e.stopPropagation();}} draggable onDragStart={()=>handleDragStart(idx)} onDragEnd={handleDragEnd} className="cursor-grab active:cursor-grabbing inline-flex items-center shrink-0" style={{color:FAINT,padding:'0 2px',touchAction:'none',userSelect:'none'}}><GripVertical className="w-3.5 h-3.5" strokeWidth={1.25}/></span>
                 <span className="tabular-nums shrink-0" style={{color:DIM,fontFamily:serif,fontStyle:'italic',fontSize:'11px',minWidth:'16px'}}>{toRoman(idx+1)}</span>
                 {isWarmup&&<span className="shrink-0" style={{color:WARM,fontSize:'13px',lineHeight:1}} title="Warm-up · excluded from target">◔</span>}
                 <span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em',fontFamily:sans}}>{SECTION_CONFIG[type].label}</span>
