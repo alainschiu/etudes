@@ -13,6 +13,8 @@ import Library from 'lucide-react/dist/esm/icons/library';
 import Pencil from 'lucide-react/dist/esm/icons/pencil';
 import Maximize2 from 'lucide-react/dist/esm/icons/maximize-2';
 import Minimize2 from 'lucide-react/dist/esm/icons/minimize-2';
+import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
+import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,serif,sans,mono} from '../constants/theme.js';
 import {displayTitle,formatByline,getItemTime} from '../lib/items.js';
 import {SpotRow} from './shared.jsx';
@@ -120,6 +122,7 @@ export default function PdfDrawer({
   const [bmRenameVal,setBmRenameVal]=useState('');
   const [currentViewPage,setCurrentViewPage]=useState(1);
   const [expanded,setExpanded]=useState(false); // fullscreen modal
+  const [sidebarCollapsed,setSidebarCollapsed]=useState(false);
   const viewerRef=useRef(null); // exposed jumpToPage from PdfViewer
 
   useEffect(()=>{
@@ -410,15 +413,39 @@ export default function PdfDrawer({
             )}
           </div>
 
-          {/* Resize handle */}
-          <div
-            onMouseDown={onResizeMouseDown}
-            style={{width:'6px',cursor:'col-resize',background:dragging?IKB:LINE,flexShrink:0,transition:'background 0.1s'}}
-          />
+          {/* Resize handle — desktop only, hidden when sidebar is collapsed */}
+          {!isMobile&&!sidebarCollapsed&&(
+            <div
+              onMouseDown={onResizeMouseDown}
+              style={{width:'8px',cursor:'col-resize',flexShrink:0,
+                background:dragging?IKB:`${LINE_MED}`,transition:'background 0.12s',
+                display:'flex',alignItems:'center',justifyContent:'center'}}
+            >
+              <div style={{width:'2px',height:'32px',borderRadius:'1px',
+                background:dragging?'rgba(255,255,255,0.55)':'rgba(255,255,255,0.18)',
+                transition:'background 0.12s'}}/>
+            </div>
+          )}
 
-          {/* Sidebar */}
+          {/* Collapsed stub — desktop only */}
+          {!isMobile&&sidebarCollapsed&&(
+            <div style={{width:'28px',flexShrink:0,borderLeft:`1px solid ${LINE_MED}`,
+              display:'flex',flexDirection:'column',alignItems:'center',paddingTop:'8px',
+              background:SURFACE}}>
+              <button
+                onClick={()=>setSidebarCollapsed(false)}
+                title="Expand panel"
+                style={{color:FAINT,padding:'4px',display:'flex',alignItems:'center',justifyContent:'center',
+                  background:'transparent',border:'none',cursor:'pointer'}}>
+                <ChevronLeft className="w-3.5 h-3.5" strokeWidth={1.25}/>
+              </button>
+            </div>
+          )}
+
+          {/* Sidebar — expanded (desktop) or always (mobile) */}
+          {(isMobile||!sidebarCollapsed)&&(
           <div style={isMobile?{height:'240px',flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderTop:`1px solid ${LINE_MED}`}:{width:sidebarW,flexShrink:0,display:'flex',flexDirection:'column',overflow:'hidden',borderLeft:`1px solid ${LINE_MED}`}}>
-            {/* Sidebar tabs */}
+            {/* Sidebar tabs + desktop collapse button */}
             <div className="flex items-center shrink-0" style={{borderBottom:`1px solid ${LINE}`}}>
               {[{id:'spots',icon:<Crosshair className="w-3 h-3" strokeWidth={1.25}/>,label:'Spots'},
                 {id:'bookmarks',icon:<Bookmark className="w-3 h-3" strokeWidth={1.25}/>,label:'Marks'},
@@ -429,6 +456,15 @@ export default function PdfDrawer({
                   {t.icon}{t.label}
                 </button>
               ))}
+              {!isMobile&&(
+                <button
+                  onClick={()=>setSidebarCollapsed(true)}
+                  title="Collapse panel"
+                  style={{marginLeft:'auto',padding:'0 10px',color:FAINT,height:'100%',display:'flex',
+                    alignItems:'center',background:'transparent',border:'none',cursor:'pointer'}}>
+                  <ChevronRight className="w-3.5 h-3.5" strokeWidth={1.25}/>
+                </button>
+              )}
             </div>
 
             {/* Time row */}
@@ -564,6 +600,7 @@ export default function PdfDrawer({
               rows={5}
               style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'13px',lineHeight:1.7,fontWeight:300,padding:'12px',borderTop:`1px solid ${LINE}`,flexShrink:0}}/>
           </div>
+          )}
         </div>
       </div>
     </div>
