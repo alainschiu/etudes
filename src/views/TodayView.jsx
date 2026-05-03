@@ -704,8 +704,8 @@ function TodayMobile(p){
                     updateSpot={p.updateSpot}
                     deleteSpot={p.deleteSpot}
                     editSpotTime={p.editSpotTime}
-                    workingOn={workingOn}
-                    toggleWorking={toggleWorking}
+                    workingOn={p.workingOn}
+                    toggleWorking={p.toggleWorking}
                   />
                 ))}
 
