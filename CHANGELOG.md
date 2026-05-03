@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.97.9 — 2026-05-03
+
+### Google Drive backup (foundation)
+
+- **GIS + Drive API** — [`driveAuth.js`](src/lib/driveAuth.js): Google Identity Services token client, `drive.file` scope, in-memory access token, silent renewal via empty `prompt` when a token already exists; [`driveApi.js`](src/lib/driveApi.js): centralized `fetch` with **401** handling and **exponential backoff + jitter** on **403** `rateLimitExceeded` / `userRateLimitExceeded`.
+- **Manifest + probe** — [`driveManifest.js`](src/lib/driveManifest.js) (`etudes-driveManifest`); [`driveSync.js`](src/lib/driveSync.js) `probeDriveConnection()` (Drive `about` user).
+- **Settings → Sync** — “Google Drive backup” block: **Connect Google Drive** / **Disconnect** when `VITE_GOOGLE_CLIENT_ID` is set (placeholder copy until full push/restore ships).
+- **Env** — [`src/vite-env.d.ts`](src/vite-env.d.ts) documents `VITE_GOOGLE_CLIENT_ID`.
+
+### Auth
+
+- **Apple Sign-In removed** — Supabase Apple OAuth button and `signInWithApple` removed from [`useSupabaseAuth.js`](src/lib/useSupabaseAuth.js) and [`useEtudesState.js`](src/state/useEtudesState.js).
+
 ## v0.97.8 — 2026-05-02
 
 ### PWA / service worker

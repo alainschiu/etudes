@@ -1,5 +1,10 @@
 # Update Log
 
+## v0.97.9 — 2026-05-03
+
+- **Google Drive (early)** — Settings → Sync includes **Connect Google Drive** using Google’s sign-in (separate from your Supabase account). Full backup to Drive is still being built; this release wires the first step so we can verify your OAuth client.
+- **Apple sign-in removed** — Sign in is email or Google only.
+
 ## v0.97.8 — 2026-05-02
 
 - **PWA — offline in the header** — on mobile, the top bar shows a small **Offline** indicator when the device has no network (so you know why sync or uploads may not work, even though the app shell can still run from cache)

@@ -134,7 +134,7 @@ export default function useEtudesState(){
   // ── Sub-hooks ─────────────────────────────────────────────────────────────
   const metro=useMetronome();
   const {metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,handleTap}=metro;
-  const {user,signIn,signUp,signOut,signInWithGoogle,signInWithApple}=useSupabaseAuth();
+  const {user,signIn,signUp,signOut,signInWithGoogle}=useSupabaseAuth();
   const userRef=useRef(null);
   useEffect(()=>{userRef.current=user;},[user]);
   const [syncStatus,setSyncStatus]=useState('idle'); // 'idle'|'syncing'|'error'
@@ -615,6 +615,6 @@ export default function useEtudesState(){
     openLogEntry,closeLogDrawer,resolveDayEntry,
     exportJson,importJsonFile,buildZip,exportProgress,
     handleTap,
-    user,signIn,signUp,signOut,signInWithGoogle,signInWithApple,syncStatus,lastSyncedAt,syncNow:doSync,syncPayloadWarning,
+    user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow:doSync,syncPayloadWarning,
   };
 }

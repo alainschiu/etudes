@@ -1,4 +1,6 @@
 import React, {useState} from 'react';
+import {isDriveConfigured, getDriveAccessToken, clearDriveSession, hasDriveToken} from '../lib/driveAuth.js';
+import {probeDriveConnection} from '../lib/driveSync.js';
 import X from 'lucide-react/dist/esm/icons/x';
 import Download from 'lucide-react/dist/esm/icons/download';
 import Archive from 'lucide-react/dist/esm/icons/archive';
@@ -16,6 +18,8 @@ const USER_GUIDE_URL='https://etudes.me/guide';
 export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll}){
   const [devBusy,setDevBusy]=useState(false);
   const [devStatus,setDevStatus]=useState('');
+  const [driveBusy,setDriveBusy]=useState(false);
+  const [driveLine,setDriveLine]=useState('');
   const [tab,setTab]=useState('settings');
   const [authMode,setAuthMode]=useState('signin'); // 'signin'|'signup'
   const [authEmail,setAuthEmail]=useState('');
@@ -70,7 +74,50 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
             {syncPayloadWarning&&(<div className="px-3 py-2" style={{background:'rgba(184,150,104,0.12)',border:'1px solid rgba(184,150,104,0.3)'}}><div className="italic" style={{color:'#B89668',fontFamily:serif,fontSize:'11px',lineHeight:1.5}}>Your journal is large. Export a backup to protect your data.</div></div>)}
             <div className="pt-2 pb-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>
               <span style={{color:MUTED}}>What syncs:</span> repertoire, practice history, notes, settings, and recording metadata.<br/>
-              <span style={{color:MUTED}}>Local only:</span> audio recordings and PDF scores. Use Export to back them up.
+              <span style={{color:MUTED}}>Local only:</span> audio recordings and PDF scores stay on the device unless you use Google Drive backup (below) or Export.
+            </div>
+            <div className="pt-5 mt-4" style={{borderTop:`1px solid ${LINE}`}}>
+              <div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Google Drive backup</div>
+              {!isDriveConfigured() ? (
+                <p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Drive backup requires <span style={{fontFamily:'ui-monospace,monospace',fontSize:'10px'}}>VITE_GOOGLE_CLIENT_ID</span> (OAuth Web client with Drive scope). Full upload and restore are not wired yet — this step verifies Google sign-in to Drive only.</p>
+              ) : (
+                <div className="space-y-3">
+                  <p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Separate from Supabase: uses Google Identity Services with access only to files the app creates in your Drive.</p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      disabled={driveBusy}
+                      onClick={async()=>{
+                        setDriveBusy(true);setDriveLine('');
+                        try{
+                          await getDriveAccessToken({interactive:true});
+                          const r=await probeDriveConnection();
+                          if(r.ok)setDriveLine(r.user?.emailAddress?`Connected (${r.user.emailAddress})`:'Connected to Drive');
+                          else setDriveLine(r.error||'Connection failed');
+                        }catch(e){setDriveLine(e instanceof Error?e.message:String(e));}
+                        finally{setDriveBusy(false);}
+                      }}
+                      className="uppercase flex items-center gap-1.5 px-3 py-2"
+                      style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em',opacity:driveBusy?0.5:1}}
+                    >
+                      {driveBusy?<Loader className="w-3 h-3 animate-spin" strokeWidth={1.5}/>:null}
+                      Connect Google Drive
+                    </button>
+                    {hasDriveToken()&&(
+                      <button
+                        type="button"
+                        disabled={driveBusy}
+                        onClick={()=>{clearDriveSession();setDriveLine('Signed out of Drive on this device');}}
+                        className="uppercase px-3 py-2"
+                        style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}
+                      >
+                        Disconnect Drive
+                      </button>
+                    )}
+                  </div>
+                  {driveLine&&<div className="text-xs italic" style={{color:MUTED,fontFamily:serif}}>{driveLine}</div>}
+                </div>
+              )}
             </div>
           </>
         ):signupSent?(

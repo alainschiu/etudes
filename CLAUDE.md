@@ -4,7 +4,7 @@ Before doing anything, read `North_Star_V2.3.md`. It is the authoritative
 product document and supersedes all other instructions.
 
 Current version: v2.3
-Current app version: v0.97.8
+Current app version: v0.97.9
 
 ---
 
@@ -14,7 +14,8 @@ Current app version: v0.97.8
 - **Tailwind CSS** — layout and spacing only; all colour/typography via design tokens
 - **vite-plugin-pwa / Workbox** — service worker, `clientsClaim: true`, `registerType: prompt`, `injectRegister: false` (registration via `useRegisterSW` / `UpdatePrompt.jsx`), `skipWaiting: false` until user reloads; precache glob includes `mjs` (PDF worker)
 - **react-pdf / pdfjs-dist** — PDF rendering in `PdfViewer.jsx`
-- **Supabase** — auth (email + Google + Apple OAuth) + PostgreSQL sync; optional
+- **Supabase** — auth (email + Google OAuth) + PostgreSQL sync; optional
+- **Google Drive (WIP)** — GIS + `drive.file` in [`src/lib/driveAuth.js`](src/lib/driveAuth.js) / [`driveApi.js`](src/lib/driveApi.js); decoupled from Supabase session; `VITE_GOOGLE_CLIENT_ID`
 - **lucide-react** — icons imported individually: `import X from 'lucide-react/dist/esm/icons/x'` (never barrel import)
 
 ## Key Commands
