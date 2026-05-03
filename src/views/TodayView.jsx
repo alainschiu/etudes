@@ -261,7 +261,7 @@ export default function TodayView(p){
 }
 
 // ── Mobile item row — extracted so useLongPress is called at component top-level
-function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta,addSpot,updateSpot,deleteSpot,editSpotTime}){
+function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta,addSpot,updateSpot,deleteSpot,editSpotTime,workingOn,toggleWorking}){
   const isActiveAny = activeItemId === item.id && activeSessionId === session.id;
   const isActiveWhole = isActiveAny && !activeSpotId;
   const time = getItemTime(itemTimes, item.id);
@@ -438,20 +438,49 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
               />
             </div>
           )}
+          {/* Reference URL embed */}
+          {item.referenceUrl&&(()=>{
+            const embed=getEmbedInfo(item.referenceUrl);
+            return(
+              <div>
+                <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em',fontFamily:sans,marginBottom:'6px'}}>Reference</div>
+                {embed?.type==='youtube'?(
+                  <div style={{position:'relative',paddingBottom:'56.25%',height:0,overflow:'hidden',background:SURFACE2,borderRadius:2}}>
+                    <iframe src={embed.src} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allowFullScreen loading="lazy" title="Reference"/>
+                  </div>
+                ):embed?.type==='spotify'?(
+                  <iframe src={embed.src} width="100%" height={embed.compact?152:352} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Reference"/>
+                ):embed?.type==='apple'?(
+                  <iframe src={embed.src} width="100%" height={175} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay *; encrypted-media *; fullscreen *" loading="lazy" title="Reference"/>
+                ):(
+                  <a href={item.referenceUrl} target="_blank" rel="noopener noreferrer" className="uppercase flex items-center gap-1" style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em'}}>Open reference ↗</a>
+                )}
+              </div>
+            );
+          })()}
           {/* Action footer */}
-          {(hasPdf&&setPdfDrawerItemId)&&(
-            <div style={{display:'flex',gap:'8px',flexWrap:'wrap',paddingTop:'4px',borderTop:`1px solid ${LINE}`}}>
-              {hasPdf&&setPdfDrawerItemId&&(
-                <button
-                  onClick={()=>setPdfDrawerItemId(item.id)}
-                  style={{display:'flex',alignItems:'center',gap:'6px',padding:'7px 12px',
-                    border:`1px solid ${LINE_STR}`,background:'transparent',cursor:'pointer',
-                    color:MUTED,fontFamily:sans,fontSize:'10px',letterSpacing:'0.22em',textTransform:'uppercase'}}>
-                  <FileText size={12} strokeWidth={1.25}/>Open Score
-                </button>
-              )}
-            </div>
-          )}
+          <div style={{display:'flex',gap:'8px',flexWrap:'wrap',paddingTop:'4px',borderTop:`1px solid ${LINE}`}}>
+            {hasPdf&&setPdfDrawerItemId&&(
+              <button
+                onClick={()=>setPdfDrawerItemId(item.id)}
+                style={{display:'flex',alignItems:'center',gap:'6px',padding:'7px 12px',
+                  border:`1px solid ${LINE_STR}`,background:'transparent',cursor:'pointer',
+                  color:MUTED,fontFamily:sans,fontSize:'10px',letterSpacing:'0.22em',textTransform:'uppercase'}}>
+                <FileText size={12} strokeWidth={1.25}/>Open Score
+              </button>
+            )}
+            {toggleWorking&&(
+              <button
+                onClick={()=>toggleWorking(item.id)}
+                style={{marginLeft:'auto',display:'flex',alignItems:'center',gap:'6px',padding:'7px 12px',
+                  border:`1px solid ${workingOn?.includes(item.id)?IKB:LINE_STR}`,cursor:'pointer',
+                  background:workingOn?.includes(item.id)?IKB:'transparent',
+                  color:workingOn?.includes(item.id)?TEXT:MUTED,
+                  fontFamily:sans,fontSize:'10px',letterSpacing:'0.22em',textTransform:'uppercase'}}>
+                {workingOn?.includes(item.id)?'★ En cours':'Pin'}
+              </button>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -675,6 +704,8 @@ function TodayMobile(p){
                     updateSpot={p.updateSpot}
                     deleteSpot={p.deleteSpot}
                     editSpotTime={p.editSpotTime}
+                    workingOn={workingOn}
+                    toggleWorking={toggleWorking}
                   />
                 ))}
 
