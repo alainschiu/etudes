@@ -559,7 +559,6 @@ function TodayMobile(p){
   const [actionSheetItem, setActionSheetItem] = useState(null);
   const [routineMenuOpen, setRoutineMenuOpen] = useState(false);
   const [overflowSessionId, setOverflowSessionId] = useState(null);
-  const [addSectionOpen, setAddSectionOpen] = useState(false);
 
   const today = new Date();
   const todayKey = todayDateStr();
@@ -851,30 +850,6 @@ function TodayMobile(p){
           </div>
         );
       })}
-
-      {/* Add section type — surfaces hidden default sections (matches desktop) */}
-      {hiddenTypes && hiddenTypes.length>0 && (
-        <div style={{position:'relative',padding:'12px 20px',display:'flex',alignItems:'center',justifyContent:'center',borderBottom:`1px solid ${LINE}`}}>
-          <button onClick={()=>setAddSectionOpen(v=>!v)} className="uppercase flex items-center gap-2 italic"
-            style={{color:MUTED,fontFamily:serif,fontSize:'13px',background:'transparent',border:'none',cursor:'pointer',minHeight:'44px'}}>
-            <Plus className="w-3 h-3" strokeWidth={1.25}/> Add section
-          </button>
-          {addSectionOpen && (
-            <>
-              <div className="fixed inset-0 z-20" onClick={()=>setAddSectionOpen(false)}/>
-              <div className="absolute z-30" style={{top:'100%',left:'50%',transform:'translateX(-50%)',marginTop:'2px',minWidth:'200px',background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>
-                {hiddenTypes.map(t=>(
-                  <button key={t} onClick={()=>{addSessionType&&addSessionType(t);setAddSectionOpen(false);}}
-                    className="w-full text-left px-4 py-3 uppercase"
-                    style={{fontFamily:sans,fontSize:'10px',letterSpacing:'0.28em',color:TEXT,background:'transparent',border:'none',borderBottom:`1px solid ${LINE}`,cursor:'pointer',minHeight:'44px'}}>
-                    {SECTION_CONFIG[t].label}
-                  </button>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
 
       {/* Reflection block */}
       <div style={{borderTop:`1px solid ${LINE}`,marginTop:'8px'}}>
