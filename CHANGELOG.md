@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.97.27 — 2026-05-04
+
+### Hotfix — RepertoireView mobile detail crash
+
+- **`ReferenceError: confirmDeleteRefTrack is not defined`** when
+  rendering `PieceDetailScreen` (mobile Repertoire detail) on a piece
+  with a reference track. Same shape as the v0.97.26 bug:
+  `confirmDeleteRefTrack` is defined inside the main `RepertoireView`
+  body, but `PieceDetailScreen` is a separate function. The wrapper
+  was already passed correctly as the `deleteRefTrack` prop at the
+  call site (line 309); the bug was inside the body of
+  `PieceDetailScreen` (line 895) where `<Waveform>` was passed
+  `confirmDeleteRefTrack` directly instead of using the destructured
+  `deleteRefTrack` prop. One-line fix.
+
 ## v0.97.26 — 2026-05-04
 
 ### Hotfix — TodayMobile expand crash

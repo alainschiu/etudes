@@ -892,7 +892,7 @@ function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeIt
             setGlobalAbB={setGlobalAbB}
             refTrackMeta={refTrackMeta}
             uploadRefTrack={uploadRefTrack}
-            deleteRefTrack={confirmDeleteRefTrack}
+            deleteRefTrack={deleteRefTrack}
           />
         </div>
       )}
