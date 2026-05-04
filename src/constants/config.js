@@ -1,4 +1,4 @@
-export const APP_VERSION='0.97.18';
+export const APP_VERSION='0.97.19';
 export const SCHEMA_VERSION=10;
 
 export const STAGES=[{key:'queued',label:'Queued',pct:0},{key:'learning',label:'Learning',pct:30},{key:'polishing',label:'Polishing',pct:70},{key:'maintenance',label:'Maintenance',pct:95},{key:'retired',label:'Retired',pct:100}];

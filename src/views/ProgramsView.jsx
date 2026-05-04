@@ -1,6 +1,6 @@
 import React,{useState,useMemo,useCallback} from 'react';
 import useViewport from '../hooks/useViewport.js';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, {defaultUrlTransform} from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
@@ -15,6 +15,11 @@ import {MarkdownField,DisplayHeader} from '../components/shared.jsx';
 import {MarkdownEditor} from '../components/MarkdownEditor.jsx';
 
 function mkId(){return Math.random().toString(36).slice(2,10);}
+
+// Let our custom wiki:// scheme survive react-markdown's default urlTransform.
+const wikiUrlTransform=(url,key,node)=>(
+  url&&url.startsWith('wiki://')?url:defaultUrlTransform(url,key,node)
+);
 
 function startOfToday(){
   const d=new Date();d.setHours(0,0,0,0);return d;
@@ -325,7 +330,7 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
         {bodyMode==='preview'?(
           <div style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.8,color:TEXT,minHeight:'80px'}}>
             {program.body?(
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+              <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={wikiUrlTransform} components={{
                 p:({children})=><p style={{marginBottom:'1em'}}>{children}</p>,
                 a:({href,children})=>{
                   if(href?.startsWith('wiki://')){

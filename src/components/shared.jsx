@@ -1,7 +1,7 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {computePeaks} from '../lib/media.js';
 import {resolveWikiLink} from '../lib/notes.js';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, {defaultUrlTransform} from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
@@ -459,6 +459,13 @@ export function Tooltip({children,shortcut,label}){
 }
 
 const DEEP_LINK_SCHEMES=['obsidian://','x-devonthink-item://'];
+
+// Let our custom wikilink:// scheme survive react-markdown's default
+// urlTransform (which would otherwise blank it, causing <a href=""> on
+// click to reload the page).
+const wikiUrlTransform=(url,key,node)=>(
+  url&&url.startsWith('wikilink://')?url:defaultUrlTransform(url,key,node)
+);
 const HAS_CUSTOM_LINK_RE=/(?:obsidian:\/\/|x-devonthink-item:\/\/)/;
 
 function preprocessWikiLinks(text){
@@ -516,7 +523,7 @@ export function MarkdownField({value,onChange,placeholder,minHeight=80,className
     return (
       <div className={className} style={{minHeight,padding:'12px 16px',fontFamily:serifText,fontSize:'15px',lineHeight:1.8,fontWeight:300,color:TEXT,background:'transparent',border:`1px solid ${LINE}`,...style}}>
         {(value||'').trim()?(
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents({onWikiLinkClick,completionData})}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={wikiUrlTransform} components={MarkdownComponents({onWikiLinkClick,completionData})}>
             {onWikiLinkClick?preprocessWikiLinks(value):value}
           </ReactMarkdown>
         ):(

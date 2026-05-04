@@ -1,6 +1,6 @@
 import React, {useState, useMemo, useCallback, useEffect} from 'react';
 import useViewport from '../hooks/useViewport.js';
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown, {defaultUrlTransform} from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import Search from 'lucide-react/dist/esm/icons/search';
@@ -108,6 +108,17 @@ function SidebarSection({label,open,onToggle,count,children}){
     </div>
   );
 }
+
+// react-markdown v10's default urlTransform strips schemes outside its
+// allowlist, blanking our custom wiki://, etudes://, wikilink:// hrefs.
+// The blanked anchor would render as <a href=""> and clicking reloads the
+// page (landing on the default 'today' view). Let our custom schemes pass
+// through; everything else falls back to the default sanitiser.
+const wikiUrlTransform=(url,key,node)=>(
+  url&&(url.startsWith('wiki://')||url.startsWith('etudes://')||url.startsWith('wikilink://'))
+    ? url
+    : defaultUrlTransform(url,key,node)
+);
 
 // ── Main NotesView ────────────────────────────────────────────────────────
 export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes,programs,setSelectedProgramId,requestedNoteId,setRequestedNoteId}){
@@ -608,7 +619,7 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
       {viewMode?(
         <div style={{fontFamily:serifText,fontSize:'17px',lineHeight:1.75,fontWeight:300,color:TEXT}}>
           {note.body?(
-            <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+            <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={wikiUrlTransform} components={{
               p:({children})=><p style={{marginBottom:'1em'}}>{children}</p>,
               h1:({children})=><h1 style={{fontFamily:serif,fontWeight:500,fontSize:'1.5em',marginBottom:'0.4em',marginTop:'1.2em',fontStyle:'italic'}}>{children}</h1>,
               h2:({children})=><h2 style={{fontFamily:serif,fontWeight:500,fontSize:'1.25em',marginBottom:'0.4em',marginTop:'1em',fontStyle:'italic'}}>{children}</h2>,
@@ -771,7 +782,7 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
               {isExpanded&&(
                 <div>
                   <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'14px',lineHeight:1.7,color:TEXT,marginTop:'4px'}}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={wikiUrlTransform} components={{
                       p:({children})=><p style={{marginBottom:'0.7em'}}>{children}</p>,
                       h1:({children})=><h1 style={{fontSize:'1.2em',fontWeight:500,marginBottom:'0.4em',marginTop:'0.8em'}}>{children}</h1>,
                       h2:({children})=><h2 style={{fontSize:'1.1em',fontWeight:500,marginBottom:'0.3em',marginTop:'0.7em'}}>{children}</h2>,
