@@ -40,7 +40,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
       <button onClick={onClose} style={{color:FAINT}}><X className="w-4 h-4" strokeWidth={1.25}/></button>
     </div>
     {/* Tab strip */}
-    <div className="flex px-8" style={{borderBottom:`1px solid ${LINE}`}}>
+    <div className="flex px-8 overflow-x-auto etudes-scroll" style={{borderBottom:`1px solid ${LINE}`}}>
       {[{id:'settings',label:'Settings'},{id:'shortcuts',label:'Shortcuts'},{id:'sync',label:'Sync'},{id:'export',label:'Export'},{id:'about',label:'About'}].map(t=>(
         <button key={t.id} onClick={()=>{setTab(t.id);if(t.id==='sync')onSyncTabVisible?.();}} className="relative py-3 mr-5 uppercase shrink-0" style={{color:tab===t.id?TEXT:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>
           {t.label}{tab===t.id&&<span className="absolute bottom-0 left-0 right-0" style={{height:'1px',background:IKB}}/>}

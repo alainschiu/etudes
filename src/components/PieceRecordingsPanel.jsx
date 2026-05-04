@@ -106,7 +106,7 @@ export default function PieceRecordingsPanel({
       />
 
       {/* ── Recordings sub-label ────────────────────────────────────────────── */}
-      <div className="flex items-center gap-2 mt-2 mb-2" style={{fontSize:'9px',letterSpacing:'0.28em'}}>
+      <div className="flex flex-wrap items-center gap-2 mt-2 mb-2" style={{fontSize:'9px',letterSpacing:'0.28em'}}>
         <span className="uppercase shrink-0" style={{color:FAINT}}>Recordings</span>
         <span style={{flex:1,height:'1px',background:LINE_MED}}/>
         {dates.length>0&&<span className="shrink-0 tabular-nums" style={{fontFamily:mono,color:DIM,letterSpacing:'0.08em'}}>{unlockedCount}/{ROLLING_LIMIT}</span>}
