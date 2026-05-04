@@ -364,10 +364,16 @@ export default function RepertoireView(p){
         </div>
       </div>
       <div style={{borderTop:`1px solid ${LINE_STR}`}}>
-        {items.length===0&&<div className="py-16 text-center italic" style={{color:DIM,fontFamily:serif,fontSize:'15px'}}>Nothing here yet.</div>}
+        {hasFilters&&sorted.length>0&&(
+          <div className="flex items-baseline gap-2 px-2 py-2" style={{borderBottom:`1px solid ${LINE}`}}>
+            <span className="italic" style={{color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'12px'}}>Filtered · {sorted.length} piece{sorted.length===1?'':'s'} ·</span>
+            <button onClick={clearFilters} className="italic" style={{color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'12px',background:'transparent',border:'none',padding:0,cursor:'pointer',textDecoration:'underline'}}>clear</button>
+          </div>
+        )}
+        {items.length===0&&<div className="py-16 text-center italic" style={{color:DIM,fontFamily:serif,fontSize:'15px'}}>No pieces yet.</div>}
         {!groupByCollection&&sorted.map(renderItem)}
         {groupByCollection&&grouped&&(<>{grouped.collections.map(({name,list})=>(<div key={name}><div className="px-2 pt-5 pb-2 flex items-baseline gap-3" style={{borderBottom:`1px solid ${LINE_MED}`,background:SURFACE}}><Layers className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/><span className="italic" style={{fontFamily:serif,fontSize:'18px',fontWeight:300}}>{name}</span><span className="tabular-nums ml-auto" style={{color:FAINT,fontSize:'10px'}}>{list.length} movement{list.length===1?'':'s'}</span></div>{list.map(renderItem)}</div>))}{grouped.standalone.length>0&&(<><div className="px-2 pt-5 pb-2" style={{borderBottom:`1px solid ${LINE_MED}`,background:SURFACE}}><span className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.3em'}}>Standalone</span></div>{grouped.standalone.map(renderItem)}</>)}</>)}
-        {items.length>0&&sorted.length===0&&(<div className="py-12 text-center"><div className="italic mb-3" style={{color:FAINT,fontFamily:serif,fontSize:'15px'}}>Nothing matches these filters.</div><button onClick={clearFilters} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Clear all filters</button></div>)}
+        {items.length>0&&sorted.length===0&&(<div className="py-12 text-center"><div className="italic mb-3" style={{color:FAINT,fontFamily:serif,fontSize:'15px'}}>No pieces match.</div><button onClick={clearFilters} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Clear filters</button></div>)}
       </div>
     </div>
   </div>
@@ -496,10 +502,10 @@ function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,update
           )}
 
           {filteredLog.length===0&&log.length>0&&q&&(
-            <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>Nothing here yet.</div>
+            <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No entries match.</div>
           )}
           {log.length===0&&(
-            <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>Nothing here yet.</div>
+            <div className="italic py-2" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No entries yet.</div>
           )}
 
           <div className="space-y-0">
@@ -612,7 +618,13 @@ function MobileRepertoireList({items,sorted,grouped,groupByCollection,setGroupBy
 
       {/* List */}
       <div style={{borderTop:`1px solid ${LINE_STR}`}}>
-        {items.length===0&&<div style={{padding:'48px 20px',textAlign:'center',fontFamily:serif,fontStyle:'italic',fontSize:'15px',color:DIM}}>Nothing here yet.</div>}
+        {hasFilters&&sorted.length>0&&(
+          <div style={{display:'flex',alignItems:'baseline',gap:'8px',padding:'10px 20px',borderBottom:`1px solid ${LINE}`}}>
+            <span style={{color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'12px'}}>Filtered · {sorted.length} piece{sorted.length===1?'':'s'} ·</span>
+            <button onClick={clearFilters} style={{color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'12px',background:'transparent',border:'none',padding:0,cursor:'pointer',textDecoration:'underline'}}>clear</button>
+          </div>
+        )}
+        {items.length===0&&<div style={{padding:'48px 20px',textAlign:'center',fontFamily:serif,fontStyle:'italic',fontSize:'15px',color:DIM}}>No pieces yet.</div>}
         {!groupByCollection&&sorted.map(item=><MobileRepItem key={item.id} item={item} onTap={()=>onTapItem(item.id)} activeItemId={activeItemId} history={history} pieceRecordingMeta={pieceRecordingMeta} refTrackMeta={refTrackMeta}/>)}
         {groupByCollection&&grouped&&(<>
           {grouped.collections.map(({name,list})=>(
@@ -629,7 +641,7 @@ function MobileRepertoireList({items,sorted,grouped,groupByCollection,setGroupBy
             {grouped.standalone.map(item=><MobileRepItem key={item.id} item={item} onTap={()=>onTapItem(item.id)} activeItemId={activeItemId} history={history} pieceRecordingMeta={pieceRecordingMeta} refTrackMeta={refTrackMeta}/>)}
           </>)}
         </>)}
-        {items.length>0&&sorted.length===0&&<div style={{padding:'32px 20px',textAlign:'center',fontFamily:serif,fontStyle:'italic',fontSize:'14px',color:FAINT}}>Nothing matches.</div>}
+        {items.length>0&&sorted.length===0&&(<div style={{padding:'32px 20px',textAlign:'center'}}><div style={{fontFamily:serif,fontStyle:'italic',fontSize:'14px',color:FAINT,marginBottom:'12px'}}>No pieces match.</div><button onClick={clearFilters} className="uppercase" style={{padding:'6px 14px',border:`1px solid ${LINE_MED}`,color:MUTED,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',background:'transparent',cursor:'pointer'}}>Clear filters</button></div>)}
       </div>
 
       {/* Filter sheet */}

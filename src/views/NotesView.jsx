@@ -462,7 +462,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
                 </div>
                 <div className="overflow-y-auto etudes-scroll flex-1 min-h-0" style={{borderTop:`1px solid ${LINE}`}}>
                   {freeNotes.length===0&&<div className="italic py-4" style={{color:FAINT,fontFamily:serif,fontSize:'13px'}}>No notes yet.</div>}
-                  {freeNotes.length>0&&filtered.length===0&&<div className="italic py-4" style={{color:FAINT,fontFamily:serif,fontSize:'13px'}}>No notes match.</div>}
+                  {freeNotes.length>0&&filtered.length===0&&(<div className="py-4 flex items-center gap-3 flex-wrap"><span className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'13px'}}>No notes match.</span><button onClick={()=>{setQuery('');setTagSearch('');}} className="uppercase" style={{color:MUTED,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Clear filters</button></div>)}
                   {filtered.map((n,idx)=>{
                     const isActive=activeNoteId===n.id;
                     const isHov=hoveredNoteId===n.id&&!isActive;
@@ -755,7 +755,8 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
       </div>
       {/* Note list */}
       <div>
-        {filtered.length===0&&<div style={{padding:'32px 20px',fontFamily:serifText,fontStyle:'italic',fontSize:'14px',color:FAINT,textAlign:'center'}}>No notes yet.</div>}
+        {freeNotes.length===0&&<div style={{padding:'32px 20px',fontFamily:serifText,fontStyle:'italic',fontSize:'14px',color:FAINT,textAlign:'center'}}>No notes yet.</div>}
+        {freeNotes.length>0&&filtered.length===0&&(<div style={{padding:'32px 20px',textAlign:'center'}}><div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'14px',color:FAINT,marginBottom:'12px'}}>No notes match.</div><button onClick={()=>{setQuery('');setTagSearch('');setActiveCategoryId('__all');}} className="uppercase" style={{padding:'6px 14px',border:`1px solid ${LINE_MED}`,color:MUTED,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',background:'transparent',cursor:'pointer'}}>Clear filters</button></div>)}
         {filtered.map(note=>{
           const isExpanded=expandedId===note.id;
           const preview=(note.body||'').replace(/^#+\s*/gm,'').replace(/[*_`#\[\]]/g,'').trim();

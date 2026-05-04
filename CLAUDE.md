@@ -100,11 +100,11 @@ src/
   components/
     shared.jsx                DisplayHeader, Waveform, StageLabels, SpotRow, MarkdownField…
     Footer.jsx                desktop 64px bar + mobile 52px bar
-    MobileBottomNav.jsx       8-tab fixed bottom bar, 56px + safe-area-inset-bottom
+    Drawer.jsx                mobile slide-in nav (replaced the old bottom bar)
     PdfDrawer.jsx             full-screen PDF modal
     PdfViewer.jsx             react-pdf canvas renderer with bookmarks
     PieceRecordingsPanel.jsx  FIFO rolling archive (10 unlocked, 20 locked)
-    modals.jsx                SettingsModal, HelpModal, PromptModal, ConfirmModal
+    modals.jsx                SettingsModal, PromptModal, ConfirmModal
   views/
     TodayView.jsx             session spine, drag-reorder, warmup, day close
     WeekView.jsx              ring graph, weekly reflection, past-week nav

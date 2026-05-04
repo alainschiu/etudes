@@ -1,4 +1,5 @@
-import React, {useState} from 'react';
+import React, {useState, useRef} from 'react';
+import useFocusTrap from '../hooks/useFocusTrap.js';
 import {isDriveConfigured, getDriveAccessToken, clearDriveSession, hasDriveToken, forceExpireCachedDriveToken} from '../lib/driveAuth.js';
 import {probeDriveConnection, spikeSilentDriveRenewal} from '../lib/driveSync.js';
 import {formatDriveOAuthError} from '../lib/driveOAuthMessages.js';
@@ -16,12 +17,14 @@ const SHORTCUTS=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
 const USER_GUIDE_URL='https://etudes.me/guide';
 
-export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBackgroundError,onDismissDriveError,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect}){
+export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBackgroundError,onDismissDriveError,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect,initialTab='settings'}){
   const [devBusy,setDevBusy]=useState(false);
   const [devStatus,setDevStatus]=useState('');
   const [driveBusy,setDriveBusy]=useState(false);
   const [driveLine,setDriveLine]=useState('');
-  const [tab,setTab]=useState('settings');
+  const [tab,setTab]=useState(initialTab||'settings');
+  const panelRef=useRef(null);
+  useFocusTrap(panelRef,true);
   const [authMode,setAuthMode]=useState('signin'); // 'signin'|'signup'
   const [authEmail,setAuthEmail]=useState('');
   const [authPassword,setAuthPassword]=useState('');
@@ -31,7 +34,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
   const handleAuth=async(e)=>{e.preventDefault();setAuthError('');setAuthBusy(true);const fn=authMode==='signin'?signIn:signUp;const {error}=await fn(authEmail,authPassword);setAuthBusy(false);if(error){setAuthError(error.message);}else if(authMode==='signup'){setSignupSent(true);}};
   const sl=storageMode==='local'?'saved locally on this device':'storage unavailable';
   const sd=storageMode==='local'?'● local':'○ memory';
-  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onClose}><div className="max-w-md w-full max-h-screen overflow-auto etudes-scroll" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
+  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onClose}><div ref={panelRef} className="max-w-md w-full max-h-screen overflow-auto etudes-scroll" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
     <div className="px-8 py-6 flex items-baseline justify-between" style={{borderBottom:`1px solid ${LINE_MED}`}}>
       <div><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Configuration</div><h2 className="text-3xl mt-1" style={{fontFamily:serif,fontStyle:'italic',fontWeight:300}}>Réglages</h2></div>
       <button onClick={onClose} style={{color:FAINT}}><X className="w-4 h-4" strokeWidth={1.25}/></button>
@@ -53,7 +56,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
           <div><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Reminder</div><div className="text-xs italic mt-0.5" style={{color:FAINT,fontFamily:serif}}>no streaks · no consequences · opt-in</div></div>
           <button onClick={async()=>{if(!settings.reminderEnabled){const {requestNotificationPermission}=await import('../lib/notifications.js');await requestNotificationPermission();}setSettings({...settings,reminderEnabled:!settings.reminderEnabled});}} className="uppercase px-3 py-1" style={{color:settings.reminderEnabled?TEXT:FAINT,border:`1px solid ${settings.reminderEnabled?IKB:LINE_STR}`,background:settings.reminderEnabled?IKB_SOFT:'transparent',fontSize:'9px',letterSpacing:'0.22em'}}>{settings.reminderEnabled?'On':'Off'}</button>
         </div>
-        {settings.reminderEnabled&&(<div className="flex items-baseline justify-between gap-4 pb-3" style={{borderBottom:`1px solid ${LINE}`}}><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Time</div><input type="time" value={settings.reminderTime||'18:00'} onChange={e=>setSettings({...settings,reminderTime:e.target.value})} className="focus:outline-none font-mono" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontSize:'13px'}}/></div>)}
+        {settings.reminderEnabled&&(<div className="flex items-baseline justify-between gap-4 pb-3" style={{borderBottom:`1px solid ${LINE}`}}><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Time</div><input type="time" value={settings.reminderTime||'18:00'} onChange={e=>setSettings({...settings,reminderTime:e.target.value})} className="focus:outline-none font-mono" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontSize:'16px'}}/></div>)}
         <div className="pt-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Appears once on days you haven't opened Études. Requires notification permission. Resets each day.</div>
       </div>
     )}
@@ -171,8 +174,8 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
           <form onSubmit={handleAuth} className="space-y-5">
             <div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Sign in with email</div>
               <div className="space-y-4 overflow-hidden">
-                <input type="email" value={authEmail} onChange={e=>{setAuthEmail(e.target.value);setAuthError('');}} placeholder="Email" required className="w-full pb-1.5 focus:outline-none min-w-0" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'15px',fontWeight:300,boxSizing:'border-box'}}/>
-                <input type="password" value={authPassword} onChange={e=>{setAuthPassword(e.target.value);setAuthError('');}} placeholder="Password" required className="w-full pb-1.5 focus:outline-none min-w-0" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'15px',fontWeight:300,boxSizing:'border-box'}}/>
+                <input type="email" value={authEmail} onChange={e=>{setAuthEmail(e.target.value);setAuthError('');}} placeholder="Email" required className="w-full pb-1.5 focus:outline-none min-w-0" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'16px',fontWeight:300,boxSizing:'border-box'}}/>
+                <input type="password" value={authPassword} onChange={e=>{setAuthPassword(e.target.value);setAuthError('');}} placeholder="Password" required className="w-full pb-1.5 focus:outline-none min-w-0" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'16px',fontWeight:300,boxSizing:'border-box'}}/>
               </div>
               {authError&&<div className="text-xs mt-3 italic" style={{color:'#E07A7A',fontFamily:serif}}>{authError}</div>}
             </div>
@@ -277,10 +280,9 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
   </div></div>);
 }
 
-export function HelpModal({onClose}){const rows=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k:'M',v:'Toggle metronome'},{k:'D',v:'Toggle tuning drone'},{k:'T',v:'Tap tempo'},{k:'L',v:'Log BPM'},{k:'N',v:'Quick note'},{k:'1 – 4',v:'Jump to section'},{k:'?',v:'Open Réglages (includes shortcuts)'},{k:'Esc',v:'Close'}];return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onClose}><div className="max-w-md w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}><div className="px-8 py-6 flex items-baseline justify-between" style={{borderBottom:`1px solid ${LINE_MED}`}}><div><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Reference</div><h2 className="text-3xl mt-1" style={{fontFamily:serif,fontStyle:'italic',fontWeight:300}}>Shortcuts</h2></div><button onClick={onClose} style={{color:FAINT}}><X className="w-4 h-4" strokeWidth={1.25}/></button></div><div className="px-8 py-6">{rows.map((r,i)=>(<div key={r.k} className="flex items-baseline justify-between gap-6 py-3" style={{borderBottom:i<rows.length-1?`1px solid ${LINE}`:'none'}}><kbd className="font-mono px-2.5 py-1 tabular-nums" style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'12px'}}>{r.k}</kbd><span style={{color:MUTED,fontFamily:serif,fontSize:'14px',fontStyle:'italic',fontWeight:300}}>{r.v}</span></div>))}<div className="mt-5 italic" style={{color:FAINT,fontFamily:serif,fontSize:'12px',lineHeight:1.6}}>Shortcuts are disabled while typing in a field.</div></div></div></div>);}
-
 export function DriveConflictModal({remoteModified,localMarker,onLoadFromDrive,onKeepLocal}){
-  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}}><div className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
+  const panelRef=useRef(null);useFocusTrap(panelRef,true);
+  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}}><div ref={panelRef} className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
     <div className="px-8 py-7">
       <div className="uppercase mb-4" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Google Drive — newer backup</div>
       <p style={{fontFamily:serif,fontSize:'15px',lineHeight:1.7,fontWeight:300}}>A different journal on Google Drive may be newer than what you last matched on this device.</p>
@@ -298,7 +300,8 @@ export function SyncConflictModal({localCount,remoteCount,hasOverlap,onMerge,onK
   const overlapNote=hasOverlap
     ? 'Some pieces exist on both devices with different edits. Merge combines everything — local edits win on the same piece.'
     : 'Both devices have unique pieces. Merge combines everything safely.';
-  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}}><div className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
+  const panelRef=useRef(null);useFocusTrap(panelRef,true);
+  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}}><div ref={panelRef} className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
     <div className="px-8 py-7">
       <div className="uppercase mb-4" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Sync — both devices have data</div>
       <p style={{fontFamily:serif,fontSize:'15px',lineHeight:1.7,fontWeight:300}}>This device has <span style={{color:TEXT}}>{localCount} {localCount===1?'piece':'pieces'}</span>. The cloud has <span style={{color:TEXT}}>{remoteCount} {remoteCount===1?'piece':'pieces'}</span> from another device.</p>
@@ -313,6 +316,13 @@ export function SyncConflictModal({localCount,remoteCount,hasOverlap,onMerge,onK
   </div></div>);
 }
 
-export function ConfirmModal({message,confirmLabel='Confirm',onConfirm,onCancel}){return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onCancel}><div className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}><div className="px-8 py-8 max-h-96 overflow-auto etudes-scroll"><p style={{fontFamily:serif,fontSize:'15px',lineHeight:1.6,fontWeight:300,whiteSpace:'pre-wrap'}}>{message}</p></div><div className="px-8 py-4 flex gap-3" style={{borderTop:`1px solid ${LINE}`}}><button onClick={onCancel} className="flex-1 py-2.5 uppercase" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Cancel</button><button onClick={onConfirm} className="flex-1 py-2.5 uppercase" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'}}>{confirmLabel}</button></div></div></div>);}
+export function ConfirmModal({message,confirmLabel='Confirm',onConfirm,onCancel}){
+  const panelRef=useRef(null);useFocusTrap(panelRef,true);
+  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onCancel}><div ref={panelRef} className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}><div className="px-8 py-8 max-h-96 overflow-auto etudes-scroll"><p style={{fontFamily:serif,fontSize:'15px',lineHeight:1.6,fontWeight:300,whiteSpace:'pre-wrap'}}>{message}</p></div><div className="px-8 py-4 flex gap-3" style={{borderTop:`1px solid ${LINE}`}}><button onClick={onCancel} className="flex-1 py-2.5 uppercase" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Cancel</button><button onClick={onConfirm} className="flex-1 py-2.5 uppercase" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'}}>{confirmLabel}</button></div></div></div>);
+}
 
-export function PromptModal({title,placeholder,initial='',onConfirm,onCancel}){const [val,setVal]=useState(initial);return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onCancel}><div className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}><div className="px-8 py-7"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{title}</div><input autoFocus value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){onConfirm(val);onCancel();}}} placeholder={placeholder} className="w-full pb-1 focus:outline-none" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'17px',fontWeight:300}}/></div><div className="px-8 py-4 flex gap-3" style={{borderTop:`1px solid ${LINE}`}}><button onClick={onCancel} className="flex-1 py-2.5 uppercase" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Cancel</button><button onClick={()=>{onConfirm(val);onCancel();}} className="flex-1 py-2.5 uppercase" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'}}>Save</button></div></div></div>);}
+export function PromptModal({title,placeholder,initial='',onConfirm,onCancel}){
+  const [val,setVal]=useState(initial);
+  const panelRef=useRef(null);useFocusTrap(panelRef,true);
+  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onCancel}><div ref={panelRef} className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}><div className="px-8 py-7"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{title}</div><input autoFocus value={val} onChange={e=>setVal(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'){onConfirm(val);onCancel();}}} placeholder={placeholder} className="w-full pb-1 focus:outline-none" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'17px',fontWeight:300}}/></div><div className="px-8 py-4 flex gap-3" style={{borderTop:`1px solid ${LINE}`}}><button onClick={onCancel} className="flex-1 py-2.5 uppercase" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Cancel</button><button onClick={()=>{onConfirm(val);onCancel();}} className="flex-1 py-2.5 uppercase" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'}}>Save</button></div></div></div>);
+}

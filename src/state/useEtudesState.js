@@ -22,7 +22,8 @@ export default function useEtudesState(){
   // ── UI state ──────────────────────────────────────────────────────────────
   const [view,setView]=useState('today');
   const [showSettings,setShowSettings]=useState(false);
-  const [showHelp,setShowHelp]=useState(false);
+  const [settingsInitialTab,setSettingsInitialTab]=useState('settings');
+  const openSettings=useCallback((tab='settings')=>{setSettingsInitialTab(tab);setShowSettings(true);},[]);
   const [exportMenu,setExportMenu]=useState(false);
   const [confirmModal,setConfirmModal]=useState(null);
   const [promptModal,setPromptModal]=useState(null);
@@ -620,17 +621,17 @@ export default function useEtudesState(){
   // ── Keyboard shortcuts (delegated) ────────────────────────────────────────
   useKeyboardShortcuts({
     activeItemId,activeSpotId,activeSessionId,workingOn,items,view,todaySessions,isResting,
-    showHelp,showSettings,pdfDrawerItemId,logDrawerDate,promptModal,confirmModal,exportMenu,
+    showSettings,pdfDrawerItemId,logDrawerDate,promptModal,confirmModal,exportMenu,
     quickNoteOpen,logTempo,dayClosed,editingTimeItemId,droneExpanded,metroExpanded,
     startItem,stopItem,toggleRest,toggleDrone,handleTap,
-    setShowHelp,setShowSettings,setPdfDrawerItemId,closeLogDrawer,setPromptModal,setConfirmModal,
+    setShowSettings,openSettings,setPdfDrawerItemId,closeLogDrawer,setPromptModal,setConfirmModal,
     setExportMenu,setQuickNoteOpen,setEditingTimeItemId,setDroneExpanded,setMetroExpanded,setMetronome,
     sessionRefs,lastActiveRef,
   });
 
   // ── Return everything ─────────────────────────────────────────────────────
   return {
-    view,setView,showSettings,setShowSettings,showHelp,setShowHelp,
+    view,setView,showSettings,setShowSettings,settingsInitialTab,openSettings,
     exportMenu,setExportMenu,confirmModal,setConfirmModal,promptModal,setPromptModal,syncConflictModal,driveConflictModal,
     quickNoteOpen,setQuickNoteOpen,restoreBusy,
     expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,

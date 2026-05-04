@@ -285,3 +285,9 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* iOS auto-zoom on focus is suppressed when the effective input font-size
+   is at least 16px. Forces the floor on phone-width viewports. */
+@media (max-width: 768px) {
+  input, textarea, select { font-size: 16px !important; }
+}

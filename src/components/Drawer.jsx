@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useEffect} from 'react';
 import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days';
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import ListMusic from 'lucide-react/dist/esm/icons/list-music';
@@ -30,7 +30,7 @@ export default function Drawer({
   view,
   setView,
   buildZip,
-  setShowSettings,
+  openSettings,
   totalToday,
   settings,
 }) {
@@ -38,6 +38,16 @@ export default function Drawer({
     const m = Math.floor((secs || 0) / 60);
     return `${m}′`;
   };
+
+  // Lock background scroll while the drawer is open. The page is fixed-height
+  // already (html, body { overflow:hidden } in index.css) but the iOS scrim
+  // still rubber-bands without an explicit body lock.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [open]);
 
   const panelStyle = {
     position: 'fixed',
@@ -57,6 +67,7 @@ export default function Drawer({
       ? 'transform 240ms cubic-bezier(0.2,0.7,0.2,1)'
       : 'transform 200ms cubic-bezier(0.6,0,0.8,0.3)',
     willChange: 'transform',
+    overscrollBehavior: 'contain',
   };
 
   const scrimStyle = {
@@ -229,7 +240,7 @@ export default function Drawer({
               </span>
             </button>
             <button
-              onClick={() => { setShowSettings(true); onClose(); }}
+              onClick={() => { openSettings(); onClose(); }}
               style={{
                 display: 'flex',
                 alignItems: 'center',
