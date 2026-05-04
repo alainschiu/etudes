@@ -559,6 +559,7 @@ function TodayMobile(p){
   const [actionSheetItem, setActionSheetItem] = useState(null);
   const [routineMenuOpen, setRoutineMenuOpen] = useState(false);
   const [overflowSessionId, setOverflowSessionId] = useState(null);
+  const [addSectionOpen, setAddSectionOpen] = useState(false);
 
   const today = new Date();
   const todayKey = todayDateStr();
@@ -710,7 +711,8 @@ function TodayMobile(p){
               <button
                 onClick={() => toggleSection(session.id)}
                 style={{
-                  flex:1,display:'flex',alignItems:'center',padding:'0 20px',
+                  flex:1,display:'flex',alignItems:'center',
+                  paddingLeft:'20px',paddingRight:'4px',
                   background:'transparent',border:'none',
                   cursor:'pointer',textAlign:'left',gap:'10px',
                 }}
@@ -729,9 +731,10 @@ function TodayMobile(p){
                 onClick={(e)=>{e.stopPropagation();setOverflowSessionId(popOpen?null:session.id);}}
                 title="Edit section"
                 style={{
-                  minWidth:'44px',display:'inline-flex',alignItems:'center',justifyContent:'center',
+                  minWidth:'40px',paddingRight:'12px',
+                  display:'inline-flex',alignItems:'center',justifyContent:'center',
                   background:popOpen?IKB_SOFT:'transparent',color:popOpen?TEXT:MUTED,
-                  border:'none',borderLeft:`1px solid ${LINE}`,cursor:'pointer',
+                  border:'none',cursor:'pointer',
                 }}
               >
                 <MoreVertical className="w-4 h-4" strokeWidth={1.5}/>
@@ -850,6 +853,30 @@ function TodayMobile(p){
           </div>
         );
       })}
+
+      {/* Add section type — surfaces hidden default sections (matches desktop) */}
+      {hiddenTypes && hiddenTypes.length>0 && (
+        <div style={{position:'relative',padding:'12px 20px',display:'flex',alignItems:'center',justifyContent:'center',borderBottom:`1px solid ${LINE}`}}>
+          <button onClick={()=>setAddSectionOpen(v=>!v)} className="uppercase flex items-center gap-2 italic"
+            style={{color:MUTED,fontFamily:serif,fontSize:'13px',background:'transparent',border:'none',cursor:'pointer',minHeight:'44px'}}>
+            <Plus className="w-3 h-3" strokeWidth={1.25}/> Add section
+          </button>
+          {addSectionOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={()=>setAddSectionOpen(false)}/>
+              <div className="absolute z-30" style={{top:'100%',left:'50%',transform:'translateX(-50%)',marginTop:'2px',minWidth:'200px',background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>
+                {hiddenTypes.map(t=>(
+                  <button key={t} onClick={()=>{addSessionType&&addSessionType(t);setAddSectionOpen(false);}}
+                    className="w-full text-left px-4 py-3 uppercase"
+                    style={{fontFamily:sans,fontSize:'10px',letterSpacing:'0.28em',color:TEXT,background:'transparent',border:'none',borderBottom:`1px solid ${LINE}`,cursor:'pointer',minHeight:'44px'}}>
+                    {SECTION_CONFIG[t].label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Reflection block */}
       <div style={{borderTop:`1px solid ${LINE}`,marginTop:'8px'}}>
