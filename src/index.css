@@ -102,6 +102,15 @@
   --dur-fast:   120ms;
   --dur-base:   200ms;
   --dur-slow:   360ms;
+
+  /* Default footer height — refined at runtime by Footer.jsx ResizeObserver.
+     Prevents the 160px first-paint flash that views were getting from
+     `var(--footer-height, 160px)` before the observer fired. */
+  --footer-height: 116px;
+}
+
+@media (max-width: 768px) {
+  :root { --footer-height: 96px; }
 }
 
 html, body {

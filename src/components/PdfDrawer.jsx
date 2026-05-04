@@ -158,6 +158,7 @@ export default function PdfDrawer({
     setConfirmModal&&setConfirmModal({
       message:`Remove "${p.name}"?`,
       confirmLabel:'Remove',
+      isDestructive:true,
       onConfirm:()=>{setConfirmModal(null);removePdfFromItem(pdfItem.id,p.id);},
     });
   };

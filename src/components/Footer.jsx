@@ -174,7 +174,7 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
 
 function AccelProgress({metronome}){if(!metronome.accel.enabled)return null;const s=metronome.bpm;const tgt=metronome.accel.targetBpm;const r=s>=tgt;const pct=r?100:Math.min(100,((s-60)/Math.max(1,tgt-60))*100);const u=metronome.accel.unit||'bar';return (<div className="mt-3 flex items-center gap-3"><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Accel</span><div className="flex-1 h-px relative" style={{background:LINE_MED}}><div className="absolute inset-y-0 left-0" style={{background:r?WARM:IKB,width:`${pct}%`,height:'1px'}}/></div><span className="tabular-nums shrink-0" style={{color:r?WARM:MUTED,fontSize:'10px'}}>{r?`▲ ${tgt}`:`${s} → ${tgt} · +${metronome.accel.stepBpm}/${metronome.accel.every}${u[0]}`}</span></div>);}
 
-export default function Footer({isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,attachDailyToPiece,todaySessions,items,settings,handleStartRecording}){
+export default function Footer({isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,dayJustRolled,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,attachDailyToPiece,todaySessions,items,settings,handleStartRecording}){
   const [quickNoteText,setQuickNoteText]=useState('');
   const [attachTarget,setAttachTarget]=useState('');
   // Pulse-mode flash: snap on at beat, decay after 90ms
@@ -233,7 +233,7 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
   const statusSec=isResting&&!activeItemId?restToday:(activeItemId?activeTimerSec:effectiveTotalToday);
   const statusColor=activeItemId?IKB:(isResting?MUTED:DIM);
   const statusGlow=activeItemId?`0 0 20px ${IKB}40`:'none';
-  const statusLabel=activeItem?activeTitle:(isResting?'Resting':(dayClosed?'Day closed':activeItemId?'':(effectiveTotalToday>0?'Today so far':'Not practicing')));
+  const statusLabel=activeItem?activeTitle:(isResting?'Resting':(dayClosed?'Day closed':activeItemId?'':(dayJustRolled?'New day — timer reset':(effectiveTotalToday>0?'Today so far':'Not practicing'))));
   const nvDisplay=metronome.noteValue;
   const isDotSub=metronome.subdivision==='dot';
 

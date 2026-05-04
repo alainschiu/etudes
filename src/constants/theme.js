@@ -4,6 +4,10 @@ export const LINE='rgba(244,238,227,0.08)',LINE_MED='rgba(244,238,227,0.16)',LIN
 export const IKB='#002FA7',IKB_SOFT='rgba(0,47,167,0.12)';
 // REC: muted destructive — active recording state only. No other use.
 export const REC='#A93226';
+// WARN: muted destructive tone (the only red-family colour the North Star
+// permits). Hover state on destructive buttons; sync/auth error indicators.
+// Not a general accent.
+export const WARN='#E07A7A',WARN_SOFT='rgba(224,122,122,0.10)';
 // LINK: brighter IKB for hyperlink text on near-black backgrounds.
 // Permitted use: docs HTML files only (--link CSS variable).
 // App components use IKB directly for interactive elements.

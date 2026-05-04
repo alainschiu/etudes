@@ -624,7 +624,8 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
                 // Internal wiki links (pre-processed from [[text]] → wiki://text)
                 if(href?.startsWith('wiki://')){
                   const raw=decodeURIComponent(href.slice(7));
-                  return <span onClick={()=>handleWikiClick(raw)} style={{color:IKB,borderBottom:`1px solid ${IKB}40`,cursor:'pointer'}}>{children}</span>;
+                  const ok=!!resolveWikiLink(raw,items,history,programs,notes);
+                  return <span onClick={()=>ok&&handleWikiClick(raw)} title={ok?undefined:'no match'} style={{color:ok?IKB:MUTED,borderBottom:`1px ${ok?'solid':'dotted'} ${ok?`${IKB}40`:'rgba(200,193,179,0.4)'}`,cursor:ok?'pointer':'default'}}>{children}</span>;
                 }
                 // External links — ensure protocol present, open in new tab
                 const url=href&&!href.match(/^https?:\/\/|^mailto:|^#/)? `https://${href}`:href;

@@ -32,7 +32,7 @@ import {idbGet} from '../lib/storage.js';
 import {getItemTime, getSpotTime, displayTitle, formatByline, normalizeComposerKey, nextPerformance, mkSpotId} from '../lib/items.js';
 import {getEmbedInfo} from '../lib/media.js';
 import {toRoman} from '../lib/music.js';
-import {DisplayHeader, StageLabels, PerformanceChip, ItemTimeEditor, MarkdownField, Waveform} from '../components/shared.jsx';
+import {DisplayHeader, StageLabels, PerformanceChip, ItemTimeEditor, MarkdownField, Waveform, DebouncedField} from '../components/shared.jsx';
 import {fmtSpotTime} from '../components/shared.jsx';
 import PieceRecordingsPanel from '../components/PieceRecordingsPanel.jsx';
 
@@ -85,6 +85,12 @@ export default function RepertoireView(p){
   const [groupByCollection,setGroupByCollection]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(false);const [composerOpen,setComposerOpen]=useState(true);const [instrumentOpen,setInstrumentOpen]=useState(true);const [expandedId,setExpandedId]=useState(()=>expandedItemId||null);const [showMoreIds,setShowMoreIds]=useState({});
   const [globalAbA,setGlobalAbA]=useState(null);
   const [globalAbB,setGlobalAbB]=useState(null);
+  // Cleanup: if the referenced piece or recording is deleted, drop the slot.
+  useEffect(()=>{
+    const stillThere=(ab)=>!!(ab && items.some(i=>i.id===ab.itemId) && pieceRecordingMeta?.[ab.itemId]?.[ab.date]);
+    if(globalAbA&&!stillThere(globalAbA))setGlobalAbA(null);
+    if(globalAbB&&!stillThere(globalAbB))setGlobalAbB(null);
+  },[items,pieceRecordingMeta,globalAbA,globalAbB]);
   const [spotsOpen,setSpotsOpen]=useState({});
   const isSpotsOpen=(id)=>spotsOpen[id]===true;
   const toggleSpots=(id)=>setSpotsOpen(p=>({...p,[id]:!p[id]}));
@@ -165,15 +171,15 @@ export default function RepertoireView(p){
         <div className="grid grid-cols-12 gap-8">
           <div className="col-span-8">
             <div className="mb-5">
-              <EditorRow label="Work title" hint="Leave blank if this is a movement of a collection."><input type="text" value={titleValue} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{title:e.target.value})} placeholder="Untitled" style={{...eIn,fontFamily:serif}}/></EditorRow>
-              <EditorRow label="Movement / part"><input type="text" value={i.movement||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{movement:e.target.value})} placeholder="I. Prélude" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
-              <EditorRow label="Collection"><input type="text" value={i.collection||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{collection:e.target.value})} placeholder="Suite Bergamasque" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
-              <EditorRow label="Catalog"><input type="text" value={i.catalog||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{catalog:e.target.value})} placeholder="Op. 110" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
-              <EditorRow label="Composer"><input list="rep-composer-list" type="text" value={i.composer||''} onChange={e=>updateItem(i.id,{composer:e.target.value})} placeholder="Composer" style={eInI}/></EditorRow>
-              <EditorRow label="Author" hint="For books, textbooks, or study materials."><input type="text" value={i.author||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{author:e.target.value})} placeholder="—" style={eInI}/></EditorRow>
-              <EditorRow label="Instrument" icon={<Guitar className="w-3 h-3" strokeWidth={1.25}/>}><input list="rep-instrument-list" type="text" value={i.instrument||''} onChange={e=>updateItem(i.id,{instrument:e.target.value})} placeholder="Instrument" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
+              <EditorRow label="Work title" hint="Leave blank if this is a movement of a collection."><DebouncedField type="text" value={titleValue} onFocus={selectOnFocus} onChange={v=>updateItem(i.id,{title:v})} placeholder="Untitled" style={{...eIn,fontFamily:serif}}/></EditorRow>
+              <EditorRow label="Movement / part"><DebouncedField type="text" value={i.movement||''} onFocus={selectOnFocus} onChange={v=>updateItem(i.id,{movement:v})} placeholder="I. Prélude" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
+              <EditorRow label="Collection"><DebouncedField type="text" value={i.collection||''} onFocus={selectOnFocus} onChange={v=>updateItem(i.id,{collection:v})} placeholder="Suite Bergamasque" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
+              <EditorRow label="Catalog"><DebouncedField type="text" value={i.catalog||''} onFocus={selectOnFocus} onChange={v=>updateItem(i.id,{catalog:v})} placeholder="Op. 110" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
+              <EditorRow label="Composer"><DebouncedField list="rep-composer-list" type="text" value={i.composer||''} onChange={v=>updateItem(i.id,{composer:v})} placeholder="Composer" style={eInI}/></EditorRow>
+              <EditorRow label="Author" hint="For books, textbooks, or study materials."><DebouncedField type="text" value={i.author||''} onFocus={selectOnFocus} onChange={v=>updateItem(i.id,{author:v})} placeholder="—" style={eInI}/></EditorRow>
+              <EditorRow label="Instrument" icon={<Guitar className="w-3 h-3" strokeWidth={1.25}/>}><DebouncedField list="rep-instrument-list" type="text" value={i.instrument||''} onChange={v=>updateItem(i.id,{instrument:v})} placeholder="Instrument" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
               <EditorRow label="Status"><StageLabels stage={i.stage} onChange={st=>updateItem(i.id,{stage:st})} compact/></EditorRow>
-              {showArranger&&(showMore?(<EditorRow label="Arranger"><input type="text" value={i.arranger||''} onFocus={selectOnFocus} onChange={e=>updateItem(i.id,{arranger:e.target.value})} placeholder="—" style={eInI}/></EditorRow>):(<div className="flex items-baseline gap-6 py-2" style={{borderBottom:`1px solid ${LINE}`}}><div className="w-36 shrink-0"/><button onClick={()=>toggleShowMore(i.id)} className="uppercase italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}>+ arranger</button></div>))}
+              {showArranger&&(showMore?(<EditorRow label="Arranger"><DebouncedField type="text" value={i.arranger||''} onFocus={selectOnFocus} onChange={v=>updateItem(i.id,{arranger:v})} placeholder="—" style={eInI}/></EditorRow>):(<div className="flex items-baseline gap-6 py-2" style={{borderBottom:`1px solid ${LINE}`}}><div className="w-36 shrink-0"/><button onClick={()=>toggleShowMore(i.id)} className="uppercase italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}>+ arranger</button></div>))}
               <EditorRow label="Started"><input type="date" value={i.startedDate||''} onChange={e=>updateItem(i.id,{startedDate:e.target.value||null})} style={{...eInM,colorScheme:'dark'}}/></EditorRow>
               <LengthEditorRow i={i} updateItem={updateItem}/>
               {showBpmTarget&&<EditorRow label="Tempo target" icon={<TrendingUp className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/>}><input type="number" min="40" max="300" value={i.bpmTarget??''} onChange={e=>{const v=e.target.value;const n=parseInt(v,10);updateItem(i.id,{bpmTarget:Number.isFinite(n)&&n>0?n:null});}} placeholder="— bpm" style={eInM}/></EditorRow>}

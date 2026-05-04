@@ -330,7 +330,8 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
                 a:({href,children})=>{
                   if(href?.startsWith('wiki://')){
                     const raw=decodeURIComponent(href.slice(7));
-                    return <span onClick={()=>handleBodyWikiClick(raw)} style={{color:IKB,borderBottom:`1px solid ${IKB}40`,cursor:'pointer'}}>{children}</span>;
+                    const ok=!!resolveWikiLink(raw,items,[],null,freeNotes||[]);
+                    return <span onClick={()=>ok&&handleBodyWikiClick(raw)} title={ok?undefined:'no match'} style={{color:ok?IKB:MUTED,borderBottom:`1px ${ok?'solid':'dotted'} ${ok?`${IKB}40`:'rgba(200,193,179,0.4)'}`,cursor:ok?'pointer':'default'}}>{children}</span>;
                   }
                   const url=href&&!href.match(/^https?:\/\//)? `https://${href}`:href;
                   return <a href={url} target="_blank" rel="noopener noreferrer" style={{color:IKB,borderBottom:`1px solid ${IKB}40`}}>{children}</a>;

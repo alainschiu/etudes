@@ -330,20 +330,26 @@ const PdfViewer=forwardRef(function PdfViewer({
           <ChevronLeft style={{width:12,height:12}}/>
         </TBtn>
         {pageEditing?(
-          <input
-            autoFocus
-            type="text"
-            inputMode="numeric"
-            value={pageInputVal}
-            onChange={e=>setPageInputVal(e.target.value)}
-            onKeyDown={e=>{
-              if(e.key==='Enter'){const n=parseInt(pageInputVal,10);if(!isNaN(n))jumpToPage(n);setPageEditing(false);}
-              else if(e.key==='Escape')setPageEditing(false);
-            }}
-            onBlur={()=>{const n=parseInt(pageInputVal,10);if(!isNaN(n))jumpToPage(n);setPageEditing(false);}}
-            style={{color:TEXT,fontSize:'11px',fontFamily:mono,width:'44px',textAlign:'center',flexShrink:0,
-              background:'transparent',border:`1px solid ${LINE_MED}`,outline:'none',padding:'1px 3px'}}
-          />
+          (()=>{
+            const lo=clampStart, hi=effectiveEnd||numPages||1;
+            const commit=()=>{const n=parseInt(pageInputVal,10);if(Number.isFinite(n))jumpToPage(Math.max(lo,Math.min(hi,n)));setPageEditing(false);};
+            return (<input
+              autoFocus
+              type="number"
+              inputMode="numeric"
+              min={lo}
+              max={hi}
+              value={pageInputVal}
+              onChange={e=>setPageInputVal(e.target.value)}
+              onKeyDown={e=>{
+                if(e.key==='Enter')commit();
+                else if(e.key==='Escape')setPageEditing(false);
+              }}
+              onBlur={commit}
+              style={{color:TEXT,fontSize:'11px',fontFamily:mono,width:'44px',textAlign:'center',flexShrink:0,
+                background:'transparent',border:`1px solid ${LINE_MED}`,outline:'none',padding:'1px 3px'}}
+            />);
+          })()
         ):(
           <span
             onClick={()=>{setPageEditing(true);setPageInputVal(String(currentPage));}}

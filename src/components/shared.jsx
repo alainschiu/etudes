@@ -28,6 +28,78 @@ import {getItemTime, getSpotTime, displayTitle, formatByline} from '../lib/items
 
 export function DisplayHeader({eyebrow,title,suffix,right,titleRight}){return (<div className="mb-12 flex items-end justify-between gap-6"><div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{eyebrow}</div><div className="flex items-end gap-5"><h1 className="leading-none" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(32px,6vw,56px)',letterSpacing:'-0.02em'}}><span style={{fontStyle:'italic'}}>{title}</span>{suffix&&<span style={{color:FAINT}}>{suffix}</span>}</h1>{titleRight&&<div className="pb-2">{titleRight}</div>}</div></div>{right}</div>);}
 
+/**
+ * Text input that debounces commits to props.onChange and supports Esc-to-revert.
+ * - Local draft mirrors props.value on focus and on external change.
+ * - Commits 400ms after the last keystroke, on blur, or on Enter.
+ * - Esc reverts the draft to the last committed value and blurs.
+ * - On commit, shows an italic FAINT "saved" line for 1.5s under the input.
+ */
+export function DebouncedField({value, onChange, debounceMs=400, savedHintMs=1500, className, style, ...rest}){
+  const [draft,setDraft]=useState(value??'');
+  const [saved,setSaved]=useState(false);
+  const lastCommitted=useRef(value??'');
+  const timer=useRef(null);
+  const savedTimer=useRef(null);
+  // Sync from props when the external value changes (and the user isn't mid-edit).
+  useEffect(()=>{
+    if(document.activeElement!==inputRef.current){
+      setDraft(value??'');
+      lastCommitted.current=value??'';
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[value]);
+  const inputRef=useRef(null);
+  const flushSaved=()=>{
+    setSaved(true);
+    if(savedTimer.current)clearTimeout(savedTimer.current);
+    savedTimer.current=setTimeout(()=>setSaved(false),savedHintMs);
+  };
+  const commit=(next)=>{
+    if(next===lastCommitted.current)return;
+    lastCommitted.current=next;
+    onChange(next);
+    flushSaved();
+  };
+  const onLocalChange=(e)=>{
+    const v=e.target.value;
+    setDraft(v);
+    if(timer.current)clearTimeout(timer.current);
+    timer.current=setTimeout(()=>commit(v),debounceMs);
+  };
+  const onKeyDown=(e)=>{
+    if(e.key==='Escape'){
+      e.preventDefault();
+      if(timer.current)clearTimeout(timer.current);
+      setDraft(lastCommitted.current);
+      e.currentTarget.blur();
+    } else if(e.key==='Enter'&&e.currentTarget.tagName==='INPUT'){
+      if(timer.current)clearTimeout(timer.current);
+      commit(draft);
+      e.currentTarget.blur();
+    }
+    rest.onKeyDown?.(e);
+  };
+  const onBlur=(e)=>{
+    if(timer.current)clearTimeout(timer.current);
+    commit(draft);
+    rest.onBlur?.(e);
+  };
+  useEffect(()=>()=>{
+    if(timer.current)clearTimeout(timer.current);
+    if(savedTimer.current)clearTimeout(savedTimer.current);
+  },[]);
+  const {onKeyDown:_omitKey,onBlur:_omitBlur,...inputProps}=rest;
+  return (
+    <span style={{display:'block',position:'relative'}}>
+      <input ref={inputRef} value={draft} onChange={onLocalChange} onKeyDown={onKeyDown} onBlur={onBlur} className={className} style={style} {...inputProps}/>
+      {saved&&(
+        <span className="italic" style={{position:'absolute',right:0,top:'100%',marginTop:'2px',color:FAINT,fontFamily:serif,fontSize:'10px',pointerEvents:'none',opacity:0.9}}>saved</span>
+      )}
+    </span>
+  );
+}
+
 export function Ring({value,max,maxSize=180}){const pct=Math.min(100,(value/max)*100);return (<div className="relative flex items-center justify-center w-full mx-auto" style={{maxWidth:maxSize,aspectRatio:'1 / 1'}}><svg viewBox="0 0 100 100" className="w-full h-full -rotate-90" preserveAspectRatio="xMidYMid meet"><circle cx="50" cy="50" r="44" fill="none" stroke={LINE_MED} strokeWidth="5"/><circle cx="50" cy="50" r="44" fill="none" stroke={IKB} strokeWidth="5" strokeLinecap="round" strokeDasharray={2*Math.PI*44} strokeDashoffset={2*Math.PI*44*(1-pct/100)} style={{transition:'stroke-dashoffset 0.6s ease'}}/></svg><div className="absolute inset-0 flex flex-col items-center justify-center"><div className="tabular-nums" style={{fontFamily:serif,fontWeight:300,letterSpacing:'-0.02em',fontSize:'36px'}}>{value}<span style={{color:MUTED,fontSize:'18px'}}>′</span></div><div className="uppercase mt-1" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.25em'}}>of {max}′</div></div></div>);}
 
 export function StageLabels({stage,onChange,compact=false}){const ai=STAGES.findIndex(s=>s.key===stage);return (<div className={`flex ${compact?'gap-4':'gap-5'} flex-wrap`}>{STAGES.map((s,i)=>{const a=i===ai;return (<button key={s.key} onClick={(e)=>{e.stopPropagation();onChange(s.key);}} className="transition pb-1.5" style={{color:a?TEXT:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:compact?'12px':'15px',fontWeight:300,borderBottom:a?`1px solid ${IKB}`:`1px solid transparent`}}>{s.label}</button>);})}</div>);}

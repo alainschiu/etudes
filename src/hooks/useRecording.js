@@ -30,14 +30,14 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
       }catch(e){setConfirmModal({message:'Microphone unavailable. Check browser permissions.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
     };
     if(recordingMeta[tk]){
-      setConfirmModal({message:"Replace today's recording?",confirmLabel:'Replace',onConfirm:async()=>{setConfirmModal(null);await doStart();}});
+      setConfirmModal({message:"Replace today's recording?",confirmLabel:'Replace',isDestructive:true,onConfirm:async()=>{setConfirmModal(null);await doStart();}});
     }else await doStart();
   };
 
   const stopRecording=()=>{try{mediaRecorderRef.current?.stop();}catch{}setIsRecording(false);};
 
   const deleteRecording=(date)=>{
-    setConfirmModal({message:`Delete the recording for ${date}?`,confirmLabel:'Delete',onConfirm:async()=>{
+    setConfirmModal({message:`Delete the recording for ${date}?`,confirmLabel:'Delete',isDestructive:true,onConfirm:async()=>{
       setConfirmModal(null);await idbDel('recordings',date);
       setRecordingMeta(m=>{const c={...m};delete c[date];return c;});
     }});
@@ -90,7 +90,7 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
       }catch{setConfirmModal({message:'Microphone unavailable. Check browser permissions.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
     };
     if(pieceRecordingMeta?.[itemId]?.[date]){
-      setConfirmModal({message:"Replace today's recording for this piece?",confirmLabel:'Replace',onConfirm:async()=>{setConfirmModal(null);await doStart();}});
+      setConfirmModal({message:"Replace today's recording for this piece?",confirmLabel:'Replace',isDestructive:true,onConfirm:async()=>{setConfirmModal(null);await doStart();}});
     }else await doStart();
   };
 
@@ -103,7 +103,7 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
       return;
     }
     const idbKey=entry?.idbKey??`${itemId}__${date}`;
-    setConfirmModal({message:`Delete the recording from ${date}?`,confirmLabel:'Delete',onConfirm:async()=>{
+    setConfirmModal({message:`Delete the recording from ${date}?`,confirmLabel:'Delete',isDestructive:true,onConfirm:async()=>{
       setConfirmModal(null);
       await idbDel('pieceRecordings',idbKey);
       setPieceRecordingMeta(m=>{const c={...m};if(c[itemId]){c[itemId]={...c[itemId]};delete c[itemId][date];if(!Object.keys(c[itemId]).length)delete c[itemId];}return c;});

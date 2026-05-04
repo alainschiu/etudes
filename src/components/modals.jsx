@@ -10,14 +10,14 @@ import UploadIcon from 'lucide-react/dist/esm/icons/upload';
 import Cloud from 'lucide-react/dist/esm/icons/cloud';
 import CloudOff from 'lucide-react/dist/esm/icons/cloud-off';
 import Loader from 'lucide-react/dist/esm/icons/loader';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, serif} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARN, serif} from '../constants/theme.js';
 import appPkg from '../../package.json';
 
 const SHORTCUTS=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k:'M',v:'Toggle metronome'},{k:'D',v:'Toggle tuning drone'},{k:'T',v:'Tap tempo'},{k:'L',v:'Log BPM'},{k:'N',v:'Quick note'},{k:'1 – 4',v:'Jump to section'},{k:'?',v:'Open Réglages'},{k:'Esc',v:'Close'}];
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
 const USER_GUIDE_URL='https://etudes.me/guide';
 
-export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBackgroundError,onDismissDriveError,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect,initialTab='settings'}){
+export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBackgroundError,onDismissDriveError,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect,initialTab='settings',setConfirmModal}){
   const [devBusy,setDevBusy]=useState(false);
   const [devStatus,setDevStatus]=useState('');
   const [driveBusy,setDriveBusy]=useState(false);
@@ -260,15 +260,13 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
               >Seed notes &amp; history only</button>}
               {devClearAll&&<button
                 disabled={devBusy}
-                onClick={async()=>{
-                  if(!window.confirm('Clear all Études data? This cannot be undone.'))return;
-                  setDevBusy(true);setDevStatus('clearing…');
-                  await devClearAll();
-                  setDevStatus('✓ cleared — reloading…');
-                  setTimeout(()=>window.location.reload(),600);
+                onClick={()=>{
+                  const run=async()=>{setDevBusy(true);setDevStatus('clearing…');await devClearAll();setDevStatus('✓ cleared — reloading…');setTimeout(()=>window.location.reload(),600);};
+                  if(setConfirmModal){setConfirmModal({message:'Clear all Études data? This cannot be undone.',confirmLabel:'Clear all data',isDestructive:true,onConfirm:async()=>{setConfirmModal(null);await run();}});}
+                  else if(window.confirm('Clear all Études data? This cannot be undone.')){run();}
                 }}
                 className="uppercase text-left"
-                style={{color:'#c0614a',border:`1px solid #6a2e20`,background:'transparent',padding:'4px 12px',fontSize:'9px',letterSpacing:'0.22em',cursor:'pointer'}}
+                style={{color:MUTED,border:`1px solid ${LINE_MED}`,background:'transparent',padding:'4px 12px',fontSize:'9px',letterSpacing:'0.22em',cursor:'pointer'}}
               >Clear all data</button>}
               {devStatus&&<span style={{color:FAINT,fontSize:'9px',letterSpacing:'0.1em'}}>{devStatus}</span>}
             </div>
@@ -316,9 +314,13 @@ export function SyncConflictModal({localCount,remoteCount,hasOverlap,onMerge,onK
   </div></div>);
 }
 
-export function ConfirmModal({message,confirmLabel='Confirm',onConfirm,onCancel}){
+export function ConfirmModal({message,confirmLabel='Confirm',onConfirm,onCancel,isDestructive=false}){
   const panelRef=useRef(null);useFocusTrap(panelRef,true);
-  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onCancel}><div ref={panelRef} className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}><div className="px-8 py-8 max-h-96 overflow-auto etudes-scroll"><p style={{fontFamily:serif,fontSize:'15px',lineHeight:1.6,fontWeight:300,whiteSpace:'pre-wrap'}}>{message}</p></div><div className="px-8 py-4 flex gap-3" style={{borderTop:`1px solid ${LINE}`}}><button onClick={onCancel} className="flex-1 py-2.5 uppercase" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Cancel</button><button onClick={onConfirm} className="flex-1 py-2.5 uppercase" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'}}>{confirmLabel}</button></div></div></div>);
+  const [hovered,setHovered]=useState(false);
+  const confirmStyle=isDestructive
+    ? {background:'transparent',color:hovered?WARN:MUTED,border:`1px solid ${hovered?WARN:LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em',transition:'color 120ms,border-color 120ms'}
+    : {background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'};
+  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onCancel}><div ref={panelRef} className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}><div className="px-8 py-8 max-h-96 overflow-auto etudes-scroll"><p style={{fontFamily:serif,fontSize:'15px',lineHeight:1.6,fontWeight:300,whiteSpace:'pre-wrap'}}>{message}</p></div><div className="px-8 py-4 flex gap-3" style={{borderTop:`1px solid ${LINE}`}}><button onClick={onCancel} className="flex-1 py-2.5 uppercase" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Cancel</button><button onClick={onConfirm} onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)} className="flex-1 py-2.5 uppercase" style={confirmStyle}>{confirmLabel}</button></div></div></div>);
 }
 
 export function PromptModal({title,placeholder,initial='',onConfirm,onCancel}){

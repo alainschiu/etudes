@@ -70,6 +70,7 @@ export default function useEtudesState(){
   const [refBarItemId,setRefBarItemId]=useState(null);
   const [history,setHistory]=useState(()=>migrateHistory(lsGet('etudes-history',[])));
   const [dayClosed,setDayClosed]=useState(()=>lsGet('etudes-dayClosed',false));
+  const [dayJustRolled,setDayJustRolled]=useState(false);
   const [pdfUrlMap,setPdfUrlMap]=useState({});
   const [localPieceRecordingIds,setLocalPieceRecordingIds]=useState(()=>new Set());
   const [localRefTrackIds,setLocalRefTrackIds]=useState(()=>new Set());
@@ -181,8 +182,8 @@ export default function useEtudesState(){
 
   // ── Rollover / history snapshot ───────────────────────────────────────────
   useEffect(()=>{if(!lsGet(WEEK_ROLLOVER_KEY,null))lsSet(WEEK_ROLLOVER_KEY,getWeekStart(todayDateStr()));if(!lsGet(MONTH_ROLLOVER_KEY,null))lsSet(MONTH_ROLLOVER_KEY,getMonthKey(todayDateStr()));},[]);
-  const rolloverRef=useRef({totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection,settings});
-  useEffect(()=>{rolloverRef.current={totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection,settings};});
+  const rolloverRef=useRef({totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection,settings,activeItemId});
+  useEffect(()=>{rolloverRef.current={totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection,settings,activeItemId};});
 
   // ── Cloud sync state ──────────────────────────────────────────────────────
   const coldState=useMemo(()=>({items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,noteCategories,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday}),[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,noteCategories,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
@@ -255,7 +256,9 @@ export default function useEtudesState(){
         if(prev.minutes>0||composite.trim()||prev.items.length>0){setHistory(h=>{const i=h.findIndex(x=>x.kind==='day'&&x.date===ld);if(i>=0){const c=[...h];c[i]=prev;return c;}return [...h,prev];});}
         // Push noteLog entries for items with todayNote
         setItems(p=>p.map(i=>{if(!i.todayNote||!i.todayNote.trim())return {...i,todayNote:''};const entry={id:mkNoteLogId(),date:ld,text:i.todayNote.trim(),source:'session'};return {...i,todayNote:'',noteLog:[...(i.noteLog||[]),entry]};}));
+        const hadActive=!!rolloverRef.current.activeItemId;
         setRestToday(0);setItemTimes({});setWarmupTimeToday(0);setDailyReflection('');setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);setIsResting(false);setDayClosed(false);
+        if(hadActive)setDayJustRolled(true);
         lsSet(ROLLOVER_KEY,today);
       }
       if(lw&&lw!==cw){const we=shiftDate(lw,6);if((wr.notes||'').trim()||(wr.goals||'').trim()){const e={kind:'week',weekStart:lw,weekEnd:we,notes:wr.notes||'',goals:wr.goals||''};setHistory(h=>{const i=h.findIndex(x=>x.kind==='week'&&x.weekStart===lw);if(i>=0){const c=[...h];c[i]=e;return c;}return [...h,e];});}setWeekReflection({notes:'',goals:''});lsSet(WEEK_ROLLOVER_KEY,cw);}
@@ -282,10 +285,10 @@ export default function useEtudesState(){
   // ── Item actions ──────────────────────────────────────────────────────────
   const updateItem=(id,patch)=>setItems(p=>p.map(i=>i.id===id?{...i,...patch}:i));
   const addItem=(type)=>{const ni=makeNewItem(type);setItems(p=>[...p,ni]);setExpandedItemId(ni.id);return ni;};
-  const startItem=(id,spotId=null,sessionId=null)=>{if(dayClosed)return;setActiveItemId(id);setActiveSpotId(spotId||null);setActiveSessionId(sessionId||null);if(isResting)setIsResting(false);setItems(p=>p.map(i=>i.id===id&&!i.startedDate?{...i,startedDate:todayDateStr()}:i));};
-  const stopItem=()=>{setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);doSync();};
+  const startItem=(id,spotId=null,sessionId=null)=>{if(dayClosed)return;if(dayJustRolled)setDayJustRolled(false);setActiveItemId(id);setActiveSpotId(spotId||null);setActiveSessionId(sessionId||null);if(isResting)setIsResting(false);setItems(p=>p.map(i=>i.id===id&&!i.startedDate?{...i,startedDate:todayDateStr()}:i));};
+  const stopItem=()=>{if(dayJustRolled)setDayJustRolled(false);setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);doSync();};
   const toggleWorking=(id)=>setWorkingOn(p=>p.includes(id)?p.filter(w=>w!==id):[...p,id]);
-  const toggleRest=()=>{if(isResting){setIsResting(false);return;}if(dayClosed)return;if(activeItemId)stopItem();setIsResting(true);};
+  const toggleRest=()=>{if(dayJustRolled)setDayJustRolled(false);if(isResting){setIsResting(false);return;}if(dayClosed)return;if(activeItemId)stopItem();setIsResting(true);};
   const editItemTime=(id,min)=>{const n=Math.max(0,Math.floor(Number(min)||0));setItemTimes(t=>({...t,[id]:n*60}));};
   const editSpotTime=(id,sid,min)=>{const n=Math.max(0,Math.floor(Number(min)||0));setItemTimes(t=>({...t,[`${id}:${sid}`]:n*60}));};
 
@@ -642,7 +645,7 @@ export default function useEtudesState(){
     todaySessions,setTodaySessions,loadedRoutineId,routines,setRoutines,
     dailyReflection,setDailyReflection,weekReflection,setWeekReflection,
     monthReflection,setMonthReflection,settings,setSettings,
-    freeNotes,setFreeNotes,noteCategories,setNoteCategories,recordingMeta,history,dayClosed,trash,
+    freeNotes,setFreeNotes,noteCategories,setNoteCategories,recordingMeta,history,dayClosed,dayJustRolled,setDayJustRolled,trash,
     activeItemId,activeSpotId,activeSessionId,activeItem,activeSpot,activeIsWarmup,
     isResting,isRecording,recExpanded,setRecExpanded,
     metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,
