@@ -300,3 +300,14 @@ html, body {
 @media (max-width: 768px) {
   input, textarea, select { font-size: 16px !important; }
 }
+
+/* Touch devices have no hover state, so any control that relied on
+   group-hover or .target-hover-reveal would be permanently invisible.
+   Force these reveal patterns on whenever hover capability is missing. */
+@media (hover: none) {
+  .target-hover-reveal { opacity: 1 !important; }
+  /* Tailwind escapes the colon in `group-hover:opacity-100`, producing the
+     class `group-hover\:opacity-100` in the DOM. Match that and the
+     `group-hover/name:opacity-100` named-group variant. */
+  .group .opacity-0 { opacity: 1 !important; }
+}

@@ -30,6 +30,19 @@ import {getItemTime, getSpotTime, displayTitle, formatByline} from '../lib/items
 export function DisplayHeader({eyebrow,title,suffix,right,titleRight}){return (<div className="mb-12 flex items-end justify-between gap-6"><div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{eyebrow}</div><div className="flex items-end gap-5"><h1 className="leading-none" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(32px,6vw,56px)',letterSpacing:'-0.02em'}}><span style={{fontStyle:'italic'}}>{title}</span>{suffix&&<span style={{color:FAINT}}>{suffix}</span>}</h1>{titleRight&&<div className="pb-2">{titleRight}</div>}</div></div>{right}</div>);}
 
 /**
+ * Wrap a destructive action in the standard ConfirmModal pattern.
+ * If setConfirmModal isn't available, the action runs immediately (so this
+ * helper is safe to call without explicitly threading the modal everywhere).
+ */
+export function confirmDestructive(setConfirmModal, message, onConfirm, confirmLabel='Delete'){
+  if(!setConfirmModal){onConfirm();return;}
+  setConfirmModal({
+    message,confirmLabel,isDestructive:true,
+    onConfirm:()=>{setConfirmModal(null);onConfirm();},
+  });
+}
+
+/**
  * Text input that debounces commits to props.onChange.
  * - Local draft mirrors props.value when not focused.
  * - Commits 400ms after the last keystroke, on blur, or on Enter.
@@ -556,4 +569,12 @@ export function MarkdownField({value,onChange,placeholder,minHeight=80,className
   );
 }
 
-export function SpotsBlock({item,itemTimes,activeItemId,activeSpotId,startItem,stopItem,addSpot,updateSpot,deleteSpot,editSpotTime,dayClosed}){const spots=item.spots||[];return (<div><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {spots.length>0&&<span style={{color:DIM,letterSpacing:'0.2em'}}>· {spots.length}</span>}</div>{spots.length>0&&(<div style={{background:SURFACE2,border:`1px solid ${LINE}`}}>{spots.map((s,idx)=>(<div key={s.id} style={{borderBottom:idx<spots.length-1?`1px solid ${LINE}`:'none'}}><SpotRow spot={s} itemId={item.id} itemTimes={itemTimes} isActive={activeItemId===item.id&&activeSpotId===s.id} onStart={()=>startItem(item.id,s.id)} onStop={stopItem} onRename={(label)=>updateSpot(item.id,s.id,{label})} onDelete={()=>deleteSpot(item.id,s.id)} onEditTime={editSpotTime?(v)=>editSpotTime(item.id,s.id,v):undefined} onPdfPageSet={updateSpot?(pg)=>updateSpot(item.id,s.id,{pdfPage:pg}):undefined} dayClosed={dayClosed}/></div>))}</div>)}<button onClick={()=>addSpot(item.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button></div>);}
+export function SpotsBlock({item,itemTimes,activeItemId,activeSpotId,startItem,stopItem,addSpot,updateSpot,deleteSpot,editSpotTime,dayClosed,setConfirmModal}){
+  const spots=item.spots||[];
+  const onDelete=(spotId)=>{
+    const sp=spots.find(s=>s.id===spotId);
+    confirmDestructive(setConfirmModal,`Delete spot "${sp?.label||'this spot'}"? Tempo log and time will be removed.`,
+      ()=>deleteSpot(item.id,spotId));
+  };
+  return (<div><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {spots.length>0&&<span style={{color:DIM,letterSpacing:'0.2em'}}>· {spots.length}</span>}</div>{spots.length>0&&(<div style={{background:SURFACE2,border:`1px solid ${LINE}`}}>{spots.map((s,idx)=>(<div key={s.id} style={{borderBottom:idx<spots.length-1?`1px solid ${LINE}`:'none'}}><SpotRow spot={s} itemId={item.id} itemTimes={itemTimes} isActive={activeItemId===item.id&&activeSpotId===s.id} onStart={()=>startItem(item.id,s.id)} onStop={stopItem} onRename={(label)=>updateSpot(item.id,s.id,{label})} onDelete={()=>onDelete(s.id)} onEditTime={editSpotTime?(v)=>editSpotTime(item.id,s.id,v):undefined} onPdfPageSet={updateSpot?(pg)=>updateSpot(item.id,s.id,{pdfPage:pg}):undefined} dayClosed={dayClosed}/></div>))}</div>)}<button onClick={()=>addSpot(item.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button></div>);
+}

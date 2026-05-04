@@ -11,7 +11,7 @@ import ArrowDown from 'lucide-react/dist/esm/icons/arrow-down';
 import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,serif,serifText,sans,mono} from '../constants/theme.js';
 import {displayTitle,formatByline} from '../lib/items.js';
 import {resolveWikiLink} from '../lib/notes.js';
-import {MarkdownField,DisplayHeader} from '../components/shared.jsx';
+import {MarkdownField,DisplayHeader,confirmDestructive} from '../components/shared.jsx';
 import {MarkdownEditor} from '../components/MarkdownEditor.jsx';
 
 function mkId(){return Math.random().toString(36).slice(2,10);}
@@ -66,7 +66,7 @@ function ItemPicker({items,existingIds,onPick,onClose}){
 }
 
 // ── Program editor ───────────────────────────────────────────────────────────
-function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiveNoteId}){
+function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiveNoteId,setConfirmModal}){
   const {isMobile}=useViewport();
   const [showPicker,setShowPicker]=useState(false);
   const [dragIdx,setDragIdx]=useState(null);
@@ -104,11 +104,15 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
   };
   const removePiece=(id)=>{
     const hasNote=(program.itemNotes||{})[id];
-    if(hasNote){setConfirmRemoveId(id);}
-    else{
-      const itemNotes={...(program.itemNotes||{})};delete itemNotes[id];
-      update({itemIds:program.itemIds.filter(x=>x!==id),itemNotes});
-    }
+    // With a note we already show an inline confirm banner. Without one, use
+    // the standard ConfirmModal — never delete silently.
+    if(hasNote){setConfirmRemoveId(id);return;}
+    const it=items.find(i=>i.id===id);
+    confirmDestructive(setConfirmModal,`Remove "${it?displayTitle(it):'this piece'}" from the program?`,
+      ()=>{
+        const itemNotes={...(program.itemNotes||{})};delete itemNotes[id];
+        update({itemIds:program.itemIds.filter(x=>x!==id),itemNotes});
+      },'Remove');
   };
   const confirmRemove=(id)=>{
     const itemNotes={...(program.itemNotes||{})};delete itemNotes[id];
@@ -467,7 +471,7 @@ function ProgramsList({programs,items,onSelect,onNew,setPrograms}){
 }
 
 // ── Main view ────────────────────────────────────────────────────────────────
-export default function ProgramsView({items,programs,setPrograms,selectedProgramId,setSelectedProgramId,setView,freeNotes,setActiveNoteId}){
+export default function ProgramsView({items,programs,setPrograms,selectedProgramId,setSelectedProgramId,setView,freeNotes,setActiveNoteId,setConfirmModal}){
   const {isMobile}=useViewport();
   const selectedProgram=programs.find(p=>p.id===selectedProgramId)||null;
 
@@ -492,6 +496,7 @@ export default function ProgramsView({items,programs,setPrograms,selectedProgram
         onUpdate={updateProgram}
         onBack={()=>setSelectedProgramId(null)}
         freeNotes={freeNotes||[]}
+        setConfirmModal={setConfirmModal}
         setView={setView}
         setActiveNoteId={setActiveNoteId}
       />

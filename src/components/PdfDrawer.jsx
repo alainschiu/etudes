@@ -566,7 +566,15 @@ export default function PdfDrawer({
                             className="opacity-0 group-hover:opacity-100 shrink-0" style={{color:FAINT}}>
                             <Pencil className="w-3 h-3" strokeWidth={1.25}/>
                           </button>
-                          <button onClick={e=>{e.stopPropagation();removeBookmark&&removeBookmark(pdfItem.id,activePdfId,bm.id);}}
+                          <button onClick={e=>{
+                              e.stopPropagation();
+                              const doRemove=()=>removeBookmark&&removeBookmark(pdfItem.id,activePdfId,bm.id);
+                              if(setConfirmModal){
+                                setConfirmModal({message:`Delete bookmark "${bm.name}"?`,confirmLabel:'Delete',isDestructive:true,onConfirm:()=>{setConfirmModal(null);doRemove();}});
+                              }else{
+                                doRemove();
+                              }
+                            }}
                             className="opacity-0 group-hover:opacity-100 shrink-0" style={{color:FAINT}}>
                             <X className="w-3 h-3" strokeWidth={1.25}/>
                           </button>

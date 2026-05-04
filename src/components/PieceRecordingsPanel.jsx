@@ -187,7 +187,6 @@ export default function PieceRecordingsPanel({
                   <button
                     onClick={()=>!locked&&deletePieceRecording(item.id,date)}
                     title={locked?'Unlock before deleting':'Delete recording'}
-                    className={locked?'':'opacity-0 group-hover:opacity-100 transition-opacity'}
                     style={{color:locked?LINE_STR:FAINT,cursor:locked?'not-allowed':'pointer',padding:'0 2px'}}
                   >
                     <Trash2 className="w-3 h-3" strokeWidth={1.25}/>

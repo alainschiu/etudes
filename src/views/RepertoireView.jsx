@@ -75,7 +75,23 @@ const selectOnFocus=(e)=>e.currentTarget.select();
 
 export default function RepertoireView(p){
   const {isMobile}=useViewport();
-  const {view,items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta,uploadRefTrack,deleteRefTrack,pdfUrlMap,localPieceRecordingIds,localRefTrackIds,onWikiLinkClick,wikiCompletionData}=p;
+  const {view,items,setItems,updateItem,deleteItem,setPdfDrawerItemId,itemTimes,fmt,fmtMin,activeItemId,activeSpotId,startItem,stopItem,history,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta,startPieceRecording,stopPieceRecording,deletePieceRecording,lockPieceRecording,pieceRecordingItemId,isRecording,currentBpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta,uploadRefTrack,deleteRefTrack,pdfUrlMap,localPieceRecordingIds,localRefTrackIds,onWikiLinkClick,wikiCompletionData,setConfirmModal}=p;
+  // Wrappers that confirm destructive actions before they fire.
+  const confirmDeleteSpot=(itemId,spotId)=>{
+    const it=items.find(x=>x.id===itemId);
+    const sp=(it?.spots||[]).find(s=>s.id===spotId);
+    confirmDestructive(setConfirmModal,`Delete spot "${sp?.label||'this spot'}"? Tempo log and time will be removed.`,
+      ()=>deleteSpot(itemId,spotId));
+  };
+  const confirmDeletePerformance=(itemId,perfId)=>{
+    confirmDestructive(setConfirmModal,'Delete this performance entry?',()=>deletePerformance(itemId,perfId));
+  };
+  const confirmDeleteLogEntry=(itemId,entryId)=>{
+    confirmDestructive(setConfirmModal,'Delete this log entry?',()=>deleteNoteLogEntry&&deleteNoteLogEntry(itemId,entryId));
+  };
+  const confirmDeleteRefTrack=(itemId)=>{
+    confirmDestructive(setConfirmModal,'Delete the reference track for this piece?',()=>deleteRefTrack&&deleteRefTrack(itemId));
+  };
   // Mobile piece detail state
   const [mobileDetailId,setMobileDetailId]=useState(null);
   // Reset when navigating away from repertoire
@@ -201,7 +217,7 @@ export default function RepertoireView(p){
               {showPerformances&&(<EditorRow label="Performances" icon={<Calendar className="w-3 h-3" strokeWidth={1.25}/>}>
                 <div className="space-y-2">
                   {(i.performances||[]).length===0&&<div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No dates set.</div>}
-                  {(i.performances||[]).map(p=>(<div key={p.id} className="flex items-center gap-3"><input type="date" value={p.date||''} onChange={e=>updatePerformance(i.id,p.id,{date:e.target.value})} className="focus:outline-none font-mono tabular-nums" style={{background:'transparent',color:TEXT,border:'none',fontSize:'12px',colorScheme:'dark',padding:'2px 0'}}/><input type="text" value={p.label||''} onFocus={selectOnFocus} onChange={e=>updatePerformance(i.id,p.id,{label:e.target.value})} placeholder="recital, lesson, audition…" className="flex-1 focus:outline-none italic" style={{background:'transparent',color:TEXT,border:'none',fontFamily:serif,fontSize:'13px',padding:'2px 0'}}/><PerformanceChip perf={p} compact/><button onClick={()=>deletePerformance(i.id,p.id)} style={{color:FAINT}}><X className="w-3 h-3" strokeWidth={1.25}/></button></div>))}
+                  {(i.performances||[]).map(p=>(<div key={p.id} className="flex items-center gap-3"><input type="date" value={p.date||''} onChange={e=>updatePerformance(i.id,p.id,{date:e.target.value})} className="focus:outline-none font-mono tabular-nums" style={{background:'transparent',color:TEXT,border:'none',fontSize:'12px',colorScheme:'dark',padding:'2px 0'}}/><input type="text" value={p.label||''} onFocus={selectOnFocus} onChange={e=>updatePerformance(i.id,p.id,{label:e.target.value})} placeholder="recital, lesson, audition…" className="flex-1 focus:outline-none italic" style={{background:'transparent',color:TEXT,border:'none',fontFamily:serif,fontSize:'13px',padding:'2px 0'}}/><PerformanceChip perf={p} compact/><button onClick={()=>confirmDeletePerformance(i.id,p.id)} style={{color:FAINT}}><X className="w-3 h-3" strokeWidth={1.25}/></button></div>))}
                   <button onClick={()=>addPerformance(i.id)} className="uppercase italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}>+ Add performance</button>
                 </div>
               </EditorRow>)}
@@ -215,7 +231,7 @@ export default function RepertoireView(p){
                 {isSpotsOpen(i.id)?<ChevronUp className="w-3 h-3 ml-auto" strokeWidth={1.25}/>:<ChevronDown className="w-3 h-3 ml-auto" strokeWidth={1.25}/>}
               </button>
               {isSpotsOpen(i.id)&&(<>
-                {hasSpots&&(<div className="space-y-1" style={{border:`1px solid ${LINE}`}}>{i.spots.map((s,idx)=>(<div key={s.id} style={{borderTop:idx>0?`1px solid ${LINE}`:'none'}}><SpotEditor spot={s} itemId={i.id} itemTimes={itemTimes} isActive={activeItemId===i.id&&activeSpotId===s.id} onStart={()=>startItem(i.id,s.id)} onStop={stopItem} onUpdate={(patch)=>updateSpot(i.id,s.id,patch)} onDelete={()=>deleteSpot(i.id,s.id)} onMoveUp={()=>moveSpot(i.id,s.id,-1)} onMoveDown={()=>moveSpot(i.id,s.id,1)} canMoveUp={idx>0} canMoveDown={idx<i.spots.length-1} onEditTime={(v)=>editSpotTime(i.id,s.id,v)} dayClosed={dayClosed} itemPdfs={i.pdfs||[]}/></div>))}</div>)}
+                {hasSpots&&(<div className="space-y-1" style={{border:`1px solid ${LINE}`}}>{i.spots.map((s,idx)=>(<div key={s.id} style={{borderTop:idx>0?`1px solid ${LINE}`:'none'}}><SpotEditor spot={s} itemId={i.id} itemTimes={itemTimes} isActive={activeItemId===i.id&&activeSpotId===s.id} onStart={()=>startItem(i.id,s.id)} onStop={stopItem} onUpdate={(patch)=>updateSpot(i.id,s.id,patch)} onDelete={()=>confirmDeleteSpot(i.id,s.id)} onMoveUp={()=>moveSpot(i.id,s.id,-1)} onMoveDown={()=>moveSpot(i.id,s.id,1)} canMoveUp={idx>0} canMoveDown={idx<i.spots.length-1} onEditTime={(v)=>editSpotTime(i.id,s.id,v)} dayClosed={dayClosed} itemPdfs={i.pdfs||[]}/></div>))}</div>)}
                 <button onClick={()=>addSpot(i.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button>
               </>)}
             </div>)}
@@ -228,8 +244,8 @@ export default function RepertoireView(p){
               </button>
               {isBpmOpen(i.id)&&<BpmSparkline log={i.bpmLog} target={i.bpmTarget}/>}
             </div>)}
-            {pieceRecordingMeta&&<PieceRecordingsPanel item={i} pieceRecordingMeta={pieceRecordingMeta} deletePieceRecording={deletePieceRecording} lockPieceRecording={lockPieceRecording} pieceRecordingItemId={pieceRecordingItemId} dayClosed={dayClosed} globalAbA={globalAbA} globalAbB={globalAbB} setGlobalAbA={setGlobalAbA} setGlobalAbB={setGlobalAbB} refTrackMeta={refTrackMeta} uploadRefTrack={uploadRefTrack} deleteRefTrack={deleteRefTrack}/>}
-            <LogBookPanel item={i} updateItem={updateItem} addNoteLogEntry={addNoteLogEntry} deleteNoteLogEntry={deleteNoteLogEntry} updateNoteLogEntry={updateNoteLogEntry} onWikiLinkClick={onWikiLinkClick} wikiCompletionData={wikiCompletionData}/>
+            {pieceRecordingMeta&&<PieceRecordingsPanel item={i} pieceRecordingMeta={pieceRecordingMeta} deletePieceRecording={deletePieceRecording} lockPieceRecording={lockPieceRecording} pieceRecordingItemId={pieceRecordingItemId} dayClosed={dayClosed} globalAbA={globalAbA} globalAbB={globalAbB} setGlobalAbA={setGlobalAbA} setGlobalAbB={setGlobalAbB} refTrackMeta={refTrackMeta} uploadRefTrack={uploadRefTrack} deleteRefTrack={confirmDeleteRefTrack}/>}
+            <LogBookPanel item={i} updateItem={updateItem} addNoteLogEntry={addNoteLogEntry} deleteNoteLogEntry={confirmDeleteLogEntry} updateNoteLogEntry={updateNoteLogEntry} onWikiLinkClick={onWikiLinkClick} wikiCompletionData={wikiCompletionData}/>
           </div>
           <div className="col-span-4 space-y-4 min-w-0">
             <div><div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Total time</div><div className="tabular-nums" style={{fontFamily:serif,fontWeight:300,letterSpacing:'-0.01em',fontSize:'32px'}}>{fmt(getItemTime(itemTimes,i.id))}</div>{hasSpots&&<div className="italic mt-1" style={{color:FAINT,fontFamily:serif,fontSize:'11px'}}>whole piece + spots</div>}</div>
@@ -271,11 +287,11 @@ export default function RepertoireView(p){
           fmtMin={fmtMin}
           addSpot={addSpot}
           updateSpot={updateSpot}
-          deleteSpot={deleteSpot}
+          deleteSpot={confirmDeleteSpot}
           editSpotTime={editSpotTime}
           addPerformance={addPerformance}
           updatePerformance={updatePerformance}
-          deletePerformance={deletePerformance}
+          deletePerformance={confirmDeletePerformance}
           pieceRecordingMeta={pieceRecordingMeta}
           setPdfDrawerItemId={setPdfDrawerItemId}
           history={history}
@@ -290,12 +306,12 @@ export default function RepertoireView(p){
           pieceRecordingItemId={pieceRecordingItemId}
           refTrackMeta={refTrackMeta}
           uploadRefTrack={uploadRefTrack}
-          deleteRefTrack={deleteRefTrack}
+          deleteRefTrack={confirmDeleteRefTrack}
           pdfUrlMap={pdfUrlMap}
           localPieceRecordingIds={localPieceRecordingIds}
           localRefTrackIds={localRefTrackIds}
           addNoteLogEntry={addNoteLogEntry}
-          deleteNoteLogEntry={deleteNoteLogEntry}
+          deleteNoteLogEntry={confirmDeleteLogEntry}
           updateNoteLogEntry={updateNoteLogEntry}
           setExpandedItemId={setExpandedItemId}
           onWikiLinkClick={onWikiLinkClick}
@@ -814,10 +830,10 @@ function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeIt
           ].map(f=>(
             <div key={f.field} style={{padding:'20px 0',borderBottom:`1px solid ${LINE}`}}>
               <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'6px'}}>{f.label}</div>
-              <input
+              <DebouncedField
                 type={f.type}
                 value={item[f.field]||''}
-                onChange={e=>updateItem(item.id,{[f.field]:e.target.value})}
+                onChange={v=>updateItem(item.id,{[f.field]:v})}
                 placeholder={f.placeholder}
                 style={{width:'100%',background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:serifText,fontSize:'15px',padding:'8px 0',outline:'none',boxSizing:'border-box'}}
               />
@@ -827,11 +843,11 @@ function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeIt
           <div style={{display:'flex',gap:'16px',padding:'20px 0',borderBottom:`1px solid ${LINE}`}}>
             <div style={{flex:1}}>
               <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'6px'}}>Length</div>
-              <input type="text" value={item.lengthSecs!=null?formatLengthForInput(item.lengthSecs):''} onChange={e=>{const s=parseLengthInput(e.target.value);updateItem(item.id,{lengthSecs:s});}} placeholder="—" style={{width:'100%',background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:mono,fontSize:'14px',padding:'8px 0',outline:'none',boxSizing:'border-box'}}/>
+              <DebouncedField type="text" value={item.lengthSecs!=null?formatLengthForInput(item.lengthSecs):''} onChange={v=>{const s=parseLengthInput(v);updateItem(item.id,{lengthSecs:s});}} placeholder="—" style={{width:'100%',background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:mono,fontSize:'14px',padding:'8px 0',outline:'none',boxSizing:'border-box'}}/>
             </div>
             <div style={{flex:1}}>
               <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'6px'}}>Tempo</div>
-              <input type="number" min="40" max="300" value={item.bpmTarget??''} onChange={e=>{const n=parseInt(e.target.value,10);updateItem(item.id,{bpmTarget:Number.isFinite(n)&&n>0?n:null});}} placeholder="— bpm" style={{width:'100%',background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:mono,fontSize:'14px',padding:'8px 0',outline:'none',boxSizing:'border-box'}}/>
+              <DebouncedField type="number" min="40" max="300" value={item.bpmTarget!=null?String(item.bpmTarget):''} onChange={v=>{const n=parseInt(v,10);updateItem(item.id,{bpmTarget:Number.isFinite(n)&&n>0?n:null});}} placeholder="— bpm" style={{width:'100%',background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:mono,fontSize:'14px',padding:'8px 0',outline:'none',boxSizing:'border-box'}}/>
             </div>
           </div>
           {/* Tags */}
@@ -876,7 +892,7 @@ function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeIt
             setGlobalAbB={setGlobalAbB}
             refTrackMeta={refTrackMeta}
             uploadRefTrack={uploadRefTrack}
-            deleteRefTrack={deleteRefTrack}
+            deleteRefTrack={confirmDeleteRefTrack}
           />
         </div>
       )}

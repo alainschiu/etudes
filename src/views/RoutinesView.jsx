@@ -13,26 +13,40 @@ import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR
 import {TYPES, SECTION_CONFIG} from '../constants/config.js';
 import {displayTitle, formatByline} from '../lib/items.js';
 import {toRoman} from '../lib/music.js';
-import {DisplayHeader, TargetEdit, ItemPickerPopup} from '../components/shared.jsx';
+import {DisplayHeader, TargetEdit, ItemPickerPopup, confirmDestructive} from '../components/shared.jsx';
 
-export default function RoutinesView({routines,setRoutines,loadRoutine,setPromptModal,todaySessions,setView,items,loadedRoutineId}){
+export default function RoutinesView({routines,setRoutines,loadRoutine,setPromptModal,setConfirmModal,todaySessions,setView,items,loadedRoutineId}){
   const {isMobile}=useViewport();
   const [expandedId,setExpandedId]=useState(null);const [pickerKey,setPickerKey]=useState(null);
   const [editingNameId,setEditingNameId]=useState(null);const [editingNameVal,setEditingNameVal]=useState('');const nameInputRef=useRef(null);
   const startEditName=(r,e)=>{e.stopPropagation();setEditingNameId(r.id);setEditingNameVal(r.name);setTimeout(()=>nameInputRef.current?.select(),0);};
   const commitName=(id)=>{const v=editingNameVal.trim();if(v)setRoutines(routines.map(x=>x.id===id?{...x,name:v}:x));setEditingNameId(null);};
-  const deleteRoutine=(id)=>setRoutines(routines.filter(r=>r.id!==id));
+  const deleteRoutine=(id)=>{
+    const r=routines.find(x=>x.id===id);
+    if(!r)return;
+    confirmDestructive(setConfirmModal,`Delete routine "${r.name||'Untitled'}"? This cannot be undone.`,
+      ()=>setRoutines(routines.filter(x=>x.id!==id)));
+  };
   const createNew=()=>setPromptModal({title:'New routine',placeholder:'Name',onConfirm:(name)=>{if(name?.trim()){const nr={id:`r-${Date.now()}`,name:name.trim(),sessions:[]};setRoutines([...routines,nr]);setExpandedId(nr.id);}}});
   const createFromToday=()=>setPromptModal({title:'Save current arrangement as routine',placeholder:'Name',onConfirm:(name)=>{if(name?.trim()){const nr={id:`r-${Date.now()}`,name:name.trim(),sessions:todaySessions.map(s=>({type:s.type,intention:'',itemIds:Array.isArray(s.itemIds)?[...s.itemIds]:items.filter(i=>i.type===s.type&&i.stage!=='queued').map(i=>i.id),target:s.target??null,itemTargets:{...(s.itemTargets||{})},isWarmup:!!s.isWarmup}))};setRoutines([...routines,nr]);}}});
   const moveSession=(rid,sidx,dir)=>{const r=routines.find(x=>x.id===rid);if(!r)return;const ns=[...r.sessions];const ni=sidx+dir;if(ni<0||ni>=ns.length)return;[ns[sidx],ns[ni]]=[ns[ni],ns[sidx]];setRoutines(routines.map(x=>x.id===rid?{...x,sessions:ns}:x));};
-  const removeSession=(rid,sidx)=>setRoutines(routines.map(r=>r.id===rid?{...r,sessions:r.sessions.filter((_,i)=>i!==sidx)}:r));
+  const removeSession=(rid,sidx)=>{
+    confirmDestructive(setConfirmModal,'Remove this session from the routine?',
+      ()=>setRoutines(routines.map(r=>r.id===rid?{...r,sessions:r.sessions.filter((_,i)=>i!==sidx)}:r)),
+      'Remove');
+  };
   const addSessionType=(rid,type)=>setRoutines(routines.map(r=>r.id===rid?{...r,sessions:[...r.sessions,{type,intention:'',itemIds:[],target:null,itemTargets:{},isWarmup:false}]}:r));
   const updateIntention=(rid,sidx,v)=>setRoutines(routines.map(r=>r.id===rid?{...r,sessions:r.sessions.map((s,i)=>i===sidx?{...s,intention:v}:s)}:r));
   const updateSessionTarget=(rid,sidx,v)=>setRoutines(routines.map(r=>r.id===rid?{...r,sessions:r.sessions.map((s,i)=>i===sidx?{...s,target:v}:s)}:r));
   const toggleRoutineWarmup=(rid,sidx)=>setRoutines(routines.map(r=>r.id===rid?{...r,sessions:r.sessions.map((s,i)=>i===sidx?{...s,isWarmup:!s.isWarmup}:s)}:r));
   const updateItemTargetInRoutine=(rid,sidx,itemId,v)=>setRoutines(routines.map(r=>{if(r.id!==rid)return r;return{...r,sessions:r.sessions.map((s,i)=>{if(i!==sidx)return s;const nt={...(s.itemTargets||{})};if(v===null||v===undefined)delete nt[itemId];else nt[itemId]=v;return {...s,itemTargets:nt};})};}));
   const addItemToRoutineSession=(rid,sidx,itemId)=>setRoutines(routines.map(r=>r.id===rid?{...r,sessions:r.sessions.map((s,i)=>i===sidx?{...s,itemIds:[...(s.itemIds||[]),itemId]}:s)}:r));
-  const removeItemFromRoutineSession=(rid,sidx,itemId)=>setRoutines(routines.map(r=>{if(r.id!==rid)return r;return{...r,sessions:r.sessions.map((s,i)=>{if(i!==sidx)return s;const nt={...(s.itemTargets||{})};delete nt[itemId];return{...s,itemIds:(s.itemIds||[]).filter(x=>x!==itemId),itemTargets:nt};})};}));
+  const removeItemFromRoutineSession=(rid,sidx,itemId)=>{
+    const it=items.find(i=>i.id===itemId);
+    confirmDestructive(setConfirmModal,`Remove "${it?displayTitle(it):'this item'}" from the session?`,
+      ()=>setRoutines(routines.map(r=>{if(r.id!==rid)return r;return{...r,sessions:r.sessions.map((s,i)=>{if(i!==sidx)return s;const nt={...(s.itemTargets||{})};delete nt[itemId];return{...s,itemIds:(s.itemIds||[]).filter(x=>x!==itemId),itemTargets:nt};})};})),
+      'Remove');
+  };
   const moveItemInRoutineSession=(rid,sidx,itemIdx,dir)=>setRoutines(routines.map(r=>{if(r.id!==rid)return r;return{...r,sessions:r.sessions.map((s,i)=>{if(i!==sidx)return s;const ids=[...(s.itemIds||[])];const ni=itemIdx+dir;if(ni<0||ni>=ids.length)return s;[ids[itemIdx],ids[ni]]=[ids[ni],ids[itemIdx]];return{...s,itemIds:ids};})};}));
   // Drag-to-reorder the routines list itself (mobile uses ↑↓ chevrons).
   const [dragIdx,setDragIdx]=useState(null);

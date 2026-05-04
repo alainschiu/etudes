@@ -1,6 +1,6 @@
 import React from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
-import { BG, SURFACE2, TEXT, MUTED, LINE_STR, IKB, sans } from '../constants/theme.js';
+import { BG, SURFACE2, TEXT, MUTED, LINE_STR, IKB, sans, serif } from '../constants/theme.js';
 
 /**
  * Shown when a new service worker is waiting (registerType: 'prompt' in vite.config.js).
@@ -34,8 +34,8 @@ export default function UpdatePrompt() {
         boxShadow: '0 -4px 24px rgba(0,0,0,0.35)',
       }}
     >
-      <span style={{ color: MUTED, flex: 1, minWidth: 0 }}>
-        A new version is ready.
+      <span style={{ color: MUTED, flex: 1, minWidth: 0, fontFamily: serif, fontStyle: 'italic' }}>
+        Update available.
       </span>
       <button
         type="button"

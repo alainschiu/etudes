@@ -16,12 +16,13 @@ import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import Pencil from 'lucide-react/dist/esm/icons/pencil';
 import Check from 'lucide-react/dist/esm/icons/check';
 import Eye from 'lucide-react/dist/esm/icons/eye';
-import {TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, SURFACE, SURFACE2, BG, serif, serifText, sans, LINK} from '../constants/theme.js';
+import {TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, SURFACE, SURFACE2, BG, WARN, serif, serifText, sans, LINK} from '../constants/theme.js';
 const Z_SHEET_NOTES = 40;
 import {todayDateStr} from '../lib/dates.js';
 import {displayTitle, formatByline} from '../lib/items.js';
 import {resolveWikiLink, parseTagsFromBody} from '../lib/notes.js';
 import {MarkdownEditor} from '../components/MarkdownEditor.jsx';
+import {DebouncedField} from '../components/shared.jsx';
 
 // ── Standard categories (read-only views) ────────────────────────────────
 const STD_CATEGORIES=[
@@ -121,7 +122,7 @@ const wikiUrlTransform=(url,key,node)=>(
 );
 
 // ── Main NotesView ────────────────────────────────────────────────────────
-export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes,programs,setSelectedProgramId,requestedNoteId,setRequestedNoteId}){
+export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes,programs,setSelectedProgramId,requestedNoteId,setRequestedNoteId,setConfirmModal}){
   const {isMobile}=useViewport();
   const [activeCategoryId,setActiveCategoryId]=useState('__all');
   const [activeNoteId,setActiveNoteId]=useState(freeNotes[0]?.id);
@@ -167,9 +168,23 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
   };
 
   const deleteNote=(id)=>{
-    const next=freeNotes.filter(n=>n.id!==id);
-    setFreeNotes(next);
-    if(activeNoteId===id)setActiveNoteId(next[0]?.id??null);
+    const note=freeNotes.find(n=>n.id===id);
+    if(!note)return;
+    const performDelete=()=>{
+      const next=freeNotes.filter(n=>n.id!==id);
+      setFreeNotes(next);
+      if(activeNoteId===id)setActiveNoteId(next[0]?.id??null);
+    };
+    if(setConfirmModal){
+      setConfirmModal({
+        message:`Delete "${note.title||'Untitled'}"? This cannot be undone.`,
+        confirmLabel:'Delete',
+        isDestructive:true,
+        onConfirm:()=>{setConfirmModal(null);performDelete();},
+      });
+    }else{
+      performDelete();
+    }
   };
 
   const addCategory=()=>{
@@ -191,9 +206,25 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
   };
 
   const deleteCategory=(name)=>{
-    setNoteCategories(noteCategories.filter(c=>c!==name));
-    setFreeNotes(freeNotes.map(n=>n.category===name?{...n,category:''}:n));
-    if(activeCategoryId===name)setActiveCategoryId('__all');
+    const count=freeNotes.filter(n=>n.category===name).length;
+    const performDelete=()=>{
+      setNoteCategories(noteCategories.filter(c=>c!==name));
+      setFreeNotes(freeNotes.map(n=>n.category===name?{...n,category:''}:n));
+      if(activeCategoryId===name)setActiveCategoryId('__all');
+    };
+    if(setConfirmModal){
+      const msg=count>0
+        ?`Delete folder "${name}"? ${count} note${count===1?'':'s'} will move to All notes.`
+        :`Delete folder "${name}"?`;
+      setConfirmModal({
+        message:msg,
+        confirmLabel:'Delete',
+        isDestructive:true,
+        onConfirm:()=>{setConfirmModal(null);performDelete();},
+      });
+    }else{
+      performDelete();
+    }
   };
 
   // Filter notes
@@ -275,6 +306,11 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
       programs={programs}
       notes={freeNotes}
       onWikiLinkClick={handleWikiLinkClick}
+      addCategory={addCategory}
+      renameCategory={renameCategory}
+      deleteCategory={deleteCategory}
+      newCatName={newCatName}
+      setNewCatName={setNewCatName}
     />;
   }
 
@@ -688,7 +724,20 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
 }
 
 // ── Mobile notes view ─────────────────────────────────────────────────────
-function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes,items,history,programs,notes,onWikiLinkClick}){
+function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes,items,history,programs,notes,onWikiLinkClick,addCategory,renameCategory,deleteCategory,newCatName,setNewCatName}){
+  const [editFolders,setEditFolders]=useState(false);
+  const [editingCatId,setEditingCatId]=useState(null);
+  const [editingCatName,setEditingCatName]=useState('');
+  const [addingCategory,setAddingCategory]=useState(false);
+  const startEditCat=(cat)=>{setEditingCatId(cat);setEditingCatName(cat);};
+  const commitRenameCat=(oldName)=>{
+    if(editingCatName.trim()&&editingCatName.trim()!==oldName)renameCategory&&renameCategory(oldName,editingCatName.trim());
+    setEditingCatId(null);
+  };
+  const commitNewCat=()=>{
+    if((newCatName||'').trim())addCategory&&addCategory();
+    setAddingCategory(false);
+  };
   // MarkdownEditor calls onWikiLinkClick with a raw string; resolve it first
   const handleMobileWikiClick=useCallback((raw)=>{
     if(onWikiLinkClick)onWikiLinkClick(raw);
@@ -822,24 +871,80 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
       {filterSheetOpen&&<div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:ZSHEET-1}} onClick={()=>setFilterSheetOpen(false)}/>}
       <div style={{position:'fixed',bottom:0,left:0,right:0,background:BG,borderTop:`1px solid ${LINE_STR}`,borderRadius:'12px 12px 0 0',zIndex:ZSHEET,paddingBottom:'env(safe-area-inset-bottom,16px)',transform:filterSheetOpen?'translateY(0)':'translateY(100%)',transition:filterSheetOpen?'transform 240ms ease-out':'transform 200ms ease-in',maxHeight:'70vh',overflowY:'auto'}}>
         <div style={{width:'36px',height:'3px',background:LINE_STR,borderRadius:'999px',margin:'12px auto 0'}}/>
-        <div style={{padding:'16px 24px 12px',borderBottom:`1px solid ${LINE}`,display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-          <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.28em',color:FAINT}}>Filter notes</span>
-          {(activeCategoryId!=='__all'||tagSearch)&&<button onClick={()=>{setActiveCategoryId('__all');setTagSearch('');setFilterSheetOpen(false);}} style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:MUTED,background:'transparent',border:'none',cursor:'pointer'}}>Clear</button>}
+        <div style={{padding:'16px 24px 12px',borderBottom:`1px solid ${LINE}`,display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px'}}>
+          <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.28em',color:FAINT}}>{editFolders?'Edit folders':'Filter notes'}</span>
+          <div style={{display:'flex',gap:'12px'}}>
+            {!editFolders&&(activeCategoryId!=='__all'||tagSearch)&&<button onClick={()=>{setActiveCategoryId('__all');setTagSearch('');setFilterSheetOpen(false);}} style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:MUTED,background:'transparent',border:'none',cursor:'pointer'}}>Clear</button>}
+            {addCategory&&(
+              <button onClick={()=>{setEditFolders(v=>!v);setEditingCatId(null);setAddingCategory(false);}} style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',textTransform:'uppercase',color:editFolders?IKB:MUTED,background:'transparent',border:'none',cursor:'pointer'}}>{editFolders?'Done':'Edit folders'}</button>
+            )}
+          </div>
         </div>
         {/* Folders */}
         {[
-          {id:'__all',label:'All notes'},
-          {id:'__daily',label:'Daily Reflections'},
-          {id:'__repertoire',label:'Repertoire Logs'},
-          ...noteCategories.map(c=>({id:c,label:c})),
+          {id:'__all',label:'All notes',reserved:true},
+          {id:'__daily',label:'Daily Reflections',reserved:true},
+          {id:'__repertoire',label:'Repertoire Logs',reserved:true},
+          ...noteCategories.map(c=>({id:c,label:c,reserved:false})),
         ].map(folder=>{
           const active=activeCategoryId===folder.id&&!tagSearch;
+          const showEdit=editFolders&&!folder.reserved;
+          const isEditing=editingCatId===folder.id;
+          if(isEditing){
+            return(
+              <div key={folder.id} style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 24px',minHeight:'44px',borderLeft:'2px solid transparent'}}>
+                <input autoFocus value={editingCatName} onChange={e=>setEditingCatName(e.target.value)}
+                  onKeyDown={e=>{if(e.key==='Enter')commitRenameCat(folder.id);else if(e.key==='Escape')setEditingCatId(null);}}
+                  onBlur={()=>commitRenameCat(folder.id)}
+                  style={{flex:1,background:'transparent',color:TEXT,border:'none',borderBottom:`1px solid ${LINE_STR}`,fontFamily:sans,fontSize:'13px',outline:'none',padding:'4px 0'}}/>
+                <button onClick={()=>commitRenameCat(folder.id)} style={{minWidth:'44px',minHeight:'44px',display:'inline-flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',color:IKB}}>
+                  <Check className="w-3.5 h-3.5" strokeWidth={1.25}/>
+                </button>
+              </div>
+            );
+          }
           return(
-            <button key={folder.id} onClick={()=>{setActiveCategoryId(folder.id);setTagSearch('');setFilterSheetOpen(false);}} style={{display:'flex',alignItems:'center',width:'100%',padding:'12px 24px',minHeight:'44px',background:active?IKB_SOFT:'transparent',borderLeft:`2px solid ${active?IKB:'transparent'}`,border:'none',borderLeftWidth:'2px',borderLeftStyle:'solid',borderLeftColor:active?IKB:'transparent',cursor:'pointer',textAlign:'left',fontFamily:sans,fontSize:'13px',fontWeight:500,color:active?TEXT:MUTED}}>
-              {folder.label}
-            </button>
+            <div key={folder.id} style={{display:'flex',alignItems:'stretch',width:'100%',background:active?IKB_SOFT:'transparent',borderLeft:`2px solid ${active?IKB:'transparent'}`,minHeight:'44px'}}>
+              <button onClick={()=>{if(showEdit)return;setActiveCategoryId(folder.id);setTagSearch('');setFilterSheetOpen(false);}}
+                style={{flex:1,display:'flex',alignItems:'center',padding:'12px 24px',background:'transparent',border:'none',cursor:showEdit?'default':'pointer',textAlign:'left',fontFamily:sans,fontSize:'13px',fontWeight:500,color:active?TEXT:MUTED}}>
+                {folder.label}
+              </button>
+              {showEdit&&(
+                <>
+                  <button onClick={()=>startEditCat(folder.id)} title="Rename folder"
+                    style={{minWidth:'44px',display:'inline-flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',color:MUTED}}>
+                    <Pencil className="w-3 h-3" strokeWidth={1.25}/>
+                  </button>
+                  <button onClick={()=>deleteCategory&&deleteCategory(folder.id)} title="Delete folder"
+                    style={{minWidth:'44px',paddingRight:'12px',display:'inline-flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',color:WARN}}>
+                    <Trash2 className="w-3 h-3" strokeWidth={1.25}/>
+                  </button>
+                </>
+              )}
+            </div>
           );
         })}
+        {/* Add folder — only in edit mode */}
+        {editFolders&&(
+          addingCategory?(
+            <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'8px 24px',minHeight:'44px',borderLeft:'2px solid transparent'}}>
+              <input autoFocus value={newCatName||''} onChange={e=>setNewCatName(e.target.value)}
+                onKeyDown={e=>{if(e.key==='Enter')commitNewCat();else if(e.key==='Escape'){setAddingCategory(false);setNewCatName('');}}}
+                onBlur={commitNewCat}
+                placeholder="Folder name"
+                style={{flex:1,background:'transparent',color:TEXT,border:'none',borderBottom:`1px solid ${LINE_STR}`,fontFamily:sans,fontSize:'13px',outline:'none',padding:'4px 0'}}/>
+              <button onClick={commitNewCat} style={{minWidth:'44px',minHeight:'44px',display:'inline-flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer',color:IKB}}>
+                <Check className="w-3.5 h-3.5" strokeWidth={1.25}/>
+              </button>
+            </div>
+          ):(
+            <button onClick={()=>setAddingCategory(true)}
+              style={{display:'flex',alignItems:'center',gap:'8px',width:'100%',padding:'12px 24px',minHeight:'44px',background:'transparent',border:'none',borderLeft:'2px solid transparent',cursor:'pointer',textAlign:'left',fontFamily:serif,fontStyle:'italic',fontSize:'13px',color:MUTED}}>
+              <Plus className="w-3 h-3" strokeWidth={1.25}/>
+              Add folder
+            </button>
+          )
+        )}
         {/* Tags */}
         {allTags.length>0&&(
           <div style={{padding:'12px 24px 0',borderTop:`1px solid ${LINE}`}}>
@@ -863,7 +968,7 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
         {editNote&&(
           <>
             <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'8px 20px',borderBottom:`1px solid ${LINE}`,flexShrink:0}}>
-              <input value={editNote.title||''} onChange={e=>updateNote(editNote.id,{title:e.target.value})} style={{flex:1,background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:serifText,fontStyle:'italic',fontSize:'20px',outline:'none',paddingBottom:'2px',minWidth:0}} placeholder="Untitled"/>
+              <DebouncedField value={editNote.title||''} onChange={v=>updateNote(editNote.id,{title:v})} style={{flex:1,background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:serifText,fontStyle:'italic',fontSize:'20px',outline:'none',paddingBottom:'2px',minWidth:0}} placeholder="Untitled"/>
               <button onClick={()=>setEditSheetId(null)} style={{flexShrink:0,minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer'}}>
                 <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',color:IKB}}>Done</span>
               </button>
