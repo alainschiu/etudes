@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.97.26 — 2026-05-04
+
+### Hotfix — TodayMobile expand crash
+
+- **`ReferenceError: p is not defined`** when expanding any item in
+  TodayView on mobile. Introduced in v0.97.23: I added
+  `setConfirmModal={p.setConfirmModal}` to the `SpotsBlock` call inside
+  `MobileItemRow`, but `MobileItemRow` is a separate function that
+  destructures specific props — `p` is the first parameter of
+  `TodayView` only. Threaded `setConfirmModal` properly: added to
+  `MobileItemRow`'s destructure, switched the prop value to the
+  destructured variable, passed it from `TodayMobile` at the call site.
+
 ## v0.97.25 — 2026-05-04
 
 ### P2.16, P2.18, P2.20 – P2.23 — small UX papercuts

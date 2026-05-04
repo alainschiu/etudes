@@ -302,7 +302,7 @@ export default function TodayView(p){
 }
 
 // ── Mobile item row — extracted so useLongPress is called at component top-level
-function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta,addSpot,updateSpot,deleteSpot,editSpotTime,onWikiLinkClick,completionData,setView,setExpandedItemId,workingOn,toggleWorking}){
+function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta,addSpot,updateSpot,deleteSpot,editSpotTime,onWikiLinkClick,completionData,setView,setExpandedItemId,workingOn,toggleWorking,setConfirmModal}){
   const isActiveAny = activeItemId === item.id && activeSessionId === session.id;
   const isActiveWhole = isActiveAny && !activeSpotId;
   const time = getItemTime(itemTimes, item.id);
@@ -480,7 +480,7 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
                 deleteSpot={deleteSpot}
                 editSpotTime={editSpotTime}
                 dayClosed={dayClosed}
-                setConfirmModal={p.setConfirmModal}
+                setConfirmModal={setConfirmModal}
               />
             </div>
           )}
@@ -827,6 +827,7 @@ function TodayMobile(p){
                     setExpandedItemId={p.setExpandedItemId}
                     workingOn={p.workingOn}
                     toggleWorking={p.toggleWorking}
+                    setConfirmModal={p.setConfirmModal}
                   />
                 ))}
 
