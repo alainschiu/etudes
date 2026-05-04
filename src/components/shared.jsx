@@ -456,7 +456,9 @@ function MarkdownComponents({onWikiLinkClick,completionData}){
       const wikilinkStyle=isWiki
         ?(wikiResolved
           ?{color:LINK,borderBottom:`1px solid ${LINK}55`,cursor:'pointer',textDecoration:'none'}
-          :{color:MUTED,borderBottom:`1px dotted rgba(200,193,179,0.4)`,cursor:'default',textDecoration:'none'})
+          // Unresolved: render as italic faint prose, no border, no underline.
+          // Reads as text the user typed, not as a clickable link.
+          :{color:FAINT,fontStyle:'italic',cursor:'default',textDecoration:'none',borderBottom:'none'})
         :{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'};
       // touchstart must also preventDefault synchronously on iOS or the browser
       // initiates navigation before onClick fires.

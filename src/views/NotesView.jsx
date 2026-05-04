@@ -625,7 +625,8 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
                 if(href?.startsWith('wiki://')){
                   const raw=decodeURIComponent(href.slice(7));
                   const ok=!!resolveWikiLink(raw,items,history,programs,notes);
-                  return <span onClick={()=>ok&&handleWikiClick(raw)} title={ok?undefined:'no match'} style={{color:ok?IKB:MUTED,borderBottom:`1px ${ok?'solid':'dotted'} ${ok?`${IKB}40`:'rgba(200,193,179,0.4)'}`,cursor:ok?'pointer':'default'}}>{children}</span>;
+                  if(!ok) return <span title="no match" style={{color:FAINT,fontStyle:'italic',cursor:'default'}}>{children}</span>;
+                  return <span onClick={()=>handleWikiClick(raw)} style={{color:IKB,borderBottom:`1px solid ${IKB}40`,cursor:'pointer'}}>{children}</span>;
                 }
                 // External links — ensure protocol present, open in new tab
                 const url=href&&!href.match(/^https?:\/\/|^mailto:|^#/)? `https://${href}`:href;
@@ -781,7 +782,8 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
                           // Never render a real <a> with etudes:// — iOS would try to open it as a URL scheme
                           const raw=decodeURIComponent(href.replace('etudes://',''));
                           const ok=!!resolveWikiLink(raw,items,history,programs,notes);
-                          return <span onClick={e=>{e.stopPropagation();if(ok&&onWikiLinkClick)onWikiLinkClick(raw);}} title={ok?undefined:'no match'} style={{color:ok?IKB:MUTED,cursor:ok?'pointer':'default',borderBottom:`1px ${ok?'solid':'dotted'} ${ok?`${IKB}55`:'rgba(200,193,179,0.4)'}`,textDecoration:'none'}}>{children}</span>;
+                          if(!ok) return <span title="no match" style={{color:FAINT,fontStyle:'italic',cursor:'default'}}>{children}</span>;
+                          return <span onClick={e=>{e.stopPropagation();if(onWikiLinkClick)onWikiLinkClick(raw);}} style={{color:IKB,cursor:'pointer',borderBottom:`1px solid ${IKB}55`,textDecoration:'none'}}>{children}</span>;
                         }
                         return <a href={href} target="_blank" rel="noopener noreferrer" onTouchStart={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} onClick={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} style={{color:LINK,textDecoration:'underline'}}>{children}</a>;
                       },

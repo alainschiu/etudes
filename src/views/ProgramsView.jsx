@@ -331,7 +331,8 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
                   if(href?.startsWith('wiki://')){
                     const raw=decodeURIComponent(href.slice(7));
                     const ok=!!resolveWikiLink(raw,items,[],null,freeNotes||[]);
-                    return <span onClick={()=>ok&&handleBodyWikiClick(raw)} title={ok?undefined:'no match'} style={{color:ok?IKB:MUTED,borderBottom:`1px ${ok?'solid':'dotted'} ${ok?`${IKB}40`:'rgba(200,193,179,0.4)'}`,cursor:ok?'pointer':'default'}}>{children}</span>;
+                    if(!ok) return <span title="no match" style={{color:FAINT,fontStyle:'italic',cursor:'default'}}>{children}</span>;
+                    return <span onClick={()=>handleBodyWikiClick(raw)} style={{color:IKB,borderBottom:`1px solid ${IKB}40`,cursor:'pointer'}}>{children}</span>;
                   }
                   const url=href&&!href.match(/^https?:\/\//)? `https://${href}`:href;
                   return <a href={url} target="_blank" rel="noopener noreferrer" style={{color:IKB,borderBottom:`1px solid ${IKB}40`}}>{children}</a>;
@@ -358,13 +359,25 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
 }
 
 // ── Programs list ────────────────────────────────────────────────────────────
-function ProgramsList({programs,items,onSelect,onNew}){
+function ProgramsList({programs,items,onSelect,onNew,setPrograms}){
   const {isMobile}=useViewport();
-  const sorted=useMemo(()=>{
-    const dated=programs.filter(p=>p.performanceDate).sort((a,b)=>b.performanceDate.localeCompare(a.performanceDate));
-    const undated=programs.filter(p=>!p.performanceDate).sort((a,b)=>(a.name||'').localeCompare(b.name||''));
-    return [...dated,...undated];
-  },[programs]);
+  // Manual order: render in the array order. Drag the heading to reorder.
+  const sorted=programs;
+  const [dragIdx,setDragIdx]=useState(null);
+  const [dragOverIdx,setDragOverIdx]=useState(null);
+  const handleDragStart=(idx)=>setDragIdx(idx);
+  const handleDragOver=(e,idx)=>{e.preventDefault();setDragOverIdx(idx);};
+  const handleDrop=(toIdx)=>{
+    if(dragIdx===null||dragIdx===toIdx){setDragIdx(null);setDragOverIdx(null);return;}
+    const next=[...programs];const[m]=next.splice(dragIdx,1);next.splice(toIdx,0,m);
+    setPrograms(next);setDragIdx(null);setDragOverIdx(null);
+  };
+  const movePiece=(idx,dir)=>{
+    const ni=idx+dir;
+    if(ni<0||ni>=programs.length)return;
+    const next=[...programs];[next[idx],next[ni]]=[next[ni],next[idx]];
+    setPrograms(next);
+  };
 
   return(
     <div className="max-w-4xl mx-auto px-12 py-14" style={isMobile?{paddingLeft:'20px',paddingRight:'20px',paddingTop:'12px',paddingBottom:'calc(var(--footer-height,160px) + 28px)'}:{}}>
@@ -389,35 +402,59 @@ function ProgramsList({programs,items,onSelect,onNew}){
         </div>
       )}
 
-      {sorted.map(p=>{
+      {sorted.map((p,idx)=>{
         const pieceCount=p.itemIds?.length||0;
         const totalSecs=(p.itemIds||[]).reduce((a,id)=>{const it=items.find(i=>i.id===id);return a+(it?.lengthSecs||0);},0);
         const formattedDate=p.performanceDate?formatPerfDate(p.performanceDate):null;
+        const isDragOver=dragOverIdx===idx&&dragIdx!==null&&dragIdx!==idx;
         return(
-          <button
-            key={p.id}
-            onClick={()=>onSelect(p.id)}
-            className="w-full text-left py-4 group"
-            style={{borderBottom:`1px solid ${LINE}`}}
+          <div key={p.id}
+            draggable={!isMobile}
+            onDragStart={()=>handleDragStart(idx)}
+            onDragOver={e=>handleDragOver(e,idx)}
+            onDrop={()=>handleDrop(idx)}
+            onDragEnd={()=>{setDragIdx(null);setDragOverIdx(null);}}
+            className="group flex items-stretch"
+            style={{borderBottom:`1px solid ${LINE}`,background:isDragOver?IKB_SOFT:'transparent',opacity:dragIdx===idx?0.4:1,transition:'background 0.1s'}}
           >
-            <div className="flex items-baseline justify-between gap-4">
-              <span className="italic" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(18px,2.5vw,22px)',color:TEXT}}>{p.name||'Untitled program'}</span>
-              <span className="tabular-nums shrink-0" style={{fontFamily:mono,fontSize:'11px',color:totalSecs>0?DIM:DIM}}>
-                {totalSecs>0?fmtDuration(totalSecs):''}
+            {!isMobile&&(
+              <span className="cursor-grab active:cursor-grabbing flex items-center shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" style={{color:DIM,padding:'0 8px 0 0',touchAction:'none',userSelect:'none'}} title="Drag to reorder">
+                <GripVertical className="w-3.5 h-3.5" strokeWidth={1.25}/>
               </span>
-            </div>
-            <div className="flex items-baseline gap-3 mt-0.5">
-              {formattedDate?(
-                <span style={{fontFamily:sans,fontSize:'12px',color:MUTED}}>{formattedDate}</span>
-              ):(
-                <span style={{fontFamily:sans,fontSize:'12px',color:FAINT}}>Undated</span>
-              )}
-              {p.venue&&<span style={{fontFamily:sans,fontSize:'12px',color:FAINT}}>{p.venue}</span>}
-              <span className="tabular-nums" style={{fontFamily:mono,fontSize:'11px',color:DIM}}>
-                {pieceCount} piece{pieceCount===1?'':'s'}
-              </span>
-            </div>
-          </button>
+            )}
+            <button
+              onClick={()=>onSelect(p.id)}
+              className="flex-1 text-left py-4 min-w-0"
+            >
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="italic" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(18px,2.5vw,22px)',color:TEXT}}>{p.name||'Untitled program'}</span>
+                <span className="tabular-nums shrink-0" style={{fontFamily:mono,fontSize:'11px',color:totalSecs>0?DIM:DIM}}>
+                  {totalSecs>0?fmtDuration(totalSecs):''}
+                </span>
+              </div>
+              <div className="flex items-baseline gap-3 mt-0.5">
+                {formattedDate?(
+                  <span style={{fontFamily:sans,fontSize:'12px',color:MUTED}}>{formattedDate}</span>
+                ):(
+                  <span style={{fontFamily:sans,fontSize:'12px',color:FAINT}}>Undated</span>
+                )}
+                {p.venue&&<span style={{fontFamily:sans,fontSize:'12px',color:FAINT}}>{p.venue}</span>}
+                <span className="tabular-nums" style={{fontFamily:mono,fontSize:'11px',color:DIM}}>
+                  {pieceCount} piece{pieceCount===1?'':'s'}
+                </span>
+              </div>
+            </button>
+            {isMobile&&(
+              <div className="shrink-0 flex items-center" style={{border:`1px solid ${LINE_MED}`,marginLeft:'8px',alignSelf:'center'}}>
+                <button onClick={()=>movePiece(idx,-1)} disabled={idx===0} style={{color:idx===0?DIM:MUTED,minWidth:'40px',minHeight:'40px',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRight:`1px solid ${LINE_MED}`}} title="Move up">
+                  <ArrowUp className="w-4 h-4" strokeWidth={1.5}/>
+                </button>
+                <button onClick={()=>movePiece(idx,1)} disabled={idx===programs.length-1} style={{color:idx===programs.length-1?DIM:MUTED,minWidth:'40px',minHeight:'40px',display:'inline-flex',alignItems:'center',justifyContent:'center'}} title="Move down">
+                  <ArrowDown className="w-4 h-4" strokeWidth={1.5}/>
+                </button>
+              </div>
+            )}
+          </div>
         );
       })}
     </div>
@@ -459,6 +496,7 @@ export default function ProgramsView({items,programs,setPrograms,selectedProgram
   return(
     <ProgramsList
       programs={programs}
+      setPrograms={setPrograms}
       items={items}
       onSelect={(id)=>setSelectedProgramId(id)}
       onNew={createProgram}

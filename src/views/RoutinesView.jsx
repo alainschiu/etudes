@@ -34,6 +34,22 @@ export default function RoutinesView({routines,setRoutines,loadRoutine,setPrompt
   const addItemToRoutineSession=(rid,sidx,itemId)=>setRoutines(routines.map(r=>r.id===rid?{...r,sessions:r.sessions.map((s,i)=>i===sidx?{...s,itemIds:[...(s.itemIds||[]),itemId]}:s)}:r));
   const removeItemFromRoutineSession=(rid,sidx,itemId)=>setRoutines(routines.map(r=>{if(r.id!==rid)return r;return{...r,sessions:r.sessions.map((s,i)=>{if(i!==sidx)return s;const nt={...(s.itemTargets||{})};delete nt[itemId];return{...s,itemIds:(s.itemIds||[]).filter(x=>x!==itemId),itemTargets:nt};})};}));
   const moveItemInRoutineSession=(rid,sidx,itemIdx,dir)=>setRoutines(routines.map(r=>{if(r.id!==rid)return r;return{...r,sessions:r.sessions.map((s,i)=>{if(i!==sidx)return s;const ids=[...(s.itemIds||[])];const ni=itemIdx+dir;if(ni<0||ni>=ids.length)return s;[ids[itemIdx],ids[ni]]=[ids[ni],ids[itemIdx]];return{...s,itemIds:ids};})};}));
+  // Drag-to-reorder the routines list itself (mobile uses ↑↓ chevrons).
+  const [dragIdx,setDragIdx]=useState(null);
+  const [dragOverIdx,setDragOverIdx]=useState(null);
+  const handleDragStart=(idx)=>setDragIdx(idx);
+  const handleDragOver=(e,idx)=>{e.preventDefault();setDragOverIdx(idx);};
+  const handleDrop=(toIdx)=>{
+    if(dragIdx===null||dragIdx===toIdx){setDragIdx(null);setDragOverIdx(null);return;}
+    const next=[...routines];const[m]=next.splice(dragIdx,1);next.splice(toIdx,0,m);
+    setRoutines(next);setDragIdx(null);setDragOverIdx(null);
+  };
+  const moveRoutine=(idx,dir)=>{
+    const ni=idx+dir;
+    if(ni<0||ni>=routines.length)return;
+    const next=[...routines];[next[idx],next[ni]]=[next[ni],next[idx]];
+    setRoutines(next);
+  };
 
   return (<div className="max-w-4xl mx-auto px-12 py-14" style={isMobile?{paddingLeft:'20px',paddingRight:'20px',paddingTop:'12px',paddingBottom:'calc(var(--footer-height,160px) + 28px)'}:{}}>
     {isMobile?(
@@ -50,7 +66,7 @@ export default function RoutinesView({routines,setRoutines,loadRoutine,setPrompt
     <div className="text-sm italic mb-8" style={{color:MUTED,fontFamily:serif,lineHeight:1.7,fontWeight:300}}>Named arrangements of sessions with specific pieces pinned and optional target times. Load one on Today to replace your current setup.</div>
     <div style={{borderTop:`1px solid ${LINE_STR}`}}>
       {routines.length===0&&<div className="py-10 text-center text-sm italic" style={{color:FAINT,fontFamily:serif}}>No routines yet.</div>}
-      {routines.map(r=>{const expanded=expandedId===r.id;const isLoaded=loadedRoutineId===r.id;return (<div key={r.id} style={{borderBottom:`1px solid ${LINE}`}}>
+      {routines.map((r,idx)=>{const expanded=expandedId===r.id;const isLoaded=loadedRoutineId===r.id;const isDragOver=dragOverIdx===idx&&dragIdx!==null&&dragIdx!==idx;return (<div key={r.id} draggable={!isMobile&&!expanded&&editingNameId!==r.id} onDragStart={()=>handleDragStart(idx)} onDragOver={e=>handleDragOver(e,idx)} onDrop={()=>handleDrop(idx)} onDragEnd={()=>{setDragIdx(null);setDragOverIdx(null);}} style={{borderBottom:`1px solid ${LINE}`,background:isDragOver?IKB_SOFT:'transparent',opacity:dragIdx===idx?0.4:1,transition:'background 0.1s'}}>
         <div onClick={()=>setExpandedId(expanded?null:r.id)} className="py-4 px-2 flex items-center gap-3 cursor-pointer" style={{background:expanded?SURFACE:'transparent',minHeight:isMobile?'52px':undefined}}>
           <div className="flex-1 min-w-0">
             <div className="flex items-baseline gap-3 flex-wrap">
@@ -66,6 +82,16 @@ export default function RoutinesView({routines,setRoutines,loadRoutine,setPrompt
               </span>))}
             </div>
           </div>
+          {isMobile&&(
+            <div className="shrink-0 flex items-center" style={{border:`1px solid ${LINE_MED}`,marginRight:'4px'}} onClick={e=>e.stopPropagation()}>
+              <button onClick={()=>moveRoutine(idx,-1)} disabled={idx===0} style={{color:idx===0?DIM:MUTED,minWidth:'40px',minHeight:'40px',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRight:`1px solid ${LINE_MED}`}} title="Move up">
+                <ArrowUp className="w-4 h-4" strokeWidth={1.5}/>
+              </button>
+              <button onClick={()=>moveRoutine(idx,1)} disabled={idx===routines.length-1} style={{color:idx===routines.length-1?DIM:MUTED,minWidth:'40px',minHeight:'40px',display:'inline-flex',alignItems:'center',justifyContent:'center'}} title="Move down">
+                <ArrowDown className="w-4 h-4" strokeWidth={1.5}/>
+              </button>
+            </div>
+          )}
           <button onClick={e=>{e.stopPropagation();loadRoutine(r);setView('today');}} className="uppercase px-3 py-1.5 shrink-0" style={{color:TEXT,background:IKB,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Load</button>
           {expanded?<ChevronUp className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:DIM}}/>:<ChevronDown className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:DIM}}/>}
         </div>

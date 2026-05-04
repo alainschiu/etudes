@@ -256,9 +256,8 @@ export default function useEtudesState(){
         if(prev.minutes>0||composite.trim()||prev.items.length>0){setHistory(h=>{const i=h.findIndex(x=>x.kind==='day'&&x.date===ld);if(i>=0){const c=[...h];c[i]=prev;return c;}return [...h,prev];});}
         // Push noteLog entries for items with todayNote
         setItems(p=>p.map(i=>{if(!i.todayNote||!i.todayNote.trim())return {...i,todayNote:''};const entry={id:mkNoteLogId(),date:ld,text:i.todayNote.trim(),source:'session'};return {...i,todayNote:'',noteLog:[...(i.noteLog||[]),entry]};}));
-        const hadActive=!!rolloverRef.current.activeItemId;
         setRestToday(0);setItemTimes({});setWarmupTimeToday(0);setDailyReflection('');setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);setIsResting(false);setDayClosed(false);
-        if(hadActive)setDayJustRolled(true);
+        setDayJustRolled(true);
         lsSet(ROLLOVER_KEY,today);
       }
       if(lw&&lw!==cw){const we=shiftDate(lw,6);if((wr.notes||'').trim()||(wr.goals||'').trim()){const e={kind:'week',weekStart:lw,weekEnd:we,notes:wr.notes||'',goals:wr.goals||''};setHistory(h=>{const i=h.findIndex(x=>x.kind==='week'&&x.weekStart===lw);if(i>=0){const c=[...h];c[i]=e;return c;}return [...h,e];});}setWeekReflection({notes:'',goals:''});lsSet(WEEK_ROLLOVER_KEY,cw);}
