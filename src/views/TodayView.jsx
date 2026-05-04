@@ -60,6 +60,8 @@ export default function TodayView(p){
   useEffect(()=>{
     if(!expandedItemId)return;
     const handler=(e)=>{
+      // Ignore clicks inside any open modal/overlay (z-50 fixed layer).
+      if(e.target.closest('.fixed.inset-0.z-50'))return;
       const el=document.querySelector(`[data-today-item="${expandedItemId}"]`);
       if(el&&!el.contains(e.target))setExpandedItemId(null);
     };

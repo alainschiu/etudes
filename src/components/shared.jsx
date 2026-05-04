@@ -352,12 +352,21 @@ export function fmtSpotTime(s){s=s||0;const m=Math.floor(s/60);const sec=s%60;re
 
 export function PerformanceChip({perf,compact=false}){if(!perf||!perf.date)return null;const days=daysUntil(perf.date);if(days===null||days<-30)return null;let color,text;if(days<0){color=MUTED;text=`${Math.abs(days)}d ago`;}else if(days===0){color=WARM;text='today';}else if(days<=7){color=WARM;text=`${days}d`;}else if(days<=30){color=IKB;text=`${days}d`;}else{color=FAINT;text=`${days}d`;}const label=perf.label||'perf';return (<span className="inline-flex items-center gap-1 uppercase" title={`${label} · ${perf.date}`} style={{color,fontSize:compact?'9px':'10px',letterSpacing:'0.22em',padding:compact?'1px 5px':'2px 6px',border:`1px solid ${color}40`,background:(days<=7&&days>=0)?`${color}15`:'transparent'}}><Calendar className="w-2.5 h-2.5" strokeWidth={1.25}/>{label} · {text}</span>);}
 
-export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,onDelete,onEditTime,onPdfPageJump,dayClosed,compact=false}){
+export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,onDelete,onEditTime,onPdfPageJump,onPdfPageSet,dayClosed,compact=false}){
   const [editing,setEditing]=useState(false);
   const [val,setVal]=useState(spot.label);
   const [editingTime,setEditingTime]=useState(false);
+  const [editingPage,setEditingPage]=useState(false);
+  const [pageVal,setPageVal]=useState('');
   const time=getSpotTime(itemTimes,itemId,spot.id);
   const commit=()=>{if(val.trim())onRename(val.trim());else setVal(spot.label);setEditing(false);};
+  const commitPage=(raw)=>{
+    const n=parseInt(raw,10);
+    if(Number.isFinite(n)&&n>0&&onPdfPageSet)onPdfPageSet(n);
+    else if(raw===''&&onPdfPageSet)onPdfPageSet(null);
+    setEditingPage(false);
+  };
+  const openPageEditor=()=>{setPageVal(spot.pdfPage?String(spot.pdfPage):'');setEditingPage(true);};
   return (
     <div className="group flex items-center gap-2 py-2 px-2" style={{background:isActive?IKB_SOFT:'transparent',borderLeft:isActive?`2px solid ${IKB}`:`2px solid transparent`}}>
       {/* Play / pause */}
@@ -381,15 +390,35 @@ export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,
             <Pencil className="w-3 h-3" strokeWidth={1.25}/>
           </button>
         )}
-        {spot.pdfPage&&(
-          <button onClick={onPdfPageJump?()=>onPdfPageJump(spot.pdfPage):undefined}
+        {/* PDF page attach / jump.
+            - If pdfPage set + onPdfPageJump (inside PdfDrawer): tap = jump.
+            - If pdfPage set without jumper (Today/Repertoire): tap = open editor.
+            - If pdfPage unset + onPdfPageSet (editable contexts): icon button = open editor.
+            - If neither: render nothing. */}
+        {editingPage?(
+          <span className="shrink-0 flex items-center gap-1" onClick={e=>e.stopPropagation()}>
+            <input autoFocus type="text" inputMode="numeric" placeholder="page" value={pageVal}
+              onChange={e=>setPageVal(e.target.value)}
+              onKeyDown={e=>{if(e.key==='Enter')commitPage(pageVal);else if(e.key==='Escape')setEditingPage(false);}}
+              onBlur={()=>commitPage(pageVal)}
+              style={{width:'48px',background:'transparent',color:TEXT,border:`1px solid ${LINE_MED}`,fontSize:'10px',padding:'1px 4px',outline:'none',fontFamily:mono,textAlign:'center'}}/>
+          </span>
+        ):spot.pdfPage?(
+          <button
+            onClick={onPdfPageJump?()=>onPdfPageJump(spot.pdfPage):(onPdfPageSet?openPageEditor:undefined)}
+            onDoubleClick={onPdfPageSet?openPageEditor:undefined}
             className="shrink-0 flex items-center gap-0.5"
-            style={{color:IKB,fontSize:'9px',fontFamily:mono,cursor:onPdfPageJump?'pointer':'default',background:'transparent',border:'none',padding:'1px 3px',lineHeight:1}}
-            title={`Score p.${spot.pdfPage}`}>
+            style={{color:IKB,fontSize:'9px',fontFamily:mono,cursor:(onPdfPageJump||onPdfPageSet)?'pointer':'default',background:'transparent',border:'none',padding:'1px 3px',lineHeight:1}}
+            title={onPdfPageJump?`Jump to score p.${spot.pdfPage}`:onPdfPageSet?`Score p.${spot.pdfPage} — tap to change`:`Score p.${spot.pdfPage}`}>
             <FileText className="w-2.5 h-2.5" strokeWidth={1.5}/>
             {spot.pdfPage}
           </button>
-        )}
+        ):onPdfPageSet?(
+          <button onClick={openPageEditor} className="shrink-0 target-hover-reveal" title="Link to a PDF page"
+            style={{color:FAINT,background:'transparent',border:'none',padding:'1px 3px',cursor:'pointer',lineHeight:1}}>
+            <FileText className="w-2.5 h-2.5" strokeWidth={1.5}/>
+          </button>
+        ):null}
       </div>
       {spot.bpmTarget&&<span className="font-mono tabular-nums shrink-0" style={{color:FAINT,fontSize:'10px'}}>♩ {spot.bpmTarget}</span>}
       {/* Time display / editor */}
@@ -520,4 +549,4 @@ export function MarkdownField({value,onChange,placeholder,minHeight=80,className
   );
 }
 
-export function SpotsBlock({item,itemTimes,activeItemId,activeSpotId,startItem,stopItem,addSpot,updateSpot,deleteSpot,editSpotTime,dayClosed}){const spots=item.spots||[];return (<div><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {spots.length>0&&<span style={{color:DIM,letterSpacing:'0.2em'}}>· {spots.length}</span>}</div>{spots.length>0&&(<div style={{background:SURFACE2,border:`1px solid ${LINE}`}}>{spots.map((s,idx)=>(<div key={s.id} style={{borderBottom:idx<spots.length-1?`1px solid ${LINE}`:'none'}}><SpotRow spot={s} itemId={item.id} itemTimes={itemTimes} isActive={activeItemId===item.id&&activeSpotId===s.id} onStart={()=>startItem(item.id,s.id)} onStop={stopItem} onRename={(label)=>updateSpot(item.id,s.id,{label})} onDelete={()=>deleteSpot(item.id,s.id)} onEditTime={editSpotTime?(v)=>editSpotTime(item.id,s.id,v):undefined} dayClosed={dayClosed}/></div>))}</div>)}<button onClick={()=>addSpot(item.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button></div>);}
+export function SpotsBlock({item,itemTimes,activeItemId,activeSpotId,startItem,stopItem,addSpot,updateSpot,deleteSpot,editSpotTime,dayClosed}){const spots=item.spots||[];return (<div><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {spots.length>0&&<span style={{color:DIM,letterSpacing:'0.2em'}}>· {spots.length}</span>}</div>{spots.length>0&&(<div style={{background:SURFACE2,border:`1px solid ${LINE}`}}>{spots.map((s,idx)=>(<div key={s.id} style={{borderBottom:idx<spots.length-1?`1px solid ${LINE}`:'none'}}><SpotRow spot={s} itemId={item.id} itemTimes={itemTimes} isActive={activeItemId===item.id&&activeSpotId===s.id} onStart={()=>startItem(item.id,s.id)} onStop={stopItem} onRename={(label)=>updateSpot(item.id,s.id,{label})} onDelete={()=>deleteSpot(item.id,s.id)} onEditTime={editSpotTime?(v)=>editSpotTime(item.id,s.id,v):undefined} onPdfPageSet={updateSpot?(pg)=>updateSpot(item.id,s.id,{pdfPage:pg}):undefined} dayClosed={dayClosed}/></div>))}</div>)}<button onClick={()=>addSpot(item.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button></div>);}
