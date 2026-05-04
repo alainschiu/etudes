@@ -10,7 +10,7 @@ import UploadIcon from 'lucide-react/dist/esm/icons/upload';
 import Cloud from 'lucide-react/dist/esm/icons/cloud';
 import CloudOff from 'lucide-react/dist/esm/icons/cloud-off';
 import Loader from 'lucide-react/dist/esm/icons/loader';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARN, serif} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARN, WARN_SOFT, serif} from '../constants/theme.js';
 import appPkg from '../../package.json';
 
 const SHORTCUTS=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k:'M',v:'Toggle metronome'},{k:'D',v:'Toggle tuning drone'},{k:'T',v:'Tap tempo'},{k:'L',v:'Log BPM'},{k:'N',v:'Quick note'},{k:'1 – 4',v:'Jump to section'},{k:'?',v:'Open Réglages'},{k:'Esc',v:'Close'}];
@@ -39,10 +39,10 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
       <div><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Configuration</div><h2 className="text-3xl mt-1" style={{fontFamily:serif,fontStyle:'italic',fontWeight:300}}>Réglages</h2></div>
       <button onClick={onClose} style={{color:FAINT}}><X className="w-4 h-4" strokeWidth={1.25}/></button>
     </div>
-    {/* Tab strip */}
-    <div className="flex px-8 overflow-x-auto etudes-scroll" style={{borderBottom:`1px solid ${LINE}`}}>
+    {/* Tab strip — tighter spacing + horizontal scroll on narrow screens. */}
+    <div className="flex overflow-x-auto etudes-scroll" style={{borderBottom:`1px solid ${LINE}`,paddingLeft:'16px',paddingRight:'16px'}}>
       {[{id:'settings',label:'Settings'},{id:'shortcuts',label:'Shortcuts'},{id:'sync',label:'Sync'},{id:'export',label:'Export'},{id:'about',label:'About'}].map(t=>(
-        <button key={t.id} onClick={()=>{setTab(t.id);if(t.id==='sync')onSyncTabVisible?.();}} className="relative py-3 mr-5 uppercase shrink-0" style={{color:tab===t.id?TEXT:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>
+        <button key={t.id} onClick={()=>{setTab(t.id);if(t.id==='sync')onSyncTabVisible?.();}} className="relative py-3 uppercase shrink-0" style={{color:tab===t.id?TEXT:FAINT,fontSize:'9px',letterSpacing:'0.22em',marginRight:'14px'}}>
           {t.label}{tab===t.id&&<span className="absolute bottom-0 left-0 right-0" style={{height:'1px',background:IKB}}/>}
         </button>
       ))}
@@ -266,7 +266,7 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
                   else if(window.confirm('Clear all Études data? This cannot be undone.')){run();}
                 }}
                 className="uppercase text-left"
-                style={{color:MUTED,border:`1px solid ${LINE_MED}`,background:'transparent',padding:'4px 12px',fontSize:'9px',letterSpacing:'0.22em',cursor:'pointer'}}
+                style={{color:WARN,border:`1px solid ${WARN}80`,background:'transparent',padding:'4px 12px',fontSize:'9px',letterSpacing:'0.22em',cursor:'pointer'}}
               >Clear all data</button>}
               {devStatus&&<span style={{color:FAINT,fontSize:'9px',letterSpacing:'0.1em'}}>{devStatus}</span>}
             </div>
@@ -317,8 +317,10 @@ export function SyncConflictModal({localCount,remoteCount,hasOverlap,onMerge,onK
 export function ConfirmModal({message,confirmLabel='Confirm',onConfirm,onCancel,isDestructive=false}){
   const panelRef=useRef(null);useFocusTrap(panelRef,true);
   const [hovered,setHovered]=useState(false);
+  // Destructive: always WARN border + text so the action is clearly destructive
+  // even on touch (no hover). Hover/active deepens with WARN_SOFT background.
   const confirmStyle=isDestructive
-    ? {background:'transparent',color:hovered?WARN:MUTED,border:`1px solid ${hovered?WARN:LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em',transition:'color 120ms,border-color 120ms'}
+    ? {background:hovered?WARN_SOFT:'transparent',color:WARN,border:`1px solid ${WARN}80`,fontSize:'10px',letterSpacing:'0.22em',transition:'background 120ms'}
     : {background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'};
   return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onCancel}><div ref={panelRef} className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}><div className="px-8 py-8 max-h-96 overflow-auto etudes-scroll"><p style={{fontFamily:serif,fontSize:'15px',lineHeight:1.6,fontWeight:300,whiteSpace:'pre-wrap'}}>{message}</p></div><div className="px-8 py-4 flex gap-3" style={{borderTop:`1px solid ${LINE}`}}><button onClick={onCancel} className="flex-1 py-2.5 uppercase" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Cancel</button><button onClick={onConfirm} onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)} className="flex-1 py-2.5 uppercase" style={confirmStyle}>{confirmLabel}</button></div></div></div>);
 }

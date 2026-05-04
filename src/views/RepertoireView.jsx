@@ -25,7 +25,7 @@ import Calendar from 'lucide-react/dist/esm/icons/calendar';
 import Check from 'lucide-react/dist/esm/icons/check';
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import Mic from 'lucide-react/dist/esm/icons/mic';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, serif, serifText, sans, mono} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARM_SOFT, WARN, serif, serifText, sans, mono} from '../constants/theme.js';
 import {TYPES, SECTION_CONFIG, STAGES} from '../constants/config.js';
 import {daysUntil, todayDateStr} from '../lib/dates.js';
 import {idbGet} from '../lib/storage.js';
@@ -97,7 +97,15 @@ export default function RepertoireView(p){
   const [bpmOpen,setBpmOpen]=useState({});
   const isBpmOpen=(id)=>bpmOpen[id]===true;
   const toggleBpm=(id)=>setBpmOpen(p=>({...p,[id]:!p[id]}));
-  useEffect(()=>{if(expandedItemId){setExpandedId(expandedItemId);if(setExpandedItemId)setExpandedItemId(null);}},[]);
+  // Deep-link from wiki click / external navigation. On mobile, push the piece
+  // detail screen directly so the user lands in the editor, not the list.
+  useEffect(()=>{
+    if(!expandedItemId)return;
+    if(isMobile){setMobileDetailId(expandedItemId);}
+    else{setExpandedId(expandedItemId);}
+    if(setExpandedItemId)setExpandedItemId(null);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[expandedItemId,isMobile]);
   useEffect(()=>{if(!expandedId)return;const t=setTimeout(()=>{const el=document.querySelector(`[data-rep-id="${expandedId}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},80);return()=>clearTimeout(t);},[expandedId]);
   useEffect(()=>{
     if(!expandedId)return;
@@ -227,7 +235,7 @@ export default function RepertoireView(p){
               <div className="pt-1" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',alignItems:'center'}}>
                 <div><button onClick={()=>setPdfDrawerItemId(i.id)} title={hasPdfMeta&&!hasLocalPdf?'PDF not on this device — open to upload':undefined} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px ${hasPdfMeta&&!hasLocalPdf?'dashed':'solid'} ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em',opacity:hasPdfMeta&&!hasLocalPdf?0.55:1}}><FileText className="w-3 h-3" strokeWidth={1.25} style={hasPdfMeta&&!hasLocalPdf?{strokeDasharray:'2 1.5'}:{}}/> {hasPdfMeta?`Scores (${i.pdfs.length})`:'Scores'}</button></div>
                 <div className="flex justify-center">{(i.type==='piece'||i.type==='play')&&<button onClick={()=>updateItem(i.id,{type:i.type==='piece'?'play':'piece'})} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}>→ {i.type==='piece'?'Play':'Pieces'}</button>}</div>
-                <div className="flex justify-end"><button onClick={()=>{deleteItem(i.id);setExpandedId(null);}} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}><Trash2 className="w-3 h-3" strokeWidth={1.25}/> Delete</button></div>
+                <div className="flex justify-end"><button onClick={()=>{deleteItem(i.id);setExpandedId(null);}} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:WARN,border:`1px solid ${WARN}80`,fontSize:'9px',letterSpacing:'0.22em',background:'transparent'}}><Trash2 className="w-3 h-3" strokeWidth={1.25}/> Delete</button></div>
               </div>
             </div>
           </div>
@@ -838,7 +846,7 @@ function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeIt
             <MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={120} style={{background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'15px'}} onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
           </div>
           {/* Delete */}
-          <button onClick={()=>{deleteItem(item.id);onBack();}} style={{display:'flex',alignItems:'center',gap:'6px',padding:'10px 0',color:FAINT,background:'transparent',border:'none',cursor:'pointer',marginTop:'8px'}}>
+          <button onClick={()=>{deleteItem(item.id);onBack();}} style={{display:'flex',alignItems:'center',gap:'6px',padding:'10px 0',color:WARN,background:'transparent',border:'none',cursor:'pointer',marginTop:'8px'}}>
             <Trash2 size={12} strokeWidth={1.25}/>
             <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Delete</span>
           </button>

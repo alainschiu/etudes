@@ -677,9 +677,8 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
 function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes,items,history,programs,notes,onWikiLinkClick}){
   // MarkdownEditor calls onWikiLinkClick with a raw string; resolve it first
   const handleMobileWikiClick=useCallback((raw)=>{
-    const resolved=resolveWikiLink(raw,items,history,programs,notes);
-    if(resolved&&onWikiLinkClick)onWikiLinkClick(resolved);
-  },[items,history,programs,notes,onWikiLinkClick]);
+    if(onWikiLinkClick)onWikiLinkClick(raw);
+  },[onWikiLinkClick]);
   const [expandedId,setExpandedId]=useState(null);
   const [editSheetId,setEditSheetId]=useState(null);
   const [filterSheetOpen,setFilterSheetOpen]=useState(false);
@@ -781,13 +780,13 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
                         if(isWiki){
                           // Never render a real <a> with etudes:// — iOS would try to open it as a URL scheme
                           const raw=decodeURIComponent(href.replace('etudes://',''));
-                          const resolved=resolveWikiLink(raw,items,history,programs,notes);
-                          return <span onClick={e=>{e.stopPropagation();if(resolved&&onWikiLinkClick)onWikiLinkClick(resolved);}} style={{color:IKB,cursor:'pointer',textDecoration:'underline'}}>{children}</span>;
+                          const ok=!!resolveWikiLink(raw,items,history,programs,notes);
+                          return <span onClick={e=>{e.stopPropagation();if(ok&&onWikiLinkClick)onWikiLinkClick(raw);}} title={ok?undefined:'no match'} style={{color:ok?IKB:MUTED,cursor:ok?'pointer':'default',borderBottom:`1px ${ok?'solid':'dotted'} ${ok?`${IKB}55`:'rgba(200,193,179,0.4)'}`,textDecoration:'none'}}>{children}</span>;
                         }
                         return <a href={href} target="_blank" rel="noopener noreferrer" onTouchStart={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} onClick={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} style={{color:LINK,textDecoration:'underline'}}>{children}</a>;
                       },
                     }}>
-                      {(note.body||'').replace(/\[\[(.+?)\]\]/g,(_,t)=>`[${t}](etudes://${t})`)}
+                      {(note.body||'').replace(/\[\[([^\]\n]+)\]\]/g,(_,t)=>`[${t}](etudes://${encodeURIComponent(t)})`)}
                     </ReactMarkdown>
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:'12px',marginTop:'12px'}}>

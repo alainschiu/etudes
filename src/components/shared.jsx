@@ -1,5 +1,6 @@
 import React, {useState, useEffect, useRef} from 'react';
 import {computePeaks} from '../lib/media.js';
+import {resolveWikiLink} from '../lib/notes.js';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Play from 'lucide-react/dist/esm/icons/play';
@@ -29,11 +30,10 @@ import {getItemTime, getSpotTime, displayTitle, formatByline} from '../lib/items
 export function DisplayHeader({eyebrow,title,suffix,right,titleRight}){return (<div className="mb-12 flex items-end justify-between gap-6"><div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{eyebrow}</div><div className="flex items-end gap-5"><h1 className="leading-none" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(32px,6vw,56px)',letterSpacing:'-0.02em'}}><span style={{fontStyle:'italic'}}>{title}</span>{suffix&&<span style={{color:FAINT}}>{suffix}</span>}</h1>{titleRight&&<div className="pb-2">{titleRight}</div>}</div></div>{right}</div>);}
 
 /**
- * Text input that debounces commits to props.onChange and supports Esc-to-revert.
- * - Local draft mirrors props.value on focus and on external change.
+ * Text input that debounces commits to props.onChange.
+ * - Local draft mirrors props.value when not focused.
  * - Commits 400ms after the last keystroke, on blur, or on Enter.
- * - Esc reverts the draft to the last committed value and blurs.
- * - On commit, shows an italic FAINT "saved" line for 1.5s under the input.
+ * - Shows an italic FAINT "saved" line under the input for 1.5s after commit.
  */
 export function DebouncedField({value, onChange, debounceMs=400, savedHintMs=1500, className, style, ...rest}){
   const [draft,setDraft]=useState(value??'');
@@ -41,6 +41,7 @@ export function DebouncedField({value, onChange, debounceMs=400, savedHintMs=150
   const lastCommitted=useRef(value??'');
   const timer=useRef(null);
   const savedTimer=useRef(null);
+  const inputRef=useRef(null);
   // Sync from props when the external value changes (and the user isn't mid-edit).
   useEffect(()=>{
     if(document.activeElement!==inputRef.current){
@@ -49,7 +50,6 @@ export function DebouncedField({value, onChange, debounceMs=400, savedHintMs=150
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[value]);
-  const inputRef=useRef(null);
   const flushSaved=()=>{
     setSaved(true);
     if(savedTimer.current)clearTimeout(savedTimer.current);
@@ -68,12 +68,7 @@ export function DebouncedField({value, onChange, debounceMs=400, savedHintMs=150
     timer.current=setTimeout(()=>commit(v),debounceMs);
   };
   const onKeyDown=(e)=>{
-    if(e.key==='Escape'){
-      e.preventDefault();
-      if(timer.current)clearTimeout(timer.current);
-      setDraft(lastCommitted.current);
-      e.currentTarget.blur();
-    } else if(e.key==='Enter'&&e.currentTarget.tagName==='INPUT'){
+    if(e.key==='Enter'&&e.currentTarget.tagName==='INPUT'){
       if(timer.current)clearTimeout(timer.current);
       commit(draft);
       e.currentTarget.blur();
@@ -441,25 +436,32 @@ function preprocessWikiLinks(text){
   return (text||'').replace(/\[\[([^\]\n]+)\]\]/g,(_,inner)=>`[${inner}](wikilink://${encodeURIComponent(inner)})`);
 }
 
-function MarkdownComponents({onWikiLinkClick}){
+function MarkdownComponents({onWikiLinkClick,completionData}){
   return {
     a:({href,children,...rest})=>{
       const isExternal=href&&(href.startsWith('http://')||href.startsWith('https://'));
       const isDeep=DEEP_LINK_SCHEMES.some(s=>href&&href.startsWith(s));
       const isWiki=href&&href.startsWith('wikilink://');
+      const wikiRaw=isWiki?decodeURIComponent(href.slice('wikilink://'.length)):'';
+      const wikiResolved=isWiki&&completionData?!!resolveWikiLink(wikiRaw,completionData.items||[],completionData.history||[],completionData.programs||[],completionData.notes||[]):isWiki;
       const suppress=(e)=>{e.preventDefault();e.stopPropagation();};
       const handleClick=(e)=>{
         suppress(e);
-        if(isWiki&&onWikiLinkClick){
-          onWikiLinkClick(decodeURIComponent(href.slice('wikilink://'.length)));
+        if(isWiki){
+          if(wikiResolved&&onWikiLinkClick)onWikiLinkClick(wikiRaw);
         }else if((isExternal||isDeep)&&href){
           window.open(href,'_blank','noopener,noreferrer');
         }
       };
-      const wikilinkStyle=isWiki?{color:LINK,borderBottom:`1px solid ${LINK}55`,cursor:'pointer',textDecoration:'none'}:{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'};
+      const wikilinkStyle=isWiki
+        ?(wikiResolved
+          ?{color:LINK,borderBottom:`1px solid ${LINK}55`,cursor:'pointer',textDecoration:'none'}
+          :{color:MUTED,borderBottom:`1px dotted rgba(200,193,179,0.4)`,cursor:'default',textDecoration:'none'})
+        :{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'};
       // touchstart must also preventDefault synchronously on iOS or the browser
       // initiates navigation before onClick fires.
-      return (<a href={href} onClick={handleClick} onTouchStart={suppress} style={wikilinkStyle} {...rest}>{children}</a>);
+      const titleAttr=isWiki&&!wikiResolved?'no match':rest.title;
+      return (<a href={href} onClick={handleClick} onTouchStart={suppress} style={wikilinkStyle} {...rest} title={titleAttr}>{children}</a>);
     },
     p:({children})=><p style={{marginBottom:'0.85em',lineHeight:1.8}}>{children}</p>,
     h1:({children})=><h1 style={{fontSize:'1.3em',fontWeight:400,marginBottom:'0.5em',marginTop:'1em',borderBottom:`1px solid rgba(244,238,227,0.12)`,paddingBottom:'0.2em'}}>{children}</h1>,
@@ -483,7 +485,7 @@ export function MarkdownField({value,onChange,placeholder,minHeight=80,className
     return (
       <div className={className} style={{minHeight,padding:'12px 16px',fontFamily:serifText,fontSize:'15px',lineHeight:1.8,fontWeight:300,color:TEXT,background:'transparent',border:`1px solid ${LINE}`,...style}}>
         {(value||'').trim()?(
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents({onWikiLinkClick})}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents({onWikiLinkClick,completionData})}>
             {onWikiLinkClick?preprocessWikiLinks(value):value}
           </ReactMarkdown>
         ):(
