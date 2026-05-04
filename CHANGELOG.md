@@ -1,5 +1,250 @@
 # Changelog
 
+## v0.97.24 — 2026-05-04
+
+### SpotEditor — inline PDF page button, fix overflow
+
+- **Trash overflow.** Once N6's `(hover: none)` rule made the
+  `target-hover-reveal` cluster always-visible on touch, the desktop
+  `SpotEditor` row was clipping the trash icon on narrow column widths
+  (no `min-w-0` on the spot-label input meant it never shrank). Added
+  `min-w-0` on the input + the main flex row + outer wrapper; tightened
+  gap from `gap-3` to `gap-2`.
+- **Inline PDF page button.** Added between the time-edit pencil and
+  the move arrows — same pattern `SpotRow` uses. Tap an unset spot's
+  `📄` icon → 48 px inline number input. Tap a set spot's `📄 N` chip
+  to edit; Enter / blur commits, Esc cancels. Removed the redundant
+  separate "→ page" row that was below the textarea.
+
+## v0.97.23 — 2026-05-04
+
+### Resilience batch — destructive confirms, mobile editors, hover-reveal on touch
+
+- **N2 — every destructive delete now confirms.** New
+  `confirmDestructive(setConfirmModal, message, action)` helper in
+  `shared.jsx` (safe to call without `setConfirmModal` — falls through).
+  Wraps: note delete, folder delete, spot delete, performance delete,
+  tempo log entry delete, reference track delete, routine delete,
+  routine session/item delete, program piece remove, PDF bookmark
+  delete. Plumbed via `commonProps` (covers spread views) and
+  explicitly to ProgramsView/RoutinesView. Tier-2 piece deletion still
+  uses the trash + undo flow (now with a visible countdown — see P2.15).
+- **N1 — Notes folder management on mobile.** Filter sheet header gains
+  an **Edit folders** toggle. In edit mode each user folder shows a
+  pencil + WARN-toned trash; reserved folders (All notes / Daily /
+  Repertoire) stay read-only. Renaming uses an inline input with
+  Enter / Esc; an **+ Add folder** tile appears below.
+- **N6 — hover-revealed controls visible on touch.** New
+  `@media (hover: none)` rule in `index.css` forces `.target-hover-reveal`
+  and `.group .opacity-0` to opacity 1. Covers SpotEditor / SpotRow /
+  TargetEdit / PdfDrawer / bookmark controls. The
+  `PieceRecordingsPanel` trash specifically had its hover wrapper
+  removed so the catch-22 (touch users could only delete locked
+  recordings, but locked recordings can't be deleted) is gone.
+- **P2.3 + N5 — Mobile editors debounced.** PieceDetailScreen's title,
+  movement, collection, composer, catalog, instrument, length, and
+  tempo inputs now use `DebouncedField` (400 ms commit, 1.5 s "saved"
+  cue). NotesMobile title input too. Markdown bodies were already
+  buffered by CodeMirror.
+- **P2.14 — UpdatePrompt copy.** *"A new version is ready."* →
+  *"Update available."* in italic serif.
+- **P2.15 — UndoToast countdown.** A 1.5 px IKB underline at the bottom
+  of the toast shrinks from 100 % to 0 % over 8 s, matching the actual
+  trash auto-purge timeout. New `@keyframes undo-shrink` in App.jsx's
+  inline `<style>` block.
+
+## v0.97.22 — 2026-05-04
+
+### TodayMobile section header — restore Add section, tighten ⋮ spacing
+
+- Restored the **+ Add section** button (with sub-popover listing hidden
+  default section types) at the bottom of the mobile session list.
+- Dropped the hairline `borderLeft` between the time and `⋮` button on
+  each section header; tightened the toggle-button right padding
+  (20 → 4 px) and `⋮` `minWidth` (44 → 40 px) so practice time sits
+  ~4 px from the icon, no internal divider.
+
+## v0.97.20 — 2026-05-04
+
+### P1.4 — the real fix (in `TodayMobile`, not the dead-code popover below the early return)
+
+- Earlier "P1.4" commits put the `⋮` popover in `TodayView`'s desktop
+  branch, below `if(isMobile){return <TodayMobile/>}`, where it never
+  rendered on a phone. The popover is now in `TodayMobile`'s own
+  section header — toggle button + `⋮` button in a flex row (no nested
+  buttons). New `overflowSessionId` state. Popover lists Mark warm-up,
+  Move up, Move down, Hide section, Set target. *Set target* opens the
+  existing `PromptModal` for minutes. The five missing handlers
+  (`moveSession`, `hideSession`, `toggleSessionWarmup`, `setSessionTarget`,
+  `addSessionType`) are now actually destructured from `p` — they were
+  passed via `{...p}` but never used.
+- **P1.5 — `WARN` token usage.** Replaced 11 hardcoded `#E07A7A`
+  literals with the `WARN` token. `Footer.jsx` (8 sites in the drone
+  cents-offset indicators) and `modals.jsx` (storage warning, sync
+  error, auth error).
+- **N4 — early-return signposts.** Added a *"Desktop branch — mobile
+  fixes belong in [Component]Mobile above"* comment at the four
+  early-return sites (TodayView:107, NotesView:254, RepertoireView:252,
+  LogsView:26).
+
+## v0.97.19 — 2026-05-04
+
+### Wiki link click no longer reloads the page
+
+- React-markdown v10's default `urlTransform` strips schemes outside its
+  allow-list (http/https/mailto/tel/ircs/irc/gopher). Our custom
+  `wiki://` / `etudes://` / `wikilink://` were getting blanked to `""`,
+  the fallback branch in our custom `<a>` rendered `<a href="">`, and
+  clicking that reloads the current page (which lands on the default
+  `view='today'`). New `wikiUrlTransform` helper in three files lets
+  custom schemes pass through and falls back to `defaultUrlTransform`
+  for everything else. Applied to NotesView desktop preview
+  (`wiki://`), NotesView mobile preview (`etudes://`), ProgramsView
+  body preview (`wiki://`), and `shared.jsx MarkdownField` readOnly
+  path (`wikilink://` — used by every TodayView / Repertoire / Review
+  reflection field).
+
+## v0.97.18 — 2026-05-04
+
+### A/B trash + PDF page link from spots
+
+- **A/B trash no longer collapses the editor.** `RepertoireView`'s and
+  `TodayView`'s click-outside `mousedown` handlers were firing for
+  clicks on overlay modals above them (because `ConfirmModal` lives in
+  a `fixed z-50` portal-style layer outside the editor's DOM).
+  Confirming a destructive action like *delete recording* therefore
+  looked like a click outside the editor and collapsed it. Both
+  handlers now early-return when the click target is inside any
+  `.fixed.inset-0.z-50` modal layer. The A/B bar still clears via the
+  P2.8 cleanup `useEffect`, but the editor stays open.
+- **Link a spot to a PDF page from outside the PDF drawer.** `SpotRow`
+  accepts `onPdfPageSet`. When set, the row shows a small
+  `FileText` icon: tap → inline page input → Enter / blur to commit,
+  Esc to cancel. If a page is already set, the chip displays it; tap
+  jumps if `onPdfPageJump` is wired (PDF drawer), otherwise opens the
+  editor inline. `SpotsBlock` (TodayView) and `SpotEditor` (Repertoire
+  + mobile detail) both wired through.
+
+## v0.97.17 — 2026-05-04
+
+### Wiki link, day rollover, Programs/Routines list reorder
+
+- **P2.4 — day-rollover banner now fires unconditionally.** Dropped
+  the `hadActive` guard. The "New day — timer reset" message in the
+  footer status row appears on every midnight rollover, regardless of
+  whether an item was active. Smoke test reduces to "set
+  `etudes-lastActiveDate` to yesterday + reload".
+- **P2.7 — broken wiki links unmistakably plain text.** Unresolved
+  links now render as italic FAINT prose — no underline, no border,
+  default cursor. Reads as the phrase the user typed, not a click
+  affordance. Tooltip *"no match"* kept. Applied across all three
+  render paths (`shared.jsx MarkdownComponents` / NotesView desktop /
+  NotesView mobile / ProgramsView body).
+- **NEW — drag-to-reorder Programs list.** `ProgramsList` drops the
+  auto-sort by date and renders programs in array order. Desktop:
+  drag any row to reorder; grip appears on hover. Mobile: paired ↑↓
+  chevron cluster at the right of each row.
+- **NEW — drag-to-reorder Routines list.** Same mechanism. Desktop:
+  drag the entire row (disabled while expanded or being renamed).
+  Mobile: ↑↓ buttons next to the LOAD button.
+
+## v0.97.16 — 2026-05-04
+
+### Wiki resolve everywhere, mobile deep-link, drop Esc-revert, settings tabs
+
+- **P2.3 follow-up — drop Esc-to-revert in `DebouncedField`.** 400 ms
+  debounce was faster than reaction time and Esc has no analogue on
+  touch. Browser-level undo still works on the in-flight draft. Saved
+  indicator + debounced commit kept.
+- **P2.7 follow-up — three render paths, not two.** `MarkdownComponents`
+  in `shared.jsx` now resolves `wikilink://` at render using
+  `completionData`; unresolved → MUTED + dotted. Covers every
+  `MarkdownField` callsite — TodayView Today/Notes, Repertoire item
+  notes, Review reflections. NotesView mobile `etudes://` pre-processor
+  was missing `encodeURIComponent`, breaking links with spaces; fixed.
+  `NotesMobile handleMobileWikiClick` was passing the resolved object
+  up to App's handler that expects a raw string — silent fail on every
+  mobile wiki click. Fixed.
+- **P2.7 deep-link routing.** `RepertoireView`'s `expandedItemId` effect
+  now reactive; on mobile it sets `mobileDetailId` so a wiki-link click
+  lands the user in the piece editor, not the list.
+- **P2.6 follow-up — destructive tone visible on mobile.**
+  `ConfirmModal` destructive variant: WARN tone always-on (touch has no
+  hover); hover deepens the background with WARN_SOFT. Repertoire
+  *Delete* buttons (desktop + mobile detail) styled WARN. Dev *Clear
+  all data* button is WARN-toned.
+- **Settings tab strip.** Tighter `px-8` → 16 px and `mr-5` → 14 px so
+  all 5 tabs fit on a 360 px modal. `overflow-x-auto` retained as
+  fallback.
+
+## v0.97.15 — 2026-05-04
+
+### Resilience & input-feedback batch (X3, P2.2–P2.9)
+
+- **X3 — global error boundary.** New `src/components/ErrorBoundary.jsx`
+  wraps the view router in `App.jsx`. Catches render-time throws and
+  offers **Reload** + **Export backup** so users still have a recovery
+  path if a view crashes.
+- **P2.2 — `--footer-height` first-paint flash.** `index.css` now sets
+  the var at `:root` (116 px desktop, 96 px mobile via media query).
+  Removes the 160 px phantom bottom padding before Footer's
+  ResizeObserver fires.
+- **P2.3 — Repertoire inline edits.** New `DebouncedField` helper in
+  `shared.jsx` (later refined in 0.97.16): 400 ms debounce, "saved"
+  cue. Applied to title, movement, collection, catalog, composer,
+  author, instrument, arranger.
+- **P2.4 — day rollover signal.** New `dayJustRolled` flag in the state
+  hook; consumed by Footer's status row, which shows
+  *"New day — timer reset"* in place of the missing item label.
+- **P2.5 — dev panel `window.confirm`.** Settings → Debug → *Clear all
+  data* now uses a destructive `ConfirmModal` instead of native confirm.
+- **P2.6 — `ConfirmModal` `isDestructive`.** New `WARN`/`WARN_SOFT`
+  tokens (`#E07A7A`). Applied to: replace today's recording (daily +
+  per-piece), delete recording (daily + per-piece), Replace everything
+  on import, Remove PDF, Clear all data.
+- **P2.7 — broken wiki-links resolve at render.** First pass:
+  `NotesView` desktop and `ProgramsView` markdown previews resolve
+  `wiki://` and apply unresolved styling.
+- **P2.8 — A/B comparison cleanup.** New `useEffect` in
+  `RepertoireView` watches `items` + `pieceRecordingMeta` against
+  `globalAbA` / `globalAbB` and nullifies any slot whose referent is
+  gone.
+- **P2.9 — PdfViewer page input.** Switched `type="text"` → `type="number"`
+  with explicit `min`/`max` (`clampStart`…`effectiveEnd`); parsed value
+  clamped on Enter / blur. Typing 999 in a 10-page PDF now jumps to
+  page 10 instead of going blank.
+
+## v0.97.14 — 2026-05-04
+
+### Two long-standing mobile overflow bugs
+
+Both predate the audit branch (blame: 2026-04-29) but became more
+visible after `?` started routing through Settings.
+
+- **Settings tab strip clipped ABOUT.** Five `shrink-0` tabs at ~340 px
+  total + 64 px modal padding overflowed a 360 px phone modal. Added
+  `overflow-x-auto etudes-scroll` to the strip.
+- **Recording panel "Lock oldest" pushed page off-screen.** When the
+  rack hit 10/10 the warning text + Lock-oldest button (both
+  `shrink-0`) overflowed the viewport, making the whole page
+  horizontally draggable. Switched the row to `flex-wrap`.
+
+## v0.97.13 — 2026-05-04
+
+### Mobile composer/instrument filter + visibility boost
+
+- **`P1.12` follow-up — composer filter no-op on mobile.** The mobile
+  sidebar facets at `RepertoireView.jsx:672–673` had
+  `onSelect={(v)=>{}}` and the matching setters were never passed down.
+  Wired `setFilterComposer` / `setFilterInstrument` through
+  `MobileRepertoireList` → `SidebarFacet`.
+- **P1.4 / P1.2 follow-up — make mobile editing controls clearly
+  visible.** TodayView ⋮ trigger and Programs reorder buttons went from
+  `color: FAINT` (too subtle on near-black) to `MUTED` with an
+  explicit border. Larger glyph (16 → 20 px). *(Note: the TodayView
+  popover was still in dead code below the early return — fully fixed
+  in 0.97.20.)*
+
 ## v0.97.12 — 2026-05-03
 
 ### Mobile & wiki-link improvements
