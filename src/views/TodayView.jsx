@@ -169,7 +169,7 @@ export default function TodayView(p){
                 )}
                 {isMobile&&(
                   <>
-                    <button onClick={()=>setOverflowSessionId(overflowSessionId===session.id?null:session.id)} style={{color:FAINT,minWidth:'44px',minHeight:'44px',display:'inline-flex',alignItems:'center',justifyContent:'center'}} title="Session options"><MoreVertical className="w-4 h-4" strokeWidth={1.25}/></button>
+                    <button onClick={()=>setOverflowSessionId(overflowSessionId===session.id?null:session.id)} style={{color:overflowSessionId===session.id?TEXT:MUTED,minWidth:'40px',minHeight:'40px',display:'inline-flex',alignItems:'center',justifyContent:'center',border:`1px solid ${overflowSessionId===session.id?IKB:LINE_MED}`,background:overflowSessionId===session.id?IKB_SOFT:'transparent'}} title="Edit session"><MoreVertical className="w-5 h-5" strokeWidth={1.5}/></button>
                     {overflowSessionId===session.id&&(
                       <>
                         <div className="fixed inset-0 z-20" onClick={()=>setOverflowSessionId(null)}/>

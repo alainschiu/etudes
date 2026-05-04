@@ -247,18 +247,23 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
                   {it.lengthSecs?fmtDuration(it.lengthSecs):'—'}
                 </span>
                 {isMobile&&(
-                  <>
-                    <button onClick={()=>movePiece(idx,-1)} disabled={idx===0} className="shrink-0 mt-0.5" style={{color:idx===0?DIM:FAINT,minWidth:'44px',minHeight:'44px'}}>
-                      <ArrowUp className="w-3 h-3" strokeWidth={1.25}/>
+                  <div className="shrink-0 mt-0.5 flex items-center" style={{border:`1px solid ${LINE_MED}`}}>
+                    <button onClick={()=>movePiece(idx,-1)} disabled={idx===0} style={{color:idx===0?DIM:MUTED,minWidth:'40px',minHeight:'40px',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRight:`1px solid ${LINE_MED}`}} title="Move up">
+                      <ArrowUp className="w-4 h-4" strokeWidth={1.5}/>
                     </button>
-                    <button onClick={()=>movePiece(idx,1)} disabled={idx===pieceItems.length-1} className="shrink-0 mt-0.5" style={{color:idx===pieceItems.length-1?DIM:FAINT,minWidth:'44px',minHeight:'44px'}}>
-                      <ArrowDown className="w-3 h-3" strokeWidth={1.25}/>
+                    <button onClick={()=>movePiece(idx,1)} disabled={idx===pieceItems.length-1} style={{color:idx===pieceItems.length-1?DIM:MUTED,minWidth:'40px',minHeight:'40px',display:'inline-flex',alignItems:'center',justifyContent:'center',borderRight:`1px solid ${LINE_MED}`}} title="Move down">
+                      <ArrowDown className="w-4 h-4" strokeWidth={1.5}/>
                     </button>
-                  </>
+                    <button onClick={()=>removePiece(it.id)} style={{color:MUTED,minWidth:'40px',minHeight:'40px',display:'inline-flex',alignItems:'center',justifyContent:'center'}} title="Remove">
+                      <X className="w-4 h-4" strokeWidth={1.5}/>
+                    </button>
+                  </div>
                 )}
-                <button onClick={()=>removePiece(it.id)} className={isMobile?'shrink-0 mt-0.5':'shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity'} style={{color:FAINT,minWidth:isMobile?'44px':undefined,minHeight:isMobile?'44px':undefined}}>
-                  <X className="w-3.5 h-3.5" strokeWidth={1.25}/>
-                </button>
+                {!isMobile&&(
+                  <button onClick={()=>removePiece(it.id)} className="shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity" style={{color:FAINT}}>
+                    <X className="w-3.5 h-3.5" strokeWidth={1.25}/>
+                  </button>
+                )}
               </div>
             </div>
           );
