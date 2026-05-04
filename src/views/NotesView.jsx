@@ -610,9 +610,15 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
               <>
                 <div className="fixed inset-0 z-20" onClick={()=>setCatOpen(false)}/>
                 <div className="absolute top-full mt-1 z-30 min-w-36" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>
-                  <button onClick={()=>{onUpdate({category:''});setCatOpen(false);}} className="w-full text-left px-3 py-2 italic" style={{color:MUTED,borderBottom:`1px solid ${LINE}`,fontFamily:serif,fontSize:'12px'}}>No folder</button>
+                  <button onClick={()=>{onUpdate({category:''});setCatOpen(false);}} className="w-full flex items-center justify-between gap-2 text-left px-3 py-2 italic" style={{color:!note.category?TEXT:MUTED,background:!note.category?IKB_SOFT:'transparent',borderBottom:`1px solid ${LINE}`,fontFamily:serif,fontSize:'12px'}}>
+                    <span>No folder</span>
+                    {!note.category&&<Check className="w-3 h-3 shrink-0 not-italic" strokeWidth={1.5} style={{color:IKB}}/>}
+                  </button>
                   {categories.map(c=>(
-                    <button key={c} onClick={()=>{onUpdate({category:c});setCatOpen(false);}} className="w-full text-left px-3 py-2 italic" style={{color:note.category===c?TEXT:MUTED,background:note.category===c?IKB_SOFT:'transparent',borderBottom:`1px solid ${LINE}`,fontFamily:serif,fontSize:'12px'}}>{c}</button>
+                    <button key={c} onClick={()=>{onUpdate({category:c});setCatOpen(false);}} className="w-full flex items-center justify-between gap-2 text-left px-3 py-2 italic" style={{color:note.category===c?TEXT:MUTED,background:note.category===c?IKB_SOFT:'transparent',borderBottom:`1px solid ${LINE}`,fontFamily:serif,fontSize:'12px'}}>
+                      <span>{c}</span>
+                      {note.category===c&&<Check className="w-3 h-3 shrink-0 not-italic" strokeWidth={1.5} style={{color:IKB}}/>}
+                    </button>
                   ))}
                 </div>
               </>

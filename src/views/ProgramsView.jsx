@@ -190,9 +190,14 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
       <div className="mb-8">
         <div className="uppercase mb-2" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.32em',color:DIM}}>Intention</div>
         {intentionReadOnly?(
+          <>
           <div style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.8,color:MUTED,whiteSpace:'pre-wrap'}}>
             {program.intention||<span style={{color:DIM}}>—</span>}
           </div>
+          <div style={{fontFamily:serif,fontStyle:'italic',fontSize:'11px',color:FAINT,marginTop:'6px'}}>
+            Locked after performance date.
+          </div>
+          </>
         ):(
           <textarea
             value={program.intention||''}
@@ -241,7 +246,7 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
                 </span>
                 <span className="tabular-nums shrink-0 mt-0.5" style={{color:DIM,fontFamily:serif,fontStyle:'italic',fontSize:'11px',minWidth:'18px'}}>{idx+1}.</span>
                 <div className="flex-1 min-w-0">
-                  <div className="italic leading-snug" style={{fontFamily:serif,fontWeight:300,fontSize:'15px',color:TEXT}}>{displayTitle(it)}</div>
+                  <div className="italic leading-snug line-clamp-2" style={{fontFamily:serif,fontWeight:300,fontSize:'15px',color:TEXT}}>{displayTitle(it)}</div>
                   {formatByline(it)&&<div className="italic mt-0.5" style={{fontFamily:sans,fontSize:'12px',color:FAINT}}>{formatByline(it)}</div>}
                   <input
                     value={note}
@@ -447,6 +452,10 @@ function ProgramsList({programs,items,onSelect,onNew,setPrograms}){
                 ):(
                   <span style={{fontFamily:sans,fontSize:'12px',color:FAINT}}>Undated</span>
                 )}
+                {p.performanceDate&&(()=>{
+                  const isPast=new Date(p.performanceDate)<startOfToday();
+                  return <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'11px',color:FAINT}}>{isPast?'(past)':'(à venir)'}</span>;
+                })()}
                 {p.venue&&<span style={{fontFamily:sans,fontSize:'12px',color:FAINT}}>{p.venue}</span>}
                 <span className="tabular-nums" style={{fontFamily:mono,fontSize:'11px',color:DIM}}>
                   {pieceCount} piece{pieceCount===1?'':'s'}

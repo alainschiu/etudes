@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.97.25 — 2026-05-04
+
+### P2.16, P2.18, P2.20 – P2.23 — small UX papercuts
+
+- **P2.16 — Tab-accept on composer / instrument autocomplete.** Native
+  `<datalist>` only commits a highlighted suggestion on Enter; pressing
+  Tab loses it. `DebouncedField` accepts a new optional `suggestions`
+  prop. On `Tab` (no shift) without an exact match, if exactly one
+  suggestion strict-prefix-matches the current draft, the field
+  expands to it and commits — the user Tabs again to move on. Wired
+  to the Composer and Instrument fields in `RepertoireView`.
+- **P2.18 — Folder picker shows the active folder.** `NoteEditor`'s
+  category dropdown now renders an IKB `Check` icon next to the
+  selected folder (and "No folder"). Tapping a folder still selects
+  and closes — but now the active state is unambiguous.
+- **P2.20 — Programs piece title `line-clamp-2`.** Long titles like
+  *"Liebestod from Tristan und Isolde, arr. for solo piano…"* used to
+  flow indefinitely. Capped at two lines with ellipsis.
+- **P2.21 — *"From Today"* → *"Save today as routine…"*.** The label
+  read like "load today" not "save current arrangement as a new
+  routine." Renamed (mobile *"Save today"*, desktop full label) and
+  the prompt-modal title shortened to *"Save today as routine."*
+- **P2.22 — Past / à venir chip in the program list.** A small italic
+  serif chip — `(past)` or `(à venir)` — sits next to the date so the
+  list communicates state without a click into the detail view.
+- **P2.23 — *"Locked after performance date."* explanation.** When the
+  intention textarea swaps to read-only static text, an italic FAINT
+  line below now explains why. Previously the field just silently
+  stopped accepting input.
+
+P2.19 (mobile sheet/keyboard collision in the Notes editor) deferred —
+needs reproduction on a real iPhone before it can be fixed.
+
 ## v0.97.24 — 2026-05-04
 
 ### SpotEditor — inline PDF page button, fix overflow

@@ -28,7 +28,7 @@ export default function RoutinesView({routines,setRoutines,loadRoutine,setPrompt
       ()=>setRoutines(routines.filter(x=>x.id!==id)));
   };
   const createNew=()=>setPromptModal({title:'New routine',placeholder:'Name',onConfirm:(name)=>{if(name?.trim()){const nr={id:`r-${Date.now()}`,name:name.trim(),sessions:[]};setRoutines([...routines,nr]);setExpandedId(nr.id);}}});
-  const createFromToday=()=>setPromptModal({title:'Save current arrangement as routine',placeholder:'Name',onConfirm:(name)=>{if(name?.trim()){const nr={id:`r-${Date.now()}`,name:name.trim(),sessions:todaySessions.map(s=>({type:s.type,intention:'',itemIds:Array.isArray(s.itemIds)?[...s.itemIds]:items.filter(i=>i.type===s.type&&i.stage!=='queued').map(i=>i.id),target:s.target??null,itemTargets:{...(s.itemTargets||{})},isWarmup:!!s.isWarmup}))};setRoutines([...routines,nr]);}}});
+  const createFromToday=()=>setPromptModal({title:'Save today as routine',placeholder:'Name',onConfirm:(name)=>{if(name?.trim()){const nr={id:`r-${Date.now()}`,name:name.trim(),sessions:todaySessions.map(s=>({type:s.type,intention:'',itemIds:Array.isArray(s.itemIds)?[...s.itemIds]:items.filter(i=>i.type===s.type&&i.stage!=='queued').map(i=>i.id),target:s.target??null,itemTargets:{...(s.itemTargets||{})},isWarmup:!!s.isWarmup}))};setRoutines([...routines,nr]);}}});
   const moveSession=(rid,sidx,dir)=>{const r=routines.find(x=>x.id===rid);if(!r)return;const ns=[...r.sessions];const ni=sidx+dir;if(ni<0||ni>=ns.length)return;[ns[sidx],ns[ni]]=[ns[ni],ns[sidx]];setRoutines(routines.map(x=>x.id===rid?{...x,sessions:ns}:x));};
   const removeSession=(rid,sidx)=>{
     confirmDestructive(setConfirmModal,'Remove this session from the routine?',
@@ -71,11 +71,11 @@ export default function RoutinesView({routines,setRoutines,loadRoutine,setPrompt
         <div style={{fontFamily:serif,fontStyle:'italic',fontWeight:400,fontSize:'clamp(48px,13vw,56px)',letterSpacing:'-0.02em',lineHeight:1.05,color:TEXT}}>Routines</div>
         <div style={{display:'flex',gap:'6px',paddingBottom:'8px'}}>
           <button onClick={createNew} className="uppercase flex items-center gap-1.5 px-2.5 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> New</button>
-          <button onClick={createFromToday} className="uppercase flex items-center gap-1.5 px-2.5 py-1.5" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> Today</button>
+          <button onClick={createFromToday} className="uppercase flex items-center gap-1.5 px-2.5 py-1.5" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> Save today</button>
         </div>
       </div>
     ):(
-      <DisplayHeader eyebrow="Arrangements" title="Routines" right={<div className="flex items-end gap-3"><button onClick={createNew} className="uppercase flex items-center gap-2 px-3 py-2" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> New</button><button onClick={createFromToday} className="uppercase flex items-center gap-2 px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> From Today</button></div>}/>
+      <DisplayHeader eyebrow="Arrangements" title="Routines" right={<div className="flex items-end gap-3"><button onClick={createNew} className="uppercase flex items-center gap-2 px-3 py-2" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> New</button><button onClick={createFromToday} className="uppercase flex items-center gap-2 px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><Plus className="w-3 h-3" strokeWidth={1.25}/> Save today as routine…</button></div>}/>
     )}
     <div className="text-sm italic mb-8" style={{color:MUTED,fontFamily:serif,lineHeight:1.7,fontWeight:300}}>Named arrangements of sessions with specific pieces pinned and optional target times. Load one on Today to replace your current setup.</div>
     <div style={{borderTop:`1px solid ${LINE_STR}`}}>

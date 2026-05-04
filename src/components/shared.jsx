@@ -48,7 +48,7 @@ export function confirmDestructive(setConfirmModal, message, onConfirm, confirmL
  * - Commits 400ms after the last keystroke, on blur, or on Enter.
  * - Shows an italic FAINT "saved" line under the input for 1.5s after commit.
  */
-export function DebouncedField({value, onChange, debounceMs=400, savedHintMs=1500, className, style, ...rest}){
+export function DebouncedField({value, onChange, debounceMs=400, savedHintMs=1500, suggestions, className, style, ...rest}){
   const [draft,setDraft]=useState(value??'');
   const [saved,setSaved]=useState(false);
   const lastCommitted=useRef(value??'');
@@ -85,6 +85,24 @@ export function DebouncedField({value, onChange, debounceMs=400, savedHintMs=150
       if(timer.current)clearTimeout(timer.current);
       commit(draft);
       e.currentTarget.blur();
+    }
+    // Tab-to-autocomplete from `suggestions`. Native <datalist> only commits
+    // on Enter; pressing Tab loses the highlighted suggestion. Here: if the
+    // current draft is a strict prefix of exactly one suggestion (case-
+    // insensitive), prevent the focus jump, expand the draft to the match,
+    // and commit. The user Tabs again to move to the next field.
+    if(e.key==='Tab'&&!e.shiftKey&&Array.isArray(suggestions)&&suggestions.length>0){
+      const lo=(draft||'').toLowerCase();
+      if(lo){
+        const matches=suggestions.filter(s=>s&&s.toLowerCase().startsWith(lo)&&s.toLowerCase()!==lo);
+        if(matches.length===1){
+          e.preventDefault();
+          if(timer.current)clearTimeout(timer.current);
+          setDraft(matches[0]);
+          commit(matches[0]);
+          return;
+        }
+      }
     }
     rest.onKeyDown?.(e);
   };
