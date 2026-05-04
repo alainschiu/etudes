@@ -16,6 +16,7 @@ import FileText from 'lucide-react/dist/esm/icons/file-text';
 import ArrowUp from 'lucide-react/dist/esm/icons/arrow-up';
 import ArrowDown from 'lucide-react/dist/esm/icons/arrow-down';
 import EyeOff from 'lucide-react/dist/esm/icons/eye-off';
+import MoreVertical from 'lucide-react/dist/esm/icons/more-vertical';
 import Bookmark from 'lucide-react/dist/esm/icons/bookmark';
 import RotateCcw from 'lucide-react/dist/esm/icons/rotate-ccw';
 import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical';
@@ -54,7 +55,7 @@ export default function TodayView(p){
   const {isMobile}=useViewport();
   const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm,refTrackMeta,refBarItemId,setRefBarItemId,onWikiLinkClick,wikiCompletionData}=p;
   const today=new Date();const todayKey=todayDateStr();
-  const [routineMenu,setRoutineMenu]=useState(false);const [addMenu,setAddMenu]=useState(false);const [pickerSessionId,setPickerSessionId]=useState(null);const [quickAdd,setQuickAdd]=useState(null);const [confirmClose,setConfirmClose]=useState(false);
+  const [routineMenu,setRoutineMenu]=useState(false);const [addMenu,setAddMenu]=useState(false);const [pickerSessionId,setPickerSessionId]=useState(null);const [quickAdd,setQuickAdd]=useState(null);const [confirmClose,setConfirmClose]=useState(false);const [overflowSessionId,setOverflowSessionId]=useState(null);
   // Click-outside to collapse expanded item panel
   useEffect(()=>{
     if(!expandedItemId)return;
@@ -154,16 +155,54 @@ export default function TodayView(p){
                 {session.intention&&<span className="italic truncate" style={{color:DIM,fontFamily:serif,fontSize:'11px',letterSpacing:0,maxWidth:'200px'}} title={session.intention}>— {session.intention}</span>}
                 {isCollapsed&&<span style={{color:FAINT,fontSize:'9px',letterSpacing:'0.15em'}}>· {sessionItems.length} piece{sessionItems.length===1?'':'s'}</span>}
               </div>
-              {/* Right: hover controls → fixed time col → fixed target col → chevron */}
-              <div className="flex items-center gap-2 shrink-0" onClick={e=>e.stopPropagation()}>
-                <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5">
-                  <button onClick={()=>toggleSessionWarmup(session.id)} style={{color:isWarmup?WARM:FAINT,fontSize:'13px',lineHeight:1,padding:'0 2px'}} title={isWarmup?'Unmark warm-up':'Mark as warm-up'}>◔</button>
-                  <button onClick={()=>moveSession(idx,-1)} disabled={idx===0} style={{color:idx===0?DIM:FAINT}}><ArrowUp className="w-3 h-3" strokeWidth={1.25}/></button>
-                  <button onClick={()=>moveSession(idx,1)} disabled={idx===todaySessions.length-1} style={{color:idx===todaySessions.length-1?DIM:FAINT}}><ArrowDown className="w-3 h-3" strokeWidth={1.25}/></button>
-                  <button onClick={()=>hideSession(session.id)} style={{color:FAINT}}><EyeOff className="w-3 h-3" strokeWidth={1.25}/></button>
-                  <button onClick={()=>{setCollapsedSessions(prev=>{const next=new Set(prev);next.delete(session.id);return next;});setPickerSessionId(pickerSessionId===session.id?null:session.id);}} style={{color:FAINT}} title="Add piece from repertoire"><Plus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
-                  <button onClick={()=>handleFilePlus(type,session)} style={{color:FAINT}} title="New repertoire item"><FilePlus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
-                </span>
+              {/* Right: hover controls (desktop) / overflow popover (mobile) → fixed time col → fixed target col → chevron */}
+              <div className="flex items-center gap-2 shrink-0 relative" onClick={e=>e.stopPropagation()}>
+                {!isMobile&&(
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1.5">
+                    <button onClick={()=>toggleSessionWarmup(session.id)} style={{color:isWarmup?WARM:FAINT,fontSize:'13px',lineHeight:1,padding:'0 2px'}} title={isWarmup?'Unmark warm-up':'Mark as warm-up'}>◔</button>
+                    <button onClick={()=>moveSession(idx,-1)} disabled={idx===0} style={{color:idx===0?DIM:FAINT}}><ArrowUp className="w-3 h-3" strokeWidth={1.25}/></button>
+                    <button onClick={()=>moveSession(idx,1)} disabled={idx===todaySessions.length-1} style={{color:idx===todaySessions.length-1?DIM:FAINT}}><ArrowDown className="w-3 h-3" strokeWidth={1.25}/></button>
+                    <button onClick={()=>hideSession(session.id)} style={{color:FAINT}}><EyeOff className="w-3 h-3" strokeWidth={1.25}/></button>
+                    <button onClick={()=>{setCollapsedSessions(prev=>{const next=new Set(prev);next.delete(session.id);return next;});setPickerSessionId(pickerSessionId===session.id?null:session.id);}} style={{color:FAINT}} title="Add piece from repertoire"><Plus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
+                    <button onClick={()=>handleFilePlus(type,session)} style={{color:FAINT}} title="New repertoire item"><FilePlus className="w-3.5 h-3.5" strokeWidth={1.25}/></button>
+                  </span>
+                )}
+                {isMobile&&(
+                  <>
+                    <button onClick={()=>setOverflowSessionId(overflowSessionId===session.id?null:session.id)} style={{color:FAINT,minWidth:'44px',minHeight:'44px',display:'inline-flex',alignItems:'center',justifyContent:'center'}} title="Session options"><MoreVertical className="w-4 h-4" strokeWidth={1.25}/></button>
+                    {overflowSessionId===session.id&&(
+                      <>
+                        <div className="fixed inset-0 z-20" onClick={()=>setOverflowSessionId(null)}/>
+                        <div className="absolute right-0 top-full mt-1 z-30 min-w-48" style={{background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>
+                          <button onClick={()=>{toggleSessionWarmup(session.id);setOverflowSessionId(null);}} className="w-full flex items-center gap-3 px-4 py-2.5" style={{color:isWarmup?WARM:TEXT,minHeight:'44px',borderBottom:`1px solid ${LINE}`}}>
+                            <span style={{width:'16px',textAlign:'center',fontSize:'13px',lineHeight:1}}>◔</span>
+                            <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px'}}>{isWarmup?'Unmark warm-up':'Mark as warm-up'}</span>
+                          </button>
+                          <button onClick={()=>{if(idx>0){moveSession(idx,-1);setOverflowSessionId(null);}}} disabled={idx===0} className="w-full flex items-center gap-3 px-4 py-2.5" style={{color:idx===0?DIM:TEXT,minHeight:'44px',borderBottom:`1px solid ${LINE}`,pointerEvents:idx===0?'none':'auto'}}>
+                            <ArrowUp className="w-3 h-3" strokeWidth={1.25}/>
+                            <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px'}}>Move up</span>
+                          </button>
+                          <button onClick={()=>{if(idx<todaySessions.length-1){moveSession(idx,1);setOverflowSessionId(null);}}} disabled={idx===todaySessions.length-1} className="w-full flex items-center gap-3 px-4 py-2.5" style={{color:idx===todaySessions.length-1?DIM:TEXT,minHeight:'44px',borderBottom:`1px solid ${LINE}`,pointerEvents:idx===todaySessions.length-1?'none':'auto'}}>
+                            <ArrowDown className="w-3 h-3" strokeWidth={1.25}/>
+                            <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px'}}>Move down</span>
+                          </button>
+                          <button onClick={()=>{hideSession(session.id);setOverflowSessionId(null);}} className="w-full flex items-center gap-3 px-4 py-2.5" style={{color:TEXT,minHeight:'44px',borderBottom:`1px solid ${LINE}`}}>
+                            <EyeOff className="w-3 h-3" strokeWidth={1.25}/>
+                            <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px'}}>Hide section</span>
+                          </button>
+                          <button onClick={()=>{setCollapsedSessions(prev=>{const next=new Set(prev);next.delete(session.id);return next;});setPickerSessionId(session.id);setOverflowSessionId(null);}} className="w-full flex items-center gap-3 px-4 py-2.5" style={{color:TEXT,minHeight:'44px',borderBottom:`1px solid ${LINE}`}}>
+                            <Plus className="w-3.5 h-3.5" strokeWidth={1.25}/>
+                            <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px'}}>Add piece</span>
+                          </button>
+                          <button onClick={()=>{handleFilePlus(type,session);setOverflowSessionId(null);}} className="w-full flex items-center gap-3 px-4 py-2.5" style={{color:TEXT,minHeight:'44px'}}>
+                            <FilePlus className="w-3.5 h-3.5" strokeWidth={1.25}/>
+                            <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px'}}>New repertoire item</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </>
+                )}
                 {/* ── fixed columns shared with item rows ── */}
                 <span className="font-mono tabular-nums" style={{width:'44px',textAlign:'right',fontSize:'11px',fontWeight:300,whiteSpace:'nowrap',letterSpacing:0,color:se?IKB:FAINT,textShadow:se?`0 0 6px ${IKB}70`:'none'}}>{fmtMin(sectionSec)}</span>
                 <span style={{width:'56px',display:'inline-flex',alignItems:'baseline',whiteSpace:'nowrap',overflow:'hidden',letterSpacing:0,fontSize:'11px',fontWeight:300}}><TargetEdit target={st} onChange={(v)=>setSessionTarget(session.id,v)} small/></span>

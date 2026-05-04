@@ -6,6 +6,8 @@ import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
 import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
 import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical';
+import ArrowUp from 'lucide-react/dist/esm/icons/arrow-up';
+import ArrowDown from 'lucide-react/dist/esm/icons/arrow-down';
 import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,serif,serifText,sans,mono} from '../constants/theme.js';
 import {displayTitle,formatByline} from '../lib/items.js';
 import {resolveWikiLink} from '../lib/notes.js';
@@ -88,6 +90,13 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
   const intentionReadOnly=!!program.performanceDate&&new Date(program.performanceDate)<startOfToday();
 
   const addPiece=(it)=>update({itemIds:[...program.itemIds,it.id]});
+  const movePiece=(idx,dir)=>{
+    const ni=idx+dir;
+    if(ni<0||ni>=program.itemIds.length)return;
+    const ids=[...program.itemIds];
+    [ids[idx],ids[ni]]=[ids[ni],ids[idx]];
+    update({itemIds:ids});
+  };
   const removePiece=(id)=>{
     const hasNote=(program.itemNotes||{})[id];
     if(hasNote){setConfirmRemoveId(id);}
@@ -237,7 +246,17 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
                 <span className="tabular-nums shrink-0 mt-0.5" style={{fontFamily:mono,fontSize:'11px',color:it.lengthSecs?DIM:DIM}}>
                   {it.lengthSecs?fmtDuration(it.lengthSecs):'—'}
                 </span>
-                <button onClick={()=>removePiece(it.id)} className={isMobile?'shrink-0 mt-0.5':'shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity'} style={{color:FAINT,minWidth:isMobile?'32px':undefined,minHeight:isMobile?'32px':undefined}}>
+                {isMobile&&(
+                  <>
+                    <button onClick={()=>movePiece(idx,-1)} disabled={idx===0} className="shrink-0 mt-0.5" style={{color:idx===0?DIM:FAINT,minWidth:'44px',minHeight:'44px'}}>
+                      <ArrowUp className="w-3 h-3" strokeWidth={1.25}/>
+                    </button>
+                    <button onClick={()=>movePiece(idx,1)} disabled={idx===pieceItems.length-1} className="shrink-0 mt-0.5" style={{color:idx===pieceItems.length-1?DIM:FAINT,minWidth:'44px',minHeight:'44px'}}>
+                      <ArrowDown className="w-3 h-3" strokeWidth={1.25}/>
+                    </button>
+                  </>
+                )}
+                <button onClick={()=>removePiece(it.id)} className={isMobile?'shrink-0 mt-0.5':'shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity'} style={{color:FAINT,minWidth:isMobile?'44px':undefined,minHeight:isMobile?'44px':undefined}}>
                   <X className="w-3.5 h-3.5" strokeWidth={1.25}/>
                 </button>
               </div>
