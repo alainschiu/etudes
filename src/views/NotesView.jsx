@@ -252,6 +252,8 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
     :activeCategoryId;
 
   // ── Mobile: note list + expand-in-place + edit sheet ──────────────────
+  // Mobile fixes belong in NotesMobile (this file, below). Code after the
+  // early return below is the desktop-only branch.
   if(isMobile){
     return <NotesMobile
       freeNotes={freeNotes}

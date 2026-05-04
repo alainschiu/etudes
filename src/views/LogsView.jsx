@@ -23,6 +23,8 @@ export function LogsView(p){
   const allEntries=useMemo(()=>{const l=[];history.forEach(h=>{const k=h.kind||'day';if(k==='day'&&h.minutes>0)l.push({...h,kind:'day',sortKey:h.date});else if(k==='week')l.push({...h,sortKey:h.weekEnd||h.weekStart});else if(k==='month')l.push({...h,sortKey:h.month+'-31'});});l.sort((a,b)=>b.sortKey.localeCompare(a.sortKey));return l;},[history]);
   const q=query.trim().toLowerCase();const filtered=allEntries.filter(e=>{if(kindFilter!=='all'&&e.kind!==kindFilter)return false;if(!q)return true;if(e.kind==='day'){if((e.reflection||'').toLowerCase().includes(q))return true;const r=(e.items||[]).map(x=>resolveHistoryItem(x,items)).filter(Boolean);return r.some(it=>(it.title||'').toLowerCase().includes(q)||(it.composer||'').toLowerCase().includes(q)||(it.collection||'').toLowerCase().includes(q)||(it.note||'').toLowerCase().includes(q)||(it.spotsSnapshot||[]).some(sp=>(sp.label||'').toLowerCase().includes(q)));}return (e.notes||'').toLowerCase().includes(q)||(e.goals||'').toLowerCase().includes(q);});
   const kinds=[{k:'all',l:'All'},{k:'day',l:'Daily'},{k:'week',l:'Weekly'},{k:'month',l:'Monthly'}];
+  // Mobile fixes belong in LogsMobile (this file, below). Code after the
+  // early return is the desktop-only branch.
   if(isMobile){
     return <LogsMobile filtered={filtered} query={query} setQuery={setQuery} kindFilter={kindFilter} setKindFilter={setKindFilter} openLogEntry={openLogEntry} dailyTarget={dailyTarget} kinds={kinds}/>;
   }

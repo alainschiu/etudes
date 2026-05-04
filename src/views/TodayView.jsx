@@ -105,7 +105,7 @@ export default function TodayView(p){
     return <TodayMobile {...p} isMobile={true} getSessionItems={getSessionItems} getAvailableItems={getAvailableItems} warmupMin={warmupMin} effectiveMin={effectiveMin} effectiveDailyTarget={effectiveDailyTarget} hiddenTypes={hiddenTypes} collapsedSessions={collapsedSessions} setCollapsedSessions={setCollapsedSessions} toggleCollapsed={toggleCollapsed} handleFilePlus={handleFilePlus} piecePlayTypes={piecePlayTypes} routines={p.routines} loadedRoutine={p.loadedRoutine} loadRoutine={p.loadRoutine} resetToFree={p.resetToFree} setPromptModal={p.setPromptModal} saveRoutine={p.saveRoutine} setItemTarget={p.setItemTarget}/>;
   }
 
-  // ── Desktop view (unchanged) ───────────────────────────────────────────
+  // ── Desktop branch — mobile fixes belong in TodayMobile (this file, below). ──
   return (
     <div className="max-w-4xl mx-auto px-12 py-14">
       <DisplayHeader eyebrow={`${today.toLocaleDateString('en-US',{weekday:'long'})} · ${today.toLocaleDateString('en-US',{month:'long',day:'numeric'})}`} title="Today" titleRight={<AnalogClock size={40}/>} right={
@@ -547,6 +547,7 @@ function TodayMobile(p){
     dailyReflection,setDailyReflection,settings,effectiveTotalToday,
     warmupTimeToday,restToday,fmt,fmtMin,reflectionRef,
     addItemToSession,removeItemFromSession,addSessionType,
+    moveSession,hideSession,toggleSessionWarmup,setSessionTarget,
     sectionTimes,startPieceRecording,stopPieceRecording,pieceRecordingItemId,
     pieceRecordingMeta,isRecording,currentBpm,
     getSessionItems,getAvailableItems,warmupMin,effectiveMin,
@@ -557,6 +558,8 @@ function TodayMobile(p){
   } = p;
   const [actionSheetItem, setActionSheetItem] = useState(null);
   const [routineMenuOpen, setRoutineMenuOpen] = useState(false);
+  const [overflowSessionId, setOverflowSessionId] = useState(null);
+  const [addSectionOpen, setAddSectionOpen] = useState(false);
 
   const today = new Date();
   const todayKey = todayDateStr();
@@ -695,30 +698,89 @@ function TodayMobile(p){
           flexShrink: 0,
         };
 
+        const idx=todaySessions.findIndex(s=>s.id===session.id);
+        const popOpen=overflowSessionId===session.id;
         return (
           <div key={session.id}>
             {/* Section header */}
-            <button
-              onClick={() => toggleSection(session.id)}
-              style={{
-                display:'flex',alignItems:'center',width:'100%',padding:'0 20px',
-                minHeight:'52px',borderBottom:`1px solid ${isOpen ? LINE_STR : LINE}`,
-                background:'transparent',border:'none',
-                borderBottomWidth:'1px',borderBottomStyle:'solid',
-                borderBottomColor: isOpen ? LINE_STR : LINE,
-                cursor:'pointer',textAlign:'left',gap:'10px',
-              }}
-            >
-              <ChevronRight size={11} strokeWidth={1.5} style={{...chevronStyle,color:DIM}}/>
-              <span className="uppercase" style={{fontFamily:sans,fontSize:'10px',fontWeight:500,letterSpacing:'0.28em',color:MUTED,flex:1,textAlign:'left'}}>
-                {SECTION_CONFIG[session.type].label}
-                {isWarmup && <span style={{color:WARM,marginLeft:'4px'}}>◔</span>}
-                {!isOpen && sessionItems.length > 0 && (
-                  <span style={{color:FAINT,fontSize:'9px',letterSpacing:'0.15em',marginLeft:'6px'}}>· {sessionItems.length}</span>
-                )}
-              </span>
-              <span style={{fontFamily:mono,fontSize:'11px',color:MUTED}}>{fmtMin(sectionSec)}</span>
-            </button>
+            <div style={{
+              display:'flex',alignItems:'stretch',width:'100%',
+              borderBottom:`1px solid ${isOpen ? LINE_STR : LINE}`,
+              minHeight:'52px',position:'relative',
+            }}>
+              <button
+                onClick={() => toggleSection(session.id)}
+                style={{
+                  flex:1,display:'flex',alignItems:'center',padding:'0 20px',
+                  background:'transparent',border:'none',
+                  cursor:'pointer',textAlign:'left',gap:'10px',
+                }}
+              >
+                <ChevronRight size={11} strokeWidth={1.5} style={{...chevronStyle,color:DIM}}/>
+                <span className="uppercase" style={{fontFamily:sans,fontSize:'10px',fontWeight:500,letterSpacing:'0.28em',color:MUTED,flex:1,textAlign:'left'}}>
+                  {SECTION_CONFIG[session.type].label}
+                  {isWarmup && <span style={{color:WARM,marginLeft:'4px'}}>◔</span>}
+                  {!isOpen && sessionItems.length > 0 && (
+                    <span style={{color:FAINT,fontSize:'9px',letterSpacing:'0.15em',marginLeft:'6px'}}>· {sessionItems.length}</span>
+                  )}
+                </span>
+                <span style={{fontFamily:mono,fontSize:'11px',color:MUTED}}>{fmtMin(sectionSec)}</span>
+              </button>
+              <button
+                onClick={(e)=>{e.stopPropagation();setOverflowSessionId(popOpen?null:session.id);}}
+                title="Edit section"
+                style={{
+                  minWidth:'44px',display:'inline-flex',alignItems:'center',justifyContent:'center',
+                  background:popOpen?IKB_SOFT:'transparent',color:popOpen?TEXT:MUTED,
+                  border:'none',borderLeft:`1px solid ${LINE}`,cursor:'pointer',
+                }}
+              >
+                <MoreVertical className="w-4 h-4" strokeWidth={1.5}/>
+              </button>
+              {popOpen&&(()=>{
+                const close=()=>setOverflowSessionId(null);
+                const Item=({onClick,disabled,children})=>(
+                  <button onClick={()=>{if(!disabled){onClick();close();}}}
+                    disabled={disabled}
+                    style={{display:'flex',alignItems:'center',gap:'12px',width:'100%',padding:'12px 16px',minHeight:'44px',
+                      background:'transparent',border:'none',borderBottom:`1px solid ${LINE}`,cursor:disabled?'not-allowed':'pointer',
+                      color:disabled?DIM:TEXT,textAlign:'left'}}>
+                    {children}
+                  </button>
+                );
+                return(
+                  <>
+                    <div className="fixed inset-0 z-20" onClick={close}/>
+                    <div className="absolute right-0 top-full z-30" style={{minWidth:'220px',marginTop:'1px',background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>
+                      <Item onClick={()=>toggleSessionWarmup&&toggleSessionWarmup(session.id)}>
+                        <span style={{width:'16px',textAlign:'center',color:isWarmup?WARM:TEXT,fontSize:'13px',lineHeight:1}}>◔</span>
+                        <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px'}}>{isWarmup?'Unmark warm-up':'Mark as warm-up'}</span>
+                      </Item>
+                      <Item onClick={()=>moveSession&&moveSession(idx,-1)} disabled={idx<=0}>
+                        <ArrowUp className="w-3 h-3" strokeWidth={1.25}/>
+                        <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px'}}>Move up</span>
+                      </Item>
+                      <Item onClick={()=>moveSession&&moveSession(idx,1)} disabled={idx>=todaySessions.length-1}>
+                        <ArrowDown className="w-3 h-3" strokeWidth={1.25}/>
+                        <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px'}}>Move down</span>
+                      </Item>
+                      <Item onClick={()=>hideSession&&hideSession(session.id)}>
+                        <EyeOff className="w-3 h-3" strokeWidth={1.25}/>
+                        <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px'}}>Hide section</span>
+                      </Item>
+                      <Item onClick={()=>{
+                        if(!setPromptModal||!setSessionTarget)return;
+                        setPromptModal({title:`${SECTION_CONFIG[session.type].label} target (minutes)`,placeholder:'e.g. 25',initial:session.target?String(session.target):'',
+                          onConfirm:(v)=>{const n=parseInt(v,10);setSessionTarget(session.id,Number.isFinite(n)&&n>0?n:null);}});
+                      }}>
+                        <Target className="w-3 h-3" strokeWidth={1.25}/>
+                        <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'13px'}}>{session.target?`Target: ${session.target}′`:'Set target'}</span>
+                      </Item>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
 
             {/* Section items */}
             {isOpen && (
@@ -789,6 +851,30 @@ function TodayMobile(p){
           </div>
         );
       })}
+
+      {/* Add section type — surfaces hidden default sections (matches desktop) */}
+      {hiddenTypes && hiddenTypes.length>0 && (
+        <div style={{position:'relative',padding:'12px 20px',display:'flex',alignItems:'center',justifyContent:'center',borderBottom:`1px solid ${LINE}`}}>
+          <button onClick={()=>setAddSectionOpen(v=>!v)} className="uppercase flex items-center gap-2 italic"
+            style={{color:MUTED,fontFamily:serif,fontSize:'13px',background:'transparent',border:'none',cursor:'pointer',minHeight:'44px'}}>
+            <Plus className="w-3 h-3" strokeWidth={1.25}/> Add section
+          </button>
+          {addSectionOpen && (
+            <>
+              <div className="fixed inset-0 z-20" onClick={()=>setAddSectionOpen(false)}/>
+              <div className="absolute z-30" style={{top:'100%',left:'50%',transform:'translateX(-50%)',marginTop:'2px',minWidth:'200px',background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 4px 20px rgba(0,0,0,0.5)'}}>
+                {hiddenTypes.map(t=>(
+                  <button key={t} onClick={()=>{addSessionType&&addSessionType(t);setAddSectionOpen(false);}}
+                    className="w-full text-left px-4 py-3 uppercase"
+                    style={{fontFamily:sans,fontSize:'10px',letterSpacing:'0.28em',color:TEXT,background:'transparent',border:'none',borderBottom:`1px solid ${LINE}`,cursor:'pointer',minHeight:'44px'}}>
+                    {SECTION_CONFIG[t].label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Reflection block */}
       <div style={{borderTop:`1px solid ${LINE}`,marginTop:'8px'}}>

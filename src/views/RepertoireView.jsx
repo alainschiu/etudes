@@ -250,6 +250,8 @@ export default function RepertoireView(p){
   };
 
   // ── Mobile: list → detail ─────────────────────────────────────────────
+  // Mobile fixes belong in MobileRepertoireList / PieceDetailScreen (this
+  // file, below). Code after the early return is the desktop-only branch.
   if(isMobile){
     if(mobileDetailId){
       const detailItem=items.find(i=>i.id===mobileDetailId);

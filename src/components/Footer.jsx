@@ -18,7 +18,7 @@ import Lock from 'lucide-react/dist/esm/icons/lock';
 import TrendingUp from 'lucide-react/dist/esm/icons/trending-up';
 import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import {Waveform,Tooltip} from './shared.jsx';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, REC, serif, serifText, sans, mono, Z_FOOTER} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARN, REC, serif, serifText, sans, mono, Z_FOOTER} from '../constants/theme.js';
 import {SECTION_CONFIG} from '../constants/config.js';
 import {NOTE_NAMES, noteToFreqFull, getCentOffset} from '../lib/music.js';
 import {displayTitle, formatByline, getSpotTime, getParentBucket} from '../lib/items.js';
@@ -30,7 +30,7 @@ function MobileDronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
   const cents=getCentOffset(drone.note,drone.root||'C',drone.temperament||'equal');
   const centsAbs=Math.abs(cents);
   const centsStr=cents===0?null:`${cents>0?'+':''}${cents.toFixed(1)}¢`;
-  const centsColor=centsAbs===0?FAINT:centsAbs>15?'#E07A7A':centsAbs>5?WARM:IKB;
+  const centsColor=centsAbs===0?FAINT:centsAbs>15?WARN:centsAbs>5?WARM:IKB;
   const pitchOpts=[440,415,432];
   const tempOpts=[{v:'equal',label:'Equal'},{v:'just',label:'Just'},{v:'meantone',label:'Meantone ¼'}];
   const notEqual=(drone.temperament||'equal')!=='equal';
@@ -64,8 +64,8 @@ function MobileDronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
       </div>
       {/* Piano keyboard — full width */}
       <div style={{position:'relative',height:'64px',width:'100%',userSelect:'none',marginBottom:'14px'}}>
-        {whites.map((n,i)=>{const isActive=drone.note===n;const nc=notEqual?getCentOffset(n,drone.root||'C',drone.temperament||'equal'):0;const nca=Math.abs(nc);const nc2=nca>15?'#E07A7A':nca>5?WARM:null;return(<div key={n} onClick={()=>setDrone(d=>({...d,note:n}))} style={{position:'absolute',left:`${i*W}%`,width:`${W}%`,top:0,bottom:0,background:isActive?IKB:'#D4CEC4',border:'1px solid rgba(26,25,21,0.28)',zIndex:1,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',paddingBottom:'5px',minWidth:'36px'}}>{notEqual&&nc2&&<span style={{position:'absolute',top:'4px',fontSize:'5px',color:nc2,lineHeight:1}}>●</span>}<span style={{fontSize:'10px',color:isActive?'#fff':'#1A1915',fontFamily:serif}}>{n}</span></div>);})}
-        {blacks.map(({wi,n})=>{const isActive=drone.note===n;const nc=notEqual?getCentOffset(n,drone.root||'C',drone.temperament||'equal'):0;const nca=Math.abs(nc);const nc2=nca>15?'#E07A7A':nca>5?WARM:null;const left=wi*W-BW/2;return(<div key={n} onClick={()=>setDrone(d=>({...d,note:n}))} style={{position:'absolute',left:`${left}%`,width:`${BW}%`,top:0,height:'62%',background:isActive?IKB:'#1A1915',border:'1px solid #0A0A08',zIndex:2,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',paddingBottom:'3px'}}>{notEqual&&nc2&&<span style={{position:'absolute',top:'2px',fontSize:'4px',color:nc2,lineHeight:1}}>●</span>}<span style={{fontSize:'8px',color:isActive?'#fff':'rgba(212,206,196,0.55)',fontFamily:serif}}>{n.replace('#','♯')}</span></div>);})}
+        {whites.map((n,i)=>{const isActive=drone.note===n;const nc=notEqual?getCentOffset(n,drone.root||'C',drone.temperament||'equal'):0;const nca=Math.abs(nc);const nc2=nca>15?WARN:nca>5?WARM:null;return(<div key={n} onClick={()=>setDrone(d=>({...d,note:n}))} style={{position:'absolute',left:`${i*W}%`,width:`${W}%`,top:0,bottom:0,background:isActive?IKB:'#D4CEC4',border:'1px solid rgba(26,25,21,0.28)',zIndex:1,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',paddingBottom:'5px',minWidth:'36px'}}>{notEqual&&nc2&&<span style={{position:'absolute',top:'4px',fontSize:'5px',color:nc2,lineHeight:1}}>●</span>}<span style={{fontSize:'10px',color:isActive?'#fff':'#1A1915',fontFamily:serif}}>{n}</span></div>);})}
+        {blacks.map(({wi,n})=>{const isActive=drone.note===n;const nc=notEqual?getCentOffset(n,drone.root||'C',drone.temperament||'equal'):0;const nca=Math.abs(nc);const nc2=nca>15?WARN:nca>5?WARM:null;const left=wi*W-BW/2;return(<div key={n} onClick={()=>setDrone(d=>({...d,note:n}))} style={{position:'absolute',left:`${left}%`,width:`${BW}%`,top:0,height:'62%',background:isActive?IKB:'#1A1915',border:'1px solid #0A0A08',zIndex:2,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',paddingBottom:'3px'}}>{notEqual&&nc2&&<span style={{position:'absolute',top:'2px',fontSize:'4px',color:nc2,lineHeight:1}}>●</span>}<span style={{fontSize:'8px',color:isActive?'#fff':'rgba(212,206,196,0.55)',fontFamily:serif}}>{n.replace('#','♯')}</span></div>);})}
       </div>
       {/* Volume row */}
       <div style={{display:'flex',alignItems:'center',gap:'10px',marginBottom:'12px'}}>
@@ -97,7 +97,7 @@ function MobileDronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
           </button>
           {advOpen&&(<>
             <div style={{display:'flex',flexWrap:'wrap',gap:'4px',marginBottom:'10px'}}>{NOTE_NAMES.map(n=>(<button key={n} onClick={()=>setDrone(d=>({...d,root:n}))} style={{minWidth:'30px',padding:'3px 5px',border:`1px solid ${(drone.root||'C')===n?IKB:LINE_MED}`,background:(drone.root||'C')===n?IKB_SOFT:'transparent',color:(drone.root||'C')===n?TEXT:MUTED,fontFamily:serif,fontSize:'11px',cursor:'pointer'}}>{n}</button>))}</div>
-            <div style={{display:'flex',flexWrap:'wrap',gap:'6px 16px'}}>{NOTE_NAMES.map(n=>{const c=getCentOffset(n,drone.root||'C',drone.temperament||'equal');const ca=Math.abs(c);const cc=ca>15?'#E07A7A':ca>5?WARM:FAINT;const isActive=drone.note===n;return(<span key={n} style={{fontFamily:mono,fontSize:'10px',color:isActive?TEXT:cc,fontWeight:isActive?500:300,minWidth:'60px'}}>{n} {c>=0?'+':''}{c.toFixed(1)}¢</span>);})}</div>
+            <div style={{display:'flex',flexWrap:'wrap',gap:'6px 16px'}}>{NOTE_NAMES.map(n=>{const c=getCentOffset(n,drone.root||'C',drone.temperament||'equal');const ca=Math.abs(c);const cc=ca>15?WARN:ca>5?WARM:FAINT;const isActive=drone.note===n;return(<span key={n} style={{fontFamily:mono,fontSize:'10px',color:isActive?TEXT:cc,fontWeight:isActive?500:300,minWidth:'60px'}}>{n} {c>=0?'+':''}{c.toFixed(1)}¢</span>);})}</div>
           </>)}
         </div>
       )}
@@ -110,7 +110,7 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
   const cents=getCentOffset(drone.note,drone.root||'C',drone.temperament||'equal');
   const centsAbs=Math.abs(cents);
   const centsStr=cents===0?null:`${cents>0?'+':''}${cents.toFixed(1)}¢`;
-  const centsColor=centsAbs===0?FAINT:centsAbs>15?'#E07A7A':centsAbs>5?WARM:IKB;
+  const centsColor=centsAbs===0?FAINT:centsAbs>15?WARN:centsAbs>5?WARM:IKB;
   const pitchOpts=[440,415,432];
   const tempOpts=[{v:'equal',label:'Equal'},{v:'just',label:'Just'},{v:'meantone',label:'Meantone ¼'}];
   const notEqual=(drone.temperament||'equal')!=='equal';
@@ -160,14 +160,14 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
     <div className="mb-3">
       <div className="uppercase mb-2" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>Note</div>
       <div style={{position:'relative',height:'52px',maxWidth:'320px',userSelect:'none'}}>
-        {whites.map((n,i)=>{const isActive=drone.note===n;const nc=notEqual?getCentOffset(n,drone.root||'C',drone.temperament||'equal'):0;const nca=Math.abs(nc);const nc2=nca>15?'#E07A7A':nca>5?WARM:null;return(<div key={n} onClick={()=>setDrone(d=>({...d,note:n}))} style={{position:'absolute',left:`${i*W}%`,width:`${W}%`,top:0,bottom:0,background:isActive?IKB:'#D4CEC4',border:`1px solid rgba(26,25,21,0.28)`,zIndex:1,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',paddingBottom:'4px'}}>{notEqual&&nc2&&<span style={{position:'absolute',top:'3px',fontSize:'5px',color:nc2,lineHeight:1}}>●</span>}<span style={{fontSize:'9px',color:isActive?'#fff':'#1A1915',fontFamily:serif}}>{n}</span></div>);})}
-        {blacks.map(({wi,n})=>{const isActive=drone.note===n;const nc=notEqual?getCentOffset(n,drone.root||'C',drone.temperament||'equal'):0;const nca=Math.abs(nc);const nc2=nca>15?'#E07A7A':nca>5?WARM:null;const left=wi*W-BW/2;return(<div key={n} onClick={()=>setDrone(d=>({...d,note:n}))} style={{position:'absolute',left:`${left}%`,width:`${BW}%`,top:0,height:'62%',background:isActive?IKB:'#1A1915',border:`1px solid #0A0A08`,zIndex:2,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',paddingBottom:'2px'}}>{notEqual&&nc2&&<span style={{position:'absolute',top:'2px',fontSize:'4px',color:nc2,lineHeight:1}}>●</span>}<span style={{fontSize:'7px',color:isActive?'#fff':'rgba(212,206,196,0.55)',fontFamily:serif}}>{n.replace('#','♯')}</span></div>);})}
+        {whites.map((n,i)=>{const isActive=drone.note===n;const nc=notEqual?getCentOffset(n,drone.root||'C',drone.temperament||'equal'):0;const nca=Math.abs(nc);const nc2=nca>15?WARN:nca>5?WARM:null;return(<div key={n} onClick={()=>setDrone(d=>({...d,note:n}))} style={{position:'absolute',left:`${i*W}%`,width:`${W}%`,top:0,bottom:0,background:isActive?IKB:'#D4CEC4',border:`1px solid rgba(26,25,21,0.28)`,zIndex:1,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',paddingBottom:'4px'}}>{notEqual&&nc2&&<span style={{position:'absolute',top:'3px',fontSize:'5px',color:nc2,lineHeight:1}}>●</span>}<span style={{fontSize:'9px',color:isActive?'#fff':'#1A1915',fontFamily:serif}}>{n}</span></div>);})}
+        {blacks.map(({wi,n})=>{const isActive=drone.note===n;const nc=notEqual?getCentOffset(n,drone.root||'C',drone.temperament||'equal'):0;const nca=Math.abs(nc);const nc2=nca>15?WARN:nca>5?WARM:null;const left=wi*W-BW/2;return(<div key={n} onClick={()=>setDrone(d=>({...d,note:n}))} style={{position:'absolute',left:`${left}%`,width:`${BW}%`,top:0,height:'62%',background:isActive?IKB:'#1A1915',border:`1px solid #0A0A08`,zIndex:2,cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-end',paddingBottom:'2px'}}>{notEqual&&nc2&&<span style={{position:'absolute',top:'2px',fontSize:'4px',color:nc2,lineHeight:1}}>●</span>}<span style={{fontSize:'7px',color:isActive?'#fff':'rgba(212,206,196,0.55)',fontFamily:serif}}>{n.replace('#','♯')}</span></div>);})}
       </div>
     </div>
     {/* Interval reference table when not equal */}
     {notEqual&&<div className="mt-4 pt-4" style={{borderTop:`1px solid ${LINE}`}}>
       <div className="uppercase mb-2" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.28em'}}>Offsets from equal · root {drone.root||'C'}</div>
-      <div className="flex flex-wrap gap-x-4 gap-y-1">{NOTE_NAMES.map(n=>{const c=getCentOffset(n,drone.root||'C',drone.temperament||'equal');const ca=Math.abs(c);const cc=ca>15?'#E07A7A':ca>5?WARM:FAINT;const isActive=drone.note===n;return(<span key={n} className="tabular-nums" style={{fontFamily:mono,fontSize:'10px',color:isActive?TEXT:cc,fontWeight:isActive?500:300,minWidth:'60px'}}>{n} {c>=0?'+':''}{c.toFixed(1)}¢</span>);})}</div>
+      <div className="flex flex-wrap gap-x-4 gap-y-1">{NOTE_NAMES.map(n=>{const c=getCentOffset(n,drone.root||'C',drone.temperament||'equal');const ca=Math.abs(c);const cc=ca>15?WARN:ca>5?WARM:FAINT;const isActive=drone.note===n;return(<span key={n} className="tabular-nums" style={{fontFamily:mono,fontSize:'10px',color:isActive?TEXT:cc,fontWeight:isActive?500:300,minWidth:'60px'}}>{n} {c>=0?'+':''}{c.toFixed(1)}¢</span>);})}</div>
     </div>}
   </div>);
 }
