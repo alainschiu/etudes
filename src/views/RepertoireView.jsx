@@ -295,7 +295,9 @@ export default function RepertoireView(p){
       filterStatus={filterStatus}
       setFilterStatus={setFilterStatus}
       filterComposer={filterComposer}
+      setFilterComposer={setFilterComposer}
       filterInstrument={filterInstrument}
+      setFilterInstrument={setFilterInstrument}
       hasFilters={hasFilters}
       clearFilters={clearFilters}
       allComposers={allComposers}
@@ -568,7 +570,7 @@ function LengthEditorRow({i,updateItem}){
 function formatLengthForInput(secs){if(!secs)return'';const m=Math.floor(secs/60),s=secs%60;return`${m}:${String(s).padStart(2,'0')}`;}
 
 // ── Mobile: Répertoire list ───────────────────────────────────────────────
-function MobileRepertoireList({items,sorted,grouped,groupByCollection,setGroupByCollection,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,filterComposer,filterInstrument,hasFilters,clearFilters,allComposers,allInstruments,activeItemId,dayClosed,handleAdd,onTapItem,itemTimes,fmtMin,history,globalAbA,globalAbB,setGlobalAbA,setGlobalAbB,pieceRecordingMeta,refTrackMeta}){
+function MobileRepertoireList({items,sorted,grouped,groupByCollection,setGroupByCollection,search,setSearch,filterType,setFilterType,filterStatus,setFilterStatus,filterComposer,setFilterComposer,filterInstrument,setFilterInstrument,hasFilters,clearFilters,allComposers,allInstruments,activeItemId,dayClosed,handleAdd,onTapItem,itemTimes,fmtMin,history,globalAbA,globalAbB,setGlobalAbA,setGlobalAbB,pieceRecordingMeta,refTrackMeta}){
   const [filterSheetOpen,setFilterSheetOpen]=useState(false);
   const [composerOpen,setComposerOpen]=useState(true);
   const [instrumentOpen,setInstrumentOpen]=useState(true);
@@ -669,8 +671,8 @@ function MobileRepertoireList({items,sorted,grouped,groupByCollection,setGroupBy
               ))}
             </div>
           </div>
-          <SidebarFacet title="Composers" icon={<Users size={11} strokeWidth={1.25}/>} open={composerOpen} setOpen={setComposerOpen} entries={allComposers} activeValue={filterComposer} onSelect={(v)=>{}} emptyText="No composers yet."/>
-          <SidebarFacet title="Instruments" icon={<Guitar size={11} strokeWidth={1.25}/>} open={instrumentOpen} setOpen={setInstrumentOpen} entries={allInstruments} activeValue={filterInstrument} onSelect={(v)=>{}} emptyText="No instruments set."/>
+          <SidebarFacet title="Composers" icon={<Users size={11} strokeWidth={1.25}/>} open={composerOpen} setOpen={setComposerOpen} entries={allComposers} activeValue={filterComposer} onSelect={setFilterComposer} emptyText="No composers yet."/>
+          <SidebarFacet title="Instruments" icon={<Guitar size={11} strokeWidth={1.25}/>} open={instrumentOpen} setOpen={setInstrumentOpen} entries={allInstruments} activeValue={filterInstrument} onSelect={setFilterInstrument} emptyText="No instruments set."/>
           {hasFilters&&<button onClick={()=>{clearFilters();setFilterSheetOpen(false);}} style={{padding:'10px',border:`1px solid ${LINE_MED}`,color:MUTED,fontFamily:sans,fontSize:'10px',letterSpacing:'0.22em',textTransform:'uppercase',cursor:'pointer',background:'transparent',marginTop:'8px'}}>Clear all filters</button>}
         </div>
       </div>
