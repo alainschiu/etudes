@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.97.28 — 2026-05-04
+
+### P1.1 — SettingsModal promoted to a real SettingsView
+
+The North Star explicitly forbids tabbed modals (*"If a modal has tabs, it
+should be a view."*). The 5-tab Settings modal violated that rule.
+
+- **New `src/views/SettingsView.jsx`.** Same five sections (Settings,
+  Shortcuts, Sync, Export, About) but rendered as a regular view: same
+  `max-w-2xl` container, mobile padding, `DisplayHeader`-shaped title.
+  The tab strip stays — it's in-view sub-navigation, which is allowed.
+  No backdrop, no portal, no focus trap, no `onClose`.
+- **State + routing changes.**
+  - `useEtudesState.js`: dropped `showSettings` / `setShowSettings`
+    state. `openSettings(tab)` now calls `setView('settings')` and seeds
+    `settingsInitialTab`.
+  - `App.jsx`: removed the old `SettingsModal` import + render; added
+    `{view==='settings' && <SettingsView .../>}` in the view router.
+  - `useKeyboardShortcuts.js`: replaced every `showSettings` /
+    `setShowSettings` reference with `view === 'settings'` /
+    `setView('today')`. `?` toggles between Settings and Today;
+    Esc on Settings goes back to Today (after all transient
+    UI / modals have been dismissed).
+  - `Drawer.jsx`: unchanged — `openSettings()` still works (just
+    navigates instead of opening a modal now).
+  - `modals.jsx`: deleted the `SettingsModal` export and trimmed the
+    7 imports / 3 constants that only it used.
+- **Done button on mobile** in the SettingsView header navigates to
+  Today. Desktop relies on the regular nav (no extra Done button —
+  the wordmark + nav strip are visible at the top).
+- **Restore button** no longer needs the `onClose` + `setTimeout` dance
+  — calls `onImportClick` directly.
+
 ## v0.97.27 — 2026-05-04
 
 ### Hotfix — RepertoireView mobile detail crash

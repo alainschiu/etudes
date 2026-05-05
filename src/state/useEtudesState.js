@@ -21,9 +21,8 @@ import {writeDriveManifest} from '../lib/driveManifest.js';
 export default function useEtudesState(){
   // ── UI state ──────────────────────────────────────────────────────────────
   const [view,setView]=useState('today');
-  const [showSettings,setShowSettings]=useState(false);
   const [settingsInitialTab,setSettingsInitialTab]=useState('settings');
-  const openSettings=useCallback((tab='settings')=>{setSettingsInitialTab(tab);setShowSettings(true);},[]);
+  const openSettings=useCallback((tab='settings')=>{setSettingsInitialTab(tab);setView('settings');},[]);
   const [exportMenu,setExportMenu]=useState(false);
   const [confirmModal,setConfirmModal]=useState(null);
   const [promptModal,setPromptModal]=useState(null);
@@ -622,18 +621,18 @@ export default function useEtudesState(){
 
   // ── Keyboard shortcuts (delegated) ────────────────────────────────────────
   useKeyboardShortcuts({
-    activeItemId,activeSpotId,activeSessionId,workingOn,items,view,todaySessions,isResting,
-    showSettings,pdfDrawerItemId,logDrawerDate,promptModal,confirmModal,exportMenu,
+    activeItemId,activeSpotId,activeSessionId,workingOn,items,view,setView,todaySessions,isResting,
+    pdfDrawerItemId,logDrawerDate,promptModal,confirmModal,exportMenu,
     quickNoteOpen,logTempo,dayClosed,editingTimeItemId,droneExpanded,metroExpanded,
     startItem,stopItem,toggleRest,toggleDrone,handleTap,
-    setShowSettings,openSettings,setPdfDrawerItemId,closeLogDrawer,setPromptModal,setConfirmModal,
+    openSettings,setPdfDrawerItemId,closeLogDrawer,setPromptModal,setConfirmModal,
     setExportMenu,setQuickNoteOpen,setEditingTimeItemId,setDroneExpanded,setMetroExpanded,setMetronome,
     sessionRefs,lastActiveRef,
   });
 
   // ── Return everything ─────────────────────────────────────────────────────
   return {
-    view,setView,showSettings,setShowSettings,settingsInitialTab,openSettings,
+    view,setView,settingsInitialTab,openSettings,
     exportMenu,setExportMenu,confirmModal,setConfirmModal,promptModal,setPromptModal,syncConflictModal,driveConflictModal,
     quickNoteOpen,setQuickNoteOpen,restoreBusy,
     expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,
