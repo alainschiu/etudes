@@ -1,11 +1,11 @@
 import {useEffect} from 'react';
 
 export default function useKeyboardShortcuts({
-  activeItemId,activeSpotId,activeSessionId,workingOn,items,view,setView,todaySessions,isResting,
-  pdfDrawerItemId,logDrawerDate,promptModal,confirmModal,exportMenu,
+  activeItemId,activeSpotId,activeSessionId,workingOn,items,view,todaySessions,isResting,
+  showSettings,pdfDrawerItemId,logDrawerDate,promptModal,confirmModal,exportMenu,
   quickNoteOpen,logTempo,dayClosed,editingTimeItemId,droneExpanded,metroExpanded,
   startItem,stopItem,toggleRest,toggleDrone,handleTap,
-  openSettings,setPdfDrawerItemId,closeLogDrawer,setPromptModal,setConfirmModal,
+  setShowSettings,openSettings,setPdfDrawerItemId,closeLogDrawer,setPromptModal,setConfirmModal,
   setExportMenu,setQuickNoteOpen,setEditingTimeItemId,setDroneExpanded,setMetroExpanded,setMetronome,
   sessionRefs,lastActiveRef,
 }){
@@ -14,10 +14,8 @@ export default function useKeyboardShortcuts({
       const t=e.target;const typing=t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable);
       if(e.metaKey||e.ctrlKey||e.altKey)return;
       if(e.key==='Escape'){
-        // Modals first; then transient UI; finally if on the Settings view,
-        // back to Today (Esc-to-leave matches what users expect from the
-        // pre-view modal era).
-        if(pdfDrawerItemId)setPdfDrawerItemId(null);
+        if(showSettings)setShowSettings(false);
+        else if(pdfDrawerItemId)setPdfDrawerItemId(null);
         else if(logDrawerDate)closeLogDrawer();
         else if(promptModal)setPromptModal(null);
         else if(confirmModal)setConfirmModal(null);
@@ -26,13 +24,10 @@ export default function useKeyboardShortcuts({
         else if(editingTimeItemId)setEditingTimeItemId(null);
         else if(droneExpanded)setDroneExpanded(false);
         else if(metroExpanded)setMetroExpanded(false);
-        else if(view==='settings'&&setView)setView('today');
         return;
       }
       if(typing)return;
-      // ? on the Settings view goes back to Today; elsewhere navigates there
-      // and lands on the Shortcuts tab.
-      if(e.key==='?'){e.preventDefault();if(view==='settings'&&setView)setView('today');else openSettings('shortcuts');return;}
+      if(e.key==='?'){e.preventDefault();if(showSettings)setShowSettings(false);else openSettings('shortcuts');return;}
       if(e.key===' '||e.code==='Space'){
         e.preventDefault();
         if(activeItemId){stopItem();}
@@ -53,5 +48,5 @@ export default function useKeyboardShortcuts({
     };
     window.addEventListener('keydown',handler);return()=>window.removeEventListener('keydown',handler);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[activeItemId,activeSpotId,activeSessionId,workingOn,items,view,todaySessions,isResting,pdfDrawerItemId,logDrawerDate,promptModal,confirmModal,exportMenu,quickNoteOpen,logTempo,dayClosed,editingTimeItemId,droneExpanded,metroExpanded]);
+  },[activeItemId,activeSpotId,activeSessionId,workingOn,items,view,todaySessions,isResting,showSettings,pdfDrawerItemId,logDrawerDate,promptModal,confirmModal,exportMenu,quickNoteOpen,logTempo,dayClosed,editingTimeItemId,droneExpanded,metroExpanded]);
 }
