@@ -318,7 +318,7 @@ const SHARPS=[
   {name:'A#',gap:5},
 ];
 export function Keyboard({note,onNoteChange,width,height=200,getCentTone}){
-  const sharpH=Math.round(height*0.62);
+  const sharpH=typeof height==='number'?Math.round(height*0.62):'62%';
   const whiteW=100/7;
   const sharpW=whiteW*0.62;
   const baseCell={
