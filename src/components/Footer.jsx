@@ -19,7 +19,7 @@ import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import {Waveform,Tooltip} from './shared.jsx';
 import {
   Eye as V1Eye, Rule as V1Rule, BPMHero, TempoSlider, VolumeSlider, SliderRow,
-  TimeSigFlip, PulseDots, AccentToggles, SubStepper, NumStepper,
+  TimeSigFlip, AccentToggles, NumStepper,
   Segmented as V1Segmented, SoundChips, ModeToggle, Transport, TapButton,
   Keyboard as V1Keyboard, zoneName,
 } from './metronomeAtoms.jsx';
@@ -404,9 +404,6 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
   // BPM drag-to-scrub
   const bpmDragRef=useRef(null);
   const handleBpmMouseDown=(e)=>{e.preventDefault();const startY=e.clientY;const startBpm=metronome.bpm;const onMove=(e)=>{const delta=Math.round((startY-e.clientY)/2);const next=Math.max(40,Math.min(240,startBpm+delta));setMetronome(m=>({...m,bpm:next}));};const onUp=()=>{document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);bpmDragRef.current=null;};document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);bpmDragRef.current={onMove,onUp};};
-  // noteValue is always a string: '2','4','8','16','d4'
-  const noteValOpts=[{v:'2',label:'2'},{v:'4',label:'4'},{v:'8',label:'8'},{v:'16',label:'16'}];
-  const subOpt=[{value:1,label:'1'},{value:2,label:'2'},{value:3,label:'3'},{value:4,label:'4'},{value:'dot',label:'♩.'}];
   const canLog=metronome.running&&!!activeItemId;
   const submit=()=>{if(quickNoteText.trim()){addQuickNote(quickNoteText);setQuickNoteText('');}setQuickNoteOpen(false);};
   useEffect(()=>{if(!quickNoteOpen)setQuickNoteText('');},[quickNoteOpen]);

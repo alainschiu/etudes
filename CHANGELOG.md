@@ -1,5 +1,63 @@
 # Changelog
 
+## v0.97.28 — 2026-05-06
+
+### Pass 5 V1 — Metronome & Tuner polish (round 2)
+
+Layout and contrast pass on top of the V1 redesign. No behaviour
+changes; visual refinements only.
+
+#### Desktop metronome bar
+
+- Background → `BG` (was `SURFACE`) so it reads as part of the page.
+- BPM hero vertically centred against the time-signature flip card.
+- Tempo / Volume sliders pulled tighter; Italian zone labels
+  (Larghetto … Presto) sit closer to the slider track.
+- `Pulse` is now a `ModeToggle` (matches the mobile sheet) instead
+  of static dots.
+- Subdivision chooser restored: segmented `1/4 · 1/8 · 1/16 · triplet`,
+  bound to `metronome.subdivision`.
+- `auto` / `accel` toggles moved onto the sound row so they line up
+  with `click / wood / beep`; col 4 now holds only the transport + tap.
+- When `accel` is enabled, its detail panel right-aligns under the
+  toggles instead of stretching across the full width under BPM.
+- Transport bumped 64 → 70 and right-aligned in its column to match
+  the tuner play button.
+
+#### Desktop tuner / drone panel
+
+- Background → `BG`.
+- Keyboard hero capped at 520 px wide; vertically stretches from
+  the `NOTE` eyebrow to the Volume fader (height: 100 %).
+- Play button right-aligned in its column to share an edge with the
+  metronome transport.
+
+#### Mobile metronome sheet
+
+- BPM hero vertically centred against the time-signature flip
+  (matches desktop).
+- Subdivision chooser added (`1/4 · 1/8 · 1/16 · triplet`).
+- Pulse / Sub / Accents share a single 14 px vertical rhythm.
+
+#### Mobile tuner / drone panel
+
+- Background → `BG`.
+
+#### Mobile transport row
+
+- Mic / Tuner / Note buttons grouped into a tight cluster (gap 2 px,
+  size 30 × 30) so the metronome bar absorbs the freed horizontal
+  space.
+
+#### Atom changes
+
+- `SoundChips` accepts a `gap` prop (default 10).
+- `AccentToggles` accepts a `gap` prop (default 9).
+- `Keyboard` accepts a non-numeric `height` (e.g. `'100%'`); the
+  sharps row falls back to `62 %` of parent height in that case.
+- Removed dead `PulseDots` / `SubStepper` imports and the unused
+  `subOpt` / `noteValOpts` locals from `Footer.jsx`.
+
 ## v0.97.27 — 2026-05-04
 
 ### Hotfix — RepertoireView mobile detail crash
