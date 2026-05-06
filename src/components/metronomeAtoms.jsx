@@ -136,31 +136,39 @@ export function SliderRow({label,right,children}){
   );
 }
 
-// ── Time signature flip card (vertical, +/−, denom dropdown) ───────────────
-const DENOM_OPTS=[2,4,8,16];
-export function TimeSigFlip({beats,onBeatsChange,denom=4,onDenomChange,minBeats=1,maxBeats=16,size='md'}){
-  const ds=size==='sm'?{w:56,h:92,num:22,btn:18}
-         :size==='lg'?{w:88,h:148,num:40,btn:26}
-         :{w:70,h:118,num:28,btn:22};
-  const [open,setOpen]=useState(false);
+// ── Time signature flip card ───────────────────────────────────────────────
+// Top +/− steps beats (numerator, 1..maxBeats).
+// Bottom +/− steps denom (cycles 1, 2, 4, 8, 16).
+const DENOM_OPTS=['1','2','4','8','16'];
+export function TimeSigFlip({beats,onBeatsChange,denom='4',onDenomChange,minBeats=1,maxBeats=16,size='md'}){
+  const ds=size==='sm'?{w:64,h:96,num:22,btn:18}
+         :size==='lg'?{w:96,h:152,num:40,btn:26}
+         :{w:78,h:122,num:28,btn:22};
+  const denomStr=String(denom);
+  const idx=Math.max(0,DENOM_OPTS.indexOf(denomStr));
+  const stepDenom=(d)=>{const ni=(idx+d+DENOM_OPTS.length)%DENOM_OPTS.length;onDenomChange&&onDenomChange(DENOM_OPTS[ni]);};
+  const stepBtn=(onClick,glyph,border)=>(
+    <button type="button" onClick={onClick} style={{flex:1,height:ds.btn,background:'transparent',border:0,color:MUTED,fontFamily:mono,fontSize:11,cursor:'pointer',...border}}>{glyph}</button>
+  );
   return (
-    <div style={{position:'relative',display:'inline-block'}}>
+    <div style={{display:'inline-block'}}>
       <div style={{width:ds.w,height:ds.h,border:`1px solid ${LINE_MED}`,background:BG,display:'flex',flexDirection:'column',boxSizing:'border-box'}}>
-        <button type="button" onClick={()=>onBeatsChange(Math.min(maxBeats,beats+1))} style={{height:ds.btn,background:'transparent',border:0,color:MUTED,fontFamily:mono,fontSize:12,cursor:'pointer',borderBottom:`1px solid ${LINE_MED}`}}>+</button>
+        {/* Top: ±beats */}
+        <div style={{display:'flex',borderBottom:`1px solid ${LINE_MED}`}}>
+          {stepBtn(()=>onBeatsChange(Math.max(minBeats,beats-1)),'−',{borderRight:`1px solid ${LINE_MED}`})}
+          {stepBtn(()=>onBeatsChange(Math.min(maxBeats,beats+1)),'+')}
+        </div>
         <div style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
           <span style={{fontFamily:mono,fontSize:ds.num,lineHeight:1,color:TEXT,fontVariantNumeric:'tabular-nums'}}>{beats}</span>
           <div style={{width:ds.num+14,height:1,background:LINE_MED,margin:'4px 0'}}/>
-          <button type="button" onClick={()=>setOpen(o=>!o)} style={{background:'transparent',border:0,color:MUTED,padding:0,cursor:'pointer',fontFamily:mono,fontSize:ds.num,lineHeight:1,fontVariantNumeric:'tabular-nums'}}>{denom}</button>
+          <span style={{fontFamily:mono,fontSize:ds.num,lineHeight:1,color:TEXT,fontVariantNumeric:'tabular-nums'}}>{denomStr}</span>
         </div>
-        <button type="button" onClick={()=>onBeatsChange(Math.max(minBeats,beats-1))} style={{height:ds.btn,background:'transparent',border:0,color:MUTED,fontFamily:mono,fontSize:12,cursor:'pointer',borderTop:`1px solid ${LINE_MED}`}}>−</button>
+        {/* Bottom: ±denom (cycles 1/2/4/8/16) */}
+        <div style={{display:'flex',borderTop:`1px solid ${LINE_MED}`}}>
+          {stepBtn(()=>stepDenom(-1),'−',{borderRight:`1px solid ${LINE_MED}`})}
+          {stepBtn(()=>stepDenom(1),'+')}
+        </div>
       </div>
-      {open&&(
-        <div style={{position:'absolute',left:'100%',top:0,marginLeft:6,zIndex:6,background:SURFACE,border:`1px solid ${LINE_STR}`,boxShadow:'0 12px 32px -10px rgba(0,0,0,0.6)',padding:4,display:'flex',flexDirection:'column',minWidth:60}}>
-          {DENOM_OPTS.map(d=>(
-            <button key={d} type="button" onClick={()=>{onDenomChange&&onDenomChange(String(d));setOpen(false);}} style={{background:String(d)===String(denom)?SURFACE2:'transparent',color:String(d)===String(denom)?TEXT:MUTED,border:0,padding:'6px 10px',textAlign:'right',cursor:'pointer',fontFamily:mono,fontSize:14,fontVariantNumeric:'tabular-nums'}}>{beats}/{d}</button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -181,8 +189,8 @@ export function PulseDots({beats,accents=[0],active=-1,size=8,gap=8}){
   );
 }
 
-// ── Accent toggle squares ──────────────────────────────────────────────────
-export function AccentToggles({beats,accentPattern,onChange,size=18}){
+// ── Accent toggle squares (sequencer; lights up on the active beat) ────────
+export function AccentToggles({beats,accentPattern,onChange,active=-1,size=18}){
   const pat=Array.isArray(accentPattern)?accentPattern:[];
   const isOn=(i)=>i===0||pat.includes(i);
   const toggle=(i)=>{
@@ -192,9 +200,20 @@ export function AccentToggles({beats,accentPattern,onChange,size=18}){
   };
   return (
     <div style={{display:'inline-flex',gap:6,flexWrap:'wrap'}}>
-      {Array.from({length:beats}).map((_,i)=>(
-        <button key={i} type="button" onClick={()=>toggle(i)} style={{width:size,height:size,padding:0,background:isOn(i)?IKB:'transparent',border:`1px solid ${isOn(i)?IKB:LINE_MED}`,cursor:i===0?'default':'pointer'}}/>
-      ))}
+      {Array.from({length:beats}).map((_,i)=>{
+        const on=isOn(i);
+        const isActive=i===active;
+        return (
+          <button key={i} type="button" onClick={()=>toggle(i)} style={{
+            width:size,height:size,padding:0,
+            background:isActive?IKB:on?IKB:'transparent',
+            border:`1px solid ${isActive?TEXT:on?IKB:LINE_MED}`,
+            boxShadow:isActive?`0 0 8px ${IKB}`:'none',
+            cursor:i===0?'default':'pointer',
+            transition:isActive?'none':'box-shadow 120ms, background 120ms, border-color 120ms',
+          }}/>
+        );
+      })}
     </div>
   );
 }
@@ -270,7 +289,7 @@ export function Transport({running,onToggle,size=56,variant='circle',label}){
     return (
       <button type="button" onClick={onToggle} style={{width:'100%',height:size,background:running?IKB_SOFT:'transparent',border:`1px solid ${running?IKB:LINE_STR}`,color:running?TEXT:TEXT,cursor:'pointer',display:'inline-flex',alignItems:'center',justifyContent:'center',gap:12,fontFamily:mono,fontSize:11,letterSpacing:'0.24em',textTransform:'uppercase'}}>
         <span style={{display:'inline-flex'}}>{running?<Sq size={12}/>:<Tri size={12}/>}</span>
-        {label||(running?'sounding':'sound the drone')}
+        {label||(running?'stop':'play')}
       </button>
     );
   }

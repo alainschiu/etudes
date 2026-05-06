@@ -124,6 +124,14 @@ function Row1({label,children}){
     </div>
   );
 }
+function RightRow({label,children}){
+  return (
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,minHeight:24}}>
+      <V1Eye>{label}</V1Eye>
+      <div style={{display:'flex',justifyContent:'flex-end'}}>{children}</div>
+    </div>
+  );
+}
 
 function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
   const tempLabel={equal:'Equal',just:'Just',meantone:'Meantone ¼'}[drone.temperament||'equal']||'Equal';
@@ -143,7 +151,7 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
       <button onClick={()=>setDroneExpanded(false)} style={{position:'absolute',top:14,right:18,color:FAINT,background:'transparent',border:'none',cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
         <X className="w-4 h-4" strokeWidth={1.25}/>
       </button>
-      <div style={{display:'grid',gridTemplateColumns:'180px 320px 1fr 140px',columnGap:24,alignItems:'stretch',minHeight:200}}>
+      <div style={{display:'grid',gridTemplateColumns:'140px 1fr 280px 100px',columnGap:28,alignItems:'stretch',minHeight:200}}>
         {/* Col 1: note hero */}
         <div style={{display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
           <V1Eye>Tuning · drone</V1Eye>
@@ -151,19 +159,14 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
             <span style={{fontFamily:mono,fontSize:78,lineHeight:0.82,fontWeight:300,letterSpacing:'-0.04em',color:TEXT}}>{drone.note}</span>
             <span style={{fontFamily:mono,fontSize:30,color:MUTED}}>{drone.octave}</span>
           </div>
-          <div style={{display:'flex',alignItems:'baseline',gap:10,flexWrap:'wrap'}}>
-            <V1Eye>Hz</V1Eye>
-            <span style={{fontFamily:mono,fontSize:13,color:MUTED,fontVariantNumeric:'tabular-nums'}}>{hz.toFixed(2)}</span>
-            {centsStr&&<span style={{fontFamily:mono,fontSize:11,color:centsColor,fontVariantNumeric:'tabular-nums'}}>{centsStr}</span>}
-            <span style={{fontFamily:serif,fontStyle:'italic',fontSize:11,color:FAINT,marginLeft:'auto'}}>{tempLabel.toLowerCase()}</span>
-          </div>
+          <span style={{fontFamily:serif,fontStyle:'italic',fontSize:11,color:FAINT}}>{tempLabel.toLowerCase()}</span>
         </div>
 
-        {/* Col 2: keyboard */}
-        <div style={{display:'flex',flexDirection:'column',justifyContent:'space-between',gap:8}}>
+        {/* Col 2: keyboard hero */}
+        <div style={{display:'flex',flexDirection:'column',justifyContent:'space-between',gap:8,minWidth:0}}>
           <V1Eye>Note</V1Eye>
           <div style={{flex:1,display:'flex',alignItems:'center'}}>
-            <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} height={140} getCentTone={tone}/>
+            <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} height={150} getCentTone={tone}/>
           </div>
           {notEqual&&(
             <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
@@ -175,22 +178,20 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
           )}
         </div>
 
-        {/* Col 3: params + volume */}
-        <div style={{display:'flex',flexDirection:'column',justifyContent:'space-between',gap:8}}>
-          <div style={{display:'flex',justifyContent:'flex-start',gap:18,alignItems:'flex-start',flexWrap:'wrap'}}>
-            <div style={{display:'flex',flexDirection:'column',gap:4}}>
-              <V1Eye>A=</V1Eye>
-              <div style={{display:'flex'}}>{pitchOpts.map(p=>(<button key={p} onClick={()=>setDrone(d=>({...d,pitchRef:p}))} style={{padding:'3px 9px',border:`1px solid ${(drone.pitchRef||440)===p?IKB:LINE_MED}`,background:(drone.pitchRef||440)===p?IKB_SOFT:'transparent',color:(drone.pitchRef||440)===p?TEXT:MUTED,fontFamily:mono,fontSize:11,marginLeft:'-1px',cursor:'pointer'}}>{p}</button>))}</div>
-            </div>
-            <div style={{display:'flex',flexDirection:'column',gap:4}}>
-              <V1Eye>Octave</V1Eye>
-              <NumStepper value={drone.octave} onChange={(v)=>setDrone(d=>({...d,octave:v}))} min={1} max={7} width={70}/>
-            </div>
-            <div style={{display:'flex',flexDirection:'column',gap:4}}>
-              <V1Eye>Temperament</V1Eye>
-              <V1Segmented options={tempOpts} value={drone.temperament||'equal'} onChange={(v)=>setDrone(d=>({...d,temperament:v}))}/>
-            </div>
-          </div>
+        {/* Col 3: params, right-aligned */}
+        <div style={{display:'flex',flexDirection:'column',justifyContent:'space-between',gap:6}}>
+          <RightRow label="Hz">
+            <span style={{fontFamily:mono,fontSize:13,color:TEXT,fontVariantNumeric:'tabular-nums'}}>{hz.toFixed(2)}{centsStr&&<span style={{color:centsColor,marginLeft:8}}>{centsStr}</span>}</span>
+          </RightRow>
+          <RightRow label="A=">
+            <div style={{display:'flex'}}>{pitchOpts.map(p=>(<button key={p} onClick={()=>setDrone(d=>({...d,pitchRef:p}))} style={{padding:'3px 9px',border:`1px solid ${(drone.pitchRef||440)===p?IKB:LINE_MED}`,background:(drone.pitchRef||440)===p?IKB_SOFT:'transparent',color:(drone.pitchRef||440)===p?TEXT:MUTED,fontFamily:mono,fontSize:11,marginLeft:'-1px',cursor:'pointer'}}>{p}</button>))}</div>
+          </RightRow>
+          <RightRow label="Octave">
+            <NumStepper value={drone.octave} onChange={(v)=>setDrone(d=>({...d,octave:v}))} min={1} max={7} width={70}/>
+          </RightRow>
+          <RightRow label="Temp.">
+            <V1Segmented options={tempOpts} value={drone.temperament||'equal'} onChange={(v)=>setDrone(d=>({...d,temperament:v}))}/>
+          </RightRow>
           <SliderRow label="Volume" right={`${Math.round(drone.volume*100)}%`}>
             <VolumeSlider value={drone.volume} max={0.6} onChange={(v)=>setDrone(d=>({...d,volume:v}))}/>
           </SliderRow>
@@ -258,7 +259,7 @@ function DesktopMetroBar({metronome,setMetronome,currentBeat,handleTap,activeIte
       <button onClick={onClose} style={{position:'absolute',top:14,right:18,color:FAINT,background:'transparent',border:'none',cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
         <X className="w-4 h-4" strokeWidth={1.25}/>
       </button>
-      <div style={{display:'grid',gridTemplateColumns:'260px 1fr 240px 140px',columnGap:24,alignItems:'stretch',minHeight:200}}>
+      <div style={{display:'grid',gridTemplateColumns:'260px 1fr 130px',columnGap:24,alignItems:'stretch',minHeight:200}}>
         {/* Col 1: BPM hero + meter */}
         <div style={{display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
           <V1Eye>Métronome</V1Eye>
@@ -274,35 +275,29 @@ function DesktopMetroBar({metronome,setMetronome,currentBeat,handleTap,activeIte
           </div>
         </div>
 
-        {/* Col 2: tempo + volume sliders + AccelProgress */}
-        <div style={{display:'flex',flexDirection:'column',justifyContent:'center',gap:14}}>
+        {/* Col 2: tempo + volume sliders (tight) + AccelProgress */}
+        <div style={{display:'flex',flexDirection:'column',justifyContent:'center',gap:6}}>
           <SliderRow label="Tempo" right={String(metronome.bpm)}>
-            <TempoSlider bpm={metronome.bpm} onChange={(v)=>setMetronome(m=>({...m,bpm:v}))} height={32}/>
+            <TempoSlider bpm={metronome.bpm} onChange={(v)=>setMetronome(m=>({...m,bpm:v}))} height={28}/>
           </SliderRow>
           <SliderRow label="Volume" right={`${Math.round(((metronome.clickVolume??0.22)/0.6)*100)}%`}>
             <VolumeSlider value={metronome.clickVolume??0.22} max={0.6} onChange={(v)=>setMetronome(m=>({...m,clickVolume:v}))}/>
           </SliderRow>
+          <div style={{display:'flex',gap:18,alignItems:'center',flexWrap:'wrap',marginTop:6}}>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <V1Eye>Accents</V1Eye>
+              <AccentToggles beats={metronome.beats} accentPattern={metronome.accentPattern||[]} onChange={(pat)=>setMetronome(m=>({...m,accentPattern:pat}))} active={metronome.running?currentBeat:-1} size={14}/>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <V1Eye>Pulse</V1Eye>
+              <PulseDots beats={metronome.beats} accents={[0,...(metronome.accentPattern||[])]} active={metronome.running?currentBeat:-1} size={7} gap={6}/>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:'auto'}}>
+              <V1Eye>Sound</V1Eye>
+              <SoundChips value={metronome.sound} onChange={(v)=>setMetronome(m=>({...m,sound:v}))}/>
+            </div>
+          </div>
           {accel.enabled&&<AccelProgress metronome={metronome}/>}
-        </div>
-
-        {/* Col 3: pulse + accents + sub + sound */}
-        <div style={{display:'flex',flexDirection:'column',justifyContent:'space-between',gap:6}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
-            <V1Eye>Pulse</V1Eye>
-            <PulseDots beats={metronome.beats} accents={[0,...(metronome.accentPattern||[])]} active={metronome.running?currentBeat:-1} size={7} gap={6}/>
-          </div>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
-            <V1Eye>Accents</V1Eye>
-            <AccentToggles beats={metronome.beats} accentPattern={metronome.accentPattern||[]} onChange={(pat)=>setMetronome(m=>({...m,accentPattern:pat}))} size={14}/>
-          </div>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
-            <V1Eye>Sub</V1Eye>
-            <SubStepper value={metronome.subdivision} onChange={(v)=>setMetronome(m=>({...m,subdivision:v}))} width={70}/>
-          </div>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8}}>
-            <V1Eye>Sound</V1Eye>
-            <SoundChips value={metronome.sound} onChange={(v)=>setMetronome(m=>({...m,sound:v}))}/>
-          </div>
         </div>
 
         {/* Col 4: transport + tap + auto/accel toggles */}
@@ -349,14 +344,6 @@ function DesktopMetroBar({metronome,setMetronome,currentBeat,handleTap,activeIte
         </div>
       )}
 
-      {/* Tempo presets */}
-      <div style={{display:'flex',gap:18,flexWrap:'wrap',marginTop:14,paddingTop:12,borderTop:`1px solid ${LINE}`}}>
-        {[{bpm:60,name:'Larghetto'},{bpm:72,name:'Adagio'},{bpm:92,name:'Andante'},{bpm:108,name:'Moderato'},{bpm:120,name:'Allegro'},{bpm:144,name:'Vivace'},{bpm:176,name:'Presto'}].map(pr=>(
-          <button key={pr.bpm} onClick={()=>setMetronome(m=>({...m,bpm:pr.bpm}))} style={{color:metronome.bpm===pr.bpm?IKB:MUTED,fontFamily:serif,fontStyle:'italic',fontSize:12,background:'none',border:'none',cursor:'pointer',padding:0}}>
-            {pr.name} <span style={{fontFamily:mono,fontStyle:'normal'}}>{pr.bpm}</span>
-          </button>
-        ))}
-      </div>
     </div>
   );
 }

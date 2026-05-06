@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React from 'react';
 import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import {
   BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM,
@@ -8,16 +8,11 @@ import {
 import {displayTitle} from '../lib/items.js';
 import {
   Eye, Rule, BPMHero, TempoSlider, VolumeSlider, SliderRow,
-  TimeSigFlip, PulseDots, AccentToggles, SubStepper, NumStepper,
+  TimeSigFlip, AccentToggles,
   Segmented, SoundChips, ModeToggle, Transport, TapButton,
   zoneName,
 } from './metronomeAtoms.jsx';
 
-const TEMPO_PRESETS=[
-  {bpm:60,name:'Larghetto'},{bpm:72,name:'Adagio'},{bpm:92,name:'Andante'},
-  {bpm:108,name:'Moderato'},{bpm:120,name:'Allegro'},{bpm:144,name:'Vivace'},{bpm:176,name:'Presto'},
-];
-const VISUAL_OPTS=[{value:'bars',label:'bars'},{value:'pulse',label:'pulse'}];
 const COMPOUND_OPTS=[{value:0,label:'Off'},{value:2,label:'2'},{value:3,label:'3'}];
 
 // Pull a target BPM from the active spot or piece, plus a one-line context label.
@@ -48,8 +43,6 @@ export default function MetronomeSheet({
   const compoundAuto=metronome.compoundAuto!==false;
   const compoundGroup=metronome.compoundGroup||0;
   const denom=metronome.noteValue||'4';
-
-  const [moreOpen,setMoreOpen]=useState(false);
 
   const sheetStyle={
     position:'fixed',bottom:0,left:0,right:0,height:'min(86vh,820px)',
@@ -120,15 +113,13 @@ export default function MetronomeSheet({
 
           <Rule/>
 
-          {/* Tempo slider */}
-          <div style={{paddingTop:18,paddingBottom:14}}>
+          {/* Tempo + Volume sliders (tight stack) */}
+          <div style={{paddingTop:14,paddingBottom:6}}>
             <SliderRow label="Tempo" right={`${metronome.bpm}`}>
               <TempoSlider bpm={metronome.bpm} onChange={(v)=>setMetronome(m=>({...m,bpm:v}))}/>
             </SliderRow>
           </div>
-
-          {/* Volume slider */}
-          <div style={{paddingBottom:18}}>
+          <div style={{paddingBottom:14}}>
             <SliderRow label="Volume" right={`${Math.round(((metronome.clickVolume??0.22)/0.6)*100)}%`}>
               <VolumeSlider value={metronome.clickVolume??0.22} max={0.6} onChange={(v)=>setMetronome(m=>({...m,clickVolume:v}))}/>
             </SliderRow>
@@ -136,22 +127,16 @@ export default function MetronomeSheet({
 
           <Rule/>
 
-          {/* Pulse dots */}
-          <div style={{paddingTop:16,paddingBottom:14}}>
-            <Eye style={{display:'block',marginBottom:12}}>Pulse</Eye>
-            <PulseDots beats={metronome.beats} accents={[0,...(metronome.accentPattern||[])]} active={metronome.running?currentBeat:-1} size={10} gap={10}/>
+          {/* Pulse toggle (controls visualMode bars↔pulse on the footer widget) */}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:14,marginBottom:14}}>
+            <Eye>Pulse</Eye>
+            <ModeToggle label={visualMode==='pulse'?'pulse · on':'pulse · off'} value={visualMode==='pulse'} onChange={(on)=>setMetronome(m=>({...m,visualMode:on?'pulse':'bars'}))}/>
           </div>
 
-          {/* Accents row */}
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-            <Eye>Accents</Eye>
-            <AccentToggles beats={metronome.beats} accentPattern={metronome.accentPattern||[]} onChange={onAccentChange} size={20}/>
-          </div>
-
-          {/* Subdivision row */}
+          {/* Accents — sequencer; lights up on the active beat */}
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-            <Eye>Subdivision</Eye>
-            <SubStepper value={metronome.subdivision} onChange={(v)=>setMetronome(m=>({...m,subdivision:v}))}/>
+            <Eye>Accents</Eye>
+            <AccentToggles beats={metronome.beats} accentPattern={metronome.accentPattern||[]} onChange={onAccentChange} active={metronome.running?currentBeat:-1} size={20}/>
           </div>
 
           <Rule/>
@@ -200,37 +185,10 @@ export default function MetronomeSheet({
 
           <Rule/>
 
-          {/* Tempo presets */}
-          <div style={{display:'flex',gap:14,flexWrap:'wrap',padding:'14px 0'}}>
-            {TEMPO_PRESETS.map(pr=>(
-              <button key={pr.bpm} onClick={()=>setMetronome(m=>({...m,bpm:pr.bpm}))} style={{color:metronome.bpm===pr.bpm?IKB:MUTED,fontFamily:serif,fontStyle:'italic',fontSize:13,background:'none',border:'none',cursor:'pointer',padding:0}}>
-                {pr.name} <span style={{fontFamily:mono,fontStyle:'normal'}}>{pr.bpm}</span>
-              </button>
-            ))}
-          </div>
-
-          <Rule/>
-
-          {/* Footer: sound chips + visual-cue 'more' */}
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:16}}>
+          {/* Footer: sound chips */}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'flex-start',paddingTop:14}}>
+            <Eye style={{marginRight:14}}>Sound</Eye>
             <SoundChips value={metronome.sound} onChange={(v)=>setMetronome(m=>({...m,sound:v}))}/>
-            <div style={{position:'relative'}}>
-              <button onClick={()=>setMoreOpen(o=>!o)} style={{background:'transparent',border:0,color:MUTED,cursor:'pointer',fontFamily:mono,fontSize:10,letterSpacing:'0.24em',textTransform:'uppercase',padding:'4px 0'}}>
-                visual · {visualMode}
-              </button>
-              {moreOpen&&(
-                <div style={{position:'absolute',right:0,bottom:'calc(100% + 6px)',background:SURFACE,border:`1px solid ${LINE_STR}`,padding:'12px 14px',minWidth:180,zIndex:5,boxShadow:'0 12px 32px -10px rgba(0,0,0,0.6)'}}>
-                  <div style={{fontFamily:mono,fontSize:9,letterSpacing:'0.28em',color:FAINT,marginBottom:8,textTransform:'uppercase'}}>Visual cue</div>
-                  <div style={{display:'flex',flexDirection:'column',gap:4}}>
-                    {VISUAL_OPTS.map(o=>(
-                      <button key={o.value} onClick={()=>{setMetronome(m=>({...m,visualMode:o.value}));setMoreOpen(false);}} style={{background:visualMode===o.value?SURFACE2:'transparent',color:visualMode===o.value?TEXT:MUTED,border:0,textAlign:'left',padding:'6px 8px',fontFamily:serif,fontStyle:'italic',fontSize:14,cursor:'pointer'}}>
-                        {o.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
 
         </div>
