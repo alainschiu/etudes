@@ -52,7 +52,7 @@ function MobileDronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
   const pitchOpts=[440,415,432];
   const tone=(n)=>centsTone(n,drone.root,drone.temperament);
   return(
-    <div style={{borderBottom:`1px solid ${LINE}`,background:SURFACE,padding:'18px 22px',fontFamily:sans,color:TEXT}}>
+    <div style={{borderBottom:`1px solid ${LINE}`,background:BG,padding:'18px 22px',fontFamily:sans,color:TEXT}}>
       {/* Header */}
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
         <V1Eye>Tuning · drone</V1Eye>
@@ -216,6 +216,8 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
 
 function AccelProgress({metronome}){if(!metronome.accel.enabled)return null;const s=metronome.bpm;const tgt=metronome.accel.targetBpm;const r=s>=tgt;const pct=r?100:Math.min(100,((s-60)/Math.max(1,tgt-60))*100);const u=metronome.accel.unit||'bar';return (<div className="mt-3 flex items-center gap-3"><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Accel</span><div className="flex-1 h-px relative" style={{background:LINE_MED}}><div className="absolute inset-y-0 left-0" style={{background:r?WARM:IKB,width:`${pct}%`,height:'1px'}}/></div><span className="tabular-nums shrink-0" style={{color:r?WARM:MUTED,fontSize:'10px'}}>{r?`▲ ${tgt}`:`${s} → ${tgt} · +${metronome.accel.stepBpm}/${metronome.accel.every}${u[0]}`}</span></div>);}
 
+const SUB_OPTS=[{value:1,label:'1/4'},{value:2,label:'1/8'},{value:4,label:'1/16'},{value:3,label:'trip'}];
+
 // V1 desktop metronome bar — opens when metroExpanded toggles on.
 function DesktopMetroBar({metronome,setMetronome,currentBeat,handleTap,activeItem,activeSpot,onClose}){
   const accel=metronome.accel||{enabled:false,targetBpm:120,stepBpm:1,every:8,unit:'bar'};
@@ -295,6 +297,10 @@ function DesktopMetroBar({metronome,setMetronome,currentBeat,handleTap,activeIte
             <div style={{display:'flex',alignItems:'center',gap:10}}>
               <V1Eye>Pulse</V1Eye>
               <ModeToggle label={(metronome.visualMode||'bars')==='pulse'?'on':'off'} value={(metronome.visualMode||'bars')==='pulse'} onChange={(on)=>setMetronome(m=>({...m,visualMode:on?'pulse':'bars'}))}/>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <V1Eye>Sub</V1Eye>
+              <V1Segmented options={SUB_OPTS} value={metronome.subdivision===1||metronome.subdivision===2||metronome.subdivision===3||metronome.subdivision===4?metronome.subdivision:1} onChange={(v)=>setMetronome(m=>({...m,subdivision:v}))}/>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:'auto'}}>
               <V1Eye>Sound</V1Eye>

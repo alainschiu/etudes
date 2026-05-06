@@ -14,6 +14,7 @@ import {
 } from './metronomeAtoms.jsx';
 
 const COMPOUND_OPTS=[{value:0,label:'Off'},{value:2,label:'2'},{value:3,label:'3'}];
+const SUB_OPTS=[{value:1,label:'1/4'},{value:2,label:'1/8'},{value:4,label:'1/16'},{value:3,label:'trip'}];
 
 // Pull a target BPM from the active spot or piece, plus a one-line context label.
 function deriveContextLine(activeItem,activeSpot){
@@ -97,7 +98,7 @@ export default function MetronomeSheet({
           </div>
 
           {/* Hero: BPM | Time-sig flip */}
-          <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',gap:12,marginBottom:6}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,marginBottom:6}}>
             <BPMHero bpm={metronome.bpm} onChange={(v)=>setMetronome(m=>({...m,bpm:v}))} fontSize={120}/>
             <TimeSigFlip beats={metronome.beats} onBeatsChange={onSetBeats} denom={denom} onDenomChange={onSetDenom} size="md"/>
           </div>
@@ -131,6 +132,12 @@ export default function MetronomeSheet({
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:14,marginBottom:14}}>
             <Eye>Pulse</Eye>
             <ModeToggle label={visualMode==='pulse'?'pulse · on':'pulse · off'} value={visualMode==='pulse'} onChange={(on)=>setMetronome(m=>({...m,visualMode:on?'pulse':'bars'}))}/>
+          </div>
+
+          {/* Subdivision */}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+            <Eye>Sub</Eye>
+            <Segmented options={SUB_OPTS} value={[1,2,3,4].includes(metronome.subdivision)?metronome.subdivision:1} onChange={(v)=>setMetronome(m=>({...m,subdivision:v}))}/>
           </div>
 
           {/* Accents — sequencer; lights up on the active beat */}

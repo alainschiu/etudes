@@ -261,7 +261,7 @@ export function Segmented({options,value,onChange,height=26,fontSize=10}){
 }
 
 // ── Sound chips ────────────────────────────────────────────────────────────
-export function SoundChips({value,onChange,options=['click','wood','beep'],fontSize=10,gap=8}){
+export function SoundChips({value,onChange,options=['click','wood','beep'],fontSize=10,gap=10}){
   return (
     <div style={{display:'inline-flex',gap}}>
       {options.map(o=>(
