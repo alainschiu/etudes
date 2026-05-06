@@ -82,7 +82,7 @@ export function TempoSlider({bpm,onChange,showLabels=true,height=38}){
         <div style={{position:'absolute',left:`${pct*100}%`,top:'50%',width:10,height:10,borderRadius:'50%',background:IKB,transform:'translate(-50%,-50%)'}}/>
       </div>
       {showLabels&&(
-        <div style={{position:'relative',height:16,marginTop:4,lineHeight:1}}>
+        <div style={{position:'relative',height:14,marginTop:-4,lineHeight:1}}>
           {ZONES.map(z=>{
             const center=((z.lo+z.hi)/2-BPM_MIN)/(BPM_MAX-BPM_MIN);
             const isActive=z.name===active;
