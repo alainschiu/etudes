@@ -255,7 +255,7 @@ function DesktopMetroBar({metronome,setMetronome,currentBeat,handleTap,activeIte
   };
   const onToggleAccel=()=>setMetronome(m=>({...m,accel:{...accel,enabled:!accel.enabled}}));
   return (
-    <div style={{borderBottom:`1px solid ${LINE}`,background:SURFACE,padding:'18px 28px',fontFamily:sans,color:TEXT,position:'relative'}}>
+    <div style={{borderBottom:`1px solid ${LINE}`,background:BG,padding:'18px 28px',fontFamily:sans,color:TEXT,position:'relative'}}>
       <button onClick={onClose} style={{position:'absolute',top:14,right:18,color:FAINT,background:'transparent',border:'none',cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
         <X className="w-4 h-4" strokeWidth={1.25}/>
       </button>
@@ -263,7 +263,7 @@ function DesktopMetroBar({metronome,setMetronome,currentBeat,handleTap,activeIte
         {/* Col 1: BPM hero + meter */}
         <div style={{display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
           <V1Eye>Métronome</V1Eye>
-          <div style={{display:'flex',alignItems:'flex-end',gap:12}}>
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
             <BPMHero bpm={metronome.bpm} onChange={(v)=>setMetronome(m=>({...m,bpm:v}))} fontSize={82}/>
             <TimeSigFlip beats={metronome.beats} onBeatsChange={onSetBeats} denom={denom} onDenomChange={onSetDenom} size="sm"/>
           </div>
@@ -276,21 +276,25 @@ function DesktopMetroBar({metronome,setMetronome,currentBeat,handleTap,activeIte
         </div>
 
         {/* Col 2: tempo + volume sliders (tight) + AccelProgress */}
-        <div style={{display:'flex',flexDirection:'column',justifyContent:'center',gap:6}}>
-          <SliderRow label="Tempo" right={String(metronome.bpm)}>
-            <TempoSlider bpm={metronome.bpm} onChange={(v)=>setMetronome(m=>({...m,bpm:v}))} height={28}/>
-          </SliderRow>
-          <SliderRow label="Volume" right={`${Math.round(((metronome.clickVolume??0.22)/0.6)*100)}%`}>
-            <VolumeSlider value={metronome.clickVolume??0.22} max={0.6} onChange={(v)=>setMetronome(m=>({...m,clickVolume:v}))}/>
-          </SliderRow>
-          <div style={{display:'flex',gap:18,alignItems:'center',flexWrap:'wrap',marginTop:6}}>
+        <div style={{display:'flex',flexDirection:'column',justifyContent:'center',gap:0}}>
+          <div style={{paddingTop:14}}>
+            <SliderRow label="Tempo" right={String(metronome.bpm)}>
+              <TempoSlider bpm={metronome.bpm} onChange={(v)=>setMetronome(m=>({...m,bpm:v}))} height={28}/>
+            </SliderRow>
+          </div>
+          <div style={{marginTop:-6}}>
+            <SliderRow label="Volume" right={`${Math.round(((metronome.clickVolume??0.22)/0.6)*100)}%`}>
+              <VolumeSlider value={metronome.clickVolume??0.22} max={0.6} onChange={(v)=>setMetronome(m=>({...m,clickVolume:v}))}/>
+            </SliderRow>
+          </div>
+          <div style={{display:'flex',gap:18,alignItems:'center',flexWrap:'wrap',marginTop:10}}>
             <div style={{display:'flex',alignItems:'center',gap:10}}>
               <V1Eye>Accents</V1Eye>
               <AccentToggles beats={metronome.beats} accentPattern={metronome.accentPattern||[]} onChange={(pat)=>setMetronome(m=>({...m,accentPattern:pat}))} active={metronome.running?currentBeat:-1} size={14}/>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:10}}>
               <V1Eye>Pulse</V1Eye>
-              <PulseDots beats={metronome.beats} accents={[0,...(metronome.accentPattern||[])]} active={metronome.running?currentBeat:-1} size={7} gap={6}/>
+              <ModeToggle label={(metronome.visualMode||'bars')==='pulse'?'on':'off'} value={(metronome.visualMode||'bars')==='pulse'} onChange={(on)=>setMetronome(m=>({...m,visualMode:on?'pulse':'bars'}))}/>
             </div>
             <div style={{display:'flex',alignItems:'center',gap:10,marginLeft:'auto'}}>
               <V1Eye>Sound</V1Eye>
@@ -313,7 +317,7 @@ function DesktopMetroBar({metronome,setMetronome,currentBeat,handleTap,activeIte
 
       {/* Accel detail (when enabled) */}
       {accel.enabled&&(
-        <div style={{display:'flex',gap:18,alignItems:'center',flexWrap:'wrap',marginTop:14,paddingTop:12,borderTop:`1px solid ${LINE}`}}>
+        <div style={{display:'flex',gap:18,alignItems:'center',flexWrap:'wrap',justifyContent:'flex-end',marginTop:14,paddingTop:12,borderTop:`1px solid ${LINE}`}}>
           <div style={{display:'flex',alignItems:'center',gap:8}}>
             <V1Eye>Target</V1Eye>
             <input type="number" min="40" max="300" value={accel.targetBpm}

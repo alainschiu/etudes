@@ -190,7 +190,7 @@ export function PulseDots({beats,accents=[0],active=-1,size=8,gap=8}){
 }
 
 // ── Accent toggle squares (sequencer; lights up on the active beat) ────────
-export function AccentToggles({beats,accentPattern,onChange,active=-1,size=18}){
+export function AccentToggles({beats,accentPattern,onChange,active=-1,size=18,gap=9}){
   const pat=Array.isArray(accentPattern)?accentPattern:[];
   const isOn=(i)=>i===0||pat.includes(i);
   const toggle=(i)=>{
@@ -199,7 +199,7 @@ export function AccentToggles({beats,accentPattern,onChange,active=-1,size=18}){
     onChange(next);
   };
   return (
-    <div style={{display:'inline-flex',gap:6,flexWrap:'wrap'}}>
+    <div style={{display:'inline-flex',gap,flexWrap:'wrap'}}>
       {Array.from({length:beats}).map((_,i)=>{
         const on=isOn(i);
         const isActive=i===active;
@@ -261,9 +261,9 @@ export function Segmented({options,value,onChange,height=26,fontSize=10}){
 }
 
 // ── Sound chips ────────────────────────────────────────────────────────────
-export function SoundChips({value,onChange,options=['click','wood','beep'],fontSize=10}){
+export function SoundChips({value,onChange,options=['click','wood','beep'],fontSize=10,gap=8}){
   return (
-    <div style={{display:'inline-flex',gap:4}}>
+    <div style={{display:'inline-flex',gap}}>
       {options.map(o=>(
         <button key={o} type="button" onClick={()=>onChange(o)} style={{background:value===o?SURFACE2:'transparent',color:value===o?TEXT:MUTED,border:`1px solid ${value===o?LINE_STR:LINE_MED}`,padding:'3px 9px',fontFamily:mono,fontSize,letterSpacing:'0.04em',cursor:'pointer'}}>{o}</button>
       ))}
