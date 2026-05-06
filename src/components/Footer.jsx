@@ -146,12 +146,12 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
   const tone=(n)=>centsTone(n,drone.root,drone.temperament);
 
   return (
-    <div style={{borderBottom:`1px solid ${LINE}`,background:SURFACE,padding:'18px 28px',fontFamily:sans,color:TEXT,position:'relative'}}>
+    <div style={{borderBottom:`1px solid ${LINE}`,background:BG,padding:'18px 28px',fontFamily:sans,color:TEXT,position:'relative'}}>
       {/* Close */}
       <button onClick={()=>setDroneExpanded(false)} style={{position:'absolute',top:14,right:18,color:FAINT,background:'transparent',border:'none',cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}>
         <X className="w-4 h-4" strokeWidth={1.25}/>
       </button>
-      <div style={{display:'grid',gridTemplateColumns:'140px 1fr 280px 100px',columnGap:28,alignItems:'stretch',minHeight:200}}>
+      <div style={{display:'grid',gridTemplateColumns:'140px 1fr 280px 100px',columnGap:28,alignItems:'stretch',minHeight:170}}>
         {/* Col 1: note hero */}
         <div style={{display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
           <V1Eye>Tuning · drone</V1Eye>
@@ -166,7 +166,7 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
         <div style={{display:'flex',flexDirection:'column',justifyContent:'space-between',gap:8,minWidth:0}}>
           <V1Eye>Note</V1Eye>
           <div style={{flex:1,display:'flex',alignItems:'center'}}>
-            <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} height={150} getCentTone={tone}/>
+            <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} height={118} getCentTone={tone}/>
           </div>
           {notEqual&&(
             <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
