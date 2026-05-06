@@ -602,31 +602,29 @@ export default function Footer({isMobile,metronome,setMetronome,metroExpanded,se
             </button>
           </div>
 
-          {/* Record */}
-          <button
-            onClick={handleRecordClick}
-            disabled={dayClosed&&!anyRecording}
-            style={{width:'36px',height:'36px',borderRadius:'999px',flexShrink:0,border:`1px solid ${anyRecording?REC:'transparent'}`,background:anyRecording?'rgba(169,50,38,0.10)':'transparent',color:anyRecording?REC:(dayClosed?FAINT:MUTED),display:'flex',alignItems:'center',justifyContent:'center',cursor:dayClosed&&!anyRecording?'not-allowed':'pointer'}}
-          >
-            {anyRecording?<Square size={14} strokeWidth={1.25} fill="currentColor"/>:<Mic size={14} strokeWidth={1.25}/>}
-          </button>
-
-          {/* Tuner / Drone */}
-          <button
-            onClick={()=>setDroneExpanded(x=>!x)}
-            style={{width:'36px',height:'36px',borderRadius:'999px',flexShrink:0,border:`1px solid ${drone.running?IKB:'transparent'}`,background:drone.running?IKB_SOFT:'transparent',color:drone.running?IKB:MUTED,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
-            aria-label="Tuning"
-          >
-            <AudioWaveform size={14} strokeWidth={1.25}/>
-          </button>
-
-          {/* Quick add / note */}
-          <button
-            onClick={()=>setQuickNoteOpen(true)}
-            style={{width:'36px',height:'36px',borderRadius:'999px',flexShrink:0,border:'1px solid transparent',background:'transparent',color:MUTED,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
-          >
-            <MessageSquarePlus size={14} strokeWidth={1.25}/>
-          </button>
+          {/* Right cluster — tightly grouped to give the metronome bar more room */}
+          <div style={{display:'flex',alignItems:'center',gap:'2px',flexShrink:0,marginLeft:'2px'}}>
+            <button
+              onClick={handleRecordClick}
+              disabled={dayClosed&&!anyRecording}
+              style={{width:'30px',height:'30px',borderRadius:'999px',flexShrink:0,border:`1px solid ${anyRecording?REC:'transparent'}`,background:anyRecording?'rgba(169,50,38,0.10)':'transparent',color:anyRecording?REC:(dayClosed?FAINT:MUTED),display:'flex',alignItems:'center',justifyContent:'center',cursor:dayClosed&&!anyRecording?'not-allowed':'pointer'}}
+            >
+              {anyRecording?<Square size={13} strokeWidth={1.25} fill="currentColor"/>:<Mic size={13} strokeWidth={1.25}/>}
+            </button>
+            <button
+              onClick={()=>setDroneExpanded(x=>!x)}
+              style={{width:'30px',height:'30px',borderRadius:'999px',flexShrink:0,border:`1px solid ${drone.running?IKB:'transparent'}`,background:drone.running?IKB_SOFT:'transparent',color:drone.running?IKB:MUTED,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+              aria-label="Tuning"
+            >
+              <AudioWaveform size={13} strokeWidth={1.25}/>
+            </button>
+            <button
+              onClick={()=>setQuickNoteOpen(true)}
+              style={{width:'30px',height:'30px',borderRadius:'999px',flexShrink:0,border:'1px solid transparent',background:'transparent',color:MUTED,display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer'}}
+            >
+              <MessageSquarePlus size={13} strokeWidth={1.25}/>
+            </button>
+          </div>
         </div>
 
         {/* Row 3 — Status strip */}
