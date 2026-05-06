@@ -165,8 +165,8 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
         {/* Col 2: keyboard hero */}
         <div style={{display:'flex',flexDirection:'column',justifyContent:'space-between',gap:8,minWidth:0}}>
           <V1Eye>Note</V1Eye>
-          <div style={{flex:1,display:'flex',alignItems:'center'}}>
-            <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} height={118} getCentTone={tone}/>
+          <div style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center'}}>
+            <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} width={520} height={118} getCentTone={tone}/>
           </div>
           {notEqual&&(
             <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
@@ -216,7 +216,7 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
 
 function AccelProgress({metronome}){if(!metronome.accel.enabled)return null;const s=metronome.bpm;const tgt=metronome.accel.targetBpm;const r=s>=tgt;const pct=r?100:Math.min(100,((s-60)/Math.max(1,tgt-60))*100);const u=metronome.accel.unit||'bar';return (<div className="mt-3 flex items-center gap-3"><span className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Accel</span><div className="flex-1 h-px relative" style={{background:LINE_MED}}><div className="absolute inset-y-0 left-0" style={{background:r?WARM:IKB,width:`${pct}%`,height:'1px'}}/></div><span className="tabular-nums shrink-0" style={{color:r?WARM:MUTED,fontSize:'10px'}}>{r?`▲ ${tgt}`:`${s} → ${tgt} · +${metronome.accel.stepBpm}/${metronome.accel.every}${u[0]}`}</span></div>);}
 
-const SUB_OPTS=[{value:1,label:'1/4'},{value:2,label:'1/8'},{value:4,label:'1/16'},{value:3,label:'trip'}];
+const SUB_OPTS=[{value:1,label:'1/4'},{value:2,label:'1/8'},{value:4,label:'1/16'},{value:3,label:'triplet'}];
 
 // V1 desktop metronome bar — opens when metroExpanded toggles on.
 function DesktopMetroBar({metronome,setMetronome,currentBeat,handleTap,activeItem,activeSpot,onClose}){
@@ -306,18 +306,18 @@ function DesktopMetroBar({metronome,setMetronome,currentBeat,handleTap,activeIte
               <V1Eye>Sound</V1Eye>
               <SoundChips value={metronome.sound} onChange={(v)=>setMetronome(m=>({...m,sound:v}))}/>
             </div>
+            <div style={{display:'flex',gap:6}}>
+              <ModeToggle label="auto" value={compoundAuto} onChange={onToggleAuto}/>
+              <ModeToggle label="accel" value={accel.enabled} onChange={onToggleAccel}/>
+            </div>
           </div>
           {accel.enabled&&<AccelProgress metronome={metronome}/>}
         </div>
 
-        {/* Col 4: transport + tap + auto/accel toggles */}
-        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'space-between',gap:8}}>
+        {/* Col 4: transport + tap */}
+        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10}}>
           <Transport running={metronome.running} onToggle={()=>setMetronome(m=>({...m,running:!m.running}))} size={64}/>
           <Tooltip shortcut="T"><TapButton onTap={handleTap} size="sm"/></Tooltip>
-          <div style={{display:'flex',gap:6}}>
-            <ModeToggle label="auto" value={compoundAuto} onChange={onToggleAuto}/>
-            <ModeToggle label="accel" value={accel.enabled} onChange={onToggleAccel}/>
-          </div>
         </div>
       </div>
 

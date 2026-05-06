@@ -14,7 +14,7 @@ import {
 } from './metronomeAtoms.jsx';
 
 const COMPOUND_OPTS=[{value:0,label:'Off'},{value:2,label:'2'},{value:3,label:'3'}];
-const SUB_OPTS=[{value:1,label:'1/4'},{value:2,label:'1/8'},{value:4,label:'1/16'},{value:3,label:'trip'}];
+const SUB_OPTS=[{value:1,label:'1/4'},{value:2,label:'1/8'},{value:4,label:'1/16'},{value:3,label:'triplet'}];
 
 // Pull a target BPM from the active spot or piece, plus a one-line context label.
 function deriveContextLine(activeItem,activeSpot){
@@ -128,22 +128,20 @@ export default function MetronomeSheet({
 
           <Rule/>
 
-          {/* Pulse toggle (controls visualMode bars↔pulse on the footer widget) */}
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginTop:14,marginBottom:14}}>
-            <Eye>Pulse</Eye>
-            <ModeToggle label={visualMode==='pulse'?'pulse · on':'pulse · off'} value={visualMode==='pulse'} onChange={(on)=>setMetronome(m=>({...m,visualMode:on?'pulse':'bars'}))}/>
-          </div>
-
-          {/* Subdivision */}
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-            <Eye>Sub</Eye>
-            <Segmented options={SUB_OPTS} value={[1,2,3,4].includes(metronome.subdivision)?metronome.subdivision:1} onChange={(v)=>setMetronome(m=>({...m,subdivision:v}))}/>
-          </div>
-
-          {/* Accents — sequencer; lights up on the active beat */}
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-            <Eye>Accents</Eye>
-            <AccentToggles beats={metronome.beats} accentPattern={metronome.accentPattern||[]} onChange={onAccentChange} active={metronome.running?currentBeat:-1} size={20}/>
+          {/* Pulse / Sub / Accents — equal vertical rhythm */}
+          <div style={{display:'flex',flexDirection:'column',gap:14,padding:'14px 0'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <Eye>Pulse</Eye>
+              <ModeToggle label={visualMode==='pulse'?'pulse · on':'pulse · off'} value={visualMode==='pulse'} onChange={(on)=>setMetronome(m=>({...m,visualMode:on?'pulse':'bars'}))}/>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <Eye>Sub</Eye>
+              <Segmented options={SUB_OPTS} value={[1,2,3,4].includes(metronome.subdivision)?metronome.subdivision:1} onChange={(v)=>setMetronome(m=>({...m,subdivision:v}))}/>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <Eye>Accents</Eye>
+              <AccentToggles beats={metronome.beats} accentPattern={metronome.accentPattern||[]} onChange={onAccentChange} active={metronome.running?currentBeat:-1} size={20}/>
+            </div>
           </div>
 
           <Rule/>
