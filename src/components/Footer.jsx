@@ -198,7 +198,7 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
         </div>
 
         {/* Col 4: transport */}
-        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',justifyContent:'center'}}>
           <Transport running={drone.running} onToggle={toggleDrone} size={70}/>
         </div>
       </div>
@@ -314,9 +314,9 @@ function DesktopMetroBar({metronome,setMetronome,currentBeat,handleTap,activeIte
           {accel.enabled&&<AccelProgress metronome={metronome}/>}
         </div>
 
-        {/* Col 4: transport + tap */}
-        <div style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:10}}>
-          <Transport running={metronome.running} onToggle={()=>setMetronome(m=>({...m,running:!m.running}))} size={64}/>
+        {/* Col 4: transport + tap (right-aligned to match tuner play button) */}
+        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',justifyContent:'center',gap:10}}>
+          <Transport running={metronome.running} onToggle={()=>setMetronome(m=>({...m,running:!m.running}))} size={70}/>
           <Tooltip shortcut="T"><TapButton onTap={handleTap} size="sm"/></Tooltip>
         </div>
       </div>
