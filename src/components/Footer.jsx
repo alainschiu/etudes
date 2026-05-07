@@ -27,6 +27,7 @@ import {
 import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARN, REC, serif, serifText, sans, mono, Z_FOOTER} from '../constants/theme.js';
 import {SECTION_CONFIG} from '../constants/config.js';
 import {NOTE_NAMES, noteToFreqFull, getCentOffset} from '../lib/music.js';
+import {playPianoNote} from '../lib/pianoSynth.js';
 import {displayTitle, formatByline, getSpotTime, getParentBucket} from '../lib/items.js';
 
 function MetronomeIcon({size=14}){return(<svg width={size} height={size+2} viewBox="0 0 14 16" fill="none" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round"><polygon points="3,15 11,15 7,3"/><line x1="7" y1="3" x2="10" y2="9"/><circle cx="7" cy="15" r="1" fill="currentColor" stroke="none"/></svg>);}
@@ -121,7 +122,7 @@ function MobileDronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
       {/* Keyboard */}
       <div style={{paddingTop:14,paddingBottom:14}}>
         <V1Eye style={{display:'block',marginBottom:10}}>Note</V1Eye>
-        <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} height={150} getCentTone={tone}/>
+        <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} onPlay={drone.running?undefined:(n)=>playPianoNote(noteToFreqFull(n,drone.octave,drone.pitchRef||440,drone.temperament||'equal',drone.root||'C'))} height={150} getCentTone={tone}/>
       </div>
 
       <V1Rule/>
@@ -136,6 +137,9 @@ function MobileDronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
         </Row1>
         <Row1 label="Temperament">
           <V1Segmented options={tempOpts} value={drone.temperament||'equal'} onChange={(v)=>setDrone(d=>({...d,temperament:v}))}/>
+        </Row1>
+        <Row1 label="Sound">
+          <SoundChips value={drone.sound||'sine'} onChange={(v)=>setDrone(d=>({...d,sound:v}))} options={['sine','triangle','organ']}/>
         </Row1>
         {notEqual&&(
           <Row1 label="Root">
@@ -207,7 +211,7 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
         <div style={{display:'flex',flexDirection:'column',gap:8,minWidth:0}}>
           <V1Eye>Note</V1Eye>
           <div style={{flex:1,display:'flex',alignItems:'stretch',justifyContent:'center',minHeight:0}}>
-            <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} width={520} height="100%" getCentTone={tone}/>
+            <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} onPlay={drone.running?undefined:(n)=>playPianoNote(noteToFreqFull(n,drone.octave,drone.pitchRef||440,drone.temperament||'equal',drone.root||'C'))} width={520} height="100%" getCentTone={tone}/>
           </div>
           {notEqual&&(
             <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>
@@ -232,6 +236,9 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
           </RightRow>
           <RightRow label="Temp.">
             <V1Segmented options={tempOpts} value={drone.temperament||'equal'} onChange={(v)=>setDrone(d=>({...d,temperament:v}))}/>
+          </RightRow>
+          <RightRow label="Sound">
+            <SoundChips value={drone.sound||'sine'} onChange={(v)=>setDrone(d=>({...d,sound:v}))} options={['sine','triangle','organ']}/>
           </RightRow>
           <SliderRow label="Volume" right={`${Math.round(drone.volume*100)}%`}>
             <VolumeSlider value={drone.volume} max={0.6} onChange={(v)=>setDrone(d=>({...d,volume:v}))}/>

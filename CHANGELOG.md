@@ -1,5 +1,112 @@
 # Changelog
 
+## v0.97.36 — 2026-05-07
+
+### Suppress keyboard tap sound while drone is running
+
+`Footer.jsx · DronePanel + MobileDronePanel` now pass
+`onPlay={drone.running ? undefined : (n)=>playPianoNote(...)}`.
+The Keyboard atom already no-ops when `onPlay` is unset, so
+note selection (`onNoteChange`) is unchanged — only the tap
+sample is suppressed while the drone is on.
+
+## v0.97.35 — 2026-05-07
+
+### Piano-ish tap, shimmer drone removed
+
+#### `src/lib/pianoSynth.js` — piano model
+
+The FM-bell experiment from v0.97.34 was replaced with an
+additive piano sketch tuned for a brief sustain (~0.6 s):
+
+- Short bandpass-filtered noise burst at the very start as the
+  hammer click (4× freq centre, 40 ms decay).
+- Triangle fundamental + three sine partials at ×2.002 / 3.008
+  / 4.020 (slight inharmonicity ≈ real string stiffness), each
+  on its own gain envelope so high partials decay first.
+- Master path through a gentle lowpass (cutoff ≈ 8× freq,
+  capped at 8 kHz) to take the edge off the partials.
+- Same `playPianoNote(freq, opts)` signature, default
+  `volume=0.3, sustain=0.6`. No call-site changes.
+
+#### Drone chooser — `shimmer` dropped
+
+`Footer.jsx · DronePanel + MobileDronePanel` now expose
+`['sine','triangle','organ']`. The `shimmer` branch in
+`useMetronome.js · buildDroneVoice` is removed.
+
+## v0.97.34 — 2026-05-07
+
+### FM-bell keyboard tone + drone timbre chooser
+
+#### `src/lib/pianoSynth.js` — rewritten as FM bell
+
+Previous triangle-plus-sine-stack emulation sounded toy-piano-ish.
+Replaced with a single carrier + modulator FM voice:
+
+- Carrier sine at `freq`; 5 ms attack → exp decay over `sustain`
+  (default 1.2 s).
+- Modulator sine at `freq * 3.5` (inharmonic ratio for bell
+  shimmer), routed into the carrier's frequency through a depth
+  gain whose value sweeps from `freq * 3` down to `freq * 0.5`
+  over 200 ms. Bright on attack, settles into a near-sine tail.
+- Same `playPianoNote(freq, opts)` signature — call sites in
+  `Footer.jsx` are unchanged.
+
+#### Drone timbre chooser
+
+- `src/hooks/useMetronome.js`: extended initial drone state with
+  `sound:'sine'`. Added `buildDroneVoice(ctx, sound, baseFreq)`
+  helper returning an array of `{osc, mult, partGain}` partials.
+  The `drone.running` effect now builds/tears down the whole
+  voice; depending on `drone.sound` it allocates:
+  - `sine` — 1× sine
+  - `triangle` — 1× triangle
+  - `shimmer` — two sines at ±6 ¢ (`2^(±6/1200)`), gain 0.5 each
+  - `organ` — sine 1× / 2× / 3× at gains 1 / 0.5 / 0.25,
+    normalised by 1/1.75
+  All partials feed a master gain. Frequency-update effect
+  iterates partials and ramps each to its `baseFreq * mult`
+  target. Sound changes are added to the start/stop dep list,
+  so switching while running rebuilds the voice with the same
+  60 ms gain ramp + 100 ms `osc.stop` defer that already
+  handles run-toggles — clean, no clicks.
+
+- `src/components/Footer.jsx`: added `<SoundChips … options=
+  ['sine','triangle','shimmer','organ']>` to both panels —
+  `RightRow` between Temp. and Volume in `DronePanel`, `Row1`
+  between Temperament and Volume in `MobileDronePanel`.
+  `SoundChips` was already imported and accepts a custom
+  options array, so no edits to `metronomeAtoms.jsx`.
+
+## v0.97.33 — 2026-05-07
+
+### Playable tuner keyboard (mobile + desktop)
+
+The piano keyboard inside the tuner panel now produces a short
+piano-ish tone when a key is tapped, as a standalone feedback
+sound — independent of the drone oscillator.
+
+#### `src/lib/pianoSynth.js` (new)
+
+- Lazy-singleton `AudioContext`; resumes on first interaction.
+- `playPianoNote(freq, {volume, sustain})`: triangle fundamental
+  + sine 2× / 3× / 4× partials, attack ≈ 8 ms, two-stage decay,
+  ≈ 1.4 s total tail. Pure UI feedback — no scheduling, no state.
+
+#### `metronomeAtoms.jsx · Keyboard`
+
+- Added optional `onPlay(note)` prop. White and sharp keys now
+  fire `onPlay` on `onPointerDown` (snappy press) while keeping
+  the existing `onClick → onNoteChange` for note selection.
+
+#### `Footer.jsx · DronePanel + MobileDronePanel`
+
+- Both pass `onPlay={(n)=>playPianoNote(noteToFreqFull(n, drone.octave,
+  drone.pitchRef, drone.temperament, drone.root))}`. The synth honours
+  the current octave, pitch ref (440/415/432) and temperament so what
+  you hear matches what the drone would produce.
+
 ## v0.97.32 — 2026-05-07
 
 ### Mobile tuner: drag-along swipe + handle dash

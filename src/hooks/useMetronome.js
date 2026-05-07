@@ -87,7 +87,7 @@ export default function useMetronome(){
   const accelAccRef=useRef(0);
   const metroWasRunningRef=useRef(false);
 
-  const [drone,setDrone]=useState({running:false,note:'A',octave:4,volume:0.25,pitchRef:440,temperament:'equal',root:'C'});
+  const [drone,setDrone]=useState({running:false,note:'A',octave:4,volume:0.25,pitchRef:440,temperament:'equal',root:'C',sound:'sine'});
   const [droneExpanded,setDroneExpanded]=useState(false);
   const droneOscRef=useRef(null);
   const droneGainRef=useRef(null);
@@ -180,39 +180,69 @@ export default function useMetronome(){
   useEffect(()=>{accelAccRef.current=0;accelCounterRef.current=0;},[metronome.accel.enabled,metronome.accel.targetBpm,metronome.accel.unit]);
 
   // ── Drone ──────────────────────────────────────────────────────────────────
+  // Build a multi-partial voice for the chosen drone timbre. Returns an array
+  // of {osc, mult, partGain} so frequency updates can ramp every partial.
+  const buildDroneVoice=(ctx,sound,baseFreq)=>{
+    const partials=[];
+    const make=(type,mult,gainV)=>{
+      const o=ctx.createOscillator();
+      o.type=type;
+      o.frequency.value=baseFreq*mult;
+      const g=ctx.createGain();
+      g.gain.value=gainV;
+      o.connect(g);
+      partials.push({osc:o,mult,partGain:g});
+    };
+    if(sound==='triangle'){
+      make('triangle',1,1);
+    }else if(sound==='organ'){
+      const norm=1/1.75; // 1 + 0.5 + 0.25 → match per-voice loudness
+      make('sine',1,1*norm);
+      make('sine',2,0.5*norm);
+      make('sine',3,0.25*norm);
+    }else{ // 'sine' default
+      make('sine',1,1);
+    }
+    return partials;
+  };
+
   useEffect(()=>{
     if(!drone.running){
       if(droneOscRef.current&&droneGainRef.current&&audioCtxRef.current){
-        const ctx=audioCtxRef.current;const g=droneGainRef.current;const o=droneOscRef.current;
+        const ctx=audioCtxRef.current;const g=droneGainRef.current;const partials=droneOscRef.current;
         try{g.gain.cancelScheduledValues(ctx.currentTime);g.gain.setValueAtTime(g.gain.value,ctx.currentTime);g.gain.linearRampToValueAtTime(0,ctx.currentTime+0.06);}catch{}
-        setTimeout(()=>{try{o.stop();o.disconnect();g.disconnect();}catch{}},100);
+        setTimeout(()=>{try{partials.forEach(p=>{p.osc.stop();p.osc.disconnect();p.partGain.disconnect();});g.disconnect();}catch{}},100);
         droneOscRef.current=null;droneGainRef.current=null;
       }
       return;
     }
     const ctx=ensureAudio();
-    const osc=ctx.createOscillator();const gain=ctx.createGain();
-    osc.type='sine';
-    osc.frequency.value=noteToFreqFull(drone.note,drone.octave,drone.pitchRef,drone.temperament,drone.root);
-    gain.gain.setValueAtTime(0,ctx.currentTime);
-    osc.connect(gain);gain.connect(ctx.destination);
-    osc.start();
-    gain.gain.linearRampToValueAtTime(drone.volume,ctx.currentTime+0.06);
-    droneOscRef.current=osc;droneGainRef.current=gain;
+    const baseFreq=noteToFreqFull(drone.note,drone.octave,drone.pitchRef,drone.temperament,drone.root);
+    const partials=buildDroneVoice(ctx,drone.sound||'sine',baseFreq);
+    const master=ctx.createGain();
+    master.gain.setValueAtTime(0,ctx.currentTime);
+    partials.forEach(p=>p.partGain.connect(master));
+    master.connect(ctx.destination);
+    partials.forEach(p=>p.osc.start());
+    master.gain.linearRampToValueAtTime(drone.volume,ctx.currentTime+0.06);
+    droneOscRef.current=partials;droneGainRef.current=master;
     return()=>{
-      try{gain.gain.cancelScheduledValues(ctx.currentTime);gain.gain.setValueAtTime(gain.gain.value,ctx.currentTime);gain.gain.linearRampToValueAtTime(0,ctx.currentTime+0.06);}catch{}
-      setTimeout(()=>{try{osc.stop();osc.disconnect();gain.disconnect();}catch{}},100);
+      try{master.gain.cancelScheduledValues(ctx.currentTime);master.gain.setValueAtTime(master.gain.value,ctx.currentTime);master.gain.linearRampToValueAtTime(0,ctx.currentTime+0.06);}catch{}
+      setTimeout(()=>{try{partials.forEach(p=>{p.osc.stop();p.osc.disconnect();p.partGain.disconnect();});master.disconnect();}catch{}},100);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  },[drone.running]);
+  },[drone.running,drone.sound]);
 
   useEffect(()=>{
     if(drone.running&&droneOscRef.current&&audioCtxRef.current){
       try{
         const ctx=audioCtxRef.current;
-        const newFreq=noteToFreqFull(drone.note,drone.octave,drone.pitchRef,drone.temperament,drone.root);
-        droneOscRef.current.frequency.setValueAtTime(droneOscRef.current.frequency.value,ctx.currentTime);
-        droneOscRef.current.frequency.exponentialRampToValueAtTime(Math.max(newFreq,0.01),ctx.currentTime+0.03);
+        const baseFreq=noteToFreqFull(drone.note,drone.octave,drone.pitchRef,drone.temperament,drone.root);
+        droneOscRef.current.forEach(p=>{
+          const target=baseFreq*p.mult;
+          p.osc.frequency.setValueAtTime(p.osc.frequency.value,ctx.currentTime);
+          p.osc.frequency.exponentialRampToValueAtTime(Math.max(target,0.01),ctx.currentTime+0.03);
+        });
       }catch{}
     }
   },[drone.note,drone.octave,drone.pitchRef,drone.temperament,drone.root,drone.running]);

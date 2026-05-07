@@ -317,7 +317,7 @@ const SHARPS=[
   {name:'G#',gap:4},
   {name:'A#',gap:5},
 ];
-export function Keyboard({note,onNoteChange,width,height=200,getCentTone}){
+export function Keyboard({note,onNoteChange,onPlay,width,height=200,getCentTone}){
   const sharpH=typeof height==='number'?Math.round(height*0.62):'62%';
   const whiteW=100/7;
   const sharpW=whiteW*0.62;
@@ -326,6 +326,7 @@ export function Keyboard({note,onNoteChange,width,height=200,getCentTone}){
     cursor:'pointer',userSelect:'none',background:'transparent',border:0,padding:0,
     color:MUTED,fontFamily:mono,fontSize:11,letterSpacing:'0.04em',transition:'background 80ms, color 80ms',
   };
+  const press=(n)=>{if(onPlay)onPlay(n);};
   return (
     <div style={{width:width||'100%',height,border:`1px solid ${LINE_MED}`,background:BG,position:'relative',boxSizing:'border-box'}}>
       <div style={{position:'absolute',inset:0,display:'flex'}}>
@@ -333,7 +334,7 @@ export function Keyboard({note,onNoteChange,width,height=200,getCentTone}){
           const active=note===w;
           const tone=getCentTone?getCentTone(w):null;
           return (
-            <button key={w} type="button" onClick={()=>onNoteChange(w)} style={{
+            <button key={w} type="button" onPointerDown={()=>press(w)} onClick={()=>onNoteChange(w)} style={{
               ...baseCell,flex:1,
               borderLeft:i===0?0:`1px solid ${LINE_MED}`,
               background:active?SURFACE2:'transparent',
@@ -352,7 +353,7 @@ export function Keyboard({note,onNoteChange,width,height=200,getCentTone}){
           const leftPct=(s.gap+1)*whiteW;
           const tone=getCentTone?getCentTone(s.name):null;
           return (
-            <button key={s.name} type="button" onClick={()=>onNoteChange(s.name)} style={{
+            <button key={s.name} type="button" onPointerDown={()=>press(s.name)} onClick={()=>onNoteChange(s.name)} style={{
               ...baseCell,position:'absolute',left:`${leftPct}%`,top:0,
               transform:'translateX(-50%)',width:`${sharpW}%`,height:'100%',
               background:active?SURFACE2:BG,
