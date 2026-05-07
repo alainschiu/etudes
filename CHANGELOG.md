@@ -1,5 +1,20 @@
 # Changelog
 
+## v0.97.32 — 2026-05-07
+
+### Mobile tuner: drag-along swipe + handle dash
+
+`Footer.jsx · MobileDronePanel` now mirrors the metronome sheet's
+swipe gesture.
+
+- Touch-drag follows the finger via `translateY`; on release past
+  60 px (with vertical travel dominating horizontal) the panel
+  closes, otherwise it springs back with a 200 ms ease.
+- Added the same 42×3 px `LINE_STR` handle dash at the top of the
+  panel for a visible swipe affordance.
+- Interactive controls (buttons, inputs, sliders, V1 keyboard
+  keys) still capture their own gestures unchanged.
+
 ## v0.97.31 — 2026-05-07
 
 ### Swipe-down-to-close on mobile metronome and tuner

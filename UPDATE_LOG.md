@@ -1,5 +1,10 @@
 # Update Log
 
+## v0.97.32 — 2026-05-07
+
+- **Mobile tuner — drag-along close** — the tuner panel now follows your finger as you swipe it down (matches the metronome sheet) and snaps closed past the threshold; springs back if you release short
+- **Mobile tuner — handle dash** — added the small horizontal handle at the top of the panel so the swipe affordance is visible (same as the metronome sheet)
+
 ## v0.97.31 — 2026-05-07
 
 - **Mobile metronome — swipe down to close** — drag the sheet (or its handle) downwards to dismiss; the chevron-down button still works
