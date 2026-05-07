@@ -1,4 +1,4 @@
-# Études — v0.97.37
+# Études — v0.97.38
 
 A practice journal for musicians. Seven views: Today, Review, Répertoire, Routines, Logs, Notes, Programs. Works offline as a PWA — install from the browser on any device.
 

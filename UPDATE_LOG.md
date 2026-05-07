@@ -1,5 +1,9 @@
 # Update Log
 
+## v0.97.38 — 2026-05-07
+
+- **iPad layout follows orientation** — iPad in landscape uses the desktop layout, iPad in portrait uses the mobile layout. iPhones still use the mobile layout in any orientation. Detection is based on the device's short edge (≥ 768 = tablet) plus current orientation, so this works for iPad mini through 12.9″.
+
 ## v0.97.37 — 2026-05-07
 
 - **Mobile UI sticks in landscape** — rotating a phone to landscape used to flip the app into the desktop layout (because the breakpoint was width-only, < 768 px). Now any touch-primary device keeps the mobile transport bar, mobile drone panel, mobile metronome sheet, and slide-in drawer regardless of width / orientation. Note: tablets (iPad etc.) will also use the mobile UI.

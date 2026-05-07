@@ -1,9 +1,16 @@
 import {useState,useEffect} from 'react';
 
-// Treat any touch-primary device (phones, tablets) as "mobile" regardless
-// of viewport width — so a phone rotated to landscape keeps the mobile UI
-// instead of flipping to the desktop transport bar. Falls back to a width
-// check for laptops / desktops with narrow windows.
+// Layout rule:
+//   • Non-touch device (laptop / desktop): mobile if width < 768, else desktop.
+//   • Touch device whose short edge is < 768 (a phone): mobile in any
+//     orientation.
+//   • Touch device whose short edge is ≥ 768 (a tablet): desktop in
+//     landscape, mobile in portrait.
+//
+// The 768 short-edge cut-off cleanly separates phones from tablets — every
+// iPad's short edge is ≥ 768, every iPhone's is well below it (the largest
+// at the time of writing, iPhone 15 Pro Max, is 430).
+
 const isTouchPrimary=()=>(
   typeof window!=='undefined'&&
   typeof window.matchMedia==='function'&&
@@ -12,8 +19,12 @@ const isTouchPrimary=()=>(
 
 const computeMobile=()=>{
   if(typeof window==='undefined')return false;
-  if(isTouchPrimary())return true;
-  return document.documentElement.clientWidth<768;
+  const w=document.documentElement.clientWidth;
+  const h=document.documentElement.clientHeight;
+  if(!isTouchPrimary())return w<768;
+  const minEdge=Math.min(w,h);
+  if(minEdge<768)return true;          // phone → always mobile
+  return w<=h;                          // tablet: portrait mobile, landscape desktop
 };
 
 export default function useViewport(){
@@ -22,11 +33,14 @@ export default function useViewport(){
     const update=()=>setIsMobile(computeMobile());
     const ro=new ResizeObserver(update);
     ro.observe(document.documentElement);
-    const mq=window.matchMedia?.('(pointer: coarse)');
-    mq?.addEventListener?.('change',update);
+    const mqPointer=window.matchMedia?.('(pointer: coarse)');
+    const mqOrient=window.matchMedia?.('(orientation: landscape)');
+    mqPointer?.addEventListener?.('change',update);
+    mqOrient?.addEventListener?.('change',update);
     return()=>{
       ro.disconnect();
-      mq?.removeEventListener?.('change',update);
+      mqPointer?.removeEventListener?.('change',update);
+      mqOrient?.removeEventListener?.('change',update);
     };
   },[]);
   return {isMobile};

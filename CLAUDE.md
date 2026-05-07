@@ -4,7 +4,7 @@ Before doing anything, read `North_Star_V2.4.md`. It is the authoritative
 product document and supersedes all other instructions.
 
 Current version: v2.4
-Current app version: v0.97.37
+Current app version: v0.97.38
 
 ---
 
@@ -59,7 +59,7 @@ Audio and PDFs are **device-local only** — never synced. Dashed-stroke icon = 
 
 ## Viewport / Mobile
 
-`src/hooks/useViewport.js` returns `{isMobile}` — true on any touch-primary device (`pointer: coarse`) **or** when viewport width < 768 px. Updated via both ResizeObserver and a `matchMedia` change listener. Every mobile conditional must preserve the original desktop code path byte-for-byte in the `else` branch.
+`src/hooks/useViewport.js` returns `{isMobile}`. Rule: non-touch devices use mobile when `width < 768`; touch devices use mobile if the short edge is < 768 (phone) or in portrait orientation (tablet). iPad in landscape → desktop, iPad in portrait → mobile, any iPhone → mobile. Updated via ResizeObserver + `(pointer: coarse)` and `(orientation: landscape)` `matchMedia` listeners. Every mobile conditional must preserve the original desktop code path byte-for-byte in the `else` branch.
 
 ## State Architecture
 
