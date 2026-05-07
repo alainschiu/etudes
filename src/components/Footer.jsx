@@ -1,6 +1,7 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
 import MetronomeSheet from './MetronomeSheet.jsx';
 import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import DevToolsBar from '../dev/DevToolsBar.jsx';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
@@ -51,14 +52,27 @@ function MobileDronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
   const tempOpts=[{value:'equal',label:'Equal'},{value:'just',label:'Just'},{value:'meantone',label:'Meantone ¼'}];
   const pitchOpts=[440,415,432];
   const tone=(n)=>centsTone(n,drone.root,drone.temperament);
+  const startYRef=useRef(null);
+  const onTouchStart=(e)=>{startYRef.current=e.touches[0].clientY;};
+  const onTouchEnd=(e)=>{
+    if(startYRef.current==null)return;
+    const dy=e.changedTouches[0].clientY-startYRef.current;
+    startYRef.current=null;
+    if(dy>60)setDroneExpanded(false);
+  };
   return(
     <div style={{borderBottom:`1px solid ${LINE}`,background:BG,padding:'18px 22px',fontFamily:sans,color:TEXT}}>
-      {/* Header */}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}>
+      {/* Header — swipe-down-to-close */}
+      <div
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        onTouchCancel={()=>{startYRef.current=null;}}
+        style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14,touchAction:'pan-y'}}
+      >
         <V1Eye>Tuning · drone</V1Eye>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
           <span style={{fontFamily:serif,fontStyle:'italic',fontSize:13,color:MUTED}}>{tempLabel.toLowerCase()}</span>
-          <button onClick={()=>setDroneExpanded(false)} style={{color:FAINT,background:'transparent',border:'none',cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}><X className="w-4 h-4" strokeWidth={1.25}/></button>
+          <button onClick={()=>setDroneExpanded(false)} style={{color:FAINT,background:'transparent',border:'none',cursor:'pointer',padding:0,display:'flex',alignItems:'center'}}><ChevronDown className="w-4 h-4" strokeWidth={1.25}/></button>
         </div>
       </div>
       {/* Hero: note + octave | Hz */}
