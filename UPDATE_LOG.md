@@ -1,5 +1,10 @@
 # Update Log
 
+## v0.97.34 — 2026-05-07
+
+- **Tuner keyboard — bell tone** — replaces the previous piano emulation with a cleaner FM-bell (Rhodes-ish) one-shot when you tap a key. Same behaviour: tap selects the drone note and plays a short tone at the current octave, pitch ref, and temperament.
+- **Drone — sound chooser** — desktop and mobile tuner now have a **Sound** row (between Temperament and Volume) with four timbres: **sine** (default), **triangle**, **shimmer** (two sines at ±6 ¢ for chorus), **organ** (Hammond-style sine drawbars 1× / 2× / 3×). Cycle while the drone is running — the timbre cross-fades cleanly.
+
 ## v0.97.33 — 2026-05-07
 
 - **Tuner keyboard — playable** — tapping a key on the tuner's piano keyboard now plays a short, slightly sustained piano-ish tone at the current octave / pitch reference / temperament. Works on desktop and mobile, and on white keys and sharps. The drone is unchanged: keys still set the drone note as before; the sound is purely an add-on for note-finding.
