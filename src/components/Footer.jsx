@@ -139,7 +139,7 @@ function MobileDronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
           <V1Segmented options={tempOpts} value={drone.temperament||'equal'} onChange={(v)=>setDrone(d=>({...d,temperament:v}))}/>
         </Row1>
         <Row1 label="Sound">
-          <SoundChips value={drone.sound||'sine'} onChange={(v)=>setDrone(d=>({...d,sound:v}))} options={['sine','triangle','shimmer','organ']}/>
+          <SoundChips value={drone.sound||'sine'} onChange={(v)=>setDrone(d=>({...d,sound:v}))} options={['sine','triangle','organ']}/>
         </Row1>
         {notEqual&&(
           <Row1 label="Root">
@@ -238,7 +238,7 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
             <V1Segmented options={tempOpts} value={drone.temperament||'equal'} onChange={(v)=>setDrone(d=>({...d,temperament:v}))}/>
           </RightRow>
           <RightRow label="Sound">
-            <SoundChips value={drone.sound||'sine'} onChange={(v)=>setDrone(d=>({...d,sound:v}))} options={['sine','triangle','shimmer','organ']}/>
+            <SoundChips value={drone.sound||'sine'} onChange={(v)=>setDrone(d=>({...d,sound:v}))} options={['sine','triangle','organ']}/>
           </RightRow>
           <SliderRow label="Volume" right={`${Math.round(drone.volume*100)}%`}>
             <VolumeSlider value={drone.volume} max={0.6} onChange={(v)=>setDrone(d=>({...d,volume:v}))}/>

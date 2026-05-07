@@ -1,5 +1,10 @@
 # Update Log
 
+## v0.97.35 — 2026-05-07
+
+- **Tuner keyboard — better piano tone** — replaced the FM bell tap sound with a proper piano-ish voice: short hammer-click, triangle fundamental, three slightly inharmonic sine partials each with their own decay, gently filtered. Brief sustain (~0.6 s).
+- **Drone — shimmer removed** — the chooser now offers **sine** (default), **triangle**, **organ**.
+
 ## v0.97.34 — 2026-05-07
 
 - **Tuner keyboard — bell tone** — replaces the previous piano emulation with a cleaner FM-bell (Rhodes-ish) one-shot when you tap a key. Same behaviour: tap selects the drone note and plays a short tone at the current octave, pitch ref, and temperament.

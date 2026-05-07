@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.97.35 — 2026-05-07
+
+### Piano-ish tap, shimmer drone removed
+
+#### `src/lib/pianoSynth.js` — piano model
+
+The FM-bell experiment from v0.97.34 was replaced with an
+additive piano sketch tuned for a brief sustain (~0.6 s):
+
+- Short bandpass-filtered noise burst at the very start as the
+  hammer click (4× freq centre, 40 ms decay).
+- Triangle fundamental + three sine partials at ×2.002 / 3.008
+  / 4.020 (slight inharmonicity ≈ real string stiffness), each
+  on its own gain envelope so high partials decay first.
+- Master path through a gentle lowpass (cutoff ≈ 8× freq,
+  capped at 8 kHz) to take the edge off the partials.
+- Same `playPianoNote(freq, opts)` signature, default
+  `volume=0.3, sustain=0.6`. No call-site changes.
+
+#### Drone chooser — `shimmer` dropped
+
+`Footer.jsx · DronePanel + MobileDronePanel` now expose
+`['sine','triangle','organ']`. The `shimmer` branch in
+`useMetronome.js · buildDroneVoice` is removed.
+
 ## v0.97.34 — 2026-05-07
 
 ### FM-bell keyboard tone + drone timbre chooser

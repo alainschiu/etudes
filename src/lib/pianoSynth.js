@@ -1,5 +1,11 @@
-// FM bell (Rhodes / glass) one-shot for the tuner keyboard.
+// Piano-ish one-shot for the tuner keyboard.
 // Pure UI feedback when a key is tapped — independent of the drone.
+//
+// Real pianos have (1) a percussive hammer strike, (2) slightly inharmonic
+// partials due to string stiffness, and (3) higher partials that decay much
+// faster than the fundamental. This sketches that with a short noise click
+// plus a triangle fundamental and three sine partials, each on its own
+// gain envelope. Brief sustain (~0.6 s).
 
 let _ctx=null;
 function getCtx(){
@@ -10,47 +16,64 @@ function getCtx(){
   return _ctx;
 }
 
-// FM topology: a sine "modulator" at carrierFreq * ratio drives the carrier's
-// frequency. The modulator's depth (in Hz) decays from a high index to a low
-// one — that's the classic bell-strike timbre that's bright on attack and
-// settles into a near-sine tail.
-export function playPianoNote(freq,{volume=0.28,sustain=1.2}={}){
+let _noiseBuf=null;
+function noiseBuffer(ctx){
+  if(_noiseBuf&&_noiseBuf.sampleRate===ctx.sampleRate)return _noiseBuf;
+  const len=Math.floor(ctx.sampleRate*0.05); // 50 ms is plenty
+  _noiseBuf=ctx.createBuffer(1,len,ctx.sampleRate);
+  const data=_noiseBuf.getChannelData(0);
+  for(let i=0;i<len;i++)data[i]=Math.random()*2-1;
+  return _noiseBuf;
+}
+
+export function playPianoNote(freq,{volume=0.3,sustain=0.6}={}){
   const ctx=getCtx();
   if(!ctx||!Number.isFinite(freq))return;
   if(ctx.state==='suspended')ctx.resume().catch(()=>{});
   const now=ctx.currentTime;
-  const ratio=3.5;          // inharmonic — bell shimmer
-  const indexHi=3;          // strike brightness
-  const indexLo=0.5;        // sustained body
-  const indexFall=0.2;      // s — how fast brightness decays
 
-  // Output amp envelope: 5 ms attack → exp decay over `sustain`.
-  const out=ctx.createGain();
-  out.gain.setValueAtTime(0,now);
-  out.gain.linearRampToValueAtTime(volume,now+0.005);
-  out.gain.exponentialRampToValueAtTime(0.0001,now+sustain);
-  out.connect(ctx.destination);
+  // Master mixer with a gentle lowpass to take edge off the partials.
+  const master=ctx.createGain();
+  master.gain.value=volume;
+  const lp=ctx.createBiquadFilter();
+  lp.type='lowpass';
+  lp.frequency.value=Math.min(8000,Math.max(2200,freq*8));
+  lp.Q.value=0.4;
+  master.connect(lp).connect(ctx.destination);
 
-  // Carrier sine at freq.
-  const carrier=ctx.createOscillator();
-  carrier.type='sine';
-  carrier.frequency.setValueAtTime(freq,now);
-  carrier.connect(out);
+  // Per-partial decay times — high partials die quickly (string stiffness).
+  // Slight inharmonicity on the multipliers gives that detuned piano warmth.
+  const partials=[
+    {type:'triangle',mult:1.000,gain:1.00,decay:sustain},
+    {type:'sine',    mult:2.002,gain:0.36,decay:sustain*0.65},
+    {type:'sine',    mult:3.008,gain:0.18,decay:sustain*0.40},
+    {type:'sine',    mult:4.020,gain:0.08,decay:sustain*0.25},
+  ];
+  const tailEnd=now+sustain+0.05;
+  for(const p of partials){
+    const o=ctx.createOscillator();
+    o.type=p.type;
+    o.frequency.value=freq*p.mult;
+    const g=ctx.createGain();
+    g.gain.setValueAtTime(0,now);
+    g.gain.linearRampToValueAtTime(p.gain,now+0.004); // 4 ms attack
+    g.gain.exponentialRampToValueAtTime(0.0001,now+p.decay);
+    o.connect(g).connect(master);
+    o.start(now);
+    o.stop(tailEnd);
+  }
 
-  // Modulator sine at freq * ratio, routed into the carrier's frequency
-  // through a gain whose value is freq * index(t).
-  const modulator=ctx.createOscillator();
-  modulator.type='sine';
-  modulator.frequency.setValueAtTime(freq*ratio,now);
-
-  const modDepth=ctx.createGain();
-  modDepth.gain.setValueAtTime(freq*indexHi,now);
-  modDepth.gain.exponentialRampToValueAtTime(Math.max(freq*indexLo,0.0001),now+indexFall);
-  modulator.connect(modDepth).connect(carrier.frequency);
-
-  const stopAt=now+sustain+0.05;
-  carrier.start(now);
-  carrier.stop(stopAt);
-  modulator.start(now);
-  modulator.stop(stopAt);
+  // Hammer click — short filtered noise burst at the very start.
+  const noise=ctx.createBufferSource();
+  noise.buffer=noiseBuffer(ctx);
+  const noiseFilter=ctx.createBiquadFilter();
+  noiseFilter.type='bandpass';
+  noiseFilter.frequency.value=Math.min(6000,Math.max(1500,freq*4));
+  noiseFilter.Q.value=1.4;
+  const noiseGain=ctx.createGain();
+  noiseGain.gain.setValueAtTime(0.18,now);
+  noiseGain.gain.exponentialRampToValueAtTime(0.0001,now+0.04);
+  noise.connect(noiseFilter).connect(noiseGain).connect(master);
+  noise.start(now);
+  noise.stop(now+0.06);
 }

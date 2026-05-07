@@ -195,10 +195,6 @@ export default function useMetronome(){
     };
     if(sound==='triangle'){
       make('triangle',1,1);
-    }else if(sound==='shimmer'){
-      const det=Math.pow(2,6/1200); // ±6 cents
-      make('sine',1/det,0.5);
-      make('sine',det,0.5);
     }else if(sound==='organ'){
       const norm=1/1.75; // 1 + 0.5 + 0.25 → match per-voice loudness
       make('sine',1,1*norm);
