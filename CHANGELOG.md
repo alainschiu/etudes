@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.97.29 — 2026-05-07
+
+### Always-visible desktop footer polish
+
+Visual-only pass on the always-visible 64 px desktop footer
+(`Footer.jsx`). No behaviour changes; same handlers, same shortcuts.
+
+#### Metronome cluster
+
+- Replaced the hard-to-read 22 px multi-bar mini-strip with the
+  mobile widget's beat-bars visualiser (40 px row, accent-aware,
+  subdivision sub-bars between beats, IKB on active beat). Lifted
+  into a shared `MetroBars` helper used by both desktop chrome and
+  the mobile metronome widget.
+- The 13 px italic time-sig trigger is now a stacked button — BPM
+  in mono 16 px above `{beats}/{noteValue}` in serif italic 18 px
+  (matches the mobile widget). Larger click target, much more
+  legible. ⚡ icon for accel still sits beside the stack.
+- Cluster items (stack, play square, bars, slider + readout) now
+  share a horizontal centerline.
+
+#### Stat grid (Aujourd'hui · Section · Status)
+
+- Replaced `justifyContent:space-between` with explicit `gap:6`
+  per column and a fixed-height value row. The `Aujourd'hui` mono
+  total now stays on the same y-coordinate as the `Section` and
+  `Status` totals regardless of optional sub-content (`w/ rest`
+  sub-line, `Stop` / `note` buttons). Fixes a long-standing
+  left-timer alignment drift.
+- Dividers now have symmetric `margin:0 16px` so columns sit
+  evenly between separators.
+
+#### Middle cluster (Rest / Record / Tuning)
+
+- Locked label widths so the cluster no longer reflows when state
+  text flips (`Record` ↔ `REC` ↔ `Piece` ↔ `Rec piece`,
+  `Tuning` ↔ `A4`).
+- Shared 32 px height across all three buttons.
+- Borders only render on active state — no boxes around idle
+  buttons.
+
 ## v0.97.28 — 2026-05-06
 
 ### Pass 5 V1 — Metronome & Tuner polish (round 2)

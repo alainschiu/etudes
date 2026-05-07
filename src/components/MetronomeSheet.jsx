@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useRef, useState} from 'react';
 import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import {
   BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM,
@@ -75,16 +75,50 @@ export default function MetronomeSheet({
 
   const ctx=deriveContextLine(activeItem,activeSpot);
 
+  const [dragY,setDragY]=useState(0);
+  const [dragging,setDragging]=useState(false);
+  const startYRef=useRef(null);
+  const onTouchStart=(e)=>{startYRef.current=e.touches[0].clientY;setDragging(true);};
+  const onTouchMove=(e)=>{
+    if(startYRef.current==null)return;
+    const dy=e.touches[0].clientY-startYRef.current;
+    setDragY(Math.max(0,dy));
+  };
+  const onTouchEnd=()=>{
+    const dy=dragY;
+    setDragging(false);
+    setDragY(0);
+    startYRef.current=null;
+    if(dy>80)onClose();
+  };
+
+  const sheetTransform=open
+    ?`translateY(${dragY}px)`
+    :'translateY(100%)';
+  const sheetTransition=dragging?'none':(open?'transform 240ms ease-out':'transform 200ms ease-in');
+
   return (
     <>
-      <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)',zIndex:Z_SHEET-1,opacity:open?1:0,transition:'opacity 200ms ease',pointerEvents:open?'auto':'none'}}/>
-      <div style={sheetStyle}>
-        {/* Handle */}
-        <div style={{display:'flex',justifyContent:'center',padding:'10px 16px 0',flexShrink:0}}>
+      <div onClick={onClose} style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.4)',zIndex:Z_SHEET-1,opacity:open?Math.max(0,1-dragY/300):0,transition:dragging?'none':'opacity 200ms ease',pointerEvents:open?'auto':'none'}}/>
+      <div style={{...sheetStyle,transform:sheetTransform,transition:sheetTransition}}>
+        {/* Handle — swipe-down-to-close */}
+        <div
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onTouchCancel={onTouchEnd}
+          style={{display:'flex',justifyContent:'center',padding:'10px 16px 0',flexShrink:0,touchAction:'none',cursor:'grab'}}
+        >
           <div style={{width:42,height:3,borderRadius:2,background:LINE_STR}}/>
         </div>
         {/* Close */}
-        <div style={{display:'flex',justifyContent:'flex-end',padding:'4px 14px 0',flexShrink:0}}>
+        <div
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+          onTouchCancel={onTouchEnd}
+          style={{display:'flex',justifyContent:'flex-end',padding:'4px 14px 0',flexShrink:0,touchAction:'none'}}
+        >
           <button onClick={onClose} style={{minWidth:40,minHeight:40,display:'flex',alignItems:'center',justifyContent:'center',color:FAINT,background:'transparent',border:'none',cursor:'pointer'}}>
             <ChevronDown size={18} strokeWidth={1.5}/>
           </button>
