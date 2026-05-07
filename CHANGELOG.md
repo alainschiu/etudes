@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.97.31 — 2026-05-07
+
+### Swipe-down-to-close on mobile metronome and tuner
+
+Both bottom-anchored mobile panels now dismiss with a downward
+swipe in addition to their close button. Pure UX; no behaviour
+changes to either tool.
+
+#### Metronome (`MetronomeSheet.jsx`)
+
+- Touch-drag on the top handle / chevron region translates the
+  sheet downward in real time and fades the backdrop. Releasing
+  past 80 px snaps closed; otherwise the sheet springs back.
+- Chevron-down close button retained.
+
+#### Tuner (`Footer.jsx · MobileDronePanel`)
+
+- Touch-drag anywhere on the panel (excluding interactive
+  controls — buttons, sliders, the V1 keyboard) closes the panel
+  on release if vertical travel exceeds 60 px and dominates
+  horizontal travel.
+- Close affordance changed from `X` to `ChevronDown` to match
+  the metronome sheet.
+
 ## v0.97.29 — 2026-05-07
 
 ### Always-visible desktop footer polish
