@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.97.33 — 2026-05-07
+
+### Playable tuner keyboard (mobile + desktop)
+
+The piano keyboard inside the tuner panel now produces a short
+piano-ish tone when a key is tapped, as a standalone feedback
+sound — independent of the drone oscillator.
+
+#### `src/lib/pianoSynth.js` (new)
+
+- Lazy-singleton `AudioContext`; resumes on first interaction.
+- `playPianoNote(freq, {volume, sustain})`: triangle fundamental
+  + sine 2× / 3× / 4× partials, attack ≈ 8 ms, two-stage decay,
+  ≈ 1.4 s total tail. Pure UI feedback — no scheduling, no state.
+
+#### `metronomeAtoms.jsx · Keyboard`
+
+- Added optional `onPlay(note)` prop. White and sharp keys now
+  fire `onPlay` on `onPointerDown` (snappy press) while keeping
+  the existing `onClick → onNoteChange` for note selection.
+
+#### `Footer.jsx · DronePanel + MobileDronePanel`
+
+- Both pass `onPlay={(n)=>playPianoNote(noteToFreqFull(n, drone.octave,
+  drone.pitchRef, drone.temperament, drone.root))}`. The synth honours
+  the current octave, pitch ref (440/415/432) and temperament so what
+  you hear matches what the drone would produce.
+
 ## v0.97.32 — 2026-05-07
 
 ### Mobile tuner: drag-along swipe + handle dash

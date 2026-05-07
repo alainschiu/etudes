@@ -1,5 +1,9 @@
 # Update Log
 
+## v0.97.33 — 2026-05-07
+
+- **Tuner keyboard — playable** — tapping a key on the tuner's piano keyboard now plays a short, slightly sustained piano-ish tone at the current octave / pitch reference / temperament. Works on desktop and mobile, and on white keys and sharps. The drone is unchanged: keys still set the drone note as before; the sound is purely an add-on for note-finding.
+
 ## v0.97.32 — 2026-05-07
 
 - **Mobile tuner — drag-along close** — the tuner panel now follows your finger as you swipe it down (matches the metronome sheet) and snaps closed past the threshold; springs back if you release short
