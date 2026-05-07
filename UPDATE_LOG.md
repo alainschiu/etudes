@@ -1,5 +1,12 @@
 # Update Log
 
+## v0.97.29 — 2026-05-07
+
+- **Desktop footer — clearer beat indicator** — the mini beat strip on the always-visible bar is replaced with the same big, accent-aware beat bars used on mobile, so it's easy to read the pulse at a glance
+- **Desktop footer — bigger time signature** — the `{beats}/{note}` label that opens the metronome panel is now a much more legible stacked button (BPM above the time signature)
+- **Desktop footer — straighter alignment** — the `Aujourd'hui` total no longer drifts down when the day is closed with rest accumulated; it sits on the same line as the `Section` and `Status` totals at all times
+- **Desktop footer — calmer chrome** — Rest / Record / Tuning buttons no longer show idle boxes; their borders only appear when the action is active. Their widths are locked, so the cluster stops shifting when state text changes (Record / REC / Piece / Rec piece, Tuning / A4)
+
 ## v0.97.11 — 2026-05-03
 
 - **Google Drive — more reliable conflict detection** — a rare edge case where corrupted timestamps could silently skip the "newer backup found" prompt is now fixed; the prompt always appears when remote and local journals differ
