@@ -1,5 +1,9 @@
 # Update Log
 
+## v0.97.37 — 2026-05-07
+
+- **Mobile UI sticks in landscape** — rotating a phone to landscape used to flip the app into the desktop layout (because the breakpoint was width-only, < 768 px). Now any touch-primary device keeps the mobile transport bar, mobile drone panel, mobile metronome sheet, and slide-in drawer regardless of width / orientation. Note: tablets (iPad etc.) will also use the mobile UI.
+
 ## v0.97.36 — 2026-05-07
 
 - **Tuner keyboard — silent while drone is on** — tapping a key still selects the drone note, but the piano sample no longer plays while the drone is running, so the two voices don't fight. Stop the drone to use the keyboard as a piano again.

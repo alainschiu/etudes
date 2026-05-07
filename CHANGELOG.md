@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.97.37 — 2026-05-07
+
+### `useViewport`: touch-primary → mobile, regardless of width
+
+`src/hooks/useViewport.js` previously branched on
+`clientWidth < 768`. On a phone in landscape (e.g. iPhone
+14 Pro at 852 × 393) that flipped the entire app to the
+desktop layout — desktop footer, desktop drone panel, no
+mobile sheets, no swipe gestures.
+
+New rule:
+- `isMobile = matchMedia('(pointer: coarse)').matches || clientWidth < 768`.
+- Tracked via both a ResizeObserver on `documentElement` and
+  a `change` listener on the pointer media query, so plugging
+  in a mouse on a tablet (or vice-versa) re-evaluates.
+
+Any device whose primary pointer is touch — phones in any
+orientation, tablets — now stays on the mobile UI. Width-only
+narrowing of a desktop browser still works as a fallback.
+
+`CLAUDE.md` updated to reflect the new rule.
+
 ## v0.97.36 — 2026-05-07
 
 ### Suppress keyboard tap sound while drone is running
