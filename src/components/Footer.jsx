@@ -122,7 +122,7 @@ function MobileDronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
       {/* Keyboard */}
       <div style={{paddingTop:14,paddingBottom:14}}>
         <V1Eye style={{display:'block',marginBottom:10}}>Note</V1Eye>
-        <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} onPlay={(n)=>playPianoNote(noteToFreqFull(n,drone.octave,drone.pitchRef||440,drone.temperament||'equal',drone.root||'C'))} height={150} getCentTone={tone}/>
+        <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} onPlay={drone.running?undefined:(n)=>playPianoNote(noteToFreqFull(n,drone.octave,drone.pitchRef||440,drone.temperament||'equal',drone.root||'C'))} height={150} getCentTone={tone}/>
       </div>
 
       <V1Rule/>
@@ -211,7 +211,7 @@ function DronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
         <div style={{display:'flex',flexDirection:'column',gap:8,minWidth:0}}>
           <V1Eye>Note</V1Eye>
           <div style={{flex:1,display:'flex',alignItems:'stretch',justifyContent:'center',minHeight:0}}>
-            <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} onPlay={(n)=>playPianoNote(noteToFreqFull(n,drone.octave,drone.pitchRef||440,drone.temperament||'equal',drone.root||'C'))} width={520} height="100%" getCentTone={tone}/>
+            <V1Keyboard note={drone.note} onNoteChange={(n)=>setDrone(d=>({...d,note:n}))} onPlay={drone.running?undefined:(n)=>playPianoNote(noteToFreqFull(n,drone.octave,drone.pitchRef||440,drone.temperament||'equal',drone.root||'C'))} width={520} height="100%" getCentTone={tone}/>
           </div>
           {notEqual&&(
             <div style={{display:'flex',gap:6,alignItems:'center',flexWrap:'wrap'}}>

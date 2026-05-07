@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.97.36 — 2026-05-07
+
+### Suppress keyboard tap sound while drone is running
+
+`Footer.jsx · DronePanel + MobileDronePanel` now pass
+`onPlay={drone.running ? undefined : (n)=>playPianoNote(...)}`.
+The Keyboard atom already no-ops when `onPlay` is unset, so
+note selection (`onNoteChange`) is unchanged — only the tap
+sample is suppressed while the drone is on.
+
 ## v0.97.35 — 2026-05-07
 
 ### Piano-ish tap, shimmer drone removed

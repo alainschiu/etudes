@@ -1,5 +1,9 @@
 # Update Log
 
+## v0.97.36 — 2026-05-07
+
+- **Tuner keyboard — silent while drone is on** — tapping a key still selects the drone note, but the piano sample no longer plays while the drone is running, so the two voices don't fight. Stop the drone to use the keyboard as a piano again.
+
 ## v0.97.35 — 2026-05-07
 
 - **Tuner keyboard — better piano tone** — replaced the FM bell tap sound with a proper piano-ish voice: short hammer-click, triangle fundamental, three slightly inharmonic sine partials each with their own decay, gently filtered. Brief sustain (~0.6 s).
