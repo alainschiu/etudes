@@ -54,27 +54,44 @@ function MobileDronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
   const tone=(n)=>centsTone(n,drone.root,drone.temperament);
   const startYRef=useRef(null);
   const startXRef=useRef(null);
+  const [dragY,setDragY]=useState(0);
+  const [dragging,setDragging]=useState(false);
   const isInteractiveTarget=(t)=>!!(t&&t.closest&&t.closest('button, input, select, textarea, [role="slider"], [data-keyboard-key]'));
   const onTouchStart=(e)=>{
     if(isInteractiveTarget(e.target)){startYRef.current=null;return;}
     startYRef.current=e.touches[0].clientY;
     startXRef.current=e.touches[0].clientX;
+    setDragging(true);
+  };
+  const onTouchMove=(e)=>{
+    if(startYRef.current==null)return;
+    const dy=e.touches[0].clientY-startYRef.current;
+    setDragY(Math.max(0,dy));
   };
   const onTouchEnd=(e)=>{
-    if(startYRef.current==null)return;
+    if(startYRef.current==null){setDragging(false);return;}
     const dy=e.changedTouches[0].clientY-startYRef.current;
     const dx=e.changedTouches[0].clientX-(startXRef.current??0);
     startYRef.current=null;
     startXRef.current=null;
+    setDragging(false);
+    setDragY(0);
     if(dy>60&&Math.abs(dy)>Math.abs(dx))setDroneExpanded(false);
   };
+  const transform=dragY>0?`translateY(${dragY}px)`:'none';
+  const transition=dragging?'none':'transform 200ms ease-out';
   return(
     <div
       onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
-      onTouchCancel={()=>{startYRef.current=null;startXRef.current=null;}}
-      style={{borderBottom:`1px solid ${LINE}`,background:BG,padding:'18px 22px',fontFamily:sans,color:TEXT}}
+      onTouchCancel={()=>{startYRef.current=null;startXRef.current=null;setDragging(false);setDragY(0);}}
+      style={{borderBottom:`1px solid ${LINE}`,background:BG,padding:'10px 22px 18px',fontFamily:sans,color:TEXT,transform,transition,willChange:'transform'}}
     >
+      {/* Handle — swipe-down-to-close */}
+      <div style={{display:'flex',justifyContent:'center',padding:'0 0 8px',flexShrink:0}}>
+        <div style={{width:42,height:3,borderRadius:2,background:LINE_STR}}/>
+      </div>
       {/* Header */}
       <div
         style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}

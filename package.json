@@ -1,7 +1,7 @@
 {
   "name": "etudes",
   "private": true,
-  "version": "0.97.31",
+  "version": "0.97.32",
   "type": "module",
   "scripts": {
     "dev": "vite",
