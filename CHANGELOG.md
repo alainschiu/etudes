@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.97.38 — 2026-05-07
+
+### `useViewport`: tablet → desktop in landscape, mobile in portrait
+
+Refined the v0.97.37 rule. The previous "any touch device →
+mobile" caught iPads in landscape too, which wasted the wide
+real estate.
+
+New rule (`src/hooks/useViewport.js`):
+
+```
+mobile = !touch          → width < 768
+       | touch, phone    → always (short edge < 768)
+       | touch, tablet   → portrait only (width ≤ height)
+```
+
+The 768 short-edge cut-off cleanly separates phones (max short
+edge ~430 on iPhone 15 Pro Max) from tablets (every iPad's
+short edge is ≥ 768). Listens to a ResizeObserver plus
+`(pointer: coarse)` and `(orientation: landscape)` matchMedia
+listeners, so rotation and pointer changes re-evaluate.
+
+`CLAUDE.md` updated with the new rule.
+
 ## v0.97.37 — 2026-05-07
 
 ### `useViewport`: touch-primary → mobile, regardless of width
