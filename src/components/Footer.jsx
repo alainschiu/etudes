@@ -53,21 +53,31 @@ function MobileDronePanel({drone,setDrone,toggleDrone,setDroneExpanded}){
   const pitchOpts=[440,415,432];
   const tone=(n)=>centsTone(n,drone.root,drone.temperament);
   const startYRef=useRef(null);
-  const onTouchStart=(e)=>{startYRef.current=e.touches[0].clientY;};
+  const startXRef=useRef(null);
+  const isInteractiveTarget=(t)=>!!(t&&t.closest&&t.closest('button, input, select, textarea, [role="slider"], [data-keyboard-key]'));
+  const onTouchStart=(e)=>{
+    if(isInteractiveTarget(e.target)){startYRef.current=null;return;}
+    startYRef.current=e.touches[0].clientY;
+    startXRef.current=e.touches[0].clientX;
+  };
   const onTouchEnd=(e)=>{
     if(startYRef.current==null)return;
     const dy=e.changedTouches[0].clientY-startYRef.current;
+    const dx=e.changedTouches[0].clientX-(startXRef.current??0);
     startYRef.current=null;
-    if(dy>60)setDroneExpanded(false);
+    startXRef.current=null;
+    if(dy>60&&Math.abs(dy)>Math.abs(dx))setDroneExpanded(false);
   };
   return(
-    <div style={{borderBottom:`1px solid ${LINE}`,background:BG,padding:'18px 22px',fontFamily:sans,color:TEXT}}>
-      {/* Header — swipe-down-to-close */}
+    <div
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={()=>{startYRef.current=null;startXRef.current=null;}}
+      style={{borderBottom:`1px solid ${LINE}`,background:BG,padding:'18px 22px',fontFamily:sans,color:TEXT}}
+    >
+      {/* Header */}
       <div
-        onTouchStart={onTouchStart}
-        onTouchEnd={onTouchEnd}
-        onTouchCancel={()=>{startYRef.current=null;}}
-        style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14,touchAction:'pan-y'}}
+        style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:14}}
       >
         <V1Eye>Tuning · drone</V1Eye>
         <div style={{display:'flex',alignItems:'center',gap:10}}>

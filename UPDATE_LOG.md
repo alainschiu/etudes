@@ -1,5 +1,10 @@
 # Update Log
 
+## v0.97.31 — 2026-05-07
+
+- **Mobile metronome — swipe down to close** — drag the sheet (or its handle) downwards to dismiss; the chevron-down button still works
+- **Mobile tuner — swipe down to close** — drag anywhere on the tuning panel downwards to dismiss; the close affordance is now a chevron-down (matches the metronome)
+
 ## v0.97.29 — 2026-05-07
 
 - **Desktop footer — clearer beat indicator** — the mini beat strip on the always-visible bar is replaced with the same big, accent-aware beat bars used on mobile, so it's easy to read the pulse at a glance
