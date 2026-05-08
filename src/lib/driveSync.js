@@ -165,6 +165,7 @@ export function pushToDrive(opts) {
     assertDriveQueueNotPaused();
     const mode = coalesceFull ? 'full' : 'json';
     coalesceFull = false;
+    writeDriveManifest({lastAttemptedAt: new Date().toISOString()});
 
     try {
     const token = await opts.getAccessToken();
@@ -241,6 +242,8 @@ export function pushToDrive(opts) {
         lastPushedAt: new Date().toISOString(),
         journalRemoteModifiedTime: remoteMod,
         lastJsonPushAt: Date.now(),
+        consecutiveFailures: 0,
+        lastFailureMessage: '',
       });
       indexMutated = true;
     } else {
@@ -248,6 +251,8 @@ export function pushToDrive(opts) {
         lastPushedAt: new Date().toISOString(),
         journalRemoteModifiedTime: remoteMod,
         lastJsonPushAt: Date.now(),
+        consecutiveFailures: 0,
+        lastFailureMessage: '',
       });
     }
 
@@ -265,6 +270,12 @@ export function pushToDrive(opts) {
     notifyDriveQueueOperationResult(null);
     return {ok: true, remoteModified: remoteMod};
     } catch (e) {
+      const prev = readDriveManifest();
+      writeDriveManifest({
+        lastFailureAt: new Date().toISOString(),
+        lastFailureMessage: formatDriveError(e),
+        consecutiveFailures: (prev.consecutiveFailures ?? 0) + 1,
+      });
       notifyDriveQueueOperationResult(e);
       throw e;
     }

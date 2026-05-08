@@ -4,7 +4,7 @@ Before doing anything, read `North_Star_V2.4.md`. It is the authoritative
 product document and supersedes all other instructions.
 
 Current version: v2.4
-Current app version: v0.97.38
+Current app version: v0.98.0
 
 ---
 
@@ -15,7 +15,7 @@ Current app version: v0.97.38
 - **vite-plugin-pwa / Workbox** — service worker, `clientsClaim: true`, `registerType: prompt`, `injectRegister: false` (registration via `useRegisterSW` / `UpdatePrompt.jsx`), `skipWaiting: false` until user reloads; precache glob includes `mjs` (PDF worker)
 - **react-pdf / pdfjs-dist** — PDF rendering in `PdfViewer.jsx`
 - **Supabase** — auth (email + Google OAuth) + PostgreSQL sync; optional
-- **Google Drive (WIP)** — GIS + `drive.file` in [`src/lib/driveAuth.js`](src/lib/driveAuth.js) / [`driveApi.js`](src/lib/driveApi.js); decoupled from Supabase session; `VITE_GOOGLE_CLIENT_ID`
+- **Google Drive (WIP)** — GIS + `drive.file` in [`src/lib/driveAuth.js`](src/lib/driveAuth.js) / [`driveApi.js`](src/lib/driveApi.js); decoupled from Supabase session; `VITE_GOOGLE_CLIENT_ID`. Manifest carries `lastAttemptedAt` / `lastFailureAt` / `lastFailureMessage` / `consecutiveFailures` for the Sync tab status line; derived in [`src/lib/driveStatus.js`](src/lib/driveStatus.js)
 - **lucide-react** — icons imported individually: `import X from 'lucide-react/dist/esm/icons/x'` (never barrel import)
 
 ## Key Commands

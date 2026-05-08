@@ -1,8 +1,11 @@
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect} from 'react';
 import useFocusTrap from '../hooks/useFocusTrap.js';
 import {isDriveConfigured, getDriveAccessToken, clearDriveSession, hasDriveToken, forceExpireCachedDriveToken} from '../lib/driveAuth.js';
 import {probeDriveConnection, spikeSilentDriveRenewal} from '../lib/driveSync.js';
 import {formatDriveOAuthError} from '../lib/driveOAuthMessages.js';
+import {readDriveManifest} from '../lib/driveManifest.js';
+import {getDriveQueueCircuitState} from '../lib/driveQueueCircuit.js';
+import {deriveDriveStatus, formatRelative, formatResumeIn} from '../lib/driveStatus.js';
 import X from 'lucide-react/dist/esm/icons/x';
 import Download from 'lucide-react/dist/esm/icons/download';
 import Archive from 'lucide-react/dist/esm/icons/archive';
@@ -17,7 +20,7 @@ const SHORTCUTS=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
 const USER_GUIDE_URL='https://etudes.me/guide';
 
-export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBackgroundError,onDismissDriveError,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect,initialTab='settings',setConfirmModal}){
+export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect,initialTab='settings',setConfirmModal}){
   const [devBusy,setDevBusy]=useState(false);
   const [devStatus,setDevStatus]=useState('');
   const [driveBusy,setDriveBusy]=useState(false);
@@ -31,6 +34,8 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
   const [authError,setAuthError]=useState('');
   const [authBusy,setAuthBusy]=useState(false);
   const [signupSent,setSignupSent]=useState(false);
+  const [,forceTick]=useState(0);
+  useEffect(()=>{if(tab!=='sync')return;const id=setInterval(()=>forceTick(n=>n+1),60000);return()=>clearInterval(id);},[tab]);
   const handleAuth=async(e)=>{e.preventDefault();setAuthError('');setAuthBusy(true);const fn=authMode==='signin'?signIn:signUp;const {error}=await fn(authEmail,authPassword);setAuthBusy(false);if(error){setAuthError(error.message);}else if(authMode==='signup'){setSignupSent(true);}};
   const sl=storageMode==='local'?'saved locally on this device':'storage unavailable';
   const sd=storageMode==='local'?'● local':'○ memory';
@@ -80,7 +85,6 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
               <span style={{color:MUTED}}>Cloud sync (account):</span> repertoire, practice history, notes, settings, and recording metadata.<br/>
               <span style={{color:MUTED}}>Not in the cloud:</span> audio and PDF files. Connect Google Drive below for optional backup, or use Export for a file backup.
             </div>
-            {driveBackgroundError&&(<div className="flex items-start justify-between gap-2 px-3 py-2 mt-3" style={{background:'rgba(184,150,104,0.12)',border:'1px solid rgba(184,150,104,0.3)'}}><div className="italic" style={{color:'#B89668',fontFamily:serif,fontSize:'11px',lineHeight:1.5}}>{driveBackgroundError}</div>{onDismissDriveError&&<button type="button" onClick={onDismissDriveError} className="shrink-0 uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.18em'}}>Dismiss</button>}</div>)}
             {driveBlobRestoreProgress&&<div className="text-xs italic mt-2" style={{color:MUTED,fontFamily:serif}}>Restoring media {driveBlobRestoreProgress.done} / {driveBlobRestoreProgress.total}…</div>}
             {!driveBlobRestoreProgress&&driveBlobFailedCount>0&&<div className="text-xs italic mt-1" style={{color:FAINT,fontFamily:serif}}>{driveBlobFailedCount} file{driveBlobFailedCount===1?'':'s'} could not be restored from Drive.</div>}
             <div className="pt-5 mt-4" style={{borderTop:`1px solid ${LINE}`}}>
@@ -90,6 +94,17 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
               ) : (
                 <div className="space-y-3">
                   <p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Separate from Supabase: uses Google Identity Services with access only to files the app creates in your Drive.</p>
+                  {hasDriveToken()&&(()=>{
+                    const status=deriveDriveStatus({manifest:readDriveManifest(),circuit:getDriveQueueCircuitState(),autoBackupOn:!!settings.driveAutoBackup,isConnected:true,isConfigured:true});
+                    let body=null,sub=null,tone=MUTED;
+                    if(status.kind==='never'){tone=FAINT;body=status.autoBackupOn?'Backup will run within ten minutes.':'No backup yet.';}
+                    else if(status.kind==='idle'){tone=MUTED;body=`Last backup ${formatRelative(status.lastSuccess)}.`;sub=`Auto-backup ${status.autoBackupOn?'on':'off'}.`;}
+                    else if(status.kind==='retrying'){tone=MUTED;body=`Last backup ${formatRelative(status.lastSuccess)}. Retrying.`;}
+                    else if(status.kind==='broken'){tone=WARN;body='Backup is failing.';sub=`Last success ${formatRelative(status.lastSuccess)}.${status.error?` ${status.error}`:''}`;}
+                    else if(status.kind==='paused'){tone=WARN;body=`Backup paused. Resumes ${formatResumeIn(status.resumeAt)}.`;}
+                    if(!body)return null;
+                    return (<div><div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Status</div><div className="italic mt-1" style={{color:tone,fontFamily:serif,fontSize:'13px',lineHeight:1.5}}>{body}</div>{sub&&<div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',marginTop:'4px'}}>{sub}</div>}</div>);
+                  })()}
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
