@@ -683,8 +683,6 @@ export default function useEtudesState(){
     backupDriveNow:driveSync.backupNow,
     restoreFromDrive:driveSync.restoreFromDrive,
     maybePullDriveOnSyncTab:driveSync.maybePullOnOpen,
-    driveBackgroundError:driveSync.driveBackgroundError,
-    setDriveBackgroundError:driveSync.setDriveBackgroundError,
     driveBlobRestoreProgress:driveSync.driveBlobRestoreProgress,
     driveBlobFailedCount:driveSync.driveBlobFailedCount,
   };

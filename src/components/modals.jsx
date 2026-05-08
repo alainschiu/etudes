@@ -99,8 +99,8 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
                     let body=null,sub=null,tone=MUTED;
                     if(status.kind==='never'){tone=FAINT;body=status.autoBackupOn?'Backup will run within ten minutes.':'No backup yet.';}
                     else if(status.kind==='idle'){tone=MUTED;body=`Last backup ${formatRelative(status.lastSuccess)}.`;sub=`Auto-backup ${status.autoBackupOn?'on':'off'}.`;}
-                    else if(status.kind==='retrying'){tone=MUTED;body=`Last backup ${formatRelative(status.lastSuccess)}. Retrying.`;}
-                    else if(status.kind==='broken'){tone=WARN;body='Backup is failing.';sub=`Last success ${formatRelative(status.lastSuccess)}.${status.error?` ${status.error}`:''}`;}
+                    else if(status.kind==='retrying'){tone=MUTED;body=status.lastSuccess?`Last backup ${formatRelative(status.lastSuccess)}. Retrying.`:'Backup retrying.';}
+                    else if(status.kind==='broken'){tone=WARN;body='Backup is failing.';const parts=[];if(status.lastSuccess)parts.push(`Last success ${formatRelative(status.lastSuccess)}.`);if(status.error)parts.push(status.error);sub=parts.length?parts.join(' '):null;}
                     else if(status.kind==='paused'){tone=WARN;body=`Backup paused. Resumes ${formatResumeIn(status.resumeAt)}.`;}
                     if(!body)return null;
                     return (<div><div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Status</div><div className="italic mt-1" style={{color:tone,fontFamily:serif,fontSize:'13px',lineHeight:1.5}}>{body}</div>{sub&&<div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',marginTop:'4px'}}>{sub}</div>}</div>);

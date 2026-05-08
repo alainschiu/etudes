@@ -18,7 +18,6 @@ export default function useDriveSync({
   setConfirmModal,
   onDriveConflict,
 }) {
-  const [driveBackgroundError, setDriveBackgroundError] = useState(null);
   const [driveBlobRestoreProgress, setDriveBlobRestoreProgress] = useState(null);
   const [driveBlobFailedCount, setDriveBlobFailedCount] = useState(0);
   const blobTimerRef = useRef(null);
@@ -34,9 +33,9 @@ export default function useDriveSync({
           slice: coldSlice(),
           lsGet,
         });
-        setDriveBackgroundError(null);
-      } catch (err) {
-        setDriveBackgroundError(formatDriveError(err));
+      } catch {
+        // Failure is recorded on the drive manifest (consecutiveFailures /
+        // lastFailureMessage); the Sync tab status block reads it.
       }
     },
     [coldSlice, lsGet],
@@ -69,14 +68,9 @@ export default function useDriveSync({
   }, [settings.driveAutoBackup, runPush]);
 
   const connectDrive = useCallback(async () => {
-    setDriveBackgroundError(null);
-    try {
-      await getDriveAccessToken({interactive: true});
-      clearDriveQueueCircuitPause();
-      setSettings((s) => ({...s, driveConnected: true}));
-    } catch (e) {
-      setDriveBackgroundError(formatDriveError(e));
-    }
+    await getDriveAccessToken({interactive: true});
+    clearDriveQueueCircuitPause();
+    setSettings((s) => ({...s, driveConnected: true}));
   }, [setSettings]);
 
   const disconnectDrive = useCallback(() => {
@@ -88,7 +82,6 @@ export default function useDriveSync({
   const backupNow = useCallback(() => runPush('full'), [runPush]);
 
   const restoreFromDrive = useCallback(async () => {
-    setDriveBackgroundError(null);
     setDriveBlobFailedCount(0);
     setRestoreBusy(true);
     try {
@@ -136,7 +129,11 @@ export default function useDriveSync({
         onConfirm: () => setConfirmModal(null),
       });
     } catch (e) {
-      setDriveBackgroundError(formatDriveError(e));
+      setConfirmModal({
+        message: `Could not restore from Drive. ${formatDriveError(e)}`,
+        confirmLabel: 'OK',
+        onConfirm: () => setConfirmModal(null),
+      });
     } finally {
       setRestoreBusy(false);
       setDriveBlobRestoreProgress(null);
@@ -155,8 +152,9 @@ export default function useDriveSync({
           setRestoreBusy,
           setConfirmModal,
         });
-    } catch (e) {
-      setDriveBackgroundError(formatDriveError(e));
+    } catch {
+      // Background pull on tab open — failures are quiet. The next push
+      // attempt surfaces via the manifest-driven status block.
     }
   }, [onDriveConflict, applyDeps, setRestoreBusy, setConfirmModal]);
 
@@ -167,8 +165,6 @@ export default function useDriveSync({
     restoreFromDrive,
     maybePullOnOpen,
     notifyBlobWrite,
-    driveBackgroundError,
-    setDriveBackgroundError,
     driveBlobRestoreProgress,
     setDriveBlobRestoreProgress,
     driveBlobFailedCount,
