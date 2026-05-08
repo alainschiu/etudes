@@ -23,6 +23,50 @@ retries.
 A 60-second tick re-renders the relative time while the Sync tab is
 open. No notifications. No copy outside Settings.
 
+### Sync tab cleanup
+
+The Sync tab now visually separates Cloud Account from Drive Backup
+(both independent systems, previously presented as a single flow with
+thin dividers). All user-facing copy rewritten to remove jargon
+(*"Separate from Supabase"*, *"Google Identity Services"*, references
+to environment variable names). The decorative `● LOCAL` STORAGE
+block removed; the "saved locally" message now lives implicitly in
+the signed-out top explainer.
+
+#### IA
+
+- `src/components/modals.jsx · SettingsModal` Sync tab: STORAGE
+  block removed. CLOUD ACCOUNT and DRIVE BACKUP now render as two
+  distinct sections separated by 24px whitespace (no divider line).
+  Top explainer paragraph rewritten and made state-aware (S0
+  signed-out copy distinct from S1+ signed-in copy; S1 drops the
+  Drive sentence when `VITE_GOOGLE_CLIENT_ID` is unset).
+
+#### Copy
+
+- Account eyebrow `ACCOUNT` → `CLOUD ACCOUNT`.
+- Drive eyebrow `GOOGLE DRIVE BACKUP` → `DRIVE BACKUP`.
+- Email line now appends provider: *"…@gmail.com · signed in with
+  Google"* (or `email`). Provider read from
+  `user.app_metadata.provider`; falls back to `signed in` if absent.
+- *"Last cloud sync …"* → *"Last sync …"* (eyebrow already
+  establishes context).
+- Drive privacy explainer rewritten and now renders only in the
+  not-connected state — once a user has decided, the line is noise.
+- Drive-not-configured message no longer mentions
+  `VITE_GOOGLE_CLIENT_ID` to the user. Original technical string
+  preserved behind `import.meta.env.DEV` for developer diagnosis.
+- Connect Google Drive button now hidden once connected; Disconnect
+  remains the way out.
+- Drive button labels shortened: *"Restore from Drive"* → *"Restore"*,
+  *"Disconnect Drive"* → *"Disconnect"* (parent eyebrow disambiguates).
+
+#### About
+
+- `src/components/modals.jsx · SettingsModal` About tab: added
+  support email line — *"For support, write to support@etudes.me"* —
+  with `mailto:` link in LINK with hairline underline.
+
 ## v0.97.38 — 2026-05-07
 
 ### `useViewport`: tablet → desktop in landscape, mobile in portrait

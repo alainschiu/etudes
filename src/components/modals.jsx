@@ -13,14 +13,14 @@ import UploadIcon from 'lucide-react/dist/esm/icons/upload';
 import Cloud from 'lucide-react/dist/esm/icons/cloud';
 import CloudOff from 'lucide-react/dist/esm/icons/cloud-off';
 import Loader from 'lucide-react/dist/esm/icons/loader';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARN, WARN_SOFT, serif} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARN, WARN_SOFT, LINK, serif} from '../constants/theme.js';
 import appPkg from '../../package.json';
 
 const SHORTCUTS=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k:'M',v:'Toggle metronome'},{k:'D',v:'Toggle tuning drone'},{k:'T',v:'Tap tempo'},{k:'L',v:'Log BPM'},{k:'N',v:'Quick note'},{k:'1 – 4',v:'Jump to section'},{k:'?',v:'Open Réglages'},{k:'Esc',v:'Close'}];
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
 const USER_GUIDE_URL='https://etudes.me/guide';
 
-export function SettingsModal({settings,setSettings,storageMode,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect,initialTab='settings',setConfirmModal}){
+export function SettingsModal({settings,setSettings,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect,initialTab='settings',setConfirmModal}){
   const [devBusy,setDevBusy]=useState(false);
   const [devStatus,setDevStatus]=useState('');
   const [driveBusy,setDriveBusy]=useState(false);
@@ -37,8 +37,8 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
   const [,forceTick]=useState(0);
   useEffect(()=>{if(tab!=='sync')return;const id=setInterval(()=>forceTick(n=>n+1),60000);return()=>clearInterval(id);},[tab]);
   const handleAuth=async(e)=>{e.preventDefault();setAuthError('');setAuthBusy(true);const fn=authMode==='signin'?signIn:signUp;const {error}=await fn(authEmail,authPassword);setAuthBusy(false);if(error){setAuthError(error.message);}else if(authMode==='signup'){setSignupSent(true);}};
-  const sl=storageMode==='local'?'saved locally on this device':'storage unavailable';
-  const sd=storageMode==='local'?'● local':'○ memory';
+  const provider=user?.app_metadata?.provider;
+  const providerLabel=provider==='google'?'signed in with Google':provider==='email'?'signed in with email':'signed in';
   return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onClose}><div ref={panelRef} className="max-w-md w-full max-h-screen overflow-auto etudes-scroll" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
     <div className="px-8 py-6 flex items-baseline justify-between" style={{borderBottom:`1px solid ${LINE_MED}`}}>
       <div><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Configuration</div><h2 className="text-3xl mt-1" style={{fontFamily:serif,fontStyle:'italic',fontWeight:300}}>Réglages</h2></div>
@@ -67,46 +67,53 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
     )}
     {tab==='sync'&&(
       <div className="px-8 py-6 space-y-5">
-        <div className="flex items-baseline justify-between gap-4 pb-4" style={{borderBottom:`1px solid ${LINE}`}}><div className="min-w-0"><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Storage</div><div className="text-xs italic mt-0.5" style={{color:storageMode==='local'?FAINT:WARN,fontFamily:serif}}>{sl}</div></div><div className="uppercase shrink-0" style={{color:storageMode==='local'?IKB:WARN,fontSize:'10px',letterSpacing:'0.22em'}}>{sd}</div></div>
         {user?(
           <>
-            <div className="flex items-start justify-between gap-4 pb-4" style={{borderBottom:`1px solid ${LINE}`}}>
-              <div><div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Account</div><div className="text-xs italic mt-0.5" style={{color:MUTED,fontFamily:serif}}>{user.email}</div>{lastSyncedAt>0&&<div className="mt-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'10px'}}>Last cloud sync {new Date(lastSyncedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>}</div>
-              <div className="flex flex-col items-end gap-2 shrink-0">
-                <button onClick={syncNow} disabled={syncStatus==='syncing'} className="uppercase flex items-center gap-1.5" style={{color:syncStatus==='error'?WARN:IKB,fontSize:'9px',letterSpacing:'0.22em',opacity:syncStatus==='syncing'?0.5:1}}>
-                  {syncStatus==='syncing'?<Loader className="w-3 h-3 animate-spin" strokeWidth={1.5}/>:syncStatus==='error'?<CloudOff className="w-3 h-3" strokeWidth={1.5}/>:<Cloud className="w-3 h-3" strokeWidth={1.5}/>}
-                  {syncStatus==='syncing'?'Syncing…':syncStatus==='error'?'Sync error':'Sync now'}
-                </button>
+            <div className="italic" style={{color:MUTED,fontFamily:serif,fontSize:'13px',lineHeight:1.6}}>
+              Cloud account covers repertoire, history, notes, and settings — synced across your signed-in devices.{isDriveConfigured()?' Drive backup covers audio recordings and PDF scores.':''}
+            </div>
+            <div>
+              <div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Cloud account</div>
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs italic" style={{color:MUTED,fontFamily:serif,lineHeight:1.5}}>
+                    {user.email}<span style={{color:FAINT,marginLeft:'6px'}}>· {providerLabel}</span>
+                  </div>
+                  {lastSyncedAt>0&&<div className="mt-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'10px'}}>Last sync {new Date(lastSyncedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>}
+                </div>
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <button onClick={syncNow} disabled={syncStatus==='syncing'} className="uppercase flex items-center gap-1.5" style={{color:syncStatus==='error'?WARN:IKB,fontSize:'9px',letterSpacing:'0.22em',opacity:syncStatus==='syncing'?0.5:1}}>
+                    {syncStatus==='syncing'?<Loader className="w-3 h-3 animate-spin" strokeWidth={1.5}/>:syncStatus==='error'?<CloudOff className="w-3 h-3" strokeWidth={1.5}/>:<Cloud className="w-3 h-3" strokeWidth={1.5}/>}
+                    {syncStatus==='syncing'?'Syncing…':syncStatus==='error'?'Sync error':'Sync now'}
+                  </button>
+                  <button onClick={signOut} className="uppercase flex items-center gap-1.5" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.22em'}}><CloudOff className="w-3 h-3" strokeWidth={1.25}/> Sign out</button>
+                </div>
               </div>
+              {syncPayloadWarning&&(<div className="px-3 py-2 mt-3" style={{background:'rgba(184,150,104,0.12)',border:'1px solid rgba(184,150,104,0.3)'}}><div className="italic" style={{color:'#B89668',fontFamily:serif,fontSize:'11px',lineHeight:1.5}}>Your journal is large. Export a backup to protect your data.</div></div>)}
             </div>
-            <button onClick={signOut} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><CloudOff className="w-3 h-3" strokeWidth={1.25}/> Sign out</button>
-            {syncPayloadWarning&&(<div className="px-3 py-2" style={{background:'rgba(184,150,104,0.12)',border:'1px solid rgba(184,150,104,0.3)'}}><div className="italic" style={{color:'#B89668',fontFamily:serif,fontSize:'11px',lineHeight:1.5}}>Your journal is large. Export a backup to protect your data.</div></div>)}
-            <div className="pt-2 pb-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>
-              <span style={{color:MUTED}}>Cloud sync (account):</span> repertoire, practice history, notes, settings, and recording metadata.<br/>
-              <span style={{color:MUTED}}>Not in the cloud:</span> audio and PDF files. Connect Google Drive below for optional backup, or use Export for a file backup.
-            </div>
-            {driveBlobRestoreProgress&&<div className="text-xs italic mt-2" style={{color:MUTED,fontFamily:serif}}>Restoring media {driveBlobRestoreProgress.done} / {driveBlobRestoreProgress.total}…</div>}
-            {!driveBlobRestoreProgress&&driveBlobFailedCount>0&&<div className="text-xs italic mt-1" style={{color:FAINT,fontFamily:serif}}>{driveBlobFailedCount} file{driveBlobFailedCount===1?'':'s'} could not be restored from Drive.</div>}
-            <div className="pt-5 mt-4" style={{borderTop:`1px solid ${LINE}`}}>
-              <div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Google Drive backup</div>
+            <div style={{paddingTop:'24px'}}>
+              <div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Drive backup</div>
               {!isDriveConfigured() ? (
-                <p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Drive backup requires <span style={{fontFamily:'ui-monospace,monospace',fontSize:'10px'}}>VITE_GOOGLE_CLIENT_ID</span> (OAuth Web client with Drive scope).</p>
+                <>
+                  <p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Drive backup is not available in this build. Use Export for a file backup.</p>
+                  {import.meta.env.DEV&&<p className="italic mt-2" style={{color:FAINT,fontFamily:serif,fontSize:'10px',lineHeight:1.5}}>Dev: requires <span style={{fontFamily:'ui-monospace,monospace',fontSize:'9px'}}>VITE_GOOGLE_CLIENT_ID</span> (OAuth Web client with Drive scope).</p>}
+                </>
               ) : (
                 <div className="space-y-3">
-                  <p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Separate from Supabase: uses Google Identity Services with access only to files the app creates in your Drive.</p>
+                  {!hasDriveToken()&&<p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Backs up audio recordings and PDF scores to your Google Drive. Études can only see files it created — never your other Drive files.</p>}
                   {hasDriveToken()&&(()=>{
                     const status=deriveDriveStatus({manifest:readDriveManifest(),circuit:getDriveQueueCircuitState(),autoBackupOn:!!settings.driveAutoBackup,isConnected:true,isConfigured:true});
                     let body=null,sub=null,tone=MUTED;
-                    if(status.kind==='never'){tone=FAINT;body=status.autoBackupOn?'Backup will run within ten minutes.':'No backup yet.';}
-                    else if(status.kind==='idle'){tone=MUTED;body=`Last backup ${formatRelative(status.lastSuccess)}.`;sub=`Auto-backup ${status.autoBackupOn?'on':'off'}.`;}
+                    if(status.kind==='never'){tone=FAINT;body=status.autoBackupOn?'Backup will run within ten minutes.':'No backup yet. Auto-backup is off.';}
+                    else if(status.kind==='idle'){tone=MUTED;body=`Last backup ${formatRelative(status.lastSuccess)}.`;sub=`Auto-backup is ${status.autoBackupOn?'on':'off'}.`;}
                     else if(status.kind==='retrying'){tone=MUTED;body=status.lastSuccess?`Last backup ${formatRelative(status.lastSuccess)}. Retrying.`:'Backup retrying.';}
                     else if(status.kind==='broken'){tone=WARN;body='Backup is failing.';const parts=[];if(status.lastSuccess)parts.push(`Last success ${formatRelative(status.lastSuccess)}.`);if(status.error)parts.push(status.error);sub=parts.length?parts.join(' '):null;}
                     else if(status.kind==='paused'){tone=WARN;body=`Backup paused. Resumes ${formatResumeIn(status.resumeAt)}.`;}
                     if(!body)return null;
-                    return (<div><div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Status</div><div className="italic mt-1" style={{color:tone,fontFamily:serif,fontSize:'13px',lineHeight:1.5}}>{body}</div>{sub&&<div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',marginTop:'4px'}}>{sub}</div>}</div>);
+                    return (<div><div className="italic" style={{color:tone,fontFamily:serif,fontSize:'13px',lineHeight:1.5}}>{body}</div>{sub&&<div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',marginTop:'4px'}}>{sub}</div>}</div>);
                   })()}
                   <div className="flex flex-wrap gap-2">
-                    <button
+                    {!hasDriveToken()&&<button
                       type="button"
                       disabled={driveBusy}
                       onClick={async()=>{
@@ -122,11 +129,11 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
                     >
                       {driveBusy?<Loader className="w-3 h-3 animate-spin" strokeWidth={1.5}/>:null}
                       Connect Google Drive
-                    </button>
+                    </button>}
                     {hasDriveToken()&&(
                       <>
                         {onBackupDrive&&<button type="button" disabled={driveBusy} onClick={()=>{onBackupDrive();setDriveLine('Backup queued…');}} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}>Backup now</button>}
-                        {onRestoreFromDrive&&<button type="button" disabled={driveBusy} onClick={()=>{onRestoreFromDrive();}} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}>Restore from Drive</button>}
+                        {onRestoreFromDrive&&<button type="button" disabled={driveBusy} onClick={()=>{onRestoreFromDrive();}} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}>Restore</button>}
                         <button
                           type="button"
                           disabled={driveBusy}
@@ -134,13 +141,15 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
                           className="uppercase px-3 py-2"
                           style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}
                         >
-                          Disconnect Drive
+                          Disconnect
                         </button>
                       </>
                     )}
                   </div>
-                  {hasDriveToken()&&onBackupDrive&&(<div className="flex items-center justify-between gap-4 pt-1"><div className="text-xs italic" style={{color:FAINT,fontFamily:serif}}>Auto-backup journal and new recordings to Drive</div><button type="button" onClick={()=>setSettings({...settings,driveAutoBackup:!settings.driveAutoBackup})} className="uppercase px-3 py-1 shrink-0" style={{color:settings.driveAutoBackup?TEXT:FAINT,border:`1px solid ${settings.driveAutoBackup?IKB:LINE_STR}`,background:settings.driveAutoBackup?IKB_SOFT:'transparent',fontSize:'9px',letterSpacing:'0.22em'}}>{settings.driveAutoBackup?'On':'Off'}</button></div>)}
+                  {hasDriveToken()&&onBackupDrive&&(<div className="flex items-center justify-between gap-4 pt-1"><div className="text-xs italic" style={{color:FAINT,fontFamily:serif}}>Auto-backup journal and new recordings</div><button type="button" onClick={()=>setSettings({...settings,driveAutoBackup:!settings.driveAutoBackup})} className="uppercase px-3 py-1 shrink-0" style={{color:settings.driveAutoBackup?TEXT:FAINT,border:`1px solid ${settings.driveAutoBackup?IKB:LINE_STR}`,background:settings.driveAutoBackup?IKB_SOFT:'transparent',fontSize:'9px',letterSpacing:'0.22em'}}>{settings.driveAutoBackup?'On':'Off'}</button></div>)}
                   {driveLine&&<div className="text-xs italic" style={{color:MUTED,fontFamily:serif}}>{driveLine}</div>}
+                  {driveBlobRestoreProgress&&<div className="text-xs italic" style={{color:MUTED,fontFamily:serif}}>Restoring media {driveBlobRestoreProgress.done} / {driveBlobRestoreProgress.total}…</div>}
+                  {!driveBlobRestoreProgress&&driveBlobFailedCount>0&&<div className="text-xs italic" style={{color:FAINT,fontFamily:serif}}>{driveBlobFailedCount} file{driveBlobFailedCount===1?'':'s'} could not be restored from Drive.</div>}
                   {import.meta.env.DEV&&(
                     <div className="pt-3 space-y-2" style={{borderTop:`1px dashed ${LINE_MED}`}}>
                       <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>Dev — silent renewal spike</div>
@@ -201,8 +210,8 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
             <button type="button" onClick={()=>{setAuthMode(m=>m==='signin'?'signup':'signin');setAuthError('');}} className="w-full text-center" style={{color:FAINT,fontFamily:serif,fontStyle:'italic',fontSize:'12px'}}>
               {authMode==='signin'?'No account — create one':'Already have an account — sign in'}
             </button>
-            <div className="pt-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>
-              After you sign in, cloud sync covers repertoire, history, notes, and settings. Audio and PDFs are not uploaded to the cloud; optional Google Drive backup appears on the Sync tab once signed in, or use Export for a file backup.
+            <div className="pt-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'13px',lineHeight:1.6}}>
+              Your data is saved on this device. Sign in to sync repertoire, history, notes, and settings across your signed-in devices. After signing in, you can also connect Google Drive to back up audio recordings and PDF scores.
             </div>
           </form>
           </div>
@@ -251,6 +260,9 @@ export function SettingsModal({settings,setSettings,storageMode,onExportZip,expo
               if(w)e.preventDefault();
             }}
           >etudes.me/guide →</a>
+        </div>
+        <div className="mt-4 italic" style={{color:FAINT,fontFamily:serif,fontSize:'12px',lineHeight:1.6}}>
+          For support, write to <a href="mailto:support@etudes.me" style={{color:LINK,borderBottom:`1px solid ${LINK}55`,textDecoration:'none'}}>support@etudes.me</a>
         </div>
         {(seedTestNotes||devSeedAll||devClearAll)&&(
           <div className="pt-3">
