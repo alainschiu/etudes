@@ -4,7 +4,7 @@ Before doing anything, read `North_Star_V2.4.md`. It is the authoritative
 product document and supersedes all other instructions.
 
 Current version: v2.4
-Current app version: v0.97.38
+Current app version: v0.98.0
 
 ---
 
@@ -46,6 +46,46 @@ Never use raw values in components. Always import from `src/constants/theme.js`.
 | `serif` | Cormorant Garamond | Titles, composer names, prose, italic labels |
 | `sans` | system sans | Tab labels, metadata, uppercase chrome |
 | `mono` | JetBrains Mono | Timers, BPM, file sizes — numbers only |
+
+## Writing surfaces — the journal filesystem
+
+Every writing surface persists to one of these `etudes-*` localStorage keys.
+Audio and PDFs live in IndexedDB and are out of scope here.
+
+| # | Surface | Field | Format | Origin? | Target? | Stored in |
+|---|---------|-------|--------|---------|---------|-----------|
+| 1 | Daily reflection (today) | `dailyReflection` | markdown | yes | — | `etudes-dailyReflection` |
+| 2 | Daily reflection (archived) | `history[i].reflection` | markdown | yes | day | `etudes-history` |
+| 3 | Weekly reflection (current) | `weekReflection.{notes,goals}` | markdown | yes | — | `etudes-weekReflection` |
+| 4 | Weekly reflection (archived) | `history[i].notes`, `.goals` | markdown | yes | week | `etudes-history` |
+| 5 | Monthly reflection (current) | `monthReflection.{notes,goals}` | markdown | yes | — | `etudes-monthReflection` |
+| 6 | Monthly reflection (archived) | `history[i].notes`, `.goals` | markdown | yes | month | `etudes-history` |
+| 7 | Per-piece pinned notes | `item.detail` | markdown | yes | item | `etudes-items` |
+| 8 | Per-piece today note | `item.todayNote` | markdown | yes | — | `etudes-items` |
+| 9 | Per-piece log entry | `item.noteLog[i].text` | markdown | yes | item-log | `etudes-items` |
+| 10 | Free note | `freeNote.body` | markdown | yes | note | `etudes-freeNotes` |
+| 11 | Program intention | `program.intention` | markdown | yes | program-intention | `etudes-programs` |
+| 12 | Program reflection | `program.reflection` | markdown | yes | program-reflection | `etudes-programs` |
+| 13 | Program body / notes | `program.body` | markdown | yes | program | `etudes-programs` |
+
+### Wiki-link grammar
+
+`[[…]]` is recognised in every markdown surface; the resolver lives in
+`src/lib/notes.js` (`resolveWikiLink`).
+
+| Syntax | Resolves to |
+|--------|-------------|
+| `[[YYYY-MM-DD]]` | day log entry |
+| `[[YYYY-Www]]` (e.g. `2026-W19`) | weekly reflection |
+| `[[YYYY-MM]]` (e.g. `2026-05`) | monthly reflection |
+| `[[Piece Name]]` | item |
+| `[[Piece Name #SpotLabel]]` | spot inside an item |
+| `[[Program Name]]` | program |
+| `[[Note Title]]` | free note |
+
+Autocomplete in the markdown editor (`src/components/MarkdownEditor.jsx`)
+offers items, recent days, recent weeks, recent months, programs, and
+notes.
 
 ## Storage Layers
 

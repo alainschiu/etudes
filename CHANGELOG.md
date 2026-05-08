@@ -1,5 +1,95 @@
 # Changelog
 
+## v0.98.0 — 2026-05-08
+
+### Notes & Logs trustworthiness pass
+
+The journal must hold what's written into it and let those words link
+back to the rest of Études without surprise. This pass closes a set of
+gaps where wiki-links rendered in some surfaces but not others, where
+program intentions and reflections couldn't be marked up, and where
+typing offered no signal that words were being saved.
+
+#### Wiki-link coverage
+
+- `src/lib/notes.js`: `resolveWikiLink` recognises `[[YYYY-Www]]` for
+  weekly reflections and `[[YYYY-MM]]` for monthly reflections in
+  addition to days, items, spots, programs, and notes.
+- `src/lib/dates.js`: `isoWeekKey(dateStr)` helper.
+- `src/components/MarkdownEditor.jsx`: `[[` autocomplete now offers
+  recent weeks and recent months alongside items, days, programs, and
+  notes.
+- `src/App.jsx`: the top-level wiki-link router opens the correct
+  archived week or month entry in the log drawer.
+
+#### Read surfaces — wiki-links everywhere
+
+- `src/components/shared.jsx`: unified `MarkdownComponents({variant})`
+  factory replaces four near-duplicate maps in NoteEditor preview,
+  shared MarkdownField, LogsView's `logMd`, and `DailyReflectionsView`.
+  `preprocessWikiLinks` and `wikiUrlTransform` are now exported for
+  reuse.
+- `src/views/LogsView.jsx`: `DayLogContent`, `WeekLogContent`,
+  `MonthLogContent`, and the per-item `note` rendering now use the
+  shared factory and accept `onWikiLinkClick` + `wikiCompletionData`.
+  Past reflections render `[[…]]` as live links.
+- `src/views/NotesView.jsx · DailyReflectionsView`: same factory.
+- `src/views/NotesView.jsx · RepertoireLogsView`: replaces the plain
+  `whiteSpace:pre-wrap` div with `MarkdownField readOnly`, so a
+  `noteLog` entry renders identically here and in
+  `RepertoireView · LogBookPanel`.
+
+#### Programs
+
+- `src/views/ProgramsView.jsx`: `program.intention` and
+  `program.reflection` are now `MarkdownField`s with wiki-link
+  autocomplete and click-through. Post-performance lock keeps working
+  (renders markdown read-only).
+- `src/views/ProgramsView.jsx`: `program.body` editor now receives the
+  full `wikiCompletionData` (broken before — autocomplete saw nothing
+  and `[[2026-04-15]]` / `[[Other Program]]` failed to resolve in the
+  preview path).
+
+#### Save signal
+
+- `src/components/shared.jsx`: new `<SaveIndicator status={...}/>`.
+  States: `saving…`, `saved · just now`, `saved · N min ago`,
+  `save failed — quota full`. FAINT italic for healthy states, WARN
+  for failure.
+- `src/state/useEtudesState.js`: `writeStatus` state, set to `saved`
+  on every writing-surface change after initial mount, and flipped to
+  sticky `failed` by the existing `etudes-storage-full` event.
+- Indicator rendered below the NoteEditor meta row, the daily
+  reflection field on Today, and the weekly/monthly reflection
+  fields. One global state, one consistent surface.
+
+#### Performance — NoteEditor tag cascade
+
+- `src/views/NotesView.jsx · NoteEditor`: tag parsing is now debounced
+  300ms (was per-keystroke). The note-list body preview is memoised
+  per note id (was a regex per row per keystroke). On a 50-note seed,
+  per-keystroke perf is no longer perceptibly tied to note count.
+- The mobile note body editor uses the same debounced tag parser via
+  the new `MobileNoteBody` helper.
+
+#### Notes data
+
+- `src/views/NotesView.jsx`: free notes now carry `updatedAt`
+  (set on every `updateNote`, also on `addNote`). Default sidebar sort
+  is `updatedAt` desc. Notes without the field fall back to `date`
+  (no migration needed).
+- `src/state/useEtudesState.js`: `saveFreeNote` stamps `updatedAt`
+  consistently with `updateNote`.
+- `src/views/NotesView.jsx`: new note IDs use `crypto.randomUUID()`
+  with a timestamped fallback (was `Date.now()`, collision-prone
+  under fast creation).
+
+#### Versioning
+
+- `package.json` → `0.98.0`
+- `src/constants/config.js` → `APP_VERSION = '0.98.0'`
+- `CLAUDE.md`: writing-surfaces table + wiki-link grammar documented.
+
 ## v0.97.38 — 2026-05-07
 
 ### `useViewport`: tablet → desktop in landscape, mobile in portrait

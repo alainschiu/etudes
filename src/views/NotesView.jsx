@@ -1,6 +1,6 @@
-import React, {useState, useMemo, useCallback, useEffect} from 'react';
+import React, {useState, useMemo, useCallback, useEffect, useRef} from 'react';
 import useViewport from '../hooks/useViewport.js';
-import ReactMarkdown, {defaultUrlTransform} from 'react-markdown';
+import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import Search from 'lucide-react/dist/esm/icons/search';
@@ -22,7 +22,16 @@ import {todayDateStr} from '../lib/dates.js';
 import {displayTitle, formatByline} from '../lib/items.js';
 import {resolveWikiLink, parseTagsFromBody} from '../lib/notes.js';
 import {MarkdownEditor} from '../components/MarkdownEditor.jsx';
-import {DebouncedField} from '../components/shared.jsx';
+import {DebouncedField, MarkdownField, MarkdownComponents, preprocessWikiLinks, wikiUrlTransform, SaveIndicator} from '../components/shared.jsx';
+
+// Stable id generator: prefer crypto.randomUUID where available, fall back
+// to a timestamped random string for older browsers (or sandboxes where
+// crypto throws).
+const newNoteId=()=>{
+  try{if(typeof crypto!=='undefined'&&crypto.randomUUID)return crypto.randomUUID();}
+  catch{/* fall through to timestamped fallback */}
+  return `${Date.now()}-${Math.random().toString(36).slice(2,9)}`;
+};
 
 // ── Standard categories (read-only views) ────────────────────────────────
 const STD_CATEGORIES=[
@@ -31,9 +40,10 @@ const STD_CATEGORIES=[
 ];
 
 // ── Daily Reflections standard view ──────────────────────────────────────
-function DailyReflectionsView({history}){
+function DailyReflectionsView({history,onWikiLinkClick,wikiCompletionData}){
   const days=useMemo(()=>[...history].filter(h=>(h.kind==='day'||!h.kind)&&h.reflection&&h.reflection.trim()).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,30),[history]);
   if(days.length===0)return <div className="italic py-8 text-center" style={{color:FAINT,fontFamily:serif,fontSize:'15px'}}>No daily reflections yet.</div>;
+  const components=MarkdownComponents({variant:'reflection',onWikiLinkClick,completionData:wikiCompletionData});
   return (
     <div className="space-y-8">
       {days.map(h=>{
@@ -42,8 +52,8 @@ function DailyReflectionsView({history}){
           <div key={h.date} style={{borderBottom:`1px solid ${LINE}`,paddingBottom:'24px'}}>
             <div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>{d.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})}</div>
             <div style={{fontFamily:serifText,fontSize:'16px',lineHeight:1.8,fontWeight:300}}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{p:({children})=><p style={{marginBottom:'0.8em'}}>{children}</p>,h3:({children})=><h3 style={{fontSize:'1em',fontWeight:400,marginBottom:'0.35em',marginTop:'0.7em',opacity:0.75}}>{children}</h3>,hr:()=><hr style={{border:'none',borderTop:`1px solid rgba(244,238,227,0.12)`,margin:'0.75em 0'}}/>,a:({href,children})=><a href={href} target="_blank" rel="noopener noreferrer" style={{color:LINK,textDecoration:'underline'}}>{children}</a>}}>
-                {h.reflection}
+              <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={wikiUrlTransform} components={components}>
+                {preprocessWikiLinks(h.reflection)}
               </ReactMarkdown>
             </div>
           </div>
@@ -54,7 +64,7 @@ function DailyReflectionsView({history}){
 }
 
 // ── Repertoire Logs standard view ────────────────────────────────────────
-function RepertoireLogsView({items}){
+function RepertoireLogsView({items,onWikiLinkClick,wikiCompletionData}){
   const [pieceFilter,setPieceFilter]=useState('');
   const q=pieceFilter.trim().toLowerCase();
   const withLogs=useMemo(()=>items.filter(i=>(i.noteLog||[]).length>0),[items]);
@@ -77,7 +87,14 @@ function RepertoireLogsView({items}){
             {[...(item.noteLog||[])].reverse().map(entry=>(
               <div key={entry.id} style={{borderLeft:`2px solid ${IKB}30`,paddingLeft:'12px'}}>
                 <div className="uppercase mb-1" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>{entry.date}{entry.source==='manual'?' · manual':''}</div>
-                <div style={{fontFamily:serifText,fontSize:'13px',lineHeight:1.65,color:TEXT,whiteSpace:'pre-wrap'}}>{entry.text}</div>
+                <MarkdownField
+                  value={entry.text||''}
+                  readOnly
+                  minHeight={0}
+                  style={{border:'none',padding:0,fontSize:'13px',background:'transparent'}}
+                  onWikiLinkClick={onWikiLinkClick}
+                  completionData={wikiCompletionData}
+                />
               </div>
             ))}
           </div>
@@ -110,22 +127,17 @@ function SidebarSection({label,open,onToggle,count,children}){
   );
 }
 
-// react-markdown v10's default urlTransform strips schemes outside its
-// allowlist, blanking our custom wiki://, etudes://, wikilink:// hrefs.
-// The blanked anchor would render as <a href=""> and clicking reloads the
-// page (landing on the default 'today' view). Let our custom schemes pass
-// through; everything else falls back to the default sanitiser.
-const wikiUrlTransform=(url,key,node)=>(
-  url&&(url.startsWith('wiki://')||url.startsWith('etudes://')||url.startsWith('wikilink://'))
-    ? url
-    : defaultUrlTransform(url,key,node)
-);
-
 // ── Main NotesView ────────────────────────────────────────────────────────
-export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes,programs,setSelectedProgramId,requestedNoteId,setRequestedNoteId,setConfirmModal}){
+export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes,programs,setSelectedProgramId,requestedNoteId,setRequestedNoteId,setConfirmModal,writeStatus,onWikiLinkClick:onWikiLinkClickProp,wikiCompletionData}){
   const {isMobile}=useViewport();
+  // Default sidebar order: most-recently-modified first. Notes without
+  // updatedAt fall back to date for backward compatibility — no migration.
+  const sortedFreeNotes=useMemo(()=>{
+    const ts=(n)=>n.updatedAt||(n.date?new Date(n.date+'T00:00:00').getTime():0)||0;
+    return [...freeNotes].sort((a,b)=>ts(b)-ts(a));
+  },[freeNotes]);
   const [activeCategoryId,setActiveCategoryId]=useState('__all');
-  const [activeNoteId,setActiveNoteId]=useState(freeNotes[0]?.id);
+  const [activeNoteId,setActiveNoteId]=useState(sortedFreeNotes[0]?.id);
 
   // Consume external navigation requests (e.g. from Programs body wiki-links)
   useEffect(()=>{
@@ -153,17 +165,18 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
   const activeNote=freeNotes.find(n=>n.id===activeNoteId);
 
   const addNote=()=>{
-    const n={id:Date.now(),date:todayDateStr(),title:'New note',body:'',category:activeCategoryId==='__all'||activeCategoryId==='__daily'||activeCategoryId==='__repertoire'?'':activeCategoryId,tags:[]};
+    const now=Date.now();
+    const n={id:newNoteId(),date:todayDateStr(),updatedAt:now,title:'New note',body:'',category:activeCategoryId==='__all'||activeCategoryId==='__daily'||activeCategoryId==='__repertoire'?'':activeCategoryId,tags:[]};
     setFreeNotes([n,...freeNotes]);
     setActiveNoteId(n.id);
   };
 
+  // updateNote no longer parses tags inline — that work is debounced
+  // inside NoteEditor (300 ms). Body changes commit immediately.
   const updateNote=(id,patch)=>{
     setFreeNotes(prev=>prev.map(n=>{
       if(n.id!==id)return n;
-      const updated={...n,...patch};
-      if(patch.body!==undefined)updated.tags=parseTagsFromBody(patch.body);
-      return updated;
+      return {...n,...patch,updatedAt:Date.now()};
     }));
   };
 
@@ -227,9 +240,9 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
     }
   };
 
-  // Filter notes
+  // Filter notes (already sorted by updatedAt desc).
   const filtered=useMemo(()=>{
-    let list=freeNotes;
+    let list=sortedFreeNotes;
     if(activeCategoryId&&activeCategoryId!=='__all'&&!activeCategoryId.startsWith('__')){
       list=list.filter(n=>n.category===activeCategoryId);
     }
@@ -242,7 +255,18 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
       }
     }
     return list;
-  },[freeNotes,activeCategoryId,query,tagSearch]);
+  },[sortedFreeNotes,activeCategoryId,query,tagSearch]);
+
+  // Memoise the body-preview regex for each note so it re-runs only when the
+  // notes array changes — not on every keystroke in the editor. Previously the
+  // regex ran for every row on every render of any note.
+  const notePreviews=useMemo(()=>{
+    const m={};
+    for(const n of freeNotes){
+      m[n.id]=(n.body||'').replace(/[#*_\[\]`]/g,'').slice(0,60)||'—';
+    }
+    return m;
+  },[freeNotes]);
 
   // All tags across all notes
   const allTags=useMemo(()=>{
@@ -253,16 +277,19 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
 
   const handleTagClick=(tag)=>setTagSearch(tag===tagSearch?'':tag);
 
-  const handleWikiLinkClick=useCallback((resolved)=>{
+  // Local fallback router for wiki-link clicks. The App-level handler
+  // (`onWikiLinkClickProp`) covers every target type and is preferred —
+  // this fallback exists only for the case where NotesView is rendered
+  // without the App's commonProps (e.g. tests).
+  const localWikiClick=useCallback((raw)=>{
+    const resolved=resolveWikiLink(raw,items,history,programs,freeNotes);
     if(!resolved)return;
     if(resolved.type==='day'){
       const entry=history.find(h=>(h.kind==='day'||!h.kind)&&h.date===resolved.target);
       if(entry&&openLogEntry)openLogEntry(entry);
-    }else if(resolved.type==='item'){
-      if(setExpandedItemId)setExpandedItemId(resolved.target);
-      if(setView)setView('repertoire');
-    }else if(resolved.type==='spot'){
-      if(setExpandedItemId)setExpandedItemId(resolved.target.itemId);
+    }else if(resolved.type==='item'||resolved.type==='spot'){
+      const id=resolved.type==='spot'?resolved.target.itemId:resolved.target;
+      if(setExpandedItemId)setExpandedItemId(id);
       if(setView)setView('repertoire');
     }else if(resolved.type==='program'){
       if(setSelectedProgramId)setSelectedProgramId(resolved.target);
@@ -270,7 +297,9 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
     }else if(resolved.type==='note'){
       setActiveNoteId(resolved.target);
     }
-  },[history,openLogEntry,setExpandedItemId,setView,setSelectedProgramId]);
+  },[items,history,programs,freeNotes,openLogEntry,setExpandedItemId,setView,setSelectedProgramId]);
+  const handleWikiLinkClick=onWikiLinkClickProp||localWikiClick;
+  const effectiveCompletion=wikiCompletionData||{items:items||[],history:history||[],programs:programs||[],notes:freeNotes||[]};
 
   const isStdView=activeCategoryId==='__daily'||activeCategoryId==='__repertoire';
 
@@ -306,6 +335,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
       programs={programs}
       notes={freeNotes}
       onWikiLinkClick={handleWikiLinkClick}
+      writeStatus={writeStatus}
       addCategory={addCategory}
       renameCategory={renameCategory}
       deleteCategory={deleteCategory}
@@ -472,8 +502,8 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
         </div>
 
         {/* Standard category views */}
-        {activeCategoryId==='__daily'&&<div className="overflow-y-auto etudes-scroll flex-1 min-h-0"><DailyReflectionsView history={history||[]}/></div>}
-        {activeCategoryId==='__repertoire'&&<div className="overflow-y-auto etudes-scroll flex-1 min-h-0"><RepertoireLogsView items={items||[]}/></div>}
+        {activeCategoryId==='__daily'&&<div className="overflow-y-auto etudes-scroll flex-1 min-h-0"><DailyReflectionsView history={history||[]} onWikiLinkClick={handleWikiLinkClick} wikiCompletionData={effectiveCompletion}/></div>}
+        {activeCategoryId==='__repertoire'&&<div className="overflow-y-auto etudes-scroll flex-1 min-h-0"><RepertoireLogsView items={items||[]} onWikiLinkClick={handleWikiLinkClick} wikiCompletionData={effectiveCompletion}/></div>}
 
         {/* Free notes list + editor */}
         {!isStdView&&(
@@ -532,7 +562,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
                       >
                         <div className="uppercase mb-1" style={{color:FAINT,fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>{n.date}{n.category?` · ${n.category}`:''}</div>
                         <div className="text-sm truncate" style={{fontWeight:300,color:isActive||isHov?TEXT:MUTED}}>{n.title}</div>
-                        <div className="text-xs truncate mt-0.5" style={{color:FAINT,fontFamily:sans,fontWeight:300}}>{n.body.replace(/[#*_\[\]`]/g,'').slice(0,60)||'—'}</div>
+                        <div className="text-xs truncate mt-0.5" style={{color:FAINT,fontFamily:sans,fontWeight:300}}>{notePreviews[n.id]||'—'}</div>
                       </div>
                     );
                   })}
@@ -553,6 +583,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
                     history={history||[]}
                     programs={programs||[]}
                     notes={freeNotes||[]}
+                    writeStatus={writeStatus}
                   />
                 ):(
                   <div className="italic" style={{color:FAINT,fontFamily:serif}}>Select or create a note.</div>
@@ -567,13 +598,33 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
 }
 
 // ── Note editor ───────────────────────────────────────────────────────────
-function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLinkClick, items, history, programs, notes}){
+function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLinkClick, items, history, programs, notes, writeStatus}){
   const [catOpen,setCatOpen]=useState(false);
   const [viewMode,setViewMode]=useState(false);
-  const handleWikiClick=useCallback((rawText)=>{
-    const resolved=resolveWikiLink(rawText,items,history,programs,notes);
-    if(resolved)onWikiLinkClick?.(resolved);
-  },[items,history,programs,notes,onWikiLinkClick]);
+  const completion=useMemo(()=>({items,history,programs,notes}),[items,history,programs,notes]);
+
+  // Debounced tag parse — body commits immediately on every keystroke,
+  // but the #tag regex only re-runs 300 ms after the last edit. This
+  // breaks the per-keystroke cascade through the note list and tag
+  // sidebar that previously dominated input lag.
+  const tagTimerRef=useRef(null);
+  const noteIdRef=useRef(note.id);
+  useEffect(()=>{noteIdRef.current=note.id;},[note.id]);
+  useEffect(()=>()=>{if(tagTimerRef.current)clearTimeout(tagTimerRef.current);},[]);
+  // Note switch: cancel any pending tag-parse — otherwise it would fire
+  // against the new note's body with the previous note's debounce data.
+  useEffect(()=>{if(tagTimerRef.current){clearTimeout(tagTimerRef.current);tagTimerRef.current=null;}},[note.id]);
+
+  const handleBodyChange=useCallback((val)=>{
+    onUpdate({body:val});
+    if(tagTimerRef.current)clearTimeout(tagTimerRef.current);
+    const targetId=note.id;
+    tagTimerRef.current=setTimeout(()=>{
+      // Guard against firing for a note we've since switched away from.
+      if(noteIdRef.current!==targetId)return;
+      onUpdate({tags:parseTagsFromBody(val)});
+    },300);
+  },[onUpdate,note.id]);
 
   return (
     <div>
@@ -590,8 +641,8 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
         />
       )}
 
-      {/* Meta row: date + folder picker + view/edit toggle */}
-      <div className="flex items-center gap-4 mb-5" style={{borderBottom:`1px solid ${LINE}`,paddingBottom:'10px'}}>
+      {/* Meta row: date + folder picker + view/edit toggle + save indicator */}
+      <div className="flex items-center gap-4 mb-1" style={{borderBottom:`1px solid ${LINE}`,paddingBottom:'10px'}}>
         <div className="uppercase" style={{color:FAINT,fontFamily:sans,fontSize:'9px',letterSpacing:'0.28em'}}>{note.date}</div>
 
         {/* Category picker — hidden in view mode */}
@@ -643,6 +694,10 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
           {viewMode?'Edit':'Preview'}
         </button>
       </div>
+      {/* Save indicator — quiet margin gloss, right-aligned */}
+      <div className="flex items-center justify-end mb-4" style={{minHeight:'14px'}}>
+        <SaveIndicator status={writeStatus}/>
+      </div>
 
       {/* Inline tags (clickable, from body parsing) */}
       {(note.tags||[]).length>0&&(
@@ -663,34 +718,12 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
       {viewMode?(
         <div style={{fontFamily:serifText,fontSize:'17px',lineHeight:1.75,fontWeight:300,color:TEXT}}>
           {note.body?(
-            <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={wikiUrlTransform} components={{
-              p:({children})=><p style={{marginBottom:'1em'}}>{children}</p>,
-              h1:({children})=><h1 style={{fontFamily:serif,fontWeight:500,fontSize:'1.5em',marginBottom:'0.4em',marginTop:'1.2em',fontStyle:'italic'}}>{children}</h1>,
-              h2:({children})=><h2 style={{fontFamily:serif,fontWeight:500,fontSize:'1.25em',marginBottom:'0.4em',marginTop:'1em',fontStyle:'italic'}}>{children}</h2>,
-              h3:({children})=><h3 style={{fontFamily:sans,fontWeight:500,fontSize:'0.75em',letterSpacing:'0.2em',textTransform:'uppercase',color:FAINT,marginBottom:'0.4em',marginTop:'1em'}}>{children}</h3>,
-              strong:({children})=><strong style={{fontWeight:500,color:TEXT}}>{children}</strong>,
-              em:({children})=><em style={{fontStyle:'italic'}}>{children}</em>,
-              ul:({children})=><ul style={{paddingLeft:'1.2em',marginBottom:'0.8em',listStyleType:'disc'}}>{children}</ul>,
-              ol:({children})=><ol style={{paddingLeft:'1.2em',marginBottom:'0.8em',listStyleType:'decimal'}}>{children}</ol>,
-              li:({children})=><li style={{marginBottom:'0.25em'}}>{children}</li>,
-              blockquote:({children})=><blockquote style={{borderLeft:`2px solid ${IKB}40`,paddingLeft:'1em',margin:'0.8em 0',color:MUTED,fontStyle:'italic'}}>{children}</blockquote>,
-              hr:()=><hr style={{border:'none',borderTop:`1px solid ${LINE}`,margin:'1.5em 0'}}/>,
-              a:({href,children})=>{
-                // Internal wiki links (pre-processed from [[text]] → wiki://text)
-                if(href?.startsWith('wiki://')){
-                  const raw=decodeURIComponent(href.slice(7));
-                  const ok=!!resolveWikiLink(raw,items,history,programs,notes);
-                  if(!ok) return <span title="no match" style={{color:FAINT,fontStyle:'italic',cursor:'default'}}>{children}</span>;
-                  return <span onClick={()=>handleWikiClick(raw)} style={{color:IKB,borderBottom:`1px solid ${IKB}40`,cursor:'pointer'}}>{children}</span>;
-                }
-                // External links — ensure protocol present, open in new tab
-                const url=href&&!href.match(/^https?:\/\/|^mailto:|^#/)? `https://${href}`:href;
-                return <a href={url} target="_blank" rel="noopener noreferrer" style={{color:IKB,borderBottom:`1px solid ${IKB}40`}}>{children}</a>;
-              },
-              code:({children})=><code style={{fontFamily:'ui-monospace,monospace',fontSize:'0.85em',background:'rgba(244,238,227,0.06)',padding:'1px 5px',borderRadius:'2px'}}>{children}</code>,
-            }}>
-              {/* Pre-process [[wiki links]] → [text](wiki://text) so ReactMarkdown can render them */}
-              {note.body.replace(/\[\[([^\]\n]+)\]\]/g,(_,t)=>`[${t}](wiki://${encodeURIComponent(t)})`)}
+            <ReactMarkdown
+              remarkPlugins={[remarkGfm]}
+              urlTransform={wikiUrlTransform}
+              components={MarkdownComponents({variant:'note',onWikiLinkClick,completionData:completion})}
+            >
+              {preprocessWikiLinks(note.body)}
             </ReactMarkdown>
           ):(
             <span className="italic" style={{color:FAINT}}>No content yet.</span>
@@ -699,7 +732,7 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
       ):(
         <MarkdownEditor
           value={note.body||''}
-          onChange={val=>onUpdate({body:val,tags:parseTagsFromBody(val)})}
+          onChange={handleBodyChange}
           placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`}
           minHeight={320}
           fontSize="17px"
@@ -707,7 +740,7 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
           history={history}
           programs={programs}
           notes={notes}
-          onWikiLinkClick={handleWikiClick}
+          onWikiLinkClick={onWikiLinkClick}
         />
       )}
 
@@ -729,8 +762,33 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
   );
 }
 
+// ── Mobile note body editor with debounced tag parsing ──────────────────
+function MobileNoteBody({note,updateNote,items,history,programs,notes,onWikiLinkClick}){
+  const tagTimerRef=useRef(null);
+  const noteIdRef=useRef(note.id);
+  useEffect(()=>{noteIdRef.current=note.id;},[note.id]);
+  useEffect(()=>()=>{if(tagTimerRef.current)clearTimeout(tagTimerRef.current);},[]);
+  useEffect(()=>{if(tagTimerRef.current){clearTimeout(tagTimerRef.current);tagTimerRef.current=null;}},[note.id]);
+  const onChange=useCallback((val)=>{
+    updateNote(note.id,{body:val});
+    if(tagTimerRef.current)clearTimeout(tagTimerRef.current);
+    const targetId=note.id;
+    tagTimerRef.current=setTimeout(()=>{
+      if(noteIdRef.current!==targetId)return;
+      updateNote(targetId,{tags:parseTagsFromBody(val)});
+    },300);
+  },[updateNote,note.id]);
+  return (
+    <MarkdownEditor value={note.body||''} onChange={onChange}
+      placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`}
+      minHeight={400} fontSize="16px"
+      items={items} history={history} programs={programs} notes={notes}
+      onWikiLinkClick={onWikiLinkClick}/>
+  );
+}
+
 // ── Mobile notes view ─────────────────────────────────────────────────────
-function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes,items,history,programs,notes,onWikiLinkClick,addCategory,renameCategory,deleteCategory,newCatName,setNewCatName}){
+function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes,items,history,programs,notes,onWikiLinkClick,writeStatus,addCategory,renameCategory,deleteCategory,newCatName,setNewCatName}){
   const [editFolders,setEditFolders]=useState(false);
   const [editingCatId,setEditingCatId]=useState(null);
   const [editingCatName,setEditingCatName]=useState('');
@@ -839,24 +897,12 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
               {isExpanded&&(
                 <div>
                   <div style={{fontFamily:serifText,fontStyle:'italic',fontSize:'14px',lineHeight:1.7,color:TEXT,marginTop:'4px'}}>
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={wikiUrlTransform} components={{
-                      p:({children})=><p style={{marginBottom:'0.7em'}}>{children}</p>,
-                      h1:({children})=><h1 style={{fontSize:'1.2em',fontWeight:500,marginBottom:'0.4em',marginTop:'0.8em'}}>{children}</h1>,
-                      h2:({children})=><h2 style={{fontSize:'1.1em',fontWeight:500,marginBottom:'0.3em',marginTop:'0.7em'}}>{children}</h2>,
-                      h3:({children})=><h3 style={{fontSize:'1em',fontWeight:400,marginBottom:'0.3em',marginTop:'0.6em',opacity:0.8}}>{children}</h3>,
-                      a:({href,children})=>{
-                        const isWiki=href&&href.startsWith('etudes://');
-                        if(isWiki){
-                          // Never render a real <a> with etudes:// — iOS would try to open it as a URL scheme
-                          const raw=decodeURIComponent(href.replace('etudes://',''));
-                          const ok=!!resolveWikiLink(raw,items,history,programs,notes);
-                          if(!ok) return <span title="no match" style={{color:FAINT,fontStyle:'italic',cursor:'default'}}>{children}</span>;
-                          return <span onClick={e=>{e.stopPropagation();if(onWikiLinkClick)onWikiLinkClick(raw);}} style={{color:IKB,cursor:'pointer',borderBottom:`1px solid ${IKB}55`,textDecoration:'none'}}>{children}</span>;
-                        }
-                        return <a href={href} target="_blank" rel="noopener noreferrer" onTouchStart={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} onClick={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} style={{color:LINK,textDecoration:'underline'}}>{children}</a>;
-                      },
-                    }}>
-                      {(note.body||'').replace(/\[\[([^\]\n]+)\]\]/g,(_,t)=>`[${t}](etudes://${encodeURIComponent(t)})`)}
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      urlTransform={wikiUrlTransform}
+                      components={MarkdownComponents({variant:'note',onWikiLinkClick,completionData:{items,history,programs,notes}})}
+                    >
+                      {preprocessWikiLinks(note.body)}
                     </ReactMarkdown>
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:'12px',marginTop:'12px'}}>
@@ -975,12 +1021,13 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
           <>
             <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'8px 20px',borderBottom:`1px solid ${LINE}`,flexShrink:0}}>
               <DebouncedField value={editNote.title||''} onChange={v=>updateNote(editNote.id,{title:v})} style={{flex:1,background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:serifText,fontStyle:'italic',fontSize:'20px',outline:'none',paddingBottom:'2px',minWidth:0}} placeholder="Untitled"/>
+              <SaveIndicator status={writeStatus} style={{marginRight:'8px'}}/>
               <button onClick={()=>setEditSheetId(null)} style={{flexShrink:0,minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',justifyContent:'center',background:'transparent',border:'none',cursor:'pointer'}}>
                 <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',color:IKB}}>Done</span>
               </button>
             </div>
             <div style={{flex:1,overflow:'hidden'}}>
-              <MarkdownEditor value={editNote.body||''} onChange={val=>updateNote(editNote.id,{body:val,tags:parseTagsFromBody(val)})} placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`} minHeight={400} fontSize="16px" items={items} history={history} programs={programs} notes={notes} onWikiLinkClick={handleMobileWikiClick}/>
+              <MobileNoteBody note={editNote} updateNote={updateNote} items={items} history={history} programs={programs} notes={notes} onWikiLinkClick={handleMobileWikiClick}/>
             </div>
           </>
         )}

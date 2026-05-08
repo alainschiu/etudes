@@ -11,6 +11,7 @@ import {
 } from '../constants/theme.js';
 import { displayTitle, formatByline } from '../lib/items.js';
 import { slugify, scoreMatch } from '../lib/notes.js';
+import { isoWeekKey } from '../lib/dates.js';
 
 // ── Highlight style ──────────────────────────────────────────────────────────
 // Maps lezer token tags → CSS properties; gives the "syntax-styled source"
@@ -203,6 +204,23 @@ function createWikiCompletion(itemsRef, historyRef, programsRef, notesRef) {
       .slice(0, 20)
       .forEach((h) => {
         options.push({ label: h.date, detail: 'day', apply: `[[${h.date}]]` });
+      });
+
+    [...history]
+      .filter((h) => h.kind === 'week' && h.weekStart)
+      .sort((a, b) => b.weekStart.localeCompare(a.weekStart))
+      .slice(0, 8)
+      .forEach((h) => {
+        const key = isoWeekKey(h.weekStart);
+        if (key) options.push({ label: key, detail: 'week', apply: `[[${key}]]` });
+      });
+
+    [...history]
+      .filter((h) => h.kind === 'month' && h.month)
+      .sort((a, b) => b.month.localeCompare(a.month))
+      .slice(0, 6)
+      .forEach((h) => {
+        options.push({ label: h.month, detail: 'month', apply: `[[${h.month}]]` });
       });
 
     programs.forEach((p) => {

@@ -21,7 +21,7 @@ import Music from 'lucide-react/dist/esm/icons/music';
 import Calendar from 'lucide-react/dist/esm/icons/calendar';
 import Upload from 'lucide-react/dist/esm/icons/upload';
 import {MarkdownEditor} from './MarkdownEditor.jsx';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, serif, serifText, sans, mono, LINK} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARN, serif, serifText, sans, mono, LINK} from '../constants/theme.js';
 import {STAGES} from '../constants/config.js';
 import {idbGet} from '../lib/storage.js';
 import {daysUntil} from '../lib/dates.js';
@@ -494,16 +494,26 @@ const DEEP_LINK_SCHEMES=['obsidian://','x-devonthink-item://'];
 // Let our custom wikilink:// scheme survive react-markdown's default
 // urlTransform (which would otherwise blank it, causing <a href=""> on
 // click to reload the page).
-const wikiUrlTransform=(url,key,node)=>(
+export const wikiUrlTransform=(url,key,node)=>(
   url&&url.startsWith('wikilink://')?url:defaultUrlTransform(url,key,node)
 );
 const HAS_CUSTOM_LINK_RE=/(?:obsidian:\/\/|x-devonthink-item:\/\/)/;
 
-function preprocessWikiLinks(text){
+export function preprocessWikiLinks(text){
   return (text||'').replace(/\[\[([^\]\n]+)\]\]/g,(_,inner)=>`[${inner}](wikilink://${encodeURIComponent(inner)})`);
 }
 
-function MarkdownComponents({onWikiLinkClick,completionData}){
+// Sizing presets per variant. Variants exist because the surrounding
+// page typography differs — log entries are denser, reflections slightly
+// larger. All three share the wiki-link anchor and urlTransform.
+const MD_VARIANTS={
+  note:       {pMargin:'0.85em',pLineHeight:1.8, h1Size:'1.3em', h2Size:'1.15em',h3Size:'1em',  h3Border:false},
+  log:        {pMargin:'0.85em',pLineHeight:1.8, h1Size:'1.25em',h2Size:'1.1em', h3Size:'1em',  h3Border:false},
+  reflection: {pMargin:'0.9em', pLineHeight:1.85,h1Size:'1.3em', h2Size:'1.15em',h3Size:'1em',  h3Border:false},
+};
+
+export function MarkdownComponents({variant='note',onWikiLinkClick,completionData}={}){
+  const v=MD_VARIANTS[variant]||MD_VARIANTS.note;
   return {
     a:({href,children,...rest})=>{
       const isExternal=href&&(href.startsWith('http://')||href.startsWith('https://'));
@@ -532,17 +542,61 @@ function MarkdownComponents({onWikiLinkClick,completionData}){
       const titleAttr=isWiki&&!wikiResolved?'no match':rest.title;
       return (<a href={href} onClick={handleClick} onTouchStart={suppress} style={wikilinkStyle} {...rest} title={titleAttr}>{children}</a>);
     },
-    p:({children})=><p style={{marginBottom:'0.85em',lineHeight:1.8}}>{children}</p>,
-    h1:({children})=><h1 style={{fontSize:'1.3em',fontWeight:400,marginBottom:'0.5em',marginTop:'1em',borderBottom:`1px solid rgba(244,238,227,0.12)`,paddingBottom:'0.2em'}}>{children}</h1>,
-    h2:({children})=><h2 style={{fontSize:'1.15em',fontWeight:400,marginBottom:'0.5em',marginTop:'0.9em'}}>{children}</h2>,
-    h3:({children})=><h3 style={{fontSize:'1em',fontWeight:400,marginBottom:'0.4em',marginTop:'0.8em',opacity:0.8}}>{children}</h3>,
+    p:({children})=><p style={{marginBottom:v.pMargin,lineHeight:v.pLineHeight}}>{children}</p>,
+    h1:({children})=><h1 style={{fontSize:v.h1Size,fontWeight:400,marginBottom:'0.5em',marginTop:'1em',borderBottom:`1px solid rgba(244,238,227,0.12)`,paddingBottom:'0.2em'}}>{children}</h1>,
+    h2:({children})=><h2 style={{fontSize:v.h2Size,fontWeight:400,marginBottom:'0.5em',marginTop:'0.9em'}}>{children}</h2>,
+    h3:({children})=><h3 style={{fontSize:v.h3Size,fontWeight:400,marginBottom:'0.4em',marginTop:'0.8em',opacity:0.8}}>{children}</h3>,
     hr:()=><hr style={{border:'none',borderTop:`1px solid rgba(244,238,227,0.15)`,margin:'1em 0'}}/>,
     ul:({children})=><ul style={{paddingLeft:'1.4em',marginBottom:'0.8em',listStyleType:'disc'}}>{children}</ul>,
     ol:({children})=><ol style={{paddingLeft:'1.4em',marginBottom:'0.8em',listStyleType:'decimal'}}>{children}</ol>,
     li:({children})=><li style={{marginBottom:'0.25em'}}>{children}</li>,
+    strong:({children})=><strong style={{fontWeight:600}}>{children}</strong>,
+    em:({children})=><em style={{fontStyle:'italic'}}>{children}</em>,
     code:({inline,children})=>inline?<code style={{background:'rgba(244,238,227,0.08)',padding:'1px 4px',fontSize:'0.88em',fontFamily:'monospace'}}>{children}</code>:<pre style={{background:'rgba(244,238,227,0.05)',padding:'0.75em 1em',overflowX:'auto',fontSize:'0.88em',fontFamily:'monospace',marginBottom:'0.8em'}}><code>{children}</code></pre>,
     blockquote:({children})=><blockquote style={{borderLeft:`2px solid ${IKB}`,paddingLeft:'0.8em',marginLeft:0,opacity:0.8,fontStyle:'italic'}}>{children}</blockquote>,
   };
+}
+
+// Quiet save indicator. States:
+//   idle     → nothing
+//   saved    → "saving…" for 200ms after savedAt, then "saved · just now"
+//              transitioning to "saved · N min ago" as time passes
+//   failed   → "save failed — quota full" (sticky until next successful save)
+// Italic, FAINT (or WARN for failure). Designed to read as a margin gloss,
+// not a status banner.
+export function SaveIndicator({status,className='',style={}}){
+  const [, setTick]=useState(0);
+  useEffect(()=>{
+    if(status?.status!=='saved')return;
+    const id=setInterval(()=>setTick(t=>t+1),60000);
+    return()=>clearInterval(id);
+  },[status?.status,status?.savedAt]);
+  if(!status||status.status==='idle')return null;
+  if(status.status==='failed'){
+    return (
+      <span className={`italic ${className}`} style={{color:WARN,fontFamily:serif,fontSize:'10px',opacity:0.9,...style}}>
+        save failed — quota full
+      </span>
+    );
+  }
+  if(status.status==='saved'){
+    const elapsed=Date.now()-(status.savedAt||0);
+    let text;
+    if(elapsed<250)text='saving…';
+    else if(elapsed<60000)text='saved · just now';
+    else{
+      const min=Math.floor(elapsed/60000);
+      text=`saved · ${min} min ago`;
+    }
+    // Beyond 30 minutes the message stops earning its space — fade out.
+    if(elapsed>30*60000)return null;
+    return (
+      <span className={`italic ${className}`} style={{color:FAINT,fontFamily:serif,fontSize:'10px',opacity:0.85,...style}}>
+        {text}
+      </span>
+    );
+  }
+  return null;
 }
 
 export function MarkdownField({value,onChange,placeholder,minHeight=80,className='',style={},readOnly=false,showDeepLinkHint=false,onWikiLinkClick,completionData}){

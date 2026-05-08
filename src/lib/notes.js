@@ -1,4 +1,5 @@
 import {displayTitle} from './items.js';
+import {isoWeekKey} from './dates.js';
 
 // ── Slug / fuzzy matching ──────────────────────────────────────────────────
 
@@ -30,8 +31,10 @@ export function scoreMatch(querySlug,candidateSlug){
 // ── Wiki-link resolution ───────────────────────────────────────────────────
 
 // Returns {type, target} or null.
-// type: 'day' | 'item' | 'spot' | 'program' | 'note'
+// type: 'day' | 'week' | 'month' | 'item' | 'spot' | 'program' | 'note'
 // target for 'day': date string
+// target for 'week': YYYY-Www key
+// target for 'month': YYYY-MM key
 // target for 'item': item id
 // target for 'spot': {itemId, spotId}
 // target for 'program': program id
@@ -43,6 +46,18 @@ export function resolveWikiLink(rawText, items, history, programs, notes){
   if(/^\d{4}-\d{2}-\d{2}$/.test(text)){
     const exists=Array.isArray(history)&&history.some(h=>(h.kind==='day'||!h.kind)&&h.date===text);
     return exists?{type:'day',target:text}:null;
+  }
+
+  // Week pattern: YYYY-Www  (e.g. 2026-W19)
+  if(/^\d{4}-W\d{2}$/.test(text)){
+    const exists=Array.isArray(history)&&history.some(h=>h.kind==='week'&&isoWeekKey(h.weekStart)===text);
+    return exists?{type:'week',target:text}:null;
+  }
+
+  // Month pattern: YYYY-MM
+  if(/^\d{4}-\d{2}$/.test(text)){
+    const exists=Array.isArray(history)&&history.some(h=>h.kind==='month'&&h.month===text);
+    return exists?{type:'month',target:text}:null;
   }
 
   // Spot pattern: text #SpotName

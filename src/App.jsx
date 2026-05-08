@@ -22,6 +22,7 @@ import {BG,SURFACE,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,WARM
 import {SECTION_CONFIG,APP_VERSION} from './constants/config.js';
 import {getItemTime,displayTitle,formatByline} from './lib/items.js';
 import {resolveWikiLink} from './lib/notes.js';
+import {isoWeekKey} from './lib/dates.js';
 import {DisplayHeader,Ring,StageLabels,Waveform,ItemPickerPopup,TargetEdit,TimeWithTarget,ItemTimeEditor,fmtSpotTime,PerformanceChip,SpotRow,SpotsBlock,Tooltip} from './components/shared.jsx';
 import {idbGet} from './lib/storage.js';
 import TodayView from './views/TodayView.jsx';
@@ -92,6 +93,12 @@ export default function Etudes(){
     if(resolved.type==='day'){
       const entry=history.find(h=>(h.kind==='day'||!h.kind)&&h.date===resolved.target);
       if(entry&&openLogEntry)openLogEntry(entry);
+    }else if(resolved.type==='week'){
+      const entry=history.find(h=>h.kind==='week'&&isoWeekKey(h.weekStart)===resolved.target);
+      if(entry&&openLogEntry)openLogEntry(entry);
+    }else if(resolved.type==='month'){
+      const entry=history.find(h=>h.kind==='month'&&h.month===resolved.target);
+      if(entry&&openLogEntry)openLogEntry(entry);
     }else if(resolved.type==='item'){
       setExpandedItemId(resolved.target);
       setView('repertoire');
@@ -108,7 +115,7 @@ export default function Etudes(){
   },[items,history,programs,freeNotes,openLogEntry,setExpandedItemId,setView,setSelectedProgramId,setRequestedNoteId]);
 
   const wikiCompletionData={items,history,programs,notes:freeNotes};
-  const commonProps={items,history,settings,itemTimes,fmt,fmtMin,recordingMeta,onWikiLinkClick:handleWikiLinkClick,wikiCompletionData,setConfirmModal};
+  const commonProps={items,history,settings,itemTimes,fmt,fmtMin,recordingMeta,onWikiLinkClick:handleWikiLinkClick,wikiCompletionData,setConfirmModal,writeStatus:s.writeStatus};
 
   return (
     <div className="h-screen flex flex-col" style={{background:BG,color:TEXT,fontFamily:sans}}>
@@ -142,10 +149,10 @@ export default function Etudes(){
           {view==='today'&&<TodayView {...{...commonProps,view,setView,todaySessions,setTodaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,totalToday,effectiveTotalToday,warmupTimeToday,restToday,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,deleteRecording,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,handleStartRecording,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,isRecording,currentBpm:metronome.bpm,refTrackMeta:s.refTrackMeta,refBarItemId:s.refBarItemId,setRefBarItemId:s.setRefBarItemId}}/>}
           {view==='review'&&<ReviewView {...{...commonProps,weekActualSeconds,weekReflection,setWeekReflection,monthActualSeconds,monthReflection,setMonthReflection,effectiveTotalToday,warmupTimeToday,openLogEntry}}/>}
           {view==='repertoire'&&<RepertoireView {...{...commonProps,view,setItems:s.setItems,updateItem,deleteItem,setPdfDrawerItemId,activeItemId,activeSpotId,startItem,stopItem,addItem,dayClosed,addSpot,updateSpot,deleteSpot,moveSpot,editSpotTime,addPerformance,updatePerformance,deletePerformance,pieceRecordingMeta:s.pieceRecordingMeta,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,deletePieceRecording:s.deletePieceRecording,lockPieceRecording:s.lockPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,isRecording,currentBpm:metronome.bpm,expandedItemId,setExpandedItemId,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,refTrackMeta:s.refTrackMeta,uploadRefTrack:s.uploadRefTrack,deleteRefTrack:s.deleteRefTrack,pdfUrlMap:s.pdfUrlMap,localPieceRecordingIds:s.localPieceRecordingIds,localRefTrackIds:s.localRefTrackIds}}/>}
-          {view==='programs'&&<ProgramsView items={items} programs={programs} setPrograms={setPrograms} selectedProgramId={selectedProgramId} setSelectedProgramId={setSelectedProgramId} setView={setView} freeNotes={freeNotes} setActiveNoteId={(id)=>{setRequestedNoteId(id);}} setConfirmModal={setConfirmModal}/>}
+          {view==='programs'&&<ProgramsView items={items} programs={programs} setPrograms={setPrograms} selectedProgramId={selectedProgramId} setSelectedProgramId={setSelectedProgramId} setView={setView} freeNotes={freeNotes} history={history} setActiveNoteId={(id)=>{setRequestedNoteId(id);}} setConfirmModal={setConfirmModal} onWikiLinkClick={handleWikiLinkClick} wikiCompletionData={wikiCompletionData}/>}
           {view==='routines'&&<RoutinesView {...{routines,setRoutines,loadRoutine,setPromptModal,setConfirmModal,todaySessions,setView,items,loadedRoutineId}}/>}
           {view==='logs'&&<LogsView {...{...commonProps,openLogEntry,freeNotes}}/>}
-          {view==='notes'&&<NotesView {...{freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes,programs,setSelectedProgramId,requestedNoteId,setRequestedNoteId,setConfirmModal}}/>}
+          {view==='notes'&&<NotesView {...{freeNotes,setFreeNotes,noteCategories,setNoteCategories,items,history,setView,setExpandedItemId,openLogEntry,seedTestNotes,programs,setSelectedProgramId,requestedNoteId,setRequestedNoteId,setConfirmModal,writeStatus:s.writeStatus,onWikiLinkClick:handleWikiLinkClick,wikiCompletionData}}/>}
           </ErrorBoundary>
         </main>
         {view==='today'&&!isMobile&&(
@@ -227,7 +234,7 @@ export default function Etudes(){
       <UpdatePrompt />
       {showSettings&&<SettingsModal initialTab={settingsInitialTab} settings={settings} setSettings={setSettings} storageMode={storageMode} onExportZip={buildZip} exportProgress={exportProgress} onExportJson={exportJson} onImportClick={()=>importInputRef.current?.click()} onClose={()=>setShowSettings(false)} user={s.user} signIn={s.signIn} signUp={s.signUp} signOut={s.signOut} signInWithGoogle={s.signInWithGoogle} syncStatus={s.syncStatus} lastSyncedAt={s.lastSyncedAt} syncNow={s.syncNow} syncPayloadWarning={s.syncPayloadWarning} seedTestNotes={seedTestNotes} devSeedAll={seedAll} devClearAll={clearAll} onSyncTabVisible={maybePullDriveOnSyncTab} driveBackgroundError={driveBackgroundError} onDismissDriveError={()=>setDriveBackgroundError(null)} driveBlobRestoreProgress={driveBlobRestoreProgress} driveBlobFailedCount={driveBlobFailedCount} onBackupDrive={backupDriveNow} onRestoreFromDrive={restoreFromDrive} onDriveDisconnectSession={disconnectDrive} onDriveConnect={connectDrive} setConfirmModal={setConfirmModal}/>}
       {pdfItem&&<Suspense fallback={null}><PdfDrawer {...{pdfItem,items,pdfUrlMap,pdfLibrary,itemTimes,activeItemId,activeSpotId,startItem,stopItem,updateItem,addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,addBookmark,removeBookmark,renameBookmark,fmt,setPromptModal,setConfirmModal,onClose:()=>setPdfDrawerItemId(null),dayClosed,addSpot,updateSpot,deleteSpot,editSpotTime}}/></Suspense>}
-      {logDrawerDate&&<LogDrawer entry={logDrawerEntry} dayData={logDrawerEntry?.kind==='day'?logDrawerEntry:(logDrawerEntry?null:resolveDayEntry(logDrawerDate))} items={items} recordingMeta={recordingMeta} freeNotes={freeNotes} onClose={closeLogDrawer} deleteRecording={deleteRecording}/>}
+      {logDrawerDate&&<LogDrawer entry={logDrawerEntry} dayData={logDrawerEntry?.kind==='day'?logDrawerEntry:(logDrawerEntry?null:resolveDayEntry(logDrawerDate))} items={items} recordingMeta={recordingMeta} freeNotes={freeNotes} onClose={closeLogDrawer} deleteRecording={deleteRecording} onWikiLinkClick={handleWikiLinkClick} wikiCompletionData={wikiCompletionData}/>}
       {confirmModal&&<ConfirmModal {...confirmModal} onCancel={()=>setConfirmModal(null)}/>}
       {promptModal&&<PromptModal {...promptModal} onCancel={()=>setPromptModal(null)}/>}
       {syncConflictModal&&<SyncConflictModal {...syncConflictModal}/>}

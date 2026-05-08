@@ -45,7 +45,16 @@ export default function useEtudesState(){
   // ── Storage ───────────────────────────────────────────────────────────────
   const [storageMode]=useState(()=>detectStorage());
   const [storageQuotaHit,setStorageQuotaHit]=useState(!storageAvailable);
-  useEffect(()=>{const h=()=>setStorageQuotaHit(true);window.addEventListener('etudes-storage-full',h);return()=>window.removeEventListener('etudes-storage-full',h);},[]);
+  // writeStatus: {status:'idle'|'saved'|'failed', savedAt, failedAt}
+  // Drives the SaveIndicator on writing surfaces. Updated by the writing-
+  // surface persist effect below; flips to 'failed' when the storage-full
+  // event fires and stays sticky until the next successful save.
+  const [writeStatus,setWriteStatus]=useState({status:'idle',savedAt:0,failedAt:0});
+  useEffect(()=>{
+    const h=()=>{setStorageQuotaHit(true);setWriteStatus({status:'failed',failedAt:Date.now(),savedAt:0});};
+    window.addEventListener('etudes-storage-full',h);
+    return()=>window.removeEventListener('etudes-storage-full',h);
+  },[]);
 
   // ── Persisted state ───────────────────────────────────────────────────────
   const [items,setItems]=useState(()=>migrateItems(lsGet('etudes-items',[])));
@@ -99,6 +108,17 @@ export default function useEtudesState(){
   useEffect(()=>{lsSet('etudes-history',history);},[history]);
   useEffect(()=>{lsSet('etudes-dayClosed',dayClosed);},[dayClosed]);
   useEffect(()=>{if(!mountedRef.current){mountedRef.current=true;return;}if(applyingCloudRef.current)return;lsSet('etudes-localDirtyAt',Date.now());},[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
+
+  // Mark a successful save when any writing-surface state changes after
+  // initial mount. The 'failed' state set by the storage-full handler is
+  // sticky for the rest of the session — once localStorage refuses, every
+  // subsequent write is in-memory only, so the indicator stays warning.
+  const writeStatusMountedRef=useRef(false);
+  useEffect(()=>{
+    if(!writeStatusMountedRef.current){writeStatusMountedRef.current=true;return;}
+    if(applyingCloudRef.current)return;
+    setWriteStatus(prev=>prev.status==='failed'?prev:{status:'saved',savedAt:Date.now(),failedAt:0});
+  },[freeNotes,items,history,dailyReflection,weekReflection,monthReflection,programs,noteCategories]);
 
   // Dev-only: listen for seed-complete event to refresh state without a page reload
   useEffect(()=>{
@@ -334,8 +354,8 @@ export default function useEtudesState(){
   const deleteNoteLogEntry=(itemId,entryId)=>setItems(p=>p.map(i=>i.id===itemId?{...i,noteLog:(i.noteLog||[]).filter(e=>e.id!==entryId)}:i));
   const updateNoteLogEntry=(itemId,entryId,text)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,noteLog:(i.noteLog||[]).map(e=>e.id===entryId?{...e,text}:e)}));
 
-  // Also update freeNotes tags on save
-  const saveFreeNote=(id,patch)=>{setFreeNotes(prev=>prev.map(n=>{if(n.id!==id)return n;const updated={...n,...patch};if(patch.body!==undefined)updated.tags=parseTagsFromBody(patch.body);return updated;}));};
+  // Also update freeNotes tags on save; stamp updatedAt for sort-by-modified.
+  const saveFreeNote=(id,patch)=>{setFreeNotes(prev=>prev.map(n=>{if(n.id!==id)return n;const updated={...n,...patch,updatedAt:Date.now()};if(patch.body!==undefined)updated.tags=parseTagsFromBody(patch.body);return updated;}));};
 
   // ── Debug: seed comprehensive test data ───────────────────────────────────
   const seedTestNotes=()=>{
@@ -639,7 +659,7 @@ export default function useEtudesState(){
     expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,
     logDrawerDate,logDrawerEntry,editingTimeItemId,setEditingTimeItemId,
     dragIdx,dragOverIdx,
-    storageMode,storageQuotaHit,setStorageQuotaHit,
+    storageMode,storageQuotaHit,setStorageQuotaHit,writeStatus,
     items,setItems,itemTimes,warmupTimeToday,restToday,workingOn,
     todaySessions,setTodaySessions,loadedRoutineId,routines,setRoutines,
     dailyReflection,setDailyReflection,weekReflection,setWeekReflection,
