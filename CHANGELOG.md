@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.98.0 — 2026-05-08
+
+### Drive backup status surface
+
+The Sync tab now carries a quiet, always-visible status line for
+Google Drive backup. Replaces the dismissable WARM banner that only
+appeared after a failure was already noticed.
+
+Seven derived states cover the lifecycle: *not connected*, *no backup
+yet*, *last backup N min ago*, *retrying* after one or two failures,
+*backup is failing* after three (WARN), *paused* when the queue
+circuit breaker has tripped (WARN), and the warm-up state when
+auto-backup is on but nothing has shipped yet.
+
+`pushToDrive` now records `lastAttemptedAt`, `lastFailureAt`,
+`lastFailureMessage`, and `consecutiveFailures` on the drive manifest
+so the surface can read truth without standing infrastructure. Clicking
+**Backup now** while the circuit is paused clears the pause and
+retries.
+
+A 60-second tick re-renders the relative time while the Sync tab is
+open. No notifications. No copy outside Settings.
+
 ## v0.97.38 — 2026-05-07
 
 ### `useViewport`: tablet → desktop in landscape, mobile in portrait

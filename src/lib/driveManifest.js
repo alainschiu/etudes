@@ -22,6 +22,11 @@ export const DRIVE_MANIFEST_KEY = 'etudes-driveManifest';
  *   lastPushedAt?: string,
  *   lastPulledAt?: string,
  *   journalRemoteModifiedTime?: string,
+ *   lastJsonPushAt?: number,
+ *   lastAttemptedAt?: string,
+ *   lastFailureAt?: string,
+ *   lastFailureMessage?: string,
+ *   consecutiveFailures?: number,
  * }} DriveManifest
  */
 
