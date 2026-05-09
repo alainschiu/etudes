@@ -1,5 +1,57 @@
 # Changelog
 
+## v0.98.2 — 2026-05-10
+
+### Sync hardening — pass two
+
+Multi-device setup, storage visibility, retryable sync errors, and
+a quick affordance to view the Drive backup folder.
+
+#### Multi-device
+
+- New "fresh device" prompt: after Supabase pulls cloud data onto a
+  previously-empty device with Drive configured but not connected
+  here, a single ConfirmModal offers to connect Drive and restore
+  audio + PDFs in one flow. Bypasses the destructive-restore
+  confirmation since there's no local data to lose. Dismissable;
+  in-memory flag, not persisted.
+- `src/state/useEtudesState.js`: tracks `freshDevicePromptPending`,
+  set with an 800 ms delay in the `localEmpty` apply branch so the
+  user sees the journal populate before being asked.
+- `src/App.jsx`: renders the prompt when the flag is set, Drive is
+  configured, not yet connected, and no other ConfirmModal is
+  active. Fires `requestDriveTokenInteractive()` synchronously from
+  the user's gesture (iOS Safari rules) before kicking
+  `connectDrive()` + `restoreFromDrive()`.
+
+#### Storage quota
+
+- `src/components/modals.jsx · SettingsModal` Sync tab: WARN block
+  surfaces when `storageQuotaHit` is true. Copy: *"Local storage is
+  full. New recordings and edits cannot be saved on this device.
+  Export a backup, then remove old data, or sign in on a device
+  with more space."* The detection mechanism
+  (`etudes-storage-full` custom event) was already in place; this
+  finally renders it.
+
+#### Sync error retry
+
+- *Sync now* button label changes from *"Sync error"* to *"Retry
+  sync"* in error state. The click already triggered a retry; the
+  label now reads as the action.
+
+#### Drive folder link
+
+- *View backup folder ↗* link in the Drive section opens
+  `drive.google.com/drive/folders/{driveRootFolderId}` in a new
+  tab, shown only when connected and the folder ID is known.
+
+#### Versioning
+
+- `package.json` → `0.98.2`
+- `src/constants/config.js` → `APP_VERSION = '0.98.2'`
+- `SCHEMA_VERSION` unchanged.
+
 ## v0.98.1 — 2026-05-09
 
 ### Sync hardening
