@@ -1,5 +1,85 @@
 # Changelog
 
+## v0.98.1 — 2026-05-09
+
+### Sync hardening
+
+A pass on the sync layer covering Drive auth, account-sync stability,
+and destructive-action confirmations.
+
+#### Drive
+
+- `src/lib/driveAuth.js`: split interactive token request into
+  `prepareDriveAuth()` (async, idempotent, called eagerly at app
+  boot), `isDriveAuthReady()` (sync check), and
+  `requestDriveTokenInteractive()` (sync popup trigger from a user
+  gesture). Fixes iOS Safari popup-blocker that has prevented Drive
+  Connect from working on iPhone since launch — the previous flow
+  had an `await loadGisScript()` between the click and the popup
+  call, killing the gesture context even when GIS was already
+  loaded.
+- `src/App.jsx`: kicks off `prepareDriveAuth()` on mount when
+  `isDriveConfigured()`.
+- `src/components/modals.jsx`: Connect Google Drive button click
+  handler now triggers the popup synchronously. If the user taps
+  before auth is ready, surfaces *"Drive auth still loading. Try
+  again in a moment."* and primes auth in the background; second
+  tap a moment later succeeds.
+- `src/lib/driveSync.js`: `lastAttemptedAt` manifest write moved
+  inside the try block. A localStorage failure during the
+  attempt-write is now caught and increments `consecutiveFailures`
+  correctly instead of escaping silently.
+
+#### Destructive confirms
+
+- *Restore from Drive* now opens a destructive confirm before
+  replacing local state. Copy: *"Replace local journal with the
+  Drive backup? Local changes since the last successful backup will
+  be lost. Audio and PDFs already on this device are kept."*
+- *Disconnect Drive* now opens a quiet confirm before stopping
+  auto-backup. Copy: *"Disconnect Google Drive? Auto-backup will
+  stop. Your existing Drive backup is preserved and can be restored
+  later."*
+
+#### Account sync — conflict modal trigger fix
+
+The "Sync — both devices have data" modal was firing on every page
+load and every ~50 minutes during open sessions, even when local
+and cloud were structurally identical. Three combined causes, all
+addressed:
+
+- `src/lib/useSupabaseAuth.js`: added `signInEpoch` counter that
+  increments only on the initial `getUser()` resolve and on real
+  `SIGNED_IN` / `SIGNED_OUT` transitions. `INITIAL_SESSION`,
+  `TOKEN_REFRESHED`, and `USER_UPDATED` events no longer trigger
+  the conflict-check.
+- `src/state/useEtudesState.js`: conflict-check effect now depends
+  on `signInEpoch` instead of the `user` reference, eliminating
+  false re-runs on token refresh.
+- `src/lib/sync.js`: new `structurallyEqual()` helper used in place
+  of `JSON.stringify` equality for item overlap detection. Items
+  round-tripped through Postgres JSONB no longer false-positive as
+  conflicting due to key-order differences.
+- `src/state/useEtudesState.js`: silent auto-merge broadened. When
+  every shared id is structurally equal, the union of unique items
+  merges silently regardless of which side has more. The conflict
+  modal is reserved for genuine semantic conflicts.
+
+#### Tests
+
+- `vitest.config.js` + npm scripts `test` / `test:watch`. Pure
+  helpers only, ~400 ms.
+- 28 tests across `sync.test.js`, `driveStatus.test.js`,
+  `driveAuth.test.js` covering `structurallyEqual`,
+  `deriveDriveStatus`, `formatRelative`, `formatResumeIn`, and the
+  driveAuth surface shape.
+
+#### Versioning
+
+- `package.json` → `0.98.1`
+- `src/constants/config.js` → `APP_VERSION = '0.98.1'`
+- `SCHEMA_VERSION` unchanged.
+
 ## v0.98.0 — 2026-05-08
 
 ### Drive backup status surface
