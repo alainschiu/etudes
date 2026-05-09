@@ -88,7 +88,7 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,onExportZip,
                 <div className="flex flex-col items-end gap-2 shrink-0">
                   <button onClick={syncNow} disabled={syncStatus==='syncing'} className="uppercase flex items-center gap-1.5" style={{color:syncStatus==='error'?WARN:IKB,fontSize:'9px',letterSpacing:'0.22em',opacity:syncStatus==='syncing'?0.5:1}}>
                     {syncStatus==='syncing'?<Loader className="w-3 h-3 animate-spin" strokeWidth={1.5}/>:syncStatus==='error'?<CloudOff className="w-3 h-3" strokeWidth={1.5}/>:<Cloud className="w-3 h-3" strokeWidth={1.5}/>}
-                    {syncStatus==='syncing'?'Syncing…':syncStatus==='error'?'Sync error':'Sync now'}
+                    {syncStatus==='syncing'?'Syncing…':syncStatus==='error'?'Retry sync':'Sync now'}
                   </button>
                   <button onClick={signOut} className="uppercase flex items-center gap-1.5" style={{color:MUTED,fontSize:'9px',letterSpacing:'0.22em'}}><CloudOff className="w-3 h-3" strokeWidth={1.25}/> Sign out</button>
                 </div>
