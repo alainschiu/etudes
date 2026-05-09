@@ -18,6 +18,26 @@ and destructive-action confirmations.
   had an `await loadGisScript()` between the click and the popup
   call, killing the gesture context even when GIS was already
   loaded.
+- `requestDriveTokenInteractive()` now wraps the GIS callback with
+  a 12-second safety timeout. GIS does not fire its callback when
+  a browser silently blocks the popup (no error path back), which
+  previously left the Connect button locked indefinitely. On
+  timeout the promise rejects with *"No response from Google
+  sign-in. The pop-up may have been blocked. Allow pop-ups for
+  this site and try again."*
+- `index.html`: added `<link rel="preconnect">` and
+  `<link rel="preload" as="script">` for `accounts.google.com/gsi/client`
+  so GIS is parsed during initial page load. Combined with
+  `prepareDriveAuth()` on App mount, this ensures
+  `isDriveAuthReady()` is true by the time a user reaches the
+  Connect button.
+- `src/components/modals.jsx`: Connect button click handler
+  reordered — `requestDriveTokenInteractive()` is the very first
+  call after the readiness check. All React state updates
+  (`setDriveBusy`, `setDriveLine`) now run *after* the popup is in
+  flight, so React's render-scheduling cannot cost gesture context
+  on strict iOS WebKit builds. Added `touch-action: manipulation`
+  to the button to remove iOS's 300 ms tap delay.
 - `src/App.jsx`: kicks off `prepareDriveAuth()` on mount when
   `isDriveConfigured()`.
 - `src/components/modals.jsx`: Connect Google Drive button click

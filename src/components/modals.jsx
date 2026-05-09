@@ -117,16 +117,26 @@ export function SettingsModal({settings,setSettings,onExportZip,exportProgress,o
                       type="button"
                       disabled={driveBusy}
                       onClick={()=>{
+                        // Order matters on iOS Safari: the readiness check must
+                        // run before any React state update, and the popup call
+                        // (requestDriveTokenInteractive) must run before any
+                        // setState. setState schedules a re-render which can
+                        // cost gesture context on strict iOS WebKit builds.
                         if(!isDriveAuthReady()){
                           setDriveLine('Drive auth still loading. Try again in a moment.');
                           prepareDriveAuth();
                           return;
                         }
-                        setDriveBusy(true);setDriveLine('');
-                        // Popup fires synchronously here — no awaits between gesture and request.
                         let tokenPromise;
                         try{tokenPromise=requestDriveTokenInteractive();}
-                        catch(e){setDriveLine(formatDriveOAuthError(e instanceof Error?e.message:String(e)));setDriveBusy(false);return;}
+                        catch(e){
+                          setDriveLine(formatDriveOAuthError(e instanceof Error?e.message:String(e)));
+                          return;
+                        }
+                        // Popup is now in flight (or its error is queued). Safe to
+                        // touch React state — the gesture context is no longer needed.
+                        setDriveBusy(true);
+                        setDriveLine('');
                         tokenPromise
                           .then(async()=>{
                             if(onDriveConnect){await onDriveConnect();}
@@ -138,7 +148,7 @@ export function SettingsModal({settings,setSettings,onExportZip,exportProgress,o
                           .finally(()=>setDriveBusy(false));
                       }}
                       className="uppercase flex items-center gap-1.5 px-3 py-2"
-                      style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em',opacity:driveBusy?0.5:1}}
+                      style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em',opacity:driveBusy?0.5:1,touchAction:'manipulation'}}
                     >
                       {driveBusy?<Loader className="w-3 h-3 animate-spin" strokeWidth={1.5}/>:null}
                       Connect Google Drive
