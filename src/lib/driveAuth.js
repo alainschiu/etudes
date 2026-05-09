@@ -103,7 +103,53 @@ function ensureTokenClient() {
 }
 
 /**
- * @param {{ interactive?: boolean }} [opts] interactive false → silent renewal (empty prompt)
+ * Eagerly load GIS and initialize the token client. Idempotent.
+ * Call from app boot when isDriveConfigured() so requestDriveTokenInteractive()
+ * can fire synchronously from a user gesture (iOS Safari popup-blocker fix).
+ * @returns {Promise<void>}
+ */
+export function prepareDriveAuth() {
+  return loadGisScript().then(() => {
+    try { ensureTokenClient(); } catch { /* missing client id is surfaced on first use */ }
+  });
+}
+
+/** Synchronous readiness check — true when GIS is loaded AND tokenClient exists. */
+export function isDriveAuthReady() {
+  return !!(typeof window !== 'undefined' && window.google?.accounts?.oauth2 && tokenClient);
+}
+
+/**
+ * Synchronous popup trigger. Must be called directly from a user-gesture
+ * handler (click/tap) — no awaits between the gesture and this call.
+ * Throws synchronously if !isDriveAuthReady().
+ * @returns {Promise<string>}
+ */
+export function requestDriveTokenInteractive() {
+  if (!isDriveAuthReady()) throw new Error('Drive auth not ready');
+  if (inflightToken) return inflightToken;
+
+  inflightToken = new Promise((resolve, reject) => {
+    resolvePending = resolve;
+    rejectPending = reject;
+    try {
+      tokenClient.requestAccessToken({ prompt: 'consent' });
+    } catch (e) {
+      resolvePending = null;
+      rejectPending = null;
+      reject(e instanceof Error ? e : new Error(String(e)));
+    }
+  }).finally(() => {
+    inflightToken = null;
+  });
+
+  return inflightToken;
+}
+
+/**
+ * @param {{ interactive?: boolean }} [opts] interactive false → silent renewal (empty prompt).
+ *   For interactive auth from a user gesture, prefer requestDriveTokenInteractive().
+ *   This async path remains for silent renewal (no popup, no gesture rules).
  * @returns {Promise<string>}
  */
 export async function getDriveAccessToken(opts = {}) {

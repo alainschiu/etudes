@@ -1,6 +1,6 @@
 import React, {useState, useRef, useEffect} from 'react';
 import useFocusTrap from '../hooks/useFocusTrap.js';
-import {isDriveConfigured, getDriveAccessToken, clearDriveSession, hasDriveToken, forceExpireCachedDriveToken} from '../lib/driveAuth.js';
+import {isDriveConfigured, clearDriveSession, hasDriveToken, forceExpireCachedDriveToken, isDriveAuthReady, prepareDriveAuth, requestDriveTokenInteractive} from '../lib/driveAuth.js';
 import {probeDriveConnection, spikeSilentDriveRenewal} from '../lib/driveSync.js';
 import {formatDriveOAuthError} from '../lib/driveOAuthMessages.js';
 import {readDriveManifest} from '../lib/driveManifest.js';
@@ -116,13 +116,26 @@ export function SettingsModal({settings,setSettings,onExportZip,exportProgress,o
                     {!hasDriveToken()&&<button
                       type="button"
                       disabled={driveBusy}
-                      onClick={async()=>{
+                      onClick={()=>{
+                        if(!isDriveAuthReady()){
+                          setDriveLine('Drive auth still loading. Try again in a moment.');
+                          prepareDriveAuth();
+                          return;
+                        }
                         setDriveBusy(true);setDriveLine('');
-                        try{
-                          if(onDriveConnect){await onDriveConnect();const r=await probeDriveConnection();if(r.ok)setDriveLine(r.user?.emailAddress?`Connected (${r.user.emailAddress})`:'Connected to Drive');else setDriveLine(r.error||'Connection failed');}
-                          else{await getDriveAccessToken({interactive:true});const r=await probeDriveConnection();if(r.ok)setDriveLine(r.user?.emailAddress?`Connected (${r.user.emailAddress})`:'Connected to Drive');else setDriveLine(r.error||'Connection failed');}
-                        }catch(e){setDriveLine(formatDriveOAuthError(e instanceof Error?e.message:String(e)));}
-                        finally{setDriveBusy(false);}
+                        // Popup fires synchronously here — no awaits between gesture and request.
+                        let tokenPromise;
+                        try{tokenPromise=requestDriveTokenInteractive();}
+                        catch(e){setDriveLine(formatDriveOAuthError(e instanceof Error?e.message:String(e)));setDriveBusy(false);return;}
+                        tokenPromise
+                          .then(async()=>{
+                            if(onDriveConnect){await onDriveConnect();}
+                            const r=await probeDriveConnection();
+                            if(r.ok)setDriveLine(r.user?.emailAddress?`Connected (${r.user.emailAddress})`:'Connected to Drive');
+                            else setDriveLine(r.error||'Connection failed');
+                          })
+                          .catch(e=>setDriveLine(formatDriveOAuthError(e instanceof Error?e.message:String(e))))
+                          .finally(()=>setDriveBusy(false));
                       }}
                       className="uppercase flex items-center gap-1.5 px-3 py-2"
                       style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em',opacity:driveBusy?0.5:1}}
