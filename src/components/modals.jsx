@@ -150,7 +150,11 @@ export function SettingsModal({settings,setSettings,onExportZip,exportProgress,o
                         <button
                           type="button"
                           disabled={driveBusy}
-                          onClick={()=>{if(onDriveDisconnectSession)onDriveDisconnectSession();else{clearDriveSession();}setDriveLine('Signed out of Drive on this device');}}
+                          onClick={()=>{
+                            const run=()=>{if(onDriveDisconnectSession)onDriveDisconnectSession();else{clearDriveSession();}setDriveLine('Signed out of Drive on this device');};
+                            if(setConfirmModal){setConfirmModal({message:'Disconnect Google Drive?\n\nAuto-backup will stop. Your existing Drive backup is preserved and can be restored later.',confirmLabel:'Disconnect',onConfirm:()=>{setConfirmModal(null);run();},onCancel:()=>setConfirmModal(null)});}
+                            else run();
+                          }}
                           className="uppercase px-3 py-2"
                           style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}
                         >
