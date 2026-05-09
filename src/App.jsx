@@ -37,6 +37,7 @@ import UpdatePrompt from './components/UpdatePrompt.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import {SettingsModal,ConfirmModal,PromptModal,SyncConflictModal,DriveConflictModal} from './components/modals.jsx';
 import {getDriveQueueCircuitState,clearDriveQueueCircuitPause} from './lib/driveQueueCircuit.js';
+import {prepareDriveAuth,isDriveConfigured} from './lib/driveAuth.js';
 const PdfDrawer = lazy(() => import('./components/PdfDrawer.jsx'));
 import useEtudesState from './state/useEtudesState.js';
 import {seedAll, clearAll} from './dev/DevToolsBar.jsx';
@@ -51,6 +52,8 @@ export default function Etudes(){
   const [requestedNoteId,setRequestedNoteId]=useState(null);
   const [clockTime,setClockTime]=useState(()=>{const n=new Date();return`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;});
   useEffect(()=>{const tick=()=>{const n=new Date();setClockTime(`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`);};const id=setInterval(tick,10000);return()=>clearInterval(id);},[]);
+  // Eager GIS load — keeps the iOS user-gesture chain intact when Connect Drive is tapped.
+  useEffect(()=>{if(!isDriveConfigured())return;prepareDriveAuth().catch(()=>{});},[]);
   const mainScrollRef=useRef(null);
   const scrollToTop=()=>mainScrollRef.current?.scrollTo({top:0,behavior:'smooth'});
   const [refBarVisible,setRefBarVisible]=useState(false);
