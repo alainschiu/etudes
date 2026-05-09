@@ -13,7 +13,7 @@ import UploadIcon from 'lucide-react/dist/esm/icons/upload';
 import Cloud from 'lucide-react/dist/esm/icons/cloud';
 import CloudOff from 'lucide-react/dist/esm/icons/cloud-off';
 import Loader from 'lucide-react/dist/esm/icons/loader';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARN, WARN_SOFT, LINK, serif} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARN, WARN_SOFT, serif} from '../constants/theme.js';
 import appPkg from '../../package.json';
 
 const SHORTCUTS=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k:'M',v:'Toggle metronome'},{k:'D',v:'Toggle tuning drone'},{k:'T',v:'Tap tempo'},{k:'L',v:'Log BPM'},{k:'N',v:'Quick note'},{k:'1 – 4',v:'Jump to section'},{k:'?',v:'Open Réglages'},{k:'Esc',v:'Close'}];
@@ -261,8 +261,9 @@ export function SettingsModal({settings,setSettings,onExportZip,exportProgress,o
             }}
           >etudes.me/guide →</a>
         </div>
-        <div className="mt-4 italic" style={{color:FAINT,fontFamily:serif,fontSize:'12px',lineHeight:1.6}}>
-          For support, write to <a href="mailto:support@etudes.me" style={{color:LINK,borderBottom:`1px solid ${LINK}55`,textDecoration:'none'}}>support@etudes.me</a>
+        <div className="flex items-baseline justify-between gap-4 py-3" style={{borderBottom:`1px solid ${LINE}`}}>
+          <div className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Support</div>
+          <a href="mailto:support@etudes.me" className="shrink-0" style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em',cursor:'pointer'}}>support@etudes.me →</a>
         </div>
         {(seedTestNotes||devSeedAll||devClearAll)&&(
           <div className="pt-3">
