@@ -123,6 +123,12 @@ export function isDriveAuthReady() {
  * Synchronous popup trigger. Must be called directly from a user-gesture
  * handler (click/tap) — no awaits between the gesture and this call.
  * Throws synchronously if !isDriveAuthReady().
+ *
+ * Includes a 12-second safety timeout: GIS does not fire its callback when
+ * iOS Safari (or any browser) silently blocks the popup, so without a
+ * timeout the returned promise would hang and the UI would stay locked
+ * forever. On timeout the promise rejects with a hint about pop-ups.
+ *
  * @returns {Promise<string>}
  */
 export function requestDriveTokenInteractive() {
@@ -130,15 +136,28 @@ export function requestDriveTokenInteractive() {
   if (inflightToken) return inflightToken;
 
   inflightToken = new Promise((resolve, reject) => {
-    resolvePending = resolve;
-    rejectPending = reject;
+    let settled = false;
+    let timer = null;
+    const settle = (fn) => {
+      if (settled) return;
+      settled = true;
+      if (timer) clearTimeout(timer);
+      resolvePending = null;
+      rejectPending = null;
+      fn();
+    };
+    resolvePending = (v) => settle(() => resolve(v));
+    rejectPending  = (e) => settle(() => reject(e));
+
     try {
       tokenClient.requestAccessToken({ prompt: 'consent' });
     } catch (e) {
-      resolvePending = null;
-      rejectPending = null;
-      reject(e instanceof Error ? e : new Error(String(e)));
+      settle(() => reject(e instanceof Error ? e : new Error(String(e))));
+      return;
     }
+    timer = setTimeout(() => {
+      settle(() => reject(new Error('No response from Google sign-in. The pop-up may have been blocked. Allow pop-ups for this site and try again.')));
+    }, 12_000);
   }).finally(() => {
     inflightToken = null;
   });

@@ -19,6 +19,11 @@ href="/apple-touch-icon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com"/>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
     <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500;1,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+    <!-- Preconnect + preload GIS so prepareDriveAuth() resolves quickly on
+         arrival at Settings → Sync. Required for the iOS Safari gesture-
+         context fix to be reliable: GIS must be parsed before the user taps. -->
+    <link rel="preconnect" href="https://accounts.google.com" crossorigin/>
+    <link rel="preload" href="https://accounts.google.com/gsi/client" as="script" crossorigin/>
   </head>
   <style>html,body{background:#111010;margin:0;padding:0;}</style>
   <body>
