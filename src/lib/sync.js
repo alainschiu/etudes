@@ -67,6 +67,34 @@ export function measureSyncPayload(state) {
   catch { return 0; }
 }
 
+/**
+ * Stable structural equality. Ignores object key order and
+ * undefined-vs-missing fields. Used in place of JSON.stringify
+ * comparison for items round-tripped through Postgres JSONB,
+ * which does not preserve key order.
+ *
+ * @param {unknown} a
+ * @param {unknown} b
+ * @returns {boolean}
+ */
+export function structurallyEqual(a, b) {
+  if (a === b) return true;
+  if (a == null || b == null) return a === b;
+  if (typeof a !== typeof b) return false;
+  if (typeof a !== 'object') return false;
+  if (Array.isArray(a) !== Array.isArray(b)) return false;
+  if (Array.isArray(a)) {
+    if (a.length !== b.length) return false;
+    for (let i = 0; i < a.length; i++) if (!structurallyEqual(a[i], b[i])) return false;
+    return true;
+  }
+  const aKeys = Object.keys(a).filter(k => a[k] !== undefined);
+  const bKeys = Object.keys(b).filter(k => b[k] !== undefined);
+  if (aKeys.length !== bKeys.length) return false;
+  for (const k of aKeys) if (!structurallyEqual(a[k], b[k])) return false;
+  return true;
+}
+
 export async function syncToCloud(userId, state) {
   try {
     const {error} = await supabase

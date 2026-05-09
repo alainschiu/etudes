@@ -2,7 +2,7 @@ import {useState,useEffect,useRef,useMemo,useCallback} from 'react';
 import {DEFAULT_SESSIONS,TYPES,ROLLOVER_KEY,WEEK_ROLLOVER_KEY,MONTH_ROLLOVER_KEY} from '../constants/config.js';
 import {idbPut,idbDel,idbGet,idbAllKeys,storageAvailable,detectStorage,lsGet,lsSet} from '../lib/storage.js';
 import {useSupabaseAuth} from '../lib/useSupabaseAuth.js';
-import {loadFromCloud,syncToCloud,mergeStates,LS_CLOUD_SYNC_KEY} from '../lib/sync.js';
+import {loadFromCloud,syncToCloud,mergeStates,structurallyEqual,LS_CLOUD_SYNC_KEY} from '../lib/sync.js';
 import {todayDateStr,shiftDate,getWeekStart,getMonthKey} from '../lib/dates.js';
 import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,mkNoteLogId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem} from '../lib/items.js';
 import {migrateItems,migrateSessions,migrateRoutines,migrateHistory,migratePrograms} from '../lib/migrations.js';
@@ -141,7 +141,7 @@ export default function useEtudesState(){
   // ── Sub-hooks ─────────────────────────────────────────────────────────────
   const metro=useMetronome();
   const {metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,handleTap}=metro;
-  const {user,signIn,signUp,signOut,signInWithGoogle}=useSupabaseAuth();
+  const {user,signInEpoch,signIn,signUp,signOut,signInWithGoogle}=useSupabaseAuth();
   const userRef=useRef(null);
   useEffect(()=>{userRef.current=user;},[user]);
   const [syncStatus,setSyncStatus]=useState('idle'); // 'idle'|'syncing'|'error'
@@ -592,19 +592,25 @@ export default function useEtudesState(){
     const localIds=new Set(localItems.map(i=>i.id));
     const localOnlyItems=localItems.filter(i=>!remoteIds.has(i.id));
     const remoteOnlyItems=remoteItems.filter(i=>!localIds.has(i.id));
-    const hasOverlap=localItems.some(i=>remoteIds.has(i.id)&&remoteItems.find(r=>r.id===i.id&&JSON.stringify(r)!==JSON.stringify(i)));
+    // Structural compare — JSON.stringify false-positives on key-order differences
+    // (Postgres JSONB does not preserve key order on round-trip).
+    const hasOverlap=localItems.some(i=>remoteIds.has(i.id)&&remoteItems.find(r=>r.id===i.id&&!structurallyEqual(r,i)));
 
-    // No conflicting ids on either side — auto-merge silently, no user decision needed
-    if(!hasOverlap&&(localOnlyItems.length===0||remoteOnlyItems.length===0)){
-      if(remoteOnlyItems.length>0){
-        // Remote has items local doesn't — merge in remote's extras
+    // Silent auto-merge: every shared id has identical content. The union of
+    // unique items merges via mergeStates (local wins on shared ids — a no-op
+    // here since they're equal — and unique items from each side combine).
+    // This is the expected multi-device case: practiced on both, no semantic
+    // conflict, no user decision needed.
+    if(!hasOverlap){
+      if(remoteOnlyItems.length>0||localOnlyItems.length>0){
         const merged=mergeStates(syncStateRef.current,remoteState);
-        applyCloudStateRef.current(merged);await syncToCloud(user.id,merged);
+        applyCloudStateRef.current(merged);
+        await syncToCloud(user.id,merged);
       }
-      setLastSyncedAt(Date.now());setSyncStatus('idle');return;
+      lsSet('etudes-localDirtyAt',0);setLastSyncedAt(Date.now());setSyncStatus('idle');return;
     }
 
-    // Conflict: both sides have data that differs — give user a choice
+    // Genuine conflict: at least one shared id differs. Ask the user.
     pendingRemoteRef.current=remoteState;
     setSyncConflictModal({
       localCount:localOnlyItems.length||localItems.length,
@@ -614,7 +620,7 @@ export default function useEtudesState(){
       onKeepLocal:async()=>{await syncToCloud(user.id,syncStateRef.current);lsSet('etudes-localDirtyAt',0);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
       onKeepCloud:()=>{applyCloudStateRef.current(pendingRemoteRef.current);lsSet(LS_CLOUD_SYNC_KEY,Date.now());lsSet('etudes-localDirtyAt',0);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
     });
-  }catch{setSyncStatus('error');}})();},[user]);// eslint-disable-line
+  }catch{setSyncStatus('error');}})();},[signInEpoch]);// eslint-disable-line
   // Debounced cold-state sync (5 s)
   useEffect(()=>{if(!user)return;const t=setTimeout(doSync,5000);return()=>clearTimeout(t);},[coldState,user]);// eslint-disable-line
   // Flush on tab hide and reconnect
