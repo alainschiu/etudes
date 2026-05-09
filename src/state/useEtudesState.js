@@ -8,6 +8,7 @@ import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,mkNoteLogId,getItemTim
 import {migrateItems,migrateSessions,migrateRoutines,migrateHistory,migratePrograms} from '../lib/migrations.js';
 import {buildCompositeDailyReflection,parseTagsFromBody} from '../lib/notes.js';
 import {checkAndSendReminder} from '../lib/notifications.js';
+import {isDriveConfigured,hasDriveToken} from '../lib/driveAuth.js';
 import {measureSyncPayload} from '../lib/sync.js';
 import useMetronome from '../hooks/useMetronome.js';
 import useRecording from '../hooks/useRecording.js';
@@ -29,6 +30,12 @@ export default function useEtudesState(){
   const [promptModal,setPromptModal]=useState(null);
   const [syncConflictModal,setSyncConflictModal]=useState(null);
   const [driveConflictModal,setDriveConflictModal]=useState(null);
+  // Set after auto-applying cloud state to a previously-empty device when
+  // Drive is configured but not yet connected on this device. Drives a
+  // one-shot ConfirmModal in App.jsx offering Connect Drive + Restore.
+  // In-memory by design: dismissing once is permanent for the session;
+  // a reload gives the user one more chance.
+  const [freshDevicePromptPending,setFreshDevicePromptPending]=useState(false);
   const pendingRemoteRef=useRef(null);
   const applyingCloudRef=useRef(false);
   const mountedRef=useRef(false);
@@ -575,7 +582,16 @@ export default function useEtudesState(){
 
     // Device has no meaningful local data — just apply cloud directly
     const localEmpty=localItems.length===0&&localHistory.length===0;
-    if(localEmpty){applyCloudStateRef.current(remoteState);setLastSyncedAt(Date.now());setSyncStatus('idle');return;}
+    if(localEmpty){
+      applyCloudStateRef.current(remoteState);setLastSyncedAt(Date.now());setSyncStatus('idle');
+      // Fresh device + cloud has data + Drive available + not yet connected
+      // here → offer to reconnect Drive and pull audio/PDFs in one flow.
+      // Delay so the user sees their journal populate before being prompted.
+      if(isDriveConfigured()&&!hasDriveToken()){
+        setTimeout(()=>setFreshDevicePromptPending(true),800);
+      }
+      return;
+    }
 
     // Device has local data: check if it was mutated since last confirmed cloud sync
     const lastCloudSync=lsGet(LS_CLOUD_SYNC_KEY,0);
@@ -641,6 +657,7 @@ export default function useEtudesState(){
   return {
     view,setView,showSettings,setShowSettings,settingsInitialTab,openSettings,
     exportMenu,setExportMenu,confirmModal,setConfirmModal,promptModal,setPromptModal,syncConflictModal,driveConflictModal,
+    freshDevicePromptPending,setFreshDevicePromptPending,
     quickNoteOpen,setQuickNoteOpen,restoreBusy,
     expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,
     logDrawerDate,logDrawerEntry,editingTimeItemId,setEditingTimeItemId,

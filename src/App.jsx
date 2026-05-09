@@ -37,7 +37,8 @@ import UpdatePrompt from './components/UpdatePrompt.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import {SettingsModal,ConfirmModal,PromptModal,SyncConflictModal,DriveConflictModal} from './components/modals.jsx';
 import {getDriveQueueCircuitState,clearDriveQueueCircuitPause} from './lib/driveQueueCircuit.js';
-import {prepareDriveAuth,isDriveConfigured} from './lib/driveAuth.js';
+import {prepareDriveAuth,isDriveConfigured,isDriveAuthReady,requestDriveTokenInteractive,hasDriveToken} from './lib/driveAuth.js';
+import {formatDriveOAuthError} from './lib/driveOAuthMessages.js';
 const PdfDrawer = lazy(() => import('./components/PdfDrawer.jsx'));
 import useEtudesState from './state/useEtudesState.js';
 import {seedAll, clearAll} from './dev/DevToolsBar.jsx';
@@ -60,7 +61,7 @@ export default function Etudes(){
   const [refBarSpeed,setRefBarSpeed]=useState(1.0);
   useEffect(()=>{if(s.refBarItemId){setRefBarSpeed(1.0);const id=requestAnimationFrame(()=>setRefBarVisible(true));return()=>cancelAnimationFrame(id);}else{setRefBarVisible(false);};},[s.refBarItemId]);
   const closeRefBar=()=>{setRefBarVisible(false);setTimeout(()=>s.setRefBarItemId(null),280);};
-  const {view,setView,showSettings,setShowSettings,settingsInitialTab,openSettings,exportMenu,setExportMenu,confirmModal,setConfirmModal,promptModal,setPromptModal,syncConflictModal,driveConflictModal,quickNoteOpen,setQuickNoteOpen,restoreBusy,expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,logDrawerDate,logDrawerEntry,editingTimeItemId,setEditingTimeItemId,dragIdx,dragOverIdx,storageMode,storageQuotaHit,setStorageQuotaHit,items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,setTodaySessions,loadedRoutineId,routines,setRoutines,programs,setPrograms,dailyReflection,setDailyReflection,weekReflection,setWeekReflection,monthReflection,setMonthReflection,settings,setSettings,freeNotes,setFreeNotes,noteCategories,setNoteCategories,recordingMeta,history,dayClosed,dayJustRolled,setDayJustRolled,trash,activeItemId,activeSpotId,activeSessionId,activeItem,activeSpot,activeIsWarmup,isResting,isRecording,recExpanded,setRecExpanded,metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,sessionRefs,reflectionRef,importInputRef,totalToday,effectiveTotalToday,sectionTimes,weekActualSeconds,monthActualSeconds,todayKey,pdfItem,loadedRoutine,todayHistoryEntry,fmt,fmtMin,updateItem,addItem,startItem,stopItem,toggleWorking,toggleRest,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,moveSpot,addPerformance,updatePerformance,deletePerformance,closeDay,reopenDay,endDay,deleteItem,undoDelete,dismissTrash,logTempo,addQuickNote,pdfLibrary,pdfUrlMap,addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,addBookmark,removeBookmark,renameBookmark,startRecording,stopRecording,deleteRecording,handleDragStart,handleDragOver,handleDrop,handleDragEnd,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,openLogEntry,closeLogDrawer,resolveDayEntry,exportJson,importJsonFile,buildZip,exportProgress,handleTap,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,saveFreeNote,seedTestNotes,maybePullDriveOnSyncTab,connectDrive,disconnectDrive,backupDriveNow,restoreFromDrive,driveBlobRestoreProgress,driveBlobFailedCount}=s;
+  const {view,setView,showSettings,setShowSettings,settingsInitialTab,openSettings,exportMenu,setExportMenu,confirmModal,setConfirmModal,promptModal,setPromptModal,syncConflictModal,driveConflictModal,freshDevicePromptPending,setFreshDevicePromptPending,quickNoteOpen,setQuickNoteOpen,restoreBusy,expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,logDrawerDate,logDrawerEntry,editingTimeItemId,setEditingTimeItemId,dragIdx,dragOverIdx,storageMode,storageQuotaHit,setStorageQuotaHit,items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,setTodaySessions,loadedRoutineId,routines,setRoutines,programs,setPrograms,dailyReflection,setDailyReflection,weekReflection,setWeekReflection,monthReflection,setMonthReflection,settings,setSettings,freeNotes,setFreeNotes,noteCategories,setNoteCategories,recordingMeta,history,dayClosed,dayJustRolled,setDayJustRolled,trash,activeItemId,activeSpotId,activeSessionId,activeItem,activeSpot,activeIsWarmup,isResting,isRecording,recExpanded,setRecExpanded,metronome,setMetronome,metroExpanded,setMetroExpanded,currentBeat,currentSub,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,sessionRefs,reflectionRef,importInputRef,totalToday,effectiveTotalToday,sectionTimes,weekActualSeconds,monthActualSeconds,todayKey,pdfItem,loadedRoutine,todayHistoryEntry,fmt,fmtMin,updateItem,addItem,startItem,stopItem,toggleWorking,toggleRest,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,moveSpot,addPerformance,updatePerformance,deletePerformance,closeDay,reopenDay,endDay,deleteItem,undoDelete,dismissTrash,logTempo,addQuickNote,pdfLibrary,pdfUrlMap,addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,addBookmark,removeBookmark,renameBookmark,startRecording,stopRecording,deleteRecording,handleDragStart,handleDragOver,handleDrop,handleDragEnd,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,openLogEntry,closeLogDrawer,resolveDayEntry,exportJson,importJsonFile,buildZip,exportProgress,handleTap,addNoteLogEntry,deleteNoteLogEntry,updateNoteLogEntry,saveFreeNote,seedTestNotes,maybePullDriveOnSyncTab,connectDrive,disconnectDrive,backupDriveNow,restoreFromDrive,driveBlobRestoreProgress,driveBlobFailedCount}=s;
 
   // ── Recording soft mutex ──────────────────────────────────────────────────
   const [mutexPrompt,setMutexPrompt]=useState(null); // null | {to:'piece'|'daily', toId:string|null}
@@ -236,6 +237,31 @@ export default function Etudes(){
       {promptModal&&<PromptModal {...promptModal} onCancel={()=>setPromptModal(null)}/>}
       {syncConflictModal&&<SyncConflictModal {...syncConflictModal}/>}
       {driveConflictModal&&<DriveConflictModal {...driveConflictModal}/>}
+      {freshDevicePromptPending&&isDriveConfigured()&&!hasDriveToken()&&!confirmModal&&<ConfirmModal
+        message={"You're signed in on a new device. Connect Google Drive to download your audio recordings and PDF scores from your last backup?"}
+        confirmLabel="Connect Drive"
+        onConfirm={()=>{
+          // Sync popup trigger from the user gesture (iOS Safari rules apply
+          // here too — same pattern as the Sync tab Connect button).
+          setFreshDevicePromptPending(false);
+          if(!isDriveAuthReady()){
+            // Auth wasn't ready yet — kick prep, then try connect+restore async.
+            // No popup will open this round; user can retry from Sync tab.
+            prepareDriveAuth().then(()=>connectDrive()).then(()=>restoreFromDrive()).catch(()=>{});
+            return;
+          }
+          let tokenPromise;
+          try{tokenPromise=requestDriveTokenInteractive();}
+          catch(e){
+            setConfirmModal({message:`Could not connect to Google Drive. ${formatDriveOAuthError(e instanceof Error?e.message:String(e))}`,confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+            return;
+          }
+          tokenPromise
+            .then(async()=>{await connectDrive();await restoreFromDrive();})
+            .catch(()=>{/* surfaced by restoreFromDrive's own error path or driveLine on Sync tab next visit */});
+        }}
+        onCancel={()=>setFreshDevicePromptPending(false)}
+      />}
       {restoreBusy&&<div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}}><div className="px-6 py-4 flex items-center gap-3" style={{background:SURFACE,border:`1px solid ${LINE_STR}`}}><div className="w-2 h-2 rounded-full animate-pulse" style={{background:IKB,boxShadow:`0 0 8px ${IKB}`}}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Working — do not close</span></div></div>}
       {!isMobile&&<div className="fixed bottom-3 right-4 pointer-events-none" style={{zIndex:10}}><span className="tabular-nums" style={{color:DIM,fontSize:'10px',letterSpacing:'0.18em',fontFamily:mono}}>v{APP_VERSION}</span></div>}
     </div>
