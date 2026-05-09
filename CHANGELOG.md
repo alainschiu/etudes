@@ -64,8 +64,8 @@ the signed-out top explainer.
 #### About
 
 - `src/components/modals.jsx · SettingsModal` About tab: added
-  support email line — *"For support, write to support@etudes.me"* —
-  with `mailto:` link in LINK with hairline underline.
+  Support row matching the User Guide row pattern — eyebrow on
+  the left, `mailto:support@etudes.me` link on the right in IKB.
 
 ## v0.97.38 — 2026-05-07
 
