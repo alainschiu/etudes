@@ -1,15 +1,10 @@
 import {describe, it, expect, vi, beforeEach, afterEach} from 'vitest';
 
-// Stub import.meta.env.VITE_GOOGLE_CLIENT_ID before importing the module.
+// Stub window before importing the module — driveAuth reads window.google
+// in isDriveAuthReady, and module load triggers no script side-effects.
 vi.stubGlobal('window', {
   google: undefined,
   document: undefined,
-});
-
-const stubEnv = {VITE_GOOGLE_CLIENT_ID: 'test-client-id', DEV: false};
-vi.mock('./driveAuth.js', async () => {
-  const real = await vi.importActual('./driveAuth.js');
-  return real;
 });
 
 describe('driveAuth surface', () => {
