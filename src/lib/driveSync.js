@@ -165,9 +165,9 @@ export function pushToDrive(opts) {
     assertDriveQueueNotPaused();
     const mode = coalesceFull ? 'full' : 'json';
     coalesceFull = false;
-    writeDriveManifest({lastAttemptedAt: new Date().toISOString()});
 
     try {
+    writeDriveManifest({lastAttemptedAt: new Date().toISOString()});
     const token = await opts.getAccessToken();
     const rootId = await ensureFolderHierarchy(token);
     let m = readDriveManifest();
