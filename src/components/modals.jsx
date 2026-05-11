@@ -177,7 +177,13 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,onExportZip,
                       </>
                     )}
                   </div>
-                  {hasDriveToken()&&onBackupDrive&&(<div className="flex items-center justify-between gap-4 pt-1"><div className="text-xs italic" style={{color:FAINT,fontFamily:serif}}>Auto-backup journal and new recordings</div><button type="button" onClick={()=>setSettings({...settings,driveAutoBackup:!settings.driveAutoBackup})} className="uppercase px-3 py-1 shrink-0" style={{color:settings.driveAutoBackup?TEXT:FAINT,border:`1px solid ${settings.driveAutoBackup?IKB:LINE_STR}`,background:settings.driveAutoBackup?IKB_SOFT:'transparent',fontSize:'9px',letterSpacing:'0.22em'}}>{settings.driveAutoBackup?'On':'Off'}</button></div>)}
+                  {hasDriveToken()&&onBackupDrive&&(<div className="flex items-center justify-between gap-4 pt-1">
+                    <div>
+                      <div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Auto-backup</div>
+                      <div className="text-xs italic mt-1" style={{color:FAINT,fontFamily:serif}}>Auto-backup journal and new recordings</div>
+                    </div>
+                    <button type="button" onClick={()=>setSettings({...settings,driveAutoBackup:!settings.driveAutoBackup})} className="uppercase px-3 py-1 shrink-0" style={{color:settings.driveAutoBackup?TEXT:FAINT,border:`1px solid ${settings.driveAutoBackup?IKB:LINE_STR}`,background:settings.driveAutoBackup?IKB_SOFT:'transparent',fontSize:'9px',letterSpacing:'0.22em'}}>{settings.driveAutoBackup?'On':'Off'}</button>
+                  </div>)}
                   {hasDriveToken()&&(()=>{const m=readDriveManifest();if(!m.driveRootFolderId)return null;return (<a href={`https://drive.google.com/drive/folders/${m.driveRootFolderId}`} target="_blank" rel="noopener noreferrer" className="italic self-start" style={{color:LINK,fontFamily:serif,fontSize:'11px',borderBottom:`1px solid ${LINK}55`,textDecoration:'none'}}>View backup folder ↗</a>);})()}
                   {driveLine&&<div className="text-xs italic" style={{color:MUTED,fontFamily:serif}}>{driveLine}</div>}
                   {driveBlobRestoreProgress&&<div className="text-xs italic" style={{color:MUTED,fontFamily:serif}}>Restoring media {driveBlobRestoreProgress.done} / {driveBlobRestoreProgress.total}…</div>}
