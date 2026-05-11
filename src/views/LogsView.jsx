@@ -86,7 +86,7 @@ function NearbyNotes({notes}){
                 <div style={{fontSize:'13px',fontWeight:300}}>{n.title}</div>
                 <div className="uppercase shrink-0" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em'}}>{n.date}</div>
               </div>
-              {n.body&&<div className="italic mt-1" style={{color:MUTED,fontFamily:serif,fontSize:'12px',lineHeight:1.5}}>{n.body.slice(0,100)+(n.body.length>100?'…':'')}</div>}
+              {n.body&&(()=>{const preview=n.body.replace(/\[\[([^\]\n]+)\]\]/g,'$1');return <div className="italic mt-1" style={{color:MUTED,fontFamily:serif,fontSize:'12px',lineHeight:1.5}}>{preview.slice(0,100)+(preview.length>100?'…':'')}</div>;})()}
             </div>
           ))}
         </div>
