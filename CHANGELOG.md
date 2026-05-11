@@ -1,5 +1,51 @@
 # Changelog
 
+## v0.98.3 — 2026-05-11
+
+### Sync hardening — pass three (polish)
+
+Final sync-related cleanup before moving on to other surfaces.
+Visual consistency on the Sync tab, copy refinements, and developer
+ergonomics. Closes the v0.98.x sync-hardening trilogy.
+
+#### Sync tab visuals
+
+- `src/components/modals.jsx`: auto-backup toggle row now follows
+  the eyebrow + content pattern used by CLOUD ACCOUNT and DRIVE
+  BACKUP. Reads as a peer to those, not as a one-off control.
+
+#### Copy
+
+- Provider label suffix omitted when sign-in provider is unknown
+  (previously read as awkwardly truncated *"…@gmail.com · signed
+  in"*; now just shows the email cleanly).
+- Auto-backup sub-line: *"Journal and recordings, every ten
+  minutes"* replacing *"Auto-backup journal and new recordings"*.
+  Drops the misleading "new" qualifier and the now-redundant
+  "Auto-backup" prefix (the eyebrow says it); adds cadence.
+
+#### Developer recovery
+
+- DEV-only *Force re-backup everything* button in the Drive section,
+  alongside *Test silent renewal* and *Force expire token*. Resets
+  manifest push markers (`lastJsonPushAt`, `journalRemoteModifiedTime`,
+  `consecutiveFailures`, `lastFailureMessage`) and triggers a full
+  re-push for testing recovery scenarios. `window.confirm` guarded.
+
+#### Deferred
+
+- Inline-banner replacement for `SyncConflictModal` /
+  `DriveConflictModal` was in the spec but explicitly flagged
+  "defer if any complexity". Deferred: full-page modals for
+  forced-decision flows remain the right pattern, especially given
+  v0.98.1's `signInEpoch` fix already made these fire rarely.
+
+#### Versioning
+
+- `package.json` → `0.98.3`
+- `src/constants/config.js` → `APP_VERSION = '0.98.3'`
+- `SCHEMA_VERSION` unchanged.
+
 ## v0.98.2 — 2026-05-10
 
 ### Sync hardening — pass two
