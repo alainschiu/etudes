@@ -38,7 +38,7 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,onExportZip,
   useEffect(()=>{if(tab!=='sync')return;const id=setInterval(()=>forceTick(n=>n+1),60000);return()=>clearInterval(id);},[tab]);
   const handleAuth=async(e)=>{e.preventDefault();setAuthError('');setAuthBusy(true);const fn=authMode==='signin'?signIn:signUp;const {error}=await fn(authEmail,authPassword);setAuthBusy(false);if(error){setAuthError(error.message);}else if(authMode==='signup'){setSignupSent(true);}};
   const provider=user?.app_metadata?.provider;
-  const providerLabel=provider==='google'?'signed in with Google':provider==='email'?'signed in with email':'signed in';
+  const providerLabel=provider==='google'?'signed in with Google':provider==='email'?'signed in with email':null;
   return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onClose}><div ref={panelRef} className="max-w-md w-full max-h-screen overflow-auto etudes-scroll" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
     <div className="px-8 py-6 flex items-baseline justify-between" style={{borderBottom:`1px solid ${LINE_MED}`}}>
       <div><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Configuration</div><h2 className="text-3xl mt-1" style={{fontFamily:serif,fontStyle:'italic',fontWeight:300}}>Réglages</h2></div>
@@ -81,7 +81,7 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,onExportZip,
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0 flex-1">
                   <div className="text-xs italic" style={{color:MUTED,fontFamily:serif,lineHeight:1.5}}>
-                    {user.email}<span style={{color:FAINT,marginLeft:'6px'}}>· {providerLabel}</span>
+                    {user.email}{providerLabel&&<span style={{color:FAINT,marginLeft:'6px'}}>· {providerLabel}</span>}
                   </div>
                   {lastSyncedAt>0&&<div className="mt-1 italic" style={{color:FAINT,fontFamily:serif,fontSize:'10px'}}>Last sync {new Date(lastSyncedAt).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>}
                 </div>
