@@ -15,7 +15,8 @@ import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR
 import {TYPES, SECTION_CONFIG} from '../constants/config.js';
 import {displayTitle, formatByline, resolveHistoryItem} from '../lib/items.js';
 import {resolveWikiLink} from '../lib/notes.js';
-import {Waveform, preprocessWikiLinks, wikiUrlTransform} from '../components/shared.jsx';
+import {preprocessWikiLinks, wikiUrlTransform} from '../lib/markdownWikiLinks.js';
+import {Waveform} from '../components/shared.jsx';
 
 export function LogsView(p){
   const {isMobile}=useViewport();
