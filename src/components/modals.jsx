@@ -180,7 +180,7 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,onExportZip,
                   {hasDriveToken()&&onBackupDrive&&(<div className="flex items-center justify-between gap-4 pt-1">
                     <div>
                       <div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Auto-backup</div>
-                      <div className="text-xs italic mt-1" style={{color:FAINT,fontFamily:serif}}>Auto-backup journal and new recordings</div>
+                      <div className="text-xs italic mt-1" style={{color:FAINT,fontFamily:serif}}>Journal and recordings, every ten minutes</div>
                     </div>
                     <button type="button" onClick={()=>setSettings({...settings,driveAutoBackup:!settings.driveAutoBackup})} className="uppercase px-3 py-1 shrink-0" style={{color:settings.driveAutoBackup?TEXT:FAINT,border:`1px solid ${settings.driveAutoBackup?IKB:LINE_STR}`,background:settings.driveAutoBackup?IKB_SOFT:'transparent',fontSize:'9px',letterSpacing:'0.22em'}}>{settings.driveAutoBackup?'On':'Off'}</button>
                   </div>)}
