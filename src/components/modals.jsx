@@ -3,7 +3,7 @@ import useFocusTrap from '../hooks/useFocusTrap.js';
 import {isDriveConfigured, clearDriveSession, hasDriveToken, forceExpireCachedDriveToken, isDriveAuthReady, prepareDriveAuth, requestDriveTokenInteractive} from '../lib/driveAuth.js';
 import {probeDriveConnection, spikeSilentDriveRenewal} from '../lib/driveSync.js';
 import {formatDriveOAuthError} from '../lib/driveOAuthMessages.js';
-import {readDriveManifest} from '../lib/driveManifest.js';
+import {readDriveManifest, writeDriveManifest} from '../lib/driveManifest.js';
 import {getDriveQueueCircuitState} from '../lib/driveQueueCircuit.js';
 import {deriveDriveStatus, formatRelative, formatResumeIn} from '../lib/driveStatus.js';
 import X from 'lucide-react/dist/esm/icons/x';
@@ -217,6 +217,22 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,onExportZip,
                           className="uppercase px-2 py-1.5"
                           style={{color:FAINT,border:`1px solid ${LINE_MED}`,fontSize:'8px',letterSpacing:'0.18em'}}
                         >Force expire token</button>
+                        {onBackupDrive&&<button
+                          type="button"
+                          disabled={driveBusy}
+                          onClick={async()=>{
+                            if(!window.confirm('Reset Drive manifest push markers and re-push everything? This will overwrite the Drive copy with this device\'s state.'))return;
+                            setDriveBusy(true);setDriveLine('Re-pushing all data to Drive…');
+                            try{
+                              writeDriveManifest({lastJsonPushAt:0,journalRemoteModifiedTime:'',consecutiveFailures:0,lastFailureMessage:''});
+                              await onBackupDrive();
+                              setDriveLine('Re-push queued.');
+                            }catch(e){setDriveLine(`Re-push failed: ${e?.message||String(e)}`);}
+                            finally{setDriveBusy(false);}
+                          }}
+                          className="uppercase px-2 py-1.5"
+                          style={{color:FAINT,border:`1px solid ${LINE_MED}`,fontSize:'8px',letterSpacing:'0.18em'}}
+                        >Force re-backup everything</button>}
                       </div>
                     </div>
                   )}
