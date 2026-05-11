@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.98.4] — 2026-05-11
+
+### Wiki-link reading surface
+
+Three display fixes — wiki-links now render correctly wherever
+written content is read. No new authoring affordances; this release
+only repairs interactions the writing surfaces already let users
+author.
+
+- Fix mobile wiki-link clicks not resolving before navigation
+  (NotesView). `handleMobileWikiClick` now resolves the raw string
+  to a `{type,target}` object before calling the parent handler,
+  matching the desktop `NoteEditor` pattern.
+- Render wiki-links as clickable in LogDrawer reflections and
+  per-piece notes (LogsView). `logMd()` accepts an `onWikiLinkClick`
+  callback and renders `[[wiki-link]]` content through
+  `preprocessWikiLinks` + `wikiUrlTransform`; unresolved links read
+  as italic faint prose, matching `MarkdownComponents`.
+  `preprocessWikiLinks` and `wikiUrlTransform` exported from
+  `shared.jsx` for reuse.
+- Strip wiki-link brackets from NearbyNotes previews for legibility.
+  The 100-char peek no longer shows literal `[[…]]`.
+
 ## v0.98.3 — 2026-05-11
 
 ### Sync hardening — pass three (polish)
