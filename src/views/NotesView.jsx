@@ -746,8 +746,9 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
   };
   // MarkdownEditor calls onWikiLinkClick with a raw string; resolve it first
   const handleMobileWikiClick=useCallback((raw)=>{
-    if(onWikiLinkClick)onWikiLinkClick(raw);
-  },[onWikiLinkClick]);
+    const resolved=resolveWikiLink(raw,items,history,programs,notes);
+    if(resolved&&onWikiLinkClick)onWikiLinkClick(resolved);
+  },[items,history,programs,notes,onWikiLinkClick]);
   const [expandedId,setExpandedId]=useState(null);
   const [editSheetId,setEditSheetId]=useState(null);
   const [filterSheetOpen,setFilterSheetOpen]=useState(false);
@@ -851,7 +852,7 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
                           const raw=decodeURIComponent(href.replace('etudes://',''));
                           const ok=!!resolveWikiLink(raw,items,history,programs,notes);
                           if(!ok) return <span title="no match" style={{color:FAINT,fontStyle:'italic',cursor:'default'}}>{children}</span>;
-                          return <span onClick={e=>{e.stopPropagation();if(onWikiLinkClick)onWikiLinkClick(raw);}} style={{color:IKB,cursor:'pointer',borderBottom:`1px solid ${IKB}55`,textDecoration:'none'}}>{children}</span>;
+                          return <span onClick={e=>{e.stopPropagation();handleMobileWikiClick(raw);}} style={{color:IKB,cursor:'pointer',borderBottom:`1px solid ${IKB}55`,textDecoration:'none'}}>{children}</span>;
                         }
                         return <a href={href} target="_blank" rel="noopener noreferrer" onTouchStart={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} onClick={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} style={{color:LINK,textDecoration:'underline'}}>{children}</a>;
                       },
