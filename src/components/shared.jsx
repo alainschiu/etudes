@@ -494,12 +494,12 @@ const DEEP_LINK_SCHEMES=['obsidian://','x-devonthink-item://'];
 // Let our custom wikilink:// scheme survive react-markdown's default
 // urlTransform (which would otherwise blank it, causing <a href=""> on
 // click to reload the page).
-const wikiUrlTransform=(url,key,node)=>(
+export const wikiUrlTransform=(url,key,node)=>(
   url&&url.startsWith('wikilink://')?url:defaultUrlTransform(url,key,node)
 );
 const HAS_CUSTOM_LINK_RE=/(?:obsidian:\/\/|x-devonthink-item:\/\/)/;
 
-function preprocessWikiLinks(text){
+export function preprocessWikiLinks(text){
   return (text||'').replace(/\[\[([^\]\n]+)\]\]/g,(_,inner)=>`[${inner}](wikilink://${encodeURIComponent(inner)})`);
 }
 
