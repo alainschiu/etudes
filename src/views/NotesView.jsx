@@ -1,4 +1,4 @@
-import React, {useState, useMemo, useCallback, useEffect} from 'react';
+import React, {useState, useMemo, useCallback, useEffect, useRef} from 'react';
 import useViewport from '../hooks/useViewport.js';
 import ReactMarkdown, {defaultUrlTransform} from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -268,6 +268,11 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
       if(setSelectedProgramId)setSelectedProgramId(resolved.target);
       if(setView)setView('programs');
     }else if(resolved.type==='note'){
+      // Clear filters so the sidebar reflects the new active note;
+      // otherwise the editor pane switches but the list looks unchanged.
+      setActiveCategoryId('__all');
+      setTagSearch('');
+      setQuery('');
       setActiveNoteId(resolved.target);
     }
   },[history,openLogEntry,setExpandedItemId,setView,setSelectedProgramId]);
@@ -744,16 +749,46 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
     if((newCatName||'').trim())addCategory&&addCategory();
     setAddingCategory(false);
   };
-  // MarkdownEditor calls onWikiLinkClick with a raw string; resolve it first
-  const handleMobileWikiClick=useCallback((raw)=>{
-    const resolved=resolveWikiLink(raw,items,history,programs,notes);
-    if(resolved&&onWikiLinkClick)onWikiLinkClick(resolved);
-  },[items,history,programs,notes,onWikiLinkClick]);
   const [expandedId,setExpandedId]=useState(null);
   const [editSheetId,setEditSheetId]=useState(null);
   const [filterSheetOpen,setFilterSheetOpen]=useState(false);
   const [sheetBottom,setSheetBottom]=useState(0);
+  const [pendingScrollId,setPendingScrollId]=useState(null);
+  const noteRefs=useRef({});
   const ZSHEET=40;
+  // MarkdownEditor calls onWikiLinkClick with a raw string; resolve it first.
+  // For type:'note' the parent's resolved-handler sets activeNoteId — desktop-
+  // only state. Drive the mobile-native surface (editSheetId / expandedId)
+  // instead so the navigation is visible.
+  const handleMobileWikiClick=useCallback((raw)=>{
+    const resolved=resolveWikiLink(raw,items,history,programs,notes);
+    if(!resolved)return;
+    if(resolved.type==='note'){
+      if(editSheetId){
+        setEditSheetId(resolved.target);
+      }else{
+        setActiveCategoryId('__all');
+        setTagSearch('');
+        setQuery('');
+        setExpandedId(resolved.target);
+        setPendingScrollId(resolved.target);
+      }
+      return;
+    }
+    if(onWikiLinkClick)onWikiLinkClick(resolved);
+  },[items,history,programs,notes,onWikiLinkClick,editSheetId,setActiveCategoryId,setTagSearch,setQuery]);
+
+  // Scroll the freshly-expanded note into view after the list has re-rendered
+  // with cleared filters.
+  useEffect(()=>{
+    if(!pendingScrollId)return;
+    const raf=requestAnimationFrame(()=>{
+      const el=noteRefs.current[pendingScrollId];
+      if(el&&el.scrollIntoView)el.scrollIntoView({behavior:'smooth',block:'start'});
+      setPendingScrollId(null);
+    });
+    return ()=>cancelAnimationFrame(raf);
+  },[pendingScrollId]);
 
   // Slide the edit sheet above the virtual keyboard using VisualViewport API
   useEffect(()=>{
@@ -831,7 +866,7 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
           const isExpanded=expandedId===note.id;
           const preview=(note.body||'').replace(/^#+\s*/gm,'').replace(/[*_`#\[\]]/g,'').trim();
           return(
-            <div key={note.id} style={{borderBottom:`1px solid ${LINE}`,padding:'18px 20px 14px'}}>
+            <div key={note.id} ref={el=>{noteRefs.current[note.id]=el;}} style={{borderBottom:`1px solid ${LINE}`,padding:'18px 20px 14px'}}>
               <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',gap:'12px',marginBottom:'6px',cursor:'pointer'}} onClick={()=>setExpandedId(isExpanded?null:note.id)}>
                 <div style={{fontFamily:serifText,fontStyle:'italic',fontWeight:400,fontSize:'20px',color:TEXT,lineHeight:1.2,flex:1,minWidth:0}}>{note.title||'Untitled'}</div>
                 <span style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',textTransform:'uppercase',color:FAINT,flexShrink:0,paddingTop:'4px'}}>{note.date}</span>
