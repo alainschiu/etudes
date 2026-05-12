@@ -262,7 +262,20 @@ export default function Etudes(){
         }}
         onCancel={()=>setFreshDevicePromptPending(false)}
       />}
-      {restoreBusy&&<div className="fixed inset-0 z-50 flex items-center justify-center" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}}><div className="px-6 py-4 flex items-center gap-3" style={{background:SURFACE,border:`1px solid ${LINE_STR}`}}><div className="w-2 h-2 rounded-full animate-pulse" style={{background:IKB,boxShadow:`0 0 8px ${IKB}`}}/><span className="uppercase" style={{fontSize:'10px',letterSpacing:'0.28em'}}>Working — do not close</span></div></div>}
+      {restoreBusy&&(()=>{
+        const p=driveBlobRestoreProgress;
+        const showProgress=p&&typeof p.total==='number'&&p.total>0;
+        const pct=showProgress?Math.round((p.done/p.total)*100):0;
+        return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}}>
+          <div className="px-6 py-5 max-w-sm" style={{background:SURFACE,border:`1px solid ${LINE_STR}`}}>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{background:IKB,boxShadow:`0 0 8px ${IKB}`}}/>
+              <span className="uppercase tabular-nums" style={{fontSize:'10px',letterSpacing:'0.28em'}}>{showProgress?`Restoring media ${p.done} / ${p.total} · ${pct}%`:'Working — do not close'}</span>
+            </div>
+            <div className="italic mt-3" style={{color:MUTED,fontFamily:serif,fontSize:'12px',lineHeight:1.6}}>This may take a few minutes on first restore. Audio and PDFs are downloading from Drive.</div>
+          </div>
+        </div>);
+      })()}
       {!isMobile&&<div className="fixed bottom-3 right-4 pointer-events-none" style={{zIndex:10}}><span className="tabular-nums" style={{color:DIM,fontSize:'10px',letterSpacing:'0.18em',fontFamily:mono}}>v{APP_VERSION}</span></div>}
     </div>
   );

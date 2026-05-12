@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.98.3.1 — 2026-05-11
+
+### Restore overlay status
+
+A real-iPhone restore left the "Working — do not close" overlay
+visible for ~2 minutes with no progress indication. The signal
+existed (`driveBlobRestoreProgress` already populated by
+`restoreBlobsFromDrive` after each blob) but was only rendered
+inside Settings → Sync, hidden behind the overlay itself.
+
+- `src/App.jsx`: overlay extended to a two-line panel. Top line
+  reads either *"Restoring media N / M · NN%"* (when blob
+  progress is set) or the existing *"Working — do not close"* (in
+  early phases / non-restore busy states). Bottom line is a quiet
+  italic-serif sub-note: *"This may take a few minutes on first
+  restore. Audio and PDFs are downloading from Drive."*
+
+No ETA. Drive transfer rates vary too much for an honest estimate.
+Conflict-path restore (via `useEtudesState.js` `onDriveConflict`)
+already feeds the same `driveBlobRestoreProgress` setter through
+`driveBlobProgressRef`, so both restore entry points share the
+new overlay copy without further changes.
+
 ## v0.98.3 — 2026-05-11
 
 ### Sync hardening — pass three (polish)
