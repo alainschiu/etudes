@@ -983,7 +983,7 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
                 <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',color:IKB}}>Done</span>
               </button>
             </div>
-            <div style={{flex:1,overflow:'hidden'}}>
+            <div style={{flex:1,minHeight:0,overflowY:'auto',WebkitOverflowScrolling:'touch'}}>
               <MarkdownEditor value={editNote.body||''} onChange={val=>updateNote(editNote.id,{body:val,tags:parseTagsFromBody(val)})} placeholder={`Write freely…\n\nTips:\n• Use **bold**, _italic_, or # headings\n• Type [[ to link a piece, date, or spot\n• Tag with #tag`} minHeight={400} fontSize="16px" items={items} history={history} programs={programs} notes={notes} onWikiLinkClick={handleMobileWikiClick}/>
             </div>
           </>
