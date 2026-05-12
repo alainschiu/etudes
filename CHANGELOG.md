@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.98.4.1] — 2026-05-12
+
+### Wiki-link resolution hotfix
+
+Reported: `[[Note Title]]` typed inside another note resolved to a
+random piece instead of the target note.
+
+Root cause in `resolveWikiLink`: the item lookup returned as soon as
+any piece scored ≥ 1 — `scoreMatch`'s lowest non-zero rung, given for
+"any query word longer than one character appears anywhere in the
+candidate." A note titled `Practice Plan` would lose to any piece
+containing the word "practice," even though the note title is an
+exact match (score 10) and the piece is a single-word overlap (score
+1). Note and program lookups never ran.
+
+Fix: score items, programs, and notes independently, then pick the
+highest-scoring type globally. Tie-break preserves the previous
+item > program > note order via stable sort, so unambiguous piece
+lookups are unaffected.
+
+Regression test added in `src/lib/notes.test.js` (28 → 35 tests).
+
 ## [0.98.4] — 2026-05-11
 
 ### Wiki-link reading surface
