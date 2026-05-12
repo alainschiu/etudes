@@ -73,9 +73,13 @@ export function resolveWikiLink(rawText, items, history, programs, notes){
     return null;
   }
 
-  // Item / piece lookup
+  // Item / piece, program, and note lookups are scored independently then
+  // compared globally. Previously the item lookup returned as soon as any
+  // item scored ≥ 1, which let a weak word-overlap with a piece title beat
+  // an exact note title match.
   const query=slugify(text);
-  let bestItem=null;let bestScore=0;
+
+  let bestItem=null;let bestItemScore=0;
   for(const item of(items||[])){
     const candidates=[
       item.title,
@@ -84,31 +88,35 @@ export function resolveWikiLink(rawText, items, history, programs, notes){
       item.composer&&item.collection?`${item.composer} ${item.collection}`:null,
     ].filter(Boolean);
     const score=Math.max(...candidates.map(c=>scoreMatch(query,slugify(c))));
-    if(score>bestScore){bestScore=score;bestItem=item;}
+    if(score>bestItemScore){bestItemScore=score;bestItem=item;}
   }
-  if(bestScore>=1&&bestItem)return {type:'item',target:bestItem.id};
 
-  // Program name lookup
-  if(Array.isArray(programs)&&programs.length>0){
-    let bestProg=null;let bestProgScore=0;
+  let bestProg=null;let bestProgScore=0;
+  if(Array.isArray(programs)){
     for(const prog of programs){
       const sc=scoreMatch(query,slugify(prog.name||''));
       if(sc>bestProgScore){bestProgScore=sc;bestProg=prog;}
     }
-    if(bestProgScore>=2&&bestProg)return {type:'program',target:bestProg.id};
   }
 
-  // Note title lookup
-  if(Array.isArray(notes)&&notes.length>0){
-    let bestNote=null;let bestNoteScore=0;
+  let bestNote=null;let bestNoteScore=0;
+  if(Array.isArray(notes)){
     for(const note of notes){
       const sc=scoreMatch(query,slugify(note.title||''));
       if(sc>bestNoteScore){bestNoteScore=sc;bestNote=note;}
     }
-    if(bestNoteScore>=2&&bestNote)return {type:'note',target:bestNote.id};
   }
 
-  return null;
+  // Highest score wins. Stable sort preserves item > program > note for ties,
+  // matching the original lookup order for backward compatibility.
+  const ranked=[
+    bestItemScore>=1&&bestItem?{score:bestItemScore,result:{type:'item',target:bestItem.id}}:null,
+    bestProgScore>=2&&bestProg?{score:bestProgScore,result:{type:'program',target:bestProg.id}}:null,
+    bestNoteScore>=2&&bestNote?{score:bestNoteScore,result:{type:'note',target:bestNote.id}}:null,
+  ].filter(Boolean);
+  if(ranked.length===0)return null;
+  ranked.sort((a,b)=>b.score-a.score);
+  return ranked[0].result;
 }
 
 // ── Tag parsing ────────────────────────────────────────────────────────────
