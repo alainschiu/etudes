@@ -852,7 +852,10 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
                           const raw=decodeURIComponent(href.replace('etudes://',''));
                           const ok=!!resolveWikiLink(raw,items,history,programs,notes);
                           if(!ok) return <span title="no match" style={{color:FAINT,fontStyle:'italic',cursor:'default'}}>{children}</span>;
-                          return <span onClick={e=>{e.stopPropagation();handleMobileWikiClick(raw);}} style={{color:IKB,cursor:'pointer',borderBottom:`1px solid ${IKB}55`,textDecoration:'none'}}>{children}</span>;
+                          // onTouchEnd fires synchronously on iOS even when the span sits inside
+                          // ReactMarkdown output; onClick alone is unreliable for tap-to-navigate.
+                          const tap=(e)=>{e.preventDefault();e.stopPropagation();handleMobileWikiClick(raw);};
+                          return <span onClick={tap} onTouchEnd={tap} style={{color:IKB,cursor:'pointer',borderBottom:`1px solid ${IKB}55`,textDecoration:'none',touchAction:'manipulation'}}>{children}</span>;
                         }
                         return <a href={href} target="_blank" rel="noopener noreferrer" onTouchStart={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} onClick={e=>{e.preventDefault();if(href)window.open(href,'_blank','noopener,noreferrer');}} style={{color:LINK,textDecoration:'underline'}}>{children}</a>;
                       },
