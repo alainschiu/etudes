@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.98.5] — 2026-05-12
+
+### Mobile parity + Safety
+
+Three gaps the writing-surfaces audit flagged as undermining the trust
+contract: a fat-finger could destroy a piece without confirmation,
+mobile Info was missing four desktop surfaces, and mobile users had
+no way to read or write per-piece session log entries.
+
+- Confirm before deleting a piece (desktop + mobile). Spots,
+  performances, log entries, and reference tracks already confirmed;
+  the parent piece — which contains all of them — did not. New
+  `confirmDeletePiece` wrapper next to the existing destructive
+  wrappers; both delete sites now route through it.
+- Mobile Info tab gains Started date, Arranger (piece-only),
+  Reference URL with inline YouTube/Spotify/Apple Music embed, and
+  the Performances editor (piece-only). Embed iframe styling matches
+  desktop byte-for-byte so visual drift stays bounded.
+- Mobile PieceDetailScreen gains a Log tab between Info and
+  Recordings. Renders the existing `LogBookPanel`; Pinned notes
+  (`item.detail`) and the timestamped session log (`item.noteLog`)
+  are now readable and editable from mobile.
+
 ## [0.98.4] — 2026-05-11
 
 ### Wiki-link reading surface
