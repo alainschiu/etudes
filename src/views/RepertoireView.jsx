@@ -858,6 +858,75 @@ function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeIt
               <DebouncedField type="number" min="40" max="300" value={item.bpmTarget!=null?String(item.bpmTarget):''} onChange={v=>{const n=parseInt(v,10);updateItem(item.id,{bpmTarget:Number.isFinite(n)&&n>0?n:null});}} placeholder="— bpm" style={{width:'100%',background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:mono,fontSize:'14px',padding:'8px 0',outline:'none',boxSizing:'border-box'}}/>
             </div>
           </div>
+          {/* Started date */}
+          <div style={{padding:'20px 0',borderBottom:`1px solid ${LINE}`}}>
+            <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'6px'}}>Started</div>
+            <input type="date" value={item.startedDate||''} onChange={e=>updateItem(item.id,{startedDate:e.target.value||null})} style={{width:'100%',background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:mono,fontSize:'14px',padding:'8px 0',outline:'none',colorScheme:'dark',boxSizing:'border-box'}}/>
+          </div>
+          {/* Arranger — piece only */}
+          {item.type==='piece'&&(
+            <div style={{padding:'20px 0',borderBottom:`1px solid ${LINE}`}}>
+              <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'6px'}}>Arranger</div>
+              <DebouncedField type="text" value={item.arranger||''} onChange={v=>updateItem(item.id,{arranger:v})} placeholder="—" style={{width:'100%',background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:serifText,fontStyle:'italic',fontSize:'15px',padding:'8px 0',outline:'none',boxSizing:'border-box'}}/>
+            </div>
+          )}
+          {/* Reference URL + embed */}
+          <div style={{padding:'20px 0',borderBottom:`1px solid ${LINE}`}}>
+            <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'6px',display:'flex',alignItems:'center',gap:'6px'}}>
+              <Music size={11} strokeWidth={1.25}/> Reference
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+              <DebouncedField type="text" value={item.referenceUrl||''} onChange={v=>updateItem(item.id,{referenceUrl:v})} placeholder="YouTube, Spotify, Apple Music…" style={{flex:1,background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:sans,fontSize:'12px',padding:'8px 0',outline:'none',minWidth:0}}/>
+              {item.referenceUrl&&(
+                <a href={item.referenceUrl} target="_blank" rel="noopener noreferrer" className="uppercase" style={{color:IKB,fontSize:'9px',letterSpacing:'0.22em',display:'flex',alignItems:'center',gap:'4px',flexShrink:0,textDecoration:'none'}}>
+                  <LinkIcon size={10} strokeWidth={1.25}/> Open ↗
+                </a>
+              )}
+            </div>
+            {item.referenceUrl&&(()=>{
+              const embed=getEmbedInfo(item.referenceUrl);
+              if(!embed)return null;
+              return (
+                <div style={{marginTop:'12px'}}>
+                  {embed.type==='youtube'?(
+                    <div style={{position:'relative',paddingBottom:'56.25%',height:0,overflow:'hidden',background:SURFACE2,borderRadius:2}}>
+                      <iframe src={embed.src} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allowFullScreen loading="lazy" title="Reference"/>
+                    </div>
+                  ):embed.type==='spotify'?(
+                    <iframe src={embed.src} width="100%" height={embed.compact?152:352} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Reference"/>
+                  ):(
+                    <iframe src={embed.src} width="100%" height={175} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay *; encrypted-media *; fullscreen *" loading="lazy" title="Reference"/>
+                  )}
+                </div>
+              );
+            })()}
+          </div>
+          {/* Performances — piece only */}
+          {item.type==='piece'&&(
+            <div style={{padding:'20px 0',borderBottom:`1px solid ${LINE}`}}>
+              <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'8px',display:'flex',alignItems:'center',gap:'6px'}}>
+                <Calendar size={11} strokeWidth={1.25}/> Performances
+              </div>
+              <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
+                {(item.performances||[]).length===0&&(
+                  <div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'12px'}}>No dates set.</div>
+                )}
+                {(item.performances||[]).map(p=>(
+                  <div key={p.id} style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                    <input type="date" value={p.date||''} onChange={e=>updatePerformance(item.id,p.id,{date:e.target.value})} style={{background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:mono,fontSize:'12px',padding:'4px 0',outline:'none',colorScheme:'dark',minWidth:0,flexShrink:0}}/>
+                    <input type="text" value={p.label||''} onChange={e=>updatePerformance(item.id,p.id,{label:e.target.value})} placeholder="recital, lesson…" style={{flex:1,minWidth:0,background:'transparent',border:'none',borderBottom:`1px solid ${LINE_MED}`,color:TEXT,fontFamily:serifText,fontStyle:'italic',fontSize:'13px',padding:'4px 0',outline:'none'}}/>
+                    <PerformanceChip perf={p} compact/>
+                    <button onClick={()=>deletePerformance(item.id,p.id)} style={{color:FAINT,background:'transparent',border:'none',cursor:'pointer',padding:0,lineHeight:1,flexShrink:0}}>
+                      <X size={11} strokeWidth={1.25}/>
+                    </button>
+                  </div>
+                ))}
+                <button onClick={()=>addPerformance(item.id)} className="uppercase" style={{display:'flex',alignItems:'center',gap:'4px',background:'transparent',border:'none',cursor:'pointer',color:MUTED,fontFamily:sans,fontSize:'10px',letterSpacing:'0.22em',padding:'4px 0',marginTop:'4px',alignSelf:'flex-start'}}>
+                  <Plus size={11} strokeWidth={1.25}/> Add performance
+                </button>
+              </div>
+            </div>
+          )}
           {/* Tags */}
           <div style={{padding:'20px 0',borderBottom:`1px solid ${LINE}`}}>
             <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'8px'}}>Tags</div>
