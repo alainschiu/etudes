@@ -760,7 +760,7 @@ function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeIt
   const stage=STAGES.find(s=>s.key===item.stage)||STAGES[0];
   const perf=nextPerformance(item.performances);
   const totalTime=getItemTime(itemTimes,item.id);
-  const TABS=[{id:'spots',label:'Spots'},{id:'info',label:'Info'},{id:'recordings',label:'Recordings'},{id:'score',label:'Score'}];
+  const TABS=[{id:'spots',label:'Spots'},{id:'info',label:'Info'},{id:'log',label:'Log'},{id:'recordings',label:'Recordings'},{id:'score',label:'Score'}];
 
   return(
     <div style={{paddingBottom:'calc(var(--footer-height,160px) + 24px)'}}>
@@ -950,6 +950,21 @@ function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeIt
             <Trash2 size={12} strokeWidth={1.25}/>
             <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Delete</span>
           </button>
+        </div>
+      )}
+
+      {/* Log tab */}
+      {tab==='log'&&(
+        <div style={{padding:'16px 20px'}}>
+          <LogBookPanel
+            item={item}
+            updateItem={updateItem}
+            addNoteLogEntry={addNoteLogEntry}
+            deleteNoteLogEntry={deleteNoteLogEntry}
+            updateNoteLogEntry={updateNoteLogEntry}
+            onWikiLinkClick={onWikiLinkClick}
+            wikiCompletionData={wikiCompletionData}
+          />
         </div>
       )}
 
