@@ -32,7 +32,7 @@ import {idbGet} from '../lib/storage.js';
 import {getItemTime, getSpotTime, displayTitle, formatByline, normalizeComposerKey, nextPerformance, mkSpotId} from '../lib/items.js';
 import {getEmbedInfo} from '../lib/media.js';
 import {toRoman} from '../lib/music.js';
-import {DisplayHeader, StageLabels, PerformanceChip, ItemTimeEditor, MarkdownField, Waveform, DebouncedField} from '../components/shared.jsx';
+import {DisplayHeader, StageLabels, PerformanceChip, ItemTimeEditor, MarkdownField, Waveform, DebouncedField, confirmDestructive} from '../components/shared.jsx';
 import {fmtSpotTime} from '../components/shared.jsx';
 import PieceRecordingsPanel from '../components/PieceRecordingsPanel.jsx';
 
@@ -91,6 +91,14 @@ export default function RepertoireView(p){
   };
   const confirmDeleteRefTrack=(itemId)=>{
     confirmDestructive(setConfirmModal,'Delete the reference track for this piece?',()=>deleteRefTrack&&deleteRefTrack(itemId));
+  };
+  const confirmDeletePiece=(itemId,onAfter)=>{
+    const it=items.find(x=>x.id===itemId);
+    confirmDestructive(
+      setConfirmModal,
+      `Delete "${it?displayTitle(it):'this piece'}"? All spots, notes, recordings metadata, and log entries will be removed.`,
+      ()=>{deleteItem(itemId);if(onAfter)onAfter();}
+    );
   };
   // Mobile piece detail state
   const [mobileDetailId,setMobileDetailId]=useState(null);
@@ -256,7 +264,7 @@ export default function RepertoireView(p){
               <div className="pt-1" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',alignItems:'center'}}>
                 <div><button onClick={()=>setPdfDrawerItemId(i.id)} title={hasPdfMeta&&!hasLocalPdf?'PDF not on this device — open to upload':undefined} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px ${hasPdfMeta&&!hasLocalPdf?'dashed':'solid'} ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em',opacity:hasPdfMeta&&!hasLocalPdf?0.55:1}}><FileText className="w-3 h-3" strokeWidth={1.25} style={hasPdfMeta&&!hasLocalPdf?{strokeDasharray:'2 1.5'}:{}}/> {hasPdfMeta?`Scores (${i.pdfs.length})`:'Scores'}</button></div>
                 <div className="flex justify-center">{(i.type==='piece'||i.type==='play')&&<button onClick={()=>updateItem(i.id,{type:i.type==='piece'?'play':'piece'})} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}>→ {i.type==='piece'?'Play':'Pieces'}</button>}</div>
-                <div className="flex justify-end"><button onClick={()=>{deleteItem(i.id);setExpandedId(null);}} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:WARN,border:`1px solid ${WARN}80`,fontSize:'9px',letterSpacing:'0.22em',background:'transparent'}}><Trash2 className="w-3 h-3" strokeWidth={1.25}/> Delete</button></div>
+                <div className="flex justify-end"><button onClick={()=>confirmDeletePiece(i.id,()=>setExpandedId(null))} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:WARN,border:`1px solid ${WARN}80`,fontSize:'9px',letterSpacing:'0.22em',background:'transparent'}}><Trash2 className="w-3 h-3" strokeWidth={1.25}/> Delete</button></div>
               </div>
             </div>
           </div>
@@ -276,7 +284,7 @@ export default function RepertoireView(p){
           item={detailItem}
           onBack={()=>setMobileDetailId(null)}
           updateItem={updateItem}
-          deleteItem={deleteItem}
+          deleteItem={confirmDeletePiece}
           dayClosed={dayClosed}
           activeItemId={activeItemId}
           activeSpotId={activeSpotId}
@@ -869,7 +877,7 @@ function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeIt
             <MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={120} style={{background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'15px'}} onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
           </div>
           {/* Delete */}
-          <button onClick={()=>{deleteItem(item.id);onBack();}} style={{display:'flex',alignItems:'center',gap:'6px',padding:'10px 0',color:WARN,background:'transparent',border:'none',cursor:'pointer',marginTop:'8px'}}>
+          <button onClick={()=>deleteItem(item.id,onBack)} style={{display:'flex',alignItems:'center',gap:'6px',padding:'10px 0',color:WARN,background:'transparent',border:'none',cursor:'pointer',marginTop:'8px'}}>
             <Trash2 size={12} strokeWidth={1.25}/>
             <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em'}}>Delete</span>
           </button>
