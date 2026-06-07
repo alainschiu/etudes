@@ -1,4 +1,8 @@
-# Études — North Star AI Primer v2.4
+---
+aliases: [Etudes-NorthStar]
+---
+
+# Études — North Star AI Primer v2.5
 ### Canonical brief for any AI writing copy, generating code, proposing features, or extending the product.
 ### Read this before touching anything. This document supersedes all prior versions.
 
@@ -96,22 +100,32 @@ Near-black backgrounds. Warm paper-colored text. One primary accent: Internation
 IKB is the color of practice itself — active, in motion, counting, the musician's own work. Gold is the color of practice's edges — rest, preparation, preservation, the comparator. They describe different states and never compete. This is the complete color vocabulary. Do not extend it.
 
 **Typography**  
-Three faces, never mixed within a single element:
-- Serif (Cormorant Garamond / EB Garamond) for anything expressive: headings, titles, composer names, journal prose, italic labels, routine names, intentions.
-- Sans (Helvetica Neue / Inter) for interface chrome: tabs, metadata, small uppercase labels.
-- Monospace tabular for numbers only: timer readouts, minutes, BPM, file sizes.
+Three faces, two roles:
+- **Cormorant Garamond** (`--serif`) — display only: page headings, section headings, program names, piece titles in display context. `fontWeight: 400`, italic, letter-spaced tight. Never used for body prose at reading size.
+- **EB Garamond** (`--serifText`) — reading prose only: journal reflections, intentions, note bodies, spot annotations, program body text, any text the musician reads rather than scans. `fontWeight: 400`, line-height 1.8. Never used for display headings.
+- **Inter** (`--sans`) — interface chrome: tabs, metadata, eyebrow labels, small uppercase labels, button text. Never italic unless a deliberate grace note.
+- **JetBrains Mono** (`--mono`) — numbers only: timer readouts, minutes, BPM, file sizes, waveform timestamps. Never used for prose.
 
-Display headings are large, light-weight, often italic, letter-spaced tight. They say one or two words. "Today." "This week." "Répertoire." Brevity is the point.
+The distinction between Cormorant Garamond and EB Garamond is not aesthetic preference — it is functional. Cormorant Garamond is a display face; it renders poorly at body size on screen. EB Garamond is a text face; it reads comfortably at 15–16px. Use them in their correct roles.
 
-Eyebrow labels are small, sans, uppercase, widely letter-spaced, reduced opacity. They are architectural — they name sections the way chapter headers name chapters.
+Display headings use `clamp(32px, 6vw, 56px)`. Section headings use `clamp(22px, 4.5vw, 36px)`. Both at `fontWeight: 400` — restrained weight, not bold, not thin. At 56px, 400 is book-weight. At 32px on mobile, 300 is too thin.
 
-Body prose reads like a page in a book, not a screen in an app.
+Eyebrow labels are small, sans, uppercase, widely letter-spaced (`0.28–0.32em`), reduced opacity. They are architectural — they name sections the way chapter headers name chapters.
 
 **French grace notes**  
 French appears occasionally — *étude, journal du jour, en cours, réglages, aujourd'hui, métronome, tempi* — always in italic serif. Never as a substitute for a plainer English word. Never cute.
 
 **Ornamental vocabulary**  
 One IKB dot or logotype in the header. A thin IKB underline on the active nav tab. IKB glow on the active timer, own recording state, and progress rings. IKB intensity rails on calendar cells with practice. IKB color-shift when a target is met. Gold on the rest timer, warm-up session headers, locked recording rows (left border and tinted background), and the B-track waveform in A/B comparison. That is all. No icons-as-decoration. No emoji. No gradients. No rounded-card shadows.
+
+**Z-index stack**  
+Every overlay component must slot into this defined stack. Do not invent z-values outside it.
+- `50` — Drawer panel
+- `49` — Drawer scrim
+- `40` — Bottom sheets (metronome, note editor, filter panel)
+- `20` — Footer (fixed)
+- `10` — TopBar (fixed)
+- `auto` — All other content
 
 ---
 
@@ -138,44 +152,72 @@ A full library of what is being worked on. Grouped into four kinds: technique (s
 One item is active at a time. Pressing play on a different item moves the clock. Total-today, section totals, and per-item totals all accumulate. A separate rest timer counts breaks without contaminating practice totals — rendered in gold, not IKB, because rest is the edge of practice, not practice itself. The timer is a plain stopwatch. It does not set goals, pace, or congratulate — though it will quietly shift to IKB when an optional target is met.
 
 **3. It keeps a metronome.**  
-BPM, time signature, subdivision, tap tempo, tempo name presets, and minimal click sounds. The footer visualizer shows beats and subdivisions as marks — a quiet oscilloscope, not a drumline. A single control marks the current tempo to the active item, building a sparse history over time. An accelerando mode ramps tempo automatically toward a target — step size and interval are set by the musician. Useful for systematic tempo development on a difficult passage; not a substitute for deliberate practice.
+BPM, time signature, subdivision, tap tempo, tempo name presets, and minimal click sounds. Three sound profiles (click, wood, beep). The footer visualizer shows beats and subdivisions as lines — a quiet oscilloscope in two modes: bars (vertical lines, one per beat) and pulse (single rectangle, flash per beat). A look-ahead scheduler runs on a 25ms `setInterval`, scheduling Web Audio events up to 250ms ahead for timing precision independent of JavaScript's event loop jitter. Visual beat updates are driven by a separate `requestAnimationFrame` loop reading the scheduled queue — audio and visual clocks are fully decoupled. Parameter changes (beats, subdivision, sound, compound) take effect on the next scheduled step without restarting the engine or resetting phase. An accelerando mode ramps BPM toward a target across a set number of bars or beats. For compound meters (6/8, 9/8, 12/8), BPM is dotted-quarter tempo; use Beats=2, Sub=3 for 6/8.
 
 **4. It records sound.**  
-A rolling archive of takes per piece. Stored locally, rendered as a waveform in IKB, playable inline. Takes can be locked to protect them from the FIFO rolling limit; locked rows carry gold — the color of preservation. Any two recordings — within the same piece or across two different pieces — can be placed in an A/B comparison: two waveforms side by side, one in IKB (the primary), one in gold (the comparator). A cross-piece comparison bar persists while navigating Répertoire. Reference recordings attached to a piece — a teacher's demo, a model performance — render in `--muted`, subordinate to the musician's own IKB takes. Reference URLs that point to YouTube, Spotify, or Apple Music render as embedded inline players within the piece panel; all other reference URLs open in a new tab. This is how Études treats sound: as a stratum of the journal equal to the written reflection.
+A rolling archive of takes per piece. Stored locally, rendered as a waveform in IKB, playable inline. MIME type is negotiated at record time (webm/opus → mp4 → fallback) so recordings play correctly on all platforms including iOS. Takes can be locked to protect them from the FIFO rolling limit; locked rows carry gold. Any two recordings — within the same piece or across two different pieces — can be placed in an A/B comparison: two waveforms side by side, one in IKB (the primary), one in gold (the comparator). Reference audio attached to a piece renders in `--muted`, subordinate to the musician's own IKB takes. Études is not a player; reference recordings that are external URLs open in a new tab. Only one recording session can be active at a time — starting a new recording while another is in progress prompts a quiet inline confirmation, no modal.
 
 **5. It sustains a drone.**  
-A configurable reference pitch for intonation work — three A= reference standards (440 Hz, 432 Hz, 415 Hz), three temperaments (Equal, Just, Meantone ¼-comma), selectable note and octave, adjustable volume. For the player working through a Bach partita in meantone, or a string player tuning open strings against a tonic pedal, this is the tool. No pitch detection is performed. The drone is a reference, not a judge.
+A configurable reference pitch labeled "Tuning" — three A= reference standards (440 Hz, 432 Hz, 415 Hz), three temperaments (Equal, Just, Meantone ¼-comma), full chromatic note and octave selection, adjustable volume, cent offset display. No pitch detection is performed. The drone is a reference, not a judge.
 
 **6. It holds a personal knowledge base.**  
-Wiki-style markdown notes with internal linking. Notes connect pieces, sessions, reflections, and ideas into a musician's own private reference. A commonplace book that grows with practice.
+Wiki-style markdown notes with internal linking and folder organization. Notes connect pieces, sessions, reflections, programs, and ideas into a musician's own private reference. A commonplace book that grows with practice.
 
 **7. It lets you reflect.**  
-A daily entry on Today. A weekly reflection. A monthly reflection. Reflections are never quantified or scored. The question is always "what did it mean," never "did you hit your number."
+A daily entry on Today. A weekly reflection. A monthly reflection at Review scale. Reflections are never quantified or scored. The question is always "what did it mean," never "did you hit your number."
 
 **8. It holds a program journal.**  
 Named programs — private evenings, salon performances, recitals — with an ordered sequence of pieces, per-piece marginal annotations, a written intention before and a written reflection after, and free prose for program notes. The sequence is the argument. The evening as a whole is held as a statement, not disaggregated into its parts. Programs and Notes may cite each other through the wiki-link system: a program can link to a note built over months; a note can link back to the program it informed.
 
-Everything else — the views, the rings, the calendar, the logs, the drawer — is a window onto these eight things at a different temporal scale.
+**9. It exports the journal.**  
+A complete ZIP archive: per-entity markdown files with YAML frontmatter, audio blobs in their original format (webm or mp4), PDF scores, and a machine-readable `_data.json`. Delivered via platform-appropriate mechanism — a download on desktop and Android, a share sheet (AirDrop, Files) on iOS PWA. The musician owns their practice in readable form at all times. The markdown files are readable in any text editor, markdown viewer, or Obsidian vault without the app.
+
+Everything else — the views, the rings, the calendar, the logs, the drawer — is a window onto these nine things at a different temporal scale.
 
 ---
 
-## IX. Architecture — the temporal spine
+## IX. Architecture — the temporal spine and platform layout
 
 Études is organized along a single spine: time scale.
 
-**Today** — the active surface. Planning and doing. Session stack, active timer, rest toggle, daily recording, daily reflection. The only view with the Working on rail.
+**Today** — the active surface. Planning and doing. Session stack, active timer, rest toggle, daily recording, daily reflection. The only view with the Working on rail. On mobile, sessions collapse into accordion sections — one open at a time, expanding to reveal items, a target progress bar, and a collapsible reflection block.
 
-**Review** — a single temporal surface with a scale selector: Week and Month. At week scale: a 7-day bar chart, a ring to the weekly target, clickable days that open the log drawer, a two-field weekly reflection. At month scale: a calendar with IKB intensity rails per day, a ring to the monthly target, clickable days that open the log drawer, a two-field monthly reflection. The distinction that matters is not the tab — it is the scale. A future year view lives here, not in a new tab.
+**Review** — a single temporal surface with a scale selector: Week and Month. At week scale: a 7-day bar chart, a ring to the weekly target, clickable days that open the log drawer, a two-field weekly reflection. At month scale: a calendar with IKB intensity rails per day, a ring to the monthly target, clickable days that open the log drawer, a two-field monthly reflection. A future year view lives here, not in a new tab.
 
-**Répertoire** — the atemporal view. The library of all items, with learning stages, accumulated time, spots, tags, notes, reference links, PDF scores, tempo histories, and deep editing. This is where pieces live between practice days.
+**Répertoire** — the atemporal view. The library of all items, with learning stages, accumulated time, spots, tags, notes, reference links, PDF scores, tempo histories, and deep editing. This is where pieces live between practice days. On mobile, tapping a piece navigates to a dedicated detail screen with four tabs: Spots, Info, Recordings, Score.
 
 **Routines** — named arrangements of sessions with pinned pieces, optional intentions, and optional targets. Composed deliberately. Loaded onto Today to prescribe a day.
 
-**Logs** — the archive. A horizontal gallery of past sessions in three card types: daily (a single session), weekly (a dot row across seven days), and monthly (a mini calendar with a dot per practiced day). Meant to be scrolled like flipping pages; each card opens the log drawer. Searchable by piece, composer, or reflection text.
+**Logs** — the archive. On desktop: a horizontal gallery of past sessions in three card types (daily, weekly, monthly). On mobile: a vertical day list with date, total, a 2px section color bar, and a reflection excerpt. Each entry opens the log drawer showing date, total minutes, recording waveform, items by section, and full reflection.
 
-**Notes** — freeform, wiki-linked markdown writing. Separate from practice session reflections. A knowledge base for pedagogy, philosophy, quotes, ideas that don't belong to any single date. Searchable and internally linkable. May cite and be cited by Programs.
+**Notes** — freeform, wiki-linked markdown writing. Separate from practice session reflections. A knowledge base for pedagogy, philosophy, quotes, ideas that don't belong to any single date. Searchable and internally linkable. On mobile: single-column list with folder chips, expand-in-place preview, and a bottom-sheet editor.
 
 **Programs** — a private salon journal. Each program is a named evening with an ordered sequence of pieces, per-piece marginal annotations (*"attacca," "long silence before," "the pivot"*), a written intention, a written reflection, and free markdown for program notes. The only surface organized around performance time rather than practice time. The sequence is the argument.
+
+**Navigation — desktop and tablet (≥ 768px)**  
+Persistent left sidebar with seven tabs. Active tab: IKB underline. The desktop layout is canonical. Tablet (≥ 768px) uses the full desktop layout without modification — at that width it holds comfortably.
+
+**Navigation — mobile (< 768px)**  
+A hamburger button in the TopBar opens a slide-in drawer from the left. The drawer organizes the seven surfaces into two tiers that reflect actual usage frequency:
+
+*Primary* (icon + label + eyebrow, Inter 15px weight 500):
+- Today — *Aujourd'hui*
+- Répertoire — *Pieces · technique · study*
+- Programs — *Salon journal*
+- Logs — *Practice history*
+- Notes — *Reference & ideas*
+
+*Secondary* (Inter 10px caps, no eyebrow):
+- Review
+- Routines
+
+*Utilities* (same style, trigger actions not navigation):
+- Export
+- Réglages
+
+The drawer does not use serif for navigation labels. Labels are interface chrome — Inter only. The wordmark at the top of the drawer (*Études*) is the only serif element inside it.
+
+A persistent footer at the bottom of every mobile view holds the transport controls in three rows: a readout row (active item + elapsed time, visible only when a session is active), a transport row (play/pause, metronome widget, record, quick-add), and a status row (today total and rest toggle). The footer's rendered height is published as `--footer-height` via a ResizeObserver so views can apply correct bottom padding dynamically.
 
 The navigation is the product's mental model. Seven tabs. Do not add an eighth without removing another. Do not rename them without strong reason.
 
@@ -199,7 +241,7 @@ The distinction matters: free mode is for responsive practice; routines are for 
 
 Ten primary shapes, nothing more:
 
-**Item** — `{ id, type, title, composer, movement, collection, instrument, length, tags[], detail, referenceUrl, referenceAudioBlob?, stage, startedDate, bpmLog[], spots[] }`. The unit of practice. Stages: queued → learning → polishing → maintenance → retired. `movement` is the part name within a larger work (e.g. *I. Prélude*); `collection` is the containing work (e.g. *Suite Bergamasque*); `instrument` is the performing instrument; `length` is duration in decimal minutes, used by Programs for total duration. `referenceUrl` is an external link — opens in a new tab. `referenceAudioBlob` is an optional locally stored audio file (teacher's demo, model recording) rendered in `--muted`, stored in IndexedDB alongside practice takes. `spots` is an array of `{ id, name, note, tempoTarget, bpmLog[] }` — named passages within the piece, each independently timed and logged.
+**Item** — `{ id, type, title, composer, movement, collection, instrument, length, tags[], detail, referenceUrl, referenceAudioBlob?, stage, startedDate, bpmLog[], spots[] }`. The unit of practice. Stages: queued → learning → polishing → maintenance → retired. `movement` is the part name within a larger work; `collection` is the containing work; `instrument` is the performing instrument; `length` is duration in decimal minutes, used by Programs for total duration. `referenceUrl` is an external link — opens in a new tab. `referenceAudioBlob` is an optional locally stored audio file rendered in `--muted`. `spots` is an array of `{ id, name, note, tempoTarget, bpmLog[] }`.
 
 **ItemTime** — `{ itemId → seconds }`. Lifetime accumulated practice time per item.
 
@@ -213,11 +255,11 @@ Ten primary shapes, nothing more:
 
 **Reflection** — three scales: daily (string), weekly and monthly (two-field: notes, goals).
 
-**Note** — `{ id, date, title, body, folder | null }`. Markdown, internally linkable, independent of sessions. `folder` groups notes in the sidebar; a note without a folder is uncategorized.
+**Note** — `{ id, date, title, body, folder | null }`. Markdown, internally linkable, independent of sessions.
 
-**RecordingMeta** — `{ itemId → [{ ts, peaks[], size, locked, r2Key? }] }` plus audio blobs in IndexedDB. Rolling ten unlocked takes per piece, FIFO; up to twenty locked takes per piece, exempt from FIFO and deletable only by explicit unlock. `r2Key` present for Pro subscribers with cloud sync.
+**RecordingMeta** — `{ itemId → [{ ts, peaks[], size, locked, mimeType, idbKey, r2Key? }] }` plus audio blobs in IndexedDB. Rolling ten unlocked takes per piece, FIFO; up to twenty locked takes per piece, exempt from FIFO. `mimeType` is detected at record time and stored for correct playback. `idbKey` is stored in each metadata entry — never re-derived — to prevent key collisions when re-recording on the same day. `r2Key` present for Pro subscribers with cloud sync.
 
-**Program** — `{ id, name, performanceDate | null, venue | null, audience | null, itemIds[], itemNotes: { itemId → string }, intention | null, reflection | null, body | null }`. An ordered list of pieces with an authored argument. `itemIds` order is the program order. `audience` is a private plain-text field — a memory of who was there, displayed only within the program editor, never in any aggregate view. `body` is free markdown for program notes, quotes, and ideas belonging to this program's world.
+**Program** — `{ id, name, performanceDate | null, venue | null, audience | null, itemIds[], itemNotes: { itemId → string }, intention | null, reflection | null, body | null }`. An ordered list of pieces with an authored argument. `itemIds` order is the program order. `audience` is a private plain-text field — displayed only within the program editor, never in any aggregate view or export.
 
 Plus interaction state: workingOn, restToday, loadedRoutineId, and settings.
 
@@ -247,11 +289,13 @@ Do not add without deliberation: difficulty scores, ratings, mood enums, XP, bad
 
 **Onboarding carousels, feature tours, empty-state cartoons.**
 
-**A third accent color.** IKB and gold are the complete vocabulary. Gold is not available for new uses beyond rest, warm-up, locked recordings, and A/B B-track. IKB is not available for states it does not currently describe. Do not introduce green, teal, purple, or any other color for any reason. When tempted, ask what the quieter solution is.
+**A third accent color.** IKB and gold are the complete vocabulary. Do not introduce green, teal, purple, or any other color for any reason. When tempted, ask what the quieter solution is.
+
+**A light mode implemented as a CSS invert or filter.** The near-black palette is a design argument, not a default. If a light mode is ever added, it requires a full parallel token system — a deliberate product decision, not a setting.
 
 **Dense modal dialogs with tabs.** If a modal has tabs, it should be a view.
 
-**General-purpose third-party embeds.** Reference recording URLs for YouTube, Spotify, and Apple Music embed inline within the piece panel — this is the single, bounded exception for recognised reference services. Every other URL opens in a new tab. No chat embeds, no general iframes, no third-party widgets. The embed is a convenience for reference listening, not a media player feature.
+**Third-party embeds of any kind.** Reference recordings are external links — a URL, a new tab, nothing more. Études is not a player.
 
 **Multiple recordings per day in the daily journal slot.** The constraint is the feature. The Rolling Archive per piece is separate and additive.
 
@@ -259,7 +303,9 @@ Do not add without deliberation: difficulty scores, ratings, mood enums, XP, bad
 
 **Targets that fail loudly.** A missed target is indistinguishable from no target, by design.
 
-**Programs as a filter, tag, or view within Répertoire.** A program is not a named subset of pieces. It is a curatorial act at a different temporal scale — an evening with an argument. Do not surface it as a chip, a dropdown, or a grouping in Répertoire. Do not dissolve it into the piece library. It deserves its own surface because it is the only surface organized around performance time.
+**Programs as a filter, tag, or view within Répertoire.** A program is not a named subset of pieces. It is a curatorial act at a different temporal scale — an evening with an argument. Do not surface it as a chip, a dropdown, or a grouping in Répertoire.
+
+**Serif labels in the mobile drawer navigation.** Nav labels are interface chrome — Inter only. The wordmark is the only exception.
 
 When a user asks for one of these, ask what quieter underlying need they are expressing. Streaks usually means "help me see I'm being consistent" — which the Review tab's month calendar already does, quietly.
 
@@ -279,41 +325,53 @@ When a user asks for one of these, ask what quieter underlying need they are exp
 
 **Prefer craft to novelty.** A better serif rendering, a more honest reflection prompt, a quieter metronome sound, a smoother waveform render — these are the improvements that matter.
 
+**Platform-native interaction patterns are adaptations, not additions.** Push navigation within a view, bottom sheets, expand-in-place, accordion sections — these are permitted on mobile when they serve attention without adding cognitive overhead. They are not new features; they are the same features rendered appropriately for the screen. Desktop code paths must be preserved byte-for-byte.
+
+**Accessibility is not in tension with quiet.** Font size scaling and alternative reading faces are expressly permitted — they serve the musician without changing what the product looks like for everyone else. A text size setting (three steps: default, large, larger) and an optional alternative reading font (such as OpenDyslexic, for the prose faces only) belong in Settings. They do not belong anywhere prominent.
+
 ---
 
-## XIV. Current state — v0.97.11
+## XIV. Current state — v0.98
 
-Eight views are fully implemented: Today, Review (Week + Month, single tab with scale selector), Répertoire, Routines, Logs, Notes, Programs. The navigation is seven primary tabs. The seven-view mental model is complete.
+**Navigation:** Seven views implemented: Today, Review, Répertoire, Routines, Logs, Notes, Programs. Week and Month consolidated into Review with a scale selector. Programs view is complete — list view, full editor (intention, piece list with drag reorder, per-piece annotations, reflection, body markdown), wiki-link integration in both directions with Notes.
 
-The session model is free-or-prescribed. Today defaults to free mode. Loading a routine prescribes sessions — ordered, named, with pinned pieces, optional intentions, and optional targets.
+**Session model:** Free-or-prescribed. Today defaults to free mode. Accordion sessions on mobile. Per-item recording buttons permanently visible on mobile item rows.
 
-Targets are optional at three levels: daily (Settings), per-section, and per-item. They shift to IKB when met. They never fail loudly.
+**Targets:** Optional at three levels: daily (Settings), per-section, per-item. IKB when met. Never fail loudly.
 
-The timer works end-to-end. Single active item. Per-item, per-section, and total-today counters. Rest toggle counts breaks independently and renders in gold. Day rollover archives at midnight.
+**Timer:** Single active item. Per-item, per-section, and total-today counters. Rest toggle in gold. Day rollover archives at midnight.
 
-The metronome is substantial. BPM slider, tap tempo, beats-per-bar, note value, subdivision, three sound profiles, Italian tempo presets, footer visualizer, and accelerando mode. BPM history is manual-only, logged per item as a sparse sparkline in Répertoire.
+**Metronome:** Look-ahead scheduler (25ms `setInterval` + `requestAnimationFrame` visual loop). Audio and visual clocks fully decoupled. Parameter changes (beats, subdivision, sound, compound) take effect on the next step without phase reset. Three sound profiles. Bars and Pulse visualizer modes. Accelerando. Compound meter presets (6/8: beats=2, sub=3, group=3; BPM = dotted-quarter tempo). BPM history logged per item as a sparse sparkline in Répertoire.
 
-The tuning and drone panel is accessible from the footer. A=440/432/415 Hz, three temperaments (Equal, Just, Meantone ¼), full chromatic note selection, cent offset display, adjustable volume. No pitch detection.
+**Tuning:** Labeled "Tuning" throughout. A=440/432/415 Hz. Three temperaments (Equal, Just, Meantone ¼). Full chromatic selection. Cent offset display. Volume. Mobile redesign with full chromatic keyboard (64px tall), stacked control rows, collapsible cent offset table. No pitch detection.
 
-Audio recording is a Rolling Archive — up to ten unlocked takes per piece (FIFO), up to twenty locked takes per piece (exempt from FIFO), rendered in IKB. Locked rows carry gold. A/B comparison is available for any two recordings within or across pieces — the primary track in IKB, the comparator in gold. Reference audio attached to a piece renders in `--muted`. Stored in IndexedDB. Cross-device delivery path planned via Cloudflare R2 for Pro tier. Reference URLs for YouTube, Spotify, and Apple Music embed inline within the piece panel; all other URLs open in a new tab.
+**Recording:** Rolling Archive — ten unlocked takes per piece (FIFO), twenty locked (exempt). MIME type negotiated at record time (webm/opus → mp4 → fallback). `idbKey` stored in metadata — key collisions on same-day re-recording resolved. A/B comparison across pieces. IKB for own takes, gold for locked rows and B-track comparator, `--muted` for reference audio. Recording mutex: only one active MediaRecorder at a time; conflict prompts a quiet inline confirmation.
 
-Notes are wiki-style markdown with internal linking and folder organization. A note can reference a piece, a log entry, another note, or a program. This is the knowledge layer — a musician's private commonplace book that connects across the entire journal.
+**Export:** ZIP archive — per-entity markdown files with YAML frontmatter, audio blobs in original format, PDF scores, `_data.json`. Platform-aware delivery (download on desktop/Android, share sheet on iOS PWA). `--footer-height` CSS custom property set dynamically by ResizeObserver for correct mobile bottom padding.
 
-Répertoire is the deepest view. Items have a five-stage arc (queued → learning → polishing → maintenance → retired), accumulated time, last-practiced date, tempo history sparkline, spots, notes, tags, PDF scores, reference recordings, and full editing. Collections group movements. Filtering by type, stage, composer, instrument, and tag.
+**Notes:** Wiki-style markdown, folder organization, internal linking. Mobile: folder chip strip, expand-in-place preview, bottom-sheet editor with full wiki autocomplete.
 
-Logs are a horizontal scroll gallery in three card types: daily, weekly, and monthly. Log drawer is the canonical day-review surface — opened from Review or Logs — showing date, total minutes, recording waveform, items and spots by section, and full reflection.
+**Répertoire:** Five-stage arc (queued → learning → polishing → maintenance → retired). Spots. Tempo sparkline. PDF scores. Reference recordings. Collections. Mobile: piece detail screen with four tabs (Spots, Info, Recordings, Score); all fields editable as full-width stacked inputs.
 
-Auth is email-based via Supabase. Google OAuth is live. Apple OAuth is deferred — required if the app is ever wrapped for App Store submission. Sync is optional metadata-to-Supabase; full audio and PDF cloud sync via Cloudflare R2 is planned for Pro tier.
+**Logs:** Desktop — horizontal gallery (daily, weekly, monthly card types). Mobile — vertical day list with section color bar (IKB/gold/ivory) and reflection excerpt.
 
-**Google Drive sync** is implemented as an independent optional sync layer — no Supabase account required. Metadata queues and uploads automatically; blobs (audio, PDFs) sync separately. A circuit breaker pauses the queue after repeated failures; pause state persists across page reloads via localStorage. Blob restore failures are surfaced quietly in Settings after a restore completes. Schema version is 10.
+**Auth:** Email via Supabase. Google OAuth live. Apple OAuth deferred. Sync: metadata to Supabase; audio and PDF sync via Cloudflare R2 planned for Pro tier.
 
-Mobile PWA is substantially complete. Bottom tab navigation, responsive layouts, service worker offline cache, safe-area insets, touch-drag fixes, recording panel mobile layout. The seven-view mental model is preserved across all screen sizes.
+**Mobile PWA:** Drawer navigation. TopBar (hamburger, wordmark, settings). Three-row footer transport. Safe-area insets. `--footer-height` dynamic property. Metronome bottom sheet. Z-index stack documented in `src/constants/theme.js`. Offline cache via service worker.
 
-**Two open items — resolve before beta:**
+**Design system:** Tokens in `src/constants/`. Display headings at `fontWeight: 400` and `clamp(32px, 6vw, 56px)`. EB Garamond for reading prose (`--serifText`), Cormorant Garamond for display (`--serif`). Margins owned by layout containers, not components. `--warm` scoped to four surfaces with inline comment. Z-index stack documented.
 
-1. **Export format.** The long-stated commitment was a zip of Markdown files with YAML frontmatter. The current export is a single `.md` file. Replace with the ZIP format specified in the export track. Do not ship a paid tier before resolving this.
+**Open items:**
 
-2. **Design system consistency.** Heading scale, margin architecture, and token audit need a dedicated pass before the app is shown to new users. Inconsistencies between views are visible on close inspection.
+1. **Google Drive backup.** Mechanism identified: `drive.file` scope on existing Google OAuth, `provider_token` passed to Google REST API, ZIP reuses `buildZip`. Implementation ready to build.
+
+2. **Print / PDF output.** Deferred to a dedicated track. The markdown export is the foundation. When built: `@react-pdf/renderer` with embedded fonts, three template styles (Manuscript, Archive, Program), `fontWeight: 400` Cormorant Garamond for display, EB Garamond for body.
+
+3. **Obsidian sync.** Not buildable as true bilateral sync across platforms. Resolved as: Google Drive backup (covers Drive-synced vaults natively) + a "Save to Obsidian vault" export path on desktop Chrome (File System Access API, one-way, one day of work).
+
+4. **`noteValue` → beat duration.** Deferred until North Star defines BPM semantics (quarter-note tempo vs. notated beat tempo). Currently BPM means pulses per minute for whatever grid is configured with beats + subdivision + compoundGroup. Document the semantics before building.
+
+5. **Accessibility settings.** Text size scaling (three steps) and alternative reading font are permitted and planned for Settings. Not yet built.
 
 ---
 
@@ -338,4 +396,4 @@ If the answer to any of these is no, stop and reconsider. If the answer to all i
 
 ---
 
-*North Star AI Primer v2.4 — May 2026 — supersedes v2.3*
+*North Star AI Primer v2.5 — May 2026 — supersedes v2.3*

@@ -1,9 +1,9 @@
 # Études
 
-Before doing anything, read `North_Star_V2.4.md`. It is the authoritative
+Before doing anything, read `North_Star_V2.5.md`. It is the authoritative
 product document and supersedes all other instructions.
 
-Current version: v2.4
+Current version: v2.5
 Current app version: v0.98.3
 
 -----
