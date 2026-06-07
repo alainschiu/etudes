@@ -75,6 +75,42 @@ Audio and PDFs are **device-local** in IndexedDB; Drive is an optional backup, n
 
 When `localStorage.setItem` throws (quota, Safari private browsing), `storage.js` dispatches an `etudes-storage-full` window event. `useEtudesState.js` listens and surfaces a WARN block at the top of the Sync tab.
 
+## Writing surfaces — the journal filesystem
+
+Every writing surface persists to one of these `etudes-*` localStorage keys (audio and PDFs live in IndexedDB, out of scope here). All are markdown.
+
+| #  | Surface                      | Field                          | Stored in                |
+|----|------------------------------|--------------------------------|--------------------------|
+| 1  | Daily reflection (today)     | `dailyReflection`              | `etudes-dailyReflection` |
+| 2  | Daily reflection (archived)  | `history[i].reflection`        | `etudes-history`         |
+| 3  | Weekly reflection (current)  | `weekReflection.{notes,goals}` | `etudes-weekReflection`  |
+| 4  | Weekly reflection (archived) | `history[i].notes`, `.goals`   | `etudes-history`         |
+| 5  | Monthly reflection (current) | `monthReflection.{notes,goals}`| `etudes-monthReflection` |
+| 6  | Monthly reflection (archived)| `history[i].notes`, `.goals`   | `etudes-history`         |
+| 7  | Per-piece pinned notes       | `item.detail`                  | `etudes-items`           |
+| 8  | Per-piece today note         | `item.todayNote`               | `etudes-items`           |
+| 9  | Per-piece log entry          | `item.noteLog[i].text`         | `etudes-items`           |
+| 10 | Free note                    | `freeNote.body`                | `etudes-freeNotes`       |
+| 11 | Program intention            | `program.intention`            | `etudes-programs`        |
+| 12 | Program reflection           | `program.reflection`           | `etudes-programs`        |
+| 13 | Program body / notes         | `program.body`                 | `etudes-programs`        |
+
+### Wiki-link grammar
+
+`[[…]]` is recognised in every markdown surface; the resolver is `resolveWikiLink` in `src/lib/notes.js`, which returns one of five target types: `day`, `item`, `spot`, `program`, `note`.
+
+| Syntax                      | Resolves to                       |
+|-----------------------------|-----------------------------------|
+| `[[YYYY-MM-DD]]`            | day log entry (`type:'day'`)      |
+| `[[Piece Name]]`           | item (`type:'item'`)              |
+| `[[Piece Name #SpotLabel]]`| spot inside an item (`type:'spot'`)|
+| `[[Program Name]]`         | program (`type:'program'`)        |
+| `[[Note Title]]`           | free note (`type:'note'`)         |
+
+Piece/program/note titles are matched fuzzily (`scoreMatch` over `slugify`d text) and scored **globally**, so an exact note-title match beats a weak word-overlap with a piece title. Autocomplete (`createWikiCompletion` in `src/components/MarkdownEditor.jsx`) offers items (with spots), recent days, programs, and notes.
+
+> Week (`[[YYYY-Www]]`) and month (`[[YYYY-MM]]`) wiki-links are **not** supported by the current resolver, even though weekly/monthly reflection surfaces exist (rows 3–6). Link targets are days, pieces, spots, programs, and notes only.
+
 ## Viewport / Mobile
 
 `src/hooks/useViewport.js` returns `{isMobile}`. Rule: non-touch devices use mobile when `width < 768`; touch devices use mobile if the short edge is < 768 (phone) or in portrait orientation (tablet). iPad in landscape → desktop, iPad in portrait → mobile, any iPhone → mobile. Updated via ResizeObserver + `(pointer: coarse)` and `(orientation: landscape)` `matchMedia` listeners. Every mobile conditional must preserve the original desktop code path byte-for-byte in the `else` branch.
