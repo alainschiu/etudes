@@ -22,7 +22,7 @@ import Music from 'lucide-react/dist/esm/icons/music';
 import Calendar from 'lucide-react/dist/esm/icons/calendar';
 import Upload from 'lucide-react/dist/esm/icons/upload';
 import {MarkdownEditor} from './MarkdownEditor.jsx';
-import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, serif, serifText, sans, mono, LINK} from '../constants/theme.js';
+import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR, IKB, IKB_SOFT, WARM, WARN, serif, serifText, sans, mono, LINK} from '../constants/theme.js';
 import {STAGES} from '../constants/config.js';
 import {idbGet} from '../lib/storage.js';
 import {daysUntil} from '../lib/dates.js';
@@ -576,6 +576,31 @@ export function MarkdownField({value,onChange,placeholder,minHeight=80,className
       )}
     </div>
   );
+}
+
+// Honest autosave indicator driven by real localStorage write results
+// (etudes-write-result via storage.js). saveStatus is the latest {key,ok,reason};
+// filter scopes it to one surface's key. A success shows "Saved" and fades after
+// 1.5s; a failure shows "Storage full" / "Save failed" in WARN tone and STICKS
+// until the next successful write. Returns null when idle (no layout shift).
+export function SaveIndicator({saveStatus,filter}){
+  const [display,setDisplay]=useState(null);
+  const timerRef=useRef(null);
+  useEffect(()=>{
+    if(!saveStatus||(filter&&!filter(saveStatus)))return;
+    if(saveStatus.ok){
+      setDisplay({ok:true});
+      if(timerRef.current)clearTimeout(timerRef.current);
+      timerRef.current=setTimeout(()=>setDisplay(null),1500);
+    }else{
+      if(timerRef.current){clearTimeout(timerRef.current);timerRef.current=null;}
+      setDisplay({ok:false,reason:saveStatus.reason});
+    }
+  },[saveStatus]);// eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(()=>()=>{if(timerRef.current)clearTimeout(timerRef.current);},[]);
+  if(!display)return null;
+  const label=display.ok?'Saved':(display.reason==='quota'||display.reason==='unavailable'?'Storage full':'Save failed');
+  return <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:display.ok?FAINT:WARN}}>{label}</span>;
 }
 
 export function SpotsBlock({item,itemTimes,activeItemId,activeSpotId,startItem,stopItem,addSpot,updateSpot,deleteSpot,editSpotTime,dayClosed,setConfirmModal}){

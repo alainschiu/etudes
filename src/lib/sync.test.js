@@ -58,4 +58,19 @@ describe('structurallyEqual', () => {
   it('disagrees on type mismatch (array vs object)', () => {
     expect(structurallyEqual([], {})).toBe(false);
   });
+
+  it('ignores updatedAt — a post-edit sync round-trip is not a conflict (schema v11)', () => {
+    // Two notes with identical content but different updatedAt must compare equal,
+    // else every save would false-flag a sync conflict.
+    const a = {id: 'n1', title: 'On tone', body: 'core, not skim', date: '2026-04-17', updatedAt: 1000};
+    const b = {id: 'n1', title: 'On tone', body: 'core, not skim', date: '2026-04-17', updatedAt: 9999};
+    expect(structurallyEqual(a, b)).toBe(true);
+    // updatedAt present on one side, absent on the other → still equal.
+    expect(structurallyEqual(a, {id: 'n1', title: 'On tone', body: 'core, not skim', date: '2026-04-17'})).toBe(true);
+    // Ignored inside arrays of notes too.
+    expect(structurallyEqual([a], [b])).toBe(true);
+    // A genuine content difference is still detected even with equal updatedAt.
+    const c = {id: 'n1', title: 'On tone', body: 'different', date: '2026-04-17', updatedAt: 1000};
+    expect(structurallyEqual(a, c)).toBe(false);
+  });
 });
