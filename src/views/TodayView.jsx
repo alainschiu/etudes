@@ -579,7 +579,7 @@ function TodayMobile(p){
     }
     return open;
   });
-  const [reflOpen, setReflOpen] = useState(false);
+  const [reflOpen, setReflOpen] = useState(()=>!!dailyReflection?.trim()||dayClosed);
   const [confirmClose, setConfirmClose] = useState(false);
   const [pickerSessionId, setPickerSessionId] = useState(null);
 
