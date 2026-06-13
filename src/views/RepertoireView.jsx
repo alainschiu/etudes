@@ -468,8 +468,8 @@ function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,update
   const [logSearch,setLogSearch]=useState('');
   const [addingNote,setAddingNote]=useState(false);
   const [newNoteText,setNewNoteText]=useState('');
-  const [pinnedOpen,setPinnedOpen]=useState(false);
-  const [logOpen,setLogOpen]=useState(false);
+  const [pinnedOpen,setPinnedOpen]=useState(()=>!!item.detail?.trim());
+  const [logOpen,setLogOpen]=useState(()=>(item.noteLog||[]).length>0);
   const log=(item.noteLog||[]).slice().reverse(); // newest first
   const q=logSearch.trim().toLowerCase();
   const filteredLog=q?log.filter(e=>(e.text||'').toLowerCase().includes(q)):log;
