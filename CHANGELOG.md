@@ -1,5 +1,31 @@
 # Changelog
 
+## [0.98.6] — 2026-06-13
+
+### Trust + Defaults
+
+Trust is the product's first promise. This release closes a path where the
+journal could silently lose a user's writing near storage quota, makes save
+failure honest, hardens the wiki-link connective tissue, fixes the standalone
+PWA shell, and removes two friction defaults on writing surfaces.
+
+- Notes now persist per-note (one `etudes-note-<id>` key plus an ordered
+  index), so one large note can no longer prevent the journal from saving;
+  storage failures surface honestly and no longer silently fall back to memory.
+  **Storage-layout migration:** a one-time split of the legacy single-blob
+  `etudes-freeNotes` into per-note keys, gated by an `etudes-notes-layout`
+  marker — lossless and idempotent (the legacy blob is retired only after every
+  per-note write confirms).
+- Real autosave indicator on the TodayMobile reflection — replaces a
+  content-presence label that misrepresented save status.
+- Wiki-links to missing targets render dimmed and inert; read-view links no
+  longer rely on a custom URL scheme (iOS reliability).
+- Safe-area insets now resolve in the installed app (`viewport-fit=cover`).
+- Notes gain an `updatedAt` field. **Schema migration v10 → v11**; sync
+  conflict detection honors it (`structurallyEqual` ignores `updatedAt`).
+- Pinned notes and Log book auto-expand when their content exists; mobile
+  reflection auto-expands when written or the day is closed.
+
 ## [0.98.5] — 2026-05-12
 
 ### Mobile parity + Safety
