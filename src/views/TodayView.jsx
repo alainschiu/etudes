@@ -38,7 +38,7 @@ import {todayDateStr, daysUntil} from '../lib/dates.js';
 import {getItemTime, displayTitle, formatByline, nextPerformance, getParentBucket} from '../lib/items.js';
 import {getEmbedInfo} from '../lib/media.js';
 import {toRoman} from '../lib/music.js';
-import {DisplayHeader, TargetEdit, TimeWithTarget, ItemTimeEditor, ItemPickerPopup, PerformanceChip, SpotsBlock, Waveform, MarkdownField} from '../components/shared.jsx';
+import {DisplayHeader, TargetEdit, TimeWithTarget, ItemTimeEditor, ItemPickerPopup, PerformanceChip, SpotsBlock, Waveform, MarkdownField, SaveIndicator} from '../components/shared.jsx';
 import {idbGet} from '../lib/storage.js';
 
 function AnalogClock({size=40}){
@@ -889,9 +889,7 @@ function TodayMobile(p){
           <ChevronRight size={11} strokeWidth={1.5} style={{transform:reflOpen?'rotate(90deg)':'rotate(0deg)',transition:'transform 200ms cubic-bezier(0.2,0.7,0.2,1)',color:DIM,flexShrink:0}}/>
           <span className="uppercase" style={{fontFamily:sans,fontSize:'10px',fontWeight:500,letterSpacing:'0.28em',color:MUTED,flex:1,textAlign:'left'}}>Reflection</span>
           <span style={{fontFamily:serif,fontStyle:'italic',fontSize:'14px',color:FAINT}}>Journal du jour</span>
-          <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:(dailyReflection||'').trim()?IKB:FAINT}}>
-            {(dailyReflection||'').trim()?'Saved':'Empty'}
-          </span>
+          <SaveIndicator saveStatus={p.saveStatus} filter={(s)=>s.key==='etudes-dailyReflection'}/>
         </button>
         {reflOpen && (
           <div style={{padding:'0 20px 20px'}}>

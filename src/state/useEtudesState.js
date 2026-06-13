@@ -5,7 +5,8 @@ import {useSupabaseAuth} from '../lib/useSupabaseAuth.js';
 import {loadFromCloud,syncToCloud,mergeStates,structurallyEqual,LS_CLOUD_SYNC_KEY} from '../lib/sync.js';
 import {todayDateStr,shiftDate,getWeekStart,getMonthKey} from '../lib/dates.js';
 import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,mkNoteLogId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem} from '../lib/items.js';
-import {migrateItems,migrateSessions,migrateRoutines,migrateHistory,migratePrograms} from '../lib/migrations.js';
+import {migrateItems,migrateSessions,migrateRoutines,migrateHistory,migratePrograms,migrateFreeNotes} from '../lib/migrations.js';
+import {loadFreeNotes,persistFreeNotes} from '../lib/notesStorage.js';
 import {buildCompositeDailyReflection,parseTagsFromBody} from '../lib/notes.js';
 import {checkAndSendReminder} from '../lib/notifications.js';
 import {isDriveConfigured,hasDriveToken} from '../lib/driveAuth.js';
@@ -53,6 +54,10 @@ export default function useEtudesState(){
   const [storageMode]=useState(()=>detectStorage());
   const [storageQuotaHit,setStorageQuotaHit]=useState(!storageAvailable);
   useEffect(()=>{const h=()=>setStorageQuotaHit(true);window.addEventListener('etudes-storage-full',h);return()=>window.removeEventListener('etudes-storage-full',h);},[]);
+  // Honest autosave indicator: latest real localStorage write result, per the
+  // etudes-write-result event from storage.js. Consumed by SaveIndicator.
+  const [saveStatus,setSaveStatus]=useState(null);
+  useEffect(()=>{const h=(e)=>{if(e.detail)setSaveStatus(e.detail);};window.addEventListener('etudes-write-result',h);return()=>window.removeEventListener('etudes-write-result',h);},[]);
 
   // ── Persisted state ───────────────────────────────────────────────────────
   const [items,setItems]=useState(()=>migrateItems(lsGet('etudes-items',[])));
@@ -68,7 +73,7 @@ export default function useEtudesState(){
   const [weekReflection,setWeekReflection]=useState(()=>lsGet('etudes-weekReflection',{notes:'',goals:''}));
   const [monthReflection,setMonthReflection]=useState(()=>lsGet('etudes-monthReflection',{notes:'',goals:''}));
   const [settings,setSettings]=useState(()=>lsGet('etudes-settings',{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400}));
-  const [freeNotes,setFreeNotes]=useState(()=>lsGet('etudes-freeNotes',[]));
+  const [freeNotes,setFreeNotes]=useState(()=>loadFreeNotes());
   const [noteCategories,setNoteCategories]=useState(()=>lsGet('etudes-noteCategories',[]));
   const [recordingMeta,setRecordingMeta]=useState(()=>lsGet('etudes-recordingMeta',{}));
   const [pieceRecordingMeta,setPieceRecordingMeta]=useState(()=>lsGet('etudes-pieceRecordingMeta',{}));
@@ -98,7 +103,15 @@ export default function useEtudesState(){
   useEffect(()=>{lsSet('etudes-weekReflection',weekReflection);},[weekReflection]);
   useEffect(()=>{lsSet('etudes-monthReflection',monthReflection);},[monthReflection]);
   useEffect(()=>{lsSet('etudes-settings',settings);},[settings]);
-  useEffect(()=>{lsSet('etudes-freeNotes',freeNotes);},[freeNotes]);
+  // Free notes persist per-note (etudes-note-<id> + index), not as one blob, so a
+  // single oversized note can only fail its own write. The loader already wrote the
+  // layout on mount, so skip the first run and diff thereafter (write-amplification win).
+  const prevPersistedNotesRef=useRef(undefined);
+  useEffect(()=>{
+    if(prevPersistedNotesRef.current===undefined){prevPersistedNotesRef.current=freeNotes;return;}
+    persistFreeNotes(freeNotes,prevPersistedNotesRef.current);
+    prevPersistedNotesRef.current=freeNotes;
+  },[freeNotes]);
   useEffect(()=>{lsSet('etudes-noteCategories',noteCategories);},[noteCategories]);
   useEffect(()=>{lsSet('etudes-recordingMeta',recordingMeta);},[recordingMeta]);
   useEffect(()=>{lsSet('etudes-pieceRecordingMeta',pieceRecordingMeta);},[pieceRecordingMeta]);
@@ -121,7 +134,7 @@ export default function useEtudesState(){
       setRoutines(migrateRoutines(r));
       setPrograms(p);
       setHistory(migrateHistory(lsGet('etudes-history',[])));
-      setFreeNotes(n);
+      setFreeNotes(migrateFreeNotes(n));
       setNoteCategories(lsGet('etudes-noteCategories',[]));
       setPieceRecordingMeta(lsGet('etudes-pieceRecordingMeta',{}));
       setRefTrackMeta(lsGet('etudes-refTrackMeta',{}));
@@ -342,7 +355,7 @@ export default function useEtudesState(){
   const updateNoteLogEntry=(itemId,entryId,text)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,noteLog:(i.noteLog||[]).map(e=>e.id===entryId?{...e,text}:e)}));
 
   // Also update freeNotes tags on save
-  const saveFreeNote=(id,patch)=>{setFreeNotes(prev=>prev.map(n=>{if(n.id!==id)return n;const updated={...n,...patch};if(patch.body!==undefined)updated.tags=parseTagsFromBody(patch.body);return updated;}));};
+  const saveFreeNote=(id,patch)=>{setFreeNotes(prev=>prev.map(n=>{if(n.id!==id)return n;const updated={...n,...patch,updatedAt:Date.now()};if(patch.body!==undefined)updated.tags=parseTagsFromBody(patch.body);return updated;}));};
 
   // ── Debug: seed comprehensive test data ───────────────────────────────────
   const seedTestNotes=()=>{
@@ -561,7 +574,7 @@ export default function useEtudesState(){
 
   // ── Cloud sync effects ─────────────────────────────────────────────────────
   const applyCloudStateRef=useRef(null);
-  applyCloudStateRef.current=(s)=>{if(!s)return;applyingCloudRef.current=true;setItems(migrateItems(s.items||[]));setRoutines(migrateRoutines(s.routines||[]));setPrograms(s.programs||[]);setHistory(migrateHistory(s.history||[]));setSettings(s.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setDailyReflection(s.dailyReflection||'');setWeekReflection(s.weekReflection||{notes:'',goals:''});setMonthReflection(s.monthReflection||{notes:'',goals:''});setFreeNotes(s.freeNotes||[]);setRecordingMeta(s.recordingMeta||{});setPieceRecordingMeta(s.pieceRecordingMeta||{});setRefTrackMeta(s.refTrackMeta||{});setWorkingOn(s.workingOn||[]);setTodaySessions([...migrateSessions(s.todaySessions||DEFAULT_SESSIONS).map(s=>({...s,itemIds:s.itemIds===null?[]:s.itemIds}))].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type)));setDayClosed(!!s.dayClosed);setLoadedRoutineId(s.loadedRoutineId||null);setWarmupTimeToday(s.warmupTimeToday||0);setItemTimes(s.itemTimes||{});setRestToday(s.restToday||0);requestAnimationFrame(()=>{applyingCloudRef.current=false;});};
+  applyCloudStateRef.current=(s)=>{if(!s)return;applyingCloudRef.current=true;setItems(migrateItems(s.items||[]));setRoutines(migrateRoutines(s.routines||[]));setPrograms(s.programs||[]);setHistory(migrateHistory(s.history||[]));setSettings(s.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setDailyReflection(s.dailyReflection||'');setWeekReflection(s.weekReflection||{notes:'',goals:''});setMonthReflection(s.monthReflection||{notes:'',goals:''});setFreeNotes(migrateFreeNotes(s.freeNotes||[]));setRecordingMeta(s.recordingMeta||{});setPieceRecordingMeta(s.pieceRecordingMeta||{});setRefTrackMeta(s.refTrackMeta||{});setWorkingOn(s.workingOn||[]);setTodaySessions([...migrateSessions(s.todaySessions||DEFAULT_SESSIONS).map(s=>({...s,itemIds:s.itemIds===null?[]:s.itemIds}))].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type)));setDayClosed(!!s.dayClosed);setLoadedRoutineId(s.loadedRoutineId||null);setWarmupTimeToday(s.warmupTimeToday||0);setItemTimes(s.itemTimes||{});setRestToday(s.restToday||0);requestAnimationFrame(()=>{applyingCloudRef.current=false;});};
   // Load or first-run migration on sign-in
   useEffect(()=>{if(!user)return;(async()=>{try{setSyncStatus('syncing');const result=await loadFromCloud(user.id);
 
@@ -662,7 +675,7 @@ export default function useEtudesState(){
     expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,
     logDrawerDate,logDrawerEntry,editingTimeItemId,setEditingTimeItemId,
     dragIdx,dragOverIdx,
-    storageMode,storageQuotaHit,setStorageQuotaHit,
+    storageMode,storageQuotaHit,setStorageQuotaHit,saveStatus,
     items,setItems,itemTimes,warmupTimeToday,restToday,workingOn,
     todaySessions,setTodaySessions,loadedRoutineId,routines,setRoutines,
     dailyReflection,setDailyReflection,weekReflection,setWeekReflection,

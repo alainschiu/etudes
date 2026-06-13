@@ -88,12 +88,17 @@ export function structurallyEqual(a, b) {
     for (let i = 0; i < a.length; i++) if (!structurallyEqual(a[i], b[i])) return false;
     return true;
   }
-  const aKeys = Object.keys(a).filter(k => a[k] !== undefined);
-  const bKeys = Object.keys(b).filter(k => b[k] !== undefined);
+  const aKeys = Object.keys(a).filter(k => a[k] !== undefined && !IGNORED_EQUALITY_KEYS.has(k));
+  const bKeys = Object.keys(b).filter(k => b[k] !== undefined && !IGNORED_EQUALITY_KEYS.has(k));
   if (aKeys.length !== bKeys.length) return false;
   for (const k of aKeys) if (!structurallyEqual(a[k], b[k])) return false;
   return true;
 }
+
+// Fields excluded from structural equality. updatedAt (notes, schema v11) is a
+// last-write-wins timestamp, not content — two notes differing only by updatedAt
+// are equal, so a normal post-edit sync round-trip does not read as a conflict.
+const IGNORED_EQUALITY_KEYS = new Set(['updatedAt']);
 
 export async function syncToCloud(userId, state) {
   try {

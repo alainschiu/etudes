@@ -34,8 +34,21 @@ export const IMPORT_MIGRATIONS=[
     const programs=(s.programs||[]).map(p=>({venue:null,audience:null,itemNotes:{},intention:null,reflection:null,body:null,...p,itemNotes:(p.itemNotes&&typeof p.itemNotes==='object')?p.itemNotes:{}}));
     return {...d,schemaVersion:10,state:{...s,programs}};
   }},
+  {from:10,to:11,migrate:(d)=>{
+    // Notes gain updatedAt. Use the SAME defaulting as the live-state migrateFreeNotes
+    // so a restored pre-11 backup lands identical to a live-migrated one.
+    const s=d.state||{};
+    return {...d,schemaVersion:11,state:{...s,freeNotes:migrateFreeNotes(s.freeNotes)}};
+  }},
 ];
 export function migrateImport(data){let c=data;let v=c.schemaVersion||1;for(const m of IMPORT_MIGRATIONS){if(m.from===v){c=m.migrate(c);v=m.to;c.schemaVersion=v;}}return c;}
+
+// Notes gain updatedAt (schema v11). Shared by the live-state loader and the
+// import 10->11 migration. Idempotent: an existing updatedAt is preserved; a
+// note without one defaults to its (immutable) creation date, else now.
+export function migrateFreeNotes(notes){
+  return (notes||[]).map(n=>({...n,updatedAt:n.updatedAt||n.date||Date.now()}));
+}
 
 export function migratePrograms(programs){
   return (programs||[]).map(p=>({

@@ -153,7 +153,8 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
   const activeNote=freeNotes.find(n=>n.id===activeNoteId);
 
   const addNote=()=>{
-    const n={id:Date.now(),date:todayDateStr(),title:'New note',body:'',category:activeCategoryId==='__all'||activeCategoryId==='__daily'||activeCategoryId==='__repertoire'?'':activeCategoryId,tags:[]};
+    const date=todayDateStr();
+    const n={id:Date.now(),date,title:'New note',body:'',category:activeCategoryId==='__all'||activeCategoryId==='__daily'||activeCategoryId==='__repertoire'?'':activeCategoryId,tags:[],updatedAt:date};
     setFreeNotes([n,...freeNotes]);
     setActiveNoteId(n.id);
   };
@@ -161,7 +162,7 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
   const updateNote=(id,patch)=>{
     setFreeNotes(prev=>prev.map(n=>{
       if(n.id!==id)return n;
-      const updated={...n,...patch};
+      const updated={...n,...patch,updatedAt:Date.now()};
       if(patch.body!==undefined)updated.tags=parseTagsFromBody(patch.body);
       return updated;
     }));
