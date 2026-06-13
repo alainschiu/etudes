@@ -823,7 +823,7 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
     background:BG,borderTop:`1px solid ${LINE_STR}`,zIndex:ZSHEET,
     transform:editSheetId?'translateY(0)':'translateY(100%)',
     transition:editSheetId?'transform 240ms ease-out':'transform 200ms ease-in',
-    display:'flex',flexDirection:'column',
+    display:'flex',flexDirection:'column',paddingBottom:'env(safe-area-inset-bottom,16px)',
   };
 
   return(
