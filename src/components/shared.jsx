@@ -497,31 +497,31 @@ const HAS_CUSTOM_LINK_RE=/(?:obsidian:\/\/|x-devonthink-item:\/\/)/;
 function MarkdownComponents({onWikiLinkClick,completionData}){
   return {
     a:({href,children,...rest})=>{
+      const isWiki=href&&href.startsWith('wikilink://');
+      if(isWiki){
+        const wikiRaw=decodeURIComponent(href.slice('wikilink://'.length));
+        // Resolution requires completionData. Without it we cannot confirm the
+        // target exists, so the link is not treated as live (dead links never
+        // render as clickable IKB). Read sites thread completionData to resolve.
+        const wikiResolved=completionData?!!resolveWikiLink(wikiRaw,completionData.items||[],completionData.history||[],completionData.programs||[],completionData.notes||[]):false;
+        if(!wikiResolved){
+          // Unresolved: faint italic prose, non-clickable. Never IKB — a dead
+          // link means nothing, and IKB is reserved for what means something.
+          return <span title="no match" style={{color:FAINT,fontStyle:'italic',cursor:'default'}}>{children}</span>;
+        }
+        // Resolved internal link rendered as <span>, not <a href="wikilink://">,
+        // so iOS never attempts to navigate the unknown scheme. onTouchEnd +
+        // touchAction make tap-to-navigate reliable on iOS where onClick alone is not.
+        const tap=(e)=>{e.preventDefault();e.stopPropagation();if(onWikiLinkClick)onWikiLinkClick(wikiRaw);};
+        return <span onClick={tap} onTouchEnd={tap} style={{color:IKB,borderBottom:`1px solid ${IKB}55`,cursor:'pointer',textDecoration:'none',touchAction:'manipulation'}}>{children}</span>;
+      }
       const isExternal=href&&(href.startsWith('http://')||href.startsWith('https://'));
       const isDeep=DEEP_LINK_SCHEMES.some(s=>href&&href.startsWith(s));
-      const isWiki=href&&href.startsWith('wikilink://');
-      const wikiRaw=isWiki?decodeURIComponent(href.slice('wikilink://'.length)):'';
-      const wikiResolved=isWiki&&completionData?!!resolveWikiLink(wikiRaw,completionData.items||[],completionData.history||[],completionData.programs||[],completionData.notes||[]):isWiki;
       const suppress=(e)=>{e.preventDefault();e.stopPropagation();};
-      const handleClick=(e)=>{
-        suppress(e);
-        if(isWiki){
-          if(wikiResolved&&onWikiLinkClick)onWikiLinkClick(wikiRaw);
-        }else if((isExternal||isDeep)&&href){
-          window.open(href,'_blank','noopener,noreferrer');
-        }
-      };
-      const wikilinkStyle=isWiki
-        ?(wikiResolved
-          ?{color:LINK,borderBottom:`1px solid ${LINK}55`,cursor:'pointer',textDecoration:'none'}
-          // Unresolved: render as italic faint prose, no border, no underline.
-          // Reads as text the user typed, not as a clickable link.
-          :{color:FAINT,fontStyle:'italic',cursor:'default',textDecoration:'none',borderBottom:'none'})
-        :{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'};
+      const handleClick=(e)=>{suppress(e);if((isExternal||isDeep)&&href)window.open(href,'_blank','noopener,noreferrer');};
       // touchstart must also preventDefault synchronously on iOS or the browser
       // initiates navigation before onClick fires.
-      const titleAttr=isWiki&&!wikiResolved?'no match':rest.title;
-      return (<a href={href} onClick={handleClick} onTouchStart={suppress} style={wikilinkStyle} {...rest} title={titleAttr}>{children}</a>);
+      return (<a href={href} onClick={handleClick} onTouchStart={suppress} style={{color:LINK,textDecoration:'underline',textDecorationColor:`${LINK}70`,cursor:'pointer'}} {...rest}>{children}</a>);
     },
     p:({children})=><p style={{marginBottom:'0.85em',lineHeight:1.8}}>{children}</p>,
     h1:({children})=><h1 style={{fontSize:'1.3em',fontWeight:400,marginBottom:'0.5em',marginTop:'1em',borderBottom:`1px solid rgba(244,238,227,0.12)`,paddingBottom:'0.2em'}}>{children}</h1>,

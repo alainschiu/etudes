@@ -557,7 +557,7 @@ function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,update
 
           <div className="space-y-0">
             {filteredLog.map((entry,idx)=>(
-              <LogEntry key={entry.id} entry={entry} itemId={item.id} isLast={idx===filteredLog.length-1} onDelete={()=>deleteNoteLogEntry&&deleteNoteLogEntry(item.id,entry.id)} onUpdate={(text)=>updateNoteLogEntry&&updateNoteLogEntry(item.id,entry.id,text)} onWikiLinkClick={onWikiLinkClick}/>
+              <LogEntry key={entry.id} entry={entry} itemId={item.id} isLast={idx===filteredLog.length-1} onDelete={()=>deleteNoteLogEntry&&deleteNoteLogEntry(item.id,entry.id)} onUpdate={(text)=>updateNoteLogEntry&&updateNoteLogEntry(item.id,entry.id,text)} onWikiLinkClick={onWikiLinkClick} wikiCompletionData={wikiCompletionData}/>
             ))}
           </div>
         </>)}
@@ -566,7 +566,7 @@ function LogBookPanel({item,updateItem,addNoteLogEntry,deleteNoteLogEntry,update
   );
 }
 
-function LogEntry({entry,itemId,isLast,onDelete,onUpdate,onWikiLinkClick}){
+function LogEntry({entry,itemId,isLast,onDelete,onUpdate,onWikiLinkClick,wikiCompletionData}){
   const [editing,setEditing]=useState(false);
   const [text,setText]=useState(entry.text||'');
   useEffect(()=>{setText(entry.text||'');},[entry.text]);
@@ -600,7 +600,7 @@ function LogEntry({entry,itemId,isLast,onDelete,onUpdate,onWikiLinkClick}){
           </div>
         </div>
       ):(
-        <MarkdownField value={entry.text||''} readOnly minHeight={0} style={{border:'none',padding:0,fontSize:'13px',background:'transparent'}} onWikiLinkClick={onWikiLinkClick}/>
+        <MarkdownField value={entry.text||''} readOnly minHeight={0} style={{border:'none',padding:0,fontSize:'13px',background:'transparent'}} onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
       )}
     </div>
   );
