@@ -19,7 +19,7 @@ import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
 import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,serif,sans,mono} from '../constants/theme.js';
 import {displayTitle,formatByline,getItemTime} from '../lib/items.js';
-import {SpotRow} from './shared.jsx';
+import {SpotRow, MarkdownField} from './shared.jsx';
 import PdfViewer from './PdfViewer.jsx';
 
 const SIDEBAR_W=300;
