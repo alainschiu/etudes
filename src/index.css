@@ -296,9 +296,11 @@ html, body {
 }
 
 /* iOS auto-zoom on focus is suppressed when the effective input font-size
-   is at least 16px. Forces the floor on phone-width viewports. */
+   is at least 16px. Forces the floor on phone-width viewports. Includes
+   .cm-content — CodeMirror's editable is a contenteditable div, not a
+   textarea, so it isn't matched by the input/textarea/select selectors. */
 @media (max-width: 768px) {
-  input, textarea, select { font-size: 16px !important; }
+  input, textarea, select, .cm-content { font-size: 16px !important; }
 }
 
 /* Touch devices have no hover state, so any control that relied on
