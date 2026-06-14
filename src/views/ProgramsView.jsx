@@ -1,7 +1,5 @@
 import React,{useState,useMemo,useCallback} from 'react';
 import useViewport from '../hooks/useViewport.js';
-import ReactMarkdown, {defaultUrlTransform} from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
 import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
@@ -10,16 +8,9 @@ import ArrowUp from 'lucide-react/dist/esm/icons/arrow-up';
 import ArrowDown from 'lucide-react/dist/esm/icons/arrow-down';
 import {BG,SURFACE,SURFACE2,TEXT,MUTED,FAINT,DIM,LINE,LINE_MED,LINE_STR,IKB,IKB_SOFT,serif,serifText,sans,mono} from '../constants/theme.js';
 import {displayTitle,formatByline} from '../lib/items.js';
-import {resolveWikiLink} from '../lib/notes.js';
 import {MarkdownField,DisplayHeader,confirmDestructive} from '../components/shared.jsx';
-import {MarkdownEditor} from '../components/MarkdownEditor.jsx';
 
 function mkId(){return Math.random().toString(36).slice(2,10);}
-
-// Let our custom wiki:// scheme survive react-markdown's default urlTransform.
-const wikiUrlTransform=(url,key,node)=>(
-  url&&url.startsWith('wiki://')?url:defaultUrlTransform(url,key,node)
-);
 
 function startOfToday(){
   const d=new Date();d.setHours(0,0,0,0);return d;
@@ -66,22 +57,13 @@ function ItemPicker({items,existingIds,onPick,onClose}){
 }
 
 // ── Program editor ───────────────────────────────────────────────────────────
-function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiveNoteId,setConfirmModal,onWikiLinkClick,wikiCompletionData}){
+function ProgramEditor({program,items,onUpdate,onBack,setConfirmModal,onWikiLinkClick,wikiCompletionData}){
   const {isMobile}=useViewport();
   const [showPicker,setShowPicker]=useState(false);
   const [dragIdx,setDragIdx]=useState(null);
   const [dragOverIdx,setDragOverIdx]=useState(null);
   const [confirmRemoveId,setConfirmRemoveId]=useState(null);
   const [bodyMode,setBodyMode]=useState('edit');
-
-  const handleBodyWikiClick=useCallback((rawText)=>{
-    const resolved=resolveWikiLink(rawText,items,[],null,freeNotes||[]);
-    if(!resolved)return;
-    if(resolved.type==='note'){
-      if(setActiveNoteId)setActiveNoteId(resolved.target);
-      if(setView)setView('notes');
-    }
-  },[items,freeNotes,setView,setActiveNoteId]);
 
   const pieceItems=useMemo(()=>program.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean),[program.itemIds,items]);
   const existingIds=useMemo(()=>new Set(program.itemIds),[program.itemIds]);
@@ -343,34 +325,23 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
           </button>
         </div>
         {bodyMode==='preview'?(
-          <div style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.8,color:TEXT,minHeight:'80px'}}>
-            {program.body?(
-              <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={wikiUrlTransform} components={{
-                p:({children})=><p style={{marginBottom:'1em'}}>{children}</p>,
-                a:({href,children})=>{
-                  if(href?.startsWith('wiki://')){
-                    const raw=decodeURIComponent(href.slice(7));
-                    const ok=!!resolveWikiLink(raw,items,[],null,freeNotes||[]);
-                    if(!ok) return <span title="no match" style={{color:FAINT,fontStyle:'italic',cursor:'default'}}>{children}</span>;
-                    return <span onClick={()=>handleBodyWikiClick(raw)} style={{color:IKB,borderBottom:`1px solid ${IKB}40`,cursor:'pointer'}}>{children}</span>;
-                  }
-                  const url=href&&!href.match(/^https?:\/\//)? `https://${href}`:href;
-                  return <a href={url} target="_blank" rel="noopener noreferrer" style={{color:IKB,borderBottom:`1px solid ${IKB}40`}}>{children}</a>;
-                },
-              }}>
-                {program.body.replace(/\[\[([^\]\n]+)\]\]/g,(_,t)=>`[${t}](wiki://${encodeURIComponent(t)})`)}
-              </ReactMarkdown>
-            ):(
-              <span style={{fontFamily:serifText,fontStyle:'italic',color:DIM,fontSize:'14px'}}>Nothing here yet.</span>
-            )}
-          </div>
+          <MarkdownField
+            value={program.body||''}
+            readOnly
+            placeholder="Nothing here yet."
+            minHeight={80}
+            style={{border:'none',padding:0,background:'transparent'}}
+            onWikiLinkClick={onWikiLinkClick}
+            completionData={wikiCompletionData}
+          />
         ):(
-          <MarkdownEditor
+          <MarkdownField
             value={program.body||''}
             onChange={v=>update({body:v||null})}
             placeholder="Program notes, quotes, ideas — anything belonging to this program's world."
             minHeight={120}
-            onWikiLinkClick={handleBodyWikiClick}
+            onWikiLinkClick={onWikiLinkClick}
+            completionData={wikiCompletionData}
           />
         )}
       </div>
@@ -486,7 +457,7 @@ function ProgramsList({programs,items,onSelect,onNew,setPrograms}){
 }
 
 // ── Main view ────────────────────────────────────────────────────────────────
-export default function ProgramsView({items,programs,setPrograms,selectedProgramId,setSelectedProgramId,setView,freeNotes,setActiveNoteId,setConfirmModal,onWikiLinkClick,wikiCompletionData}){
+export default function ProgramsView({items,programs,setPrograms,selectedProgramId,setSelectedProgramId,setConfirmModal,onWikiLinkClick,wikiCompletionData}){
   const {isMobile}=useViewport();
   const selectedProgram=programs.find(p=>p.id===selectedProgramId)||null;
 
@@ -510,10 +481,7 @@ export default function ProgramsView({items,programs,setPrograms,selectedProgram
         items={items}
         onUpdate={updateProgram}
         onBack={()=>setSelectedProgramId(null)}
-        freeNotes={freeNotes||[]}
         setConfirmModal={setConfirmModal}
-        setView={setView}
-        setActiveNoteId={setActiveNoteId}
         onWikiLinkClick={onWikiLinkClick}
         wikiCompletionData={wikiCompletionData}
       />
