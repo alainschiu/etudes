@@ -127,13 +127,16 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
   const [activeCategoryId,setActiveCategoryId]=useState('__all');
   const [activeNoteId,setActiveNoteId]=useState(freeNotes[0]?.id);
 
-  // Consume external navigation requests (e.g. from Programs body wiki-links)
+  // Consume external navigation requests (e.g. from Programs body wiki-links).
+  // Desktop only — activeNoteId is desktop-only state. On mobile NotesMobile
+  // consumes requestedNoteId via its own editSheetId/expandedId surface, so leave
+  // it untouched here (otherwise this clears it before the mobile view can act).
   useEffect(()=>{
-    if(requestedNoteId){
+    if(requestedNoteId&&!isMobile){
       setActiveNoteId(requestedNoteId);
       if(setRequestedNoteId)setRequestedNoteId(null);
     }
-  },[requestedNoteId]);
+  },[requestedNoteId,isMobile]);
   const [query,setQuery]=useState('');
   const [tagSearch,setTagSearch]=useState('');
   const [addingCategory,setAddingCategory]=useState(false);
@@ -312,6 +315,8 @@ export default function NotesView({freeNotes,setFreeNotes,noteCategories,setNote
       programs={programs}
       notes={freeNotes}
       onWikiLinkClick={handleWikiLinkClick}
+      requestedNoteId={requestedNoteId}
+      setRequestedNoteId={setRequestedNoteId}
       addCategory={addCategory}
       renameCategory={renameCategory}
       deleteCategory={deleteCategory}
@@ -736,7 +741,7 @@ function NoteEditor({note, categories, onUpdate, onDelete, onTagClick, onWikiLin
 }
 
 // ── Mobile notes view ─────────────────────────────────────────────────────
-function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes,items,history,programs,notes,onWikiLinkClick,addCategory,renameCategory,deleteCategory,newCatName,setNewCatName}){
+function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId,setActiveCategoryId,query,setQuery,tagSearch,setTagSearch,addNote,updateNote,deleteNote,seedTestNotes,items,history,programs,notes,onWikiLinkClick,requestedNoteId,setRequestedNoteId,addCategory,renameCategory,deleteCategory,newCatName,setNewCatName}){
   const [editFolders,setEditFolders]=useState(false);
   const [editingCatId,setEditingCatId]=useState(null);
   const [editingCatName,setEditingCatName]=useState('');
@@ -778,6 +783,20 @@ function NotesMobile({freeNotes,filtered,noteCategories,allTags,activeCategoryId
     }
     if(onWikiLinkClick)onWikiLinkClick(resolved);
   },[items,history,programs,notes,onWikiLinkClick,editSheetId,setActiveCategoryId,setTagSearch,setQuery]);
+
+  // Consume a cross-surface note request (e.g. a [[note]] tapped in a program,
+  // reflection, or log) by opening it on the mobile-native surface — expand in
+  // place + scroll, the same path as an in-notes wiki tap. The desktop effect in
+  // NotesView is gated off on mobile so this is the sole consumer.
+  useEffect(()=>{
+    if(!requestedNoteId)return;
+    setActiveCategoryId('__all');
+    setTagSearch('');
+    setQuery('');
+    setExpandedId(requestedNoteId);
+    setPendingScrollId(requestedNoteId);
+    if(setRequestedNoteId)setRequestedNoteId(null);
+  },[requestedNoteId]);// eslint-disable-line react-hooks/exhaustive-deps
 
   // Scroll the freshly-expanded note into view after the list has re-rendered
   // with cleared filters.
