@@ -17,6 +17,7 @@ import Crosshair from 'lucide-react/dist/esm/icons/crosshair';
 import Pencil from 'lucide-react/dist/esm/icons/pencil';
 import Clock from 'lucide-react/dist/esm/icons/clock';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
+import MessageSquare from 'lucide-react/dist/esm/icons/message-square';
 import Check from 'lucide-react/dist/esm/icons/check';
 import Music from 'lucide-react/dist/esm/icons/music';
 import Calendar from 'lucide-react/dist/esm/icons/calendar';
@@ -384,12 +385,16 @@ export function fmtSpotTime(s){s=s||0;const m=Math.floor(s/60);const sec=s%60;re
 
 export function PerformanceChip({perf,compact=false}){if(!perf||!perf.date)return null;const days=daysUntil(perf.date);if(days===null||days<-30)return null;let color,text;if(days<0){color=MUTED;text=`${Math.abs(days)}d ago`;}else if(days===0){color=WARM;text='today';}else if(days<=7){color=WARM;text=`${days}d`;}else if(days<=30){color=IKB;text=`${days}d`;}else{color=FAINT;text=`${days}d`;}const label=perf.label||'perf';return (<span className="inline-flex items-center gap-1 uppercase" title={`${label} · ${perf.date}`} style={{color,fontSize:compact?'9px':'10px',letterSpacing:'0.22em',padding:compact?'1px 5px':'2px 6px',border:`1px solid ${color}40`,background:(days<=7&&days>=0)?`${color}15`:'transparent'}}><Calendar className="w-2.5 h-2.5" strokeWidth={1.25}/>{label} · {text}</span>);}
 
-export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,onDelete,onEditTime,onPdfPageJump,onPdfPageSet,dayClosed,compact=false}){
+export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,onDelete,onEditTime,onPdfPageJump,onPdfPageSet,onNoteChange,onWikiLinkClick,completionData,dayClosed,compact=false}){
   const [editing,setEditing]=useState(false);
   const [val,setVal]=useState(spot.label);
   const [editingTime,setEditingTime]=useState(false);
   const [editingPage,setEditingPage]=useState(false);
   const [pageVal,setPageVal]=useState('');
+  // Persistent-note editor (editable contexts only). Default open when the spot
+  // already has a note so it's visible without a tap; collapsed when empty.
+  const hasNote=!!(spot.note&&spot.note.trim());
+  const [noteOpen,setNoteOpen]=useState(()=>hasNote);
   const time=getSpotTime(itemTimes,itemId,spot.id);
   const commit=()=>{if(val.trim())onRename(val.trim());else setVal(spot.label);setEditing(false);};
   const commitPage=(raw)=>{
@@ -400,6 +405,7 @@ export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,
   };
   const openPageEditor=()=>{setPageVal(spot.pdfPage?String(spot.pdfPage):'');setEditingPage(true);};
   return (
+    <div>
     <div className="group flex items-center gap-2 py-2 px-2" style={{background:isActive?IKB_SOFT:'transparent',borderLeft:isActive?`2px solid ${IKB}`:`2px solid transparent`}}>
       {/* Play / pause */}
       <button onClick={()=>isActive?onStop():onStart()} disabled={dayClosed&&!isActive} className="shrink-0" style={{color:isActive?IKB:(dayClosed?FAINT:TEXT),cursor:(dayClosed&&!isActive)?'not-allowed':'pointer'}}>
@@ -466,12 +472,28 @@ export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,
           )}
         </>
       )}
+      {/* Persistent note toggle (editable contexts only) */}
+      {onNoteChange&&!editing&&!editingTime&&(
+        <button onClick={()=>setNoteOpen(o=>!o)}
+          className={hasNote?'shrink-0':'target-hover-reveal shrink-0'}
+          style={{color:(hasNote||noteOpen)?IKB:FAINT,background:'transparent',border:'none',cursor:'pointer'}}
+          title={hasNote?'Spot note':'Add spot note'}>
+          <MessageSquare className="w-3 h-3" strokeWidth={1.25}/>
+        </button>
+      )}
       {/* Delete */}
       {!editing&&!editingTime&&(
         <button onClick={onDelete} className="target-hover-reveal shrink-0" style={{color:FAINT,background:'transparent',border:'none',cursor:'pointer'}} title="Delete spot">
           <X className="w-3 h-3" strokeWidth={1.25}/>
         </button>
       )}
+    </div>
+    {onNoteChange&&noteOpen&&(
+      <div className="px-2 pb-2">
+        <MarkdownField value={spot.note||''} onChange={onNoteChange} placeholder="Persistent note…" minHeight={48}
+          style={{background:BG,border:`1px solid ${LINE}`}} onWikiLinkClick={onWikiLinkClick} completionData={completionData}/>
+      </div>
+    )}
     </div>
   );
 }
@@ -605,12 +627,12 @@ export function SaveIndicator({saveStatus,filter}){
   return <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:display.ok?FAINT:WARN}}>{label}</span>;
 }
 
-export function SpotsBlock({item,itemTimes,activeItemId,activeSpotId,startItem,stopItem,addSpot,updateSpot,deleteSpot,editSpotTime,dayClosed,setConfirmModal}){
+export function SpotsBlock({item,itemTimes,activeItemId,activeSpotId,startItem,stopItem,addSpot,updateSpot,deleteSpot,editSpotTime,dayClosed,setConfirmModal,onWikiLinkClick,completionData}){
   const spots=item.spots||[];
   const onDelete=(spotId)=>{
     const sp=spots.find(s=>s.id===spotId);
     confirmDestructive(setConfirmModal,`Delete spot "${sp?.label||'this spot'}"? Tempo log and time will be removed.`,
       ()=>deleteSpot(item.id,spotId));
   };
-  return (<div><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {spots.length>0&&<span style={{color:DIM,letterSpacing:'0.2em'}}>· {spots.length}</span>}</div>{spots.length>0&&(<div style={{background:SURFACE2,border:`1px solid ${LINE}`}}>{spots.map((s,idx)=>(<div key={s.id} style={{borderBottom:idx<spots.length-1?`1px solid ${LINE}`:'none'}}><SpotRow spot={s} itemId={item.id} itemTimes={itemTimes} isActive={activeItemId===item.id&&activeSpotId===s.id} onStart={()=>startItem(item.id,s.id)} onStop={stopItem} onRename={(label)=>updateSpot(item.id,s.id,{label})} onDelete={()=>onDelete(s.id)} onEditTime={editSpotTime?(v)=>editSpotTime(item.id,s.id,v):undefined} onPdfPageSet={updateSpot?(pg)=>updateSpot(item.id,s.id,{pdfPage:pg}):undefined} dayClosed={dayClosed}/></div>))}</div>)}<button onClick={()=>addSpot(item.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button></div>);
+  return (<div><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {spots.length>0&&<span style={{color:DIM,letterSpacing:'0.2em'}}>· {spots.length}</span>}</div>{spots.length>0&&(<div style={{background:SURFACE2,border:`1px solid ${LINE}`}}>{spots.map((s,idx)=>(<div key={s.id} style={{borderBottom:idx<spots.length-1?`1px solid ${LINE}`:'none'}}><SpotRow spot={s} itemId={item.id} itemTimes={itemTimes} isActive={activeItemId===item.id&&activeSpotId===s.id} onStart={()=>startItem(item.id,s.id)} onStop={stopItem} onRename={(label)=>updateSpot(item.id,s.id,{label})} onDelete={()=>onDelete(s.id)} onEditTime={editSpotTime?(v)=>editSpotTime(item.id,s.id,v):undefined} onPdfPageSet={updateSpot?(pg)=>updateSpot(item.id,s.id,{pdfPage:pg}):undefined} onNoteChange={updateSpot?(v)=>updateSpot(item.id,s.id,{note:v}):undefined} onWikiLinkClick={onWikiLinkClick} completionData={completionData} dayClosed={dayClosed}/></div>))}</div>)}<button onClick={()=>addSpot(item.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button></div>);
 }
