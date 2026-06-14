@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useEffect } from 'react';
+import useViewport from '../hooks/useViewport.js';
 import ReactCodeMirror from '@uiw/react-codemirror';
 import { markdown } from '@codemirror/lang-markdown';
 import { HighlightStyle, syntaxHighlighting } from '@codemirror/language';
@@ -249,8 +250,12 @@ export function MarkdownEditor({
   onChange,
   placeholder,
   minHeight = 80,
-  fontSize = '15px',
+  // fontSize: when omitted, defaults to 16px on mobile / 15px on desktop so iOS
+  // does not zoom-on-focus (W3). Explicit callers (e.g. NotesView's 16px) win.
+  fontSize,
   readOnly = false,
+  onBlur,
+  autoFocus = false,
   // Wiki-link props (optional — omit to disable autocomplete/click)
   items,
   history,
@@ -258,6 +263,8 @@ export function MarkdownEditor({
   notes,
   onWikiLinkClick,
 }) {
+  const {isMobile} = useViewport();
+  const fs = fontSize || (isMobile ? '16px' : '15px');
   const clickRef = useRef(onWikiLinkClick);
   const itemsRef = useRef(items);
   const historyRef = useRef(history);
@@ -295,22 +302,23 @@ export function MarkdownEditor({
       markdown(),
       syntaxHighlighting(mdHighlight),
       EditorView.lineWrapping,
-      buildBaseTheme(fontSize, minHeight),
+      buildBaseTheme(fs, minHeight),
       createWikiLinkPlugin(clickRef),
       autocompletion({ override: [createWikiCompletion(itemsRef, historyRef, programsRef, notesRef)], activateOnTyping: true }),
     ];
     return exts;
   // Recreate only when layout hints change; all callbacks via refs
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fontSize, minHeight]);
+  }, [fs, minHeight]);
 
   return (
-    <div ref={editorDomRef}>
+    <div ref={editorDomRef} onBlur={onBlur}>
     <ReactCodeMirror
       value={value}
       onChange={onChange}
       extensions={extensions}
       readOnly={readOnly}
+      autoFocus={autoFocus}
       placeholder={placeholder}
       theme="none"
       basicSetup={{
