@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.98.7] — 2026-06-14
+
+### Writing-surface markdown
+
+The second Gate A release. v0.98.6 made the journal trustworthy; this makes the
+remaining writing surfaces first-class — every place the North Star calls
+reading-prose is now a real markdown plus wiki-link surface, at one consistent
+fidelity. No schema or storage change.
+
+- Spot notes, session log entries (add and edit), program intention and
+  reflection, and the PDF-drawer note editors are now full markdown surfaces with
+  `[[wiki-link]]` autocomplete and clickable resolution — matching free notes and
+  reflections. Spot notes, intention, and reflection now persist on change
+  (removing a commit-on-blur data-loss path).
+- Program notes share one wiki-link renderer with the rest of the app; links to
+  pieces, spots, notes, and programs all resolve and navigate. A second, bespoke
+  `wiki://` scheme and renderer is retired.
+- Reading-prose editors use a 16px font on mobile, so focusing them no longer
+  zooms the page on iOS. `SCHEMA_VERSION` unchanged.
+
 ## [0.98.6] — 2026-06-13
 
 ### Trust + Defaults
