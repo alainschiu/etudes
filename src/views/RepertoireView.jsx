@@ -943,7 +943,7 @@ function PieceDetailScreen({item,onBack,updateItem,deleteItem,dayClosed,activeIt
           {/* Notes */}
           <div style={{padding:'20px 0'}}>
             <div className="uppercase" style={{color:FAINT,fontSize:'9px',fontFamily:sans,letterSpacing:'0.28em',marginBottom:'8px'}}>Notes</div>
-            <MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={120} style={{background:SURFACE2,border:`1px solid ${LINE}`,fontSize:'15px'}} onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
+            <MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={120} style={{background:SURFACE2,border:`1px solid ${LINE}`}} onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
           </div>
           {/* Delete */}
           <button onClick={()=>deleteItem(item.id,onBack)} style={{display:'flex',alignItems:'center',gap:'6px',padding:'10px 0',color:WARN,background:'transparent',border:'none',cursor:'pointer',marginTop:'8px'}}>
