@@ -66,7 +66,7 @@ function ItemPicker({items,existingIds,onPick,onClose}){
 }
 
 // ── Program editor ───────────────────────────────────────────────────────────
-function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiveNoteId,setConfirmModal}){
+function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiveNoteId,setConfirmModal,onWikiLinkClick,wikiCompletionData}){
   const {isMobile}=useViewport();
   const [showPicker,setShowPicker]=useState(false);
   const [dragIdx,setDragIdx]=useState(null);
@@ -191,22 +191,28 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
         <div className="uppercase mb-2" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.32em',color:DIM}}>Intention</div>
         {intentionReadOnly?(
           <>
-          <div style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.8,color:MUTED,whiteSpace:'pre-wrap'}}>
-            {program.intention||<span style={{color:DIM}}>—</span>}
-          </div>
+          <MarkdownField
+            value={program.intention||''}
+            readOnly
+            placeholder="—"
+            minHeight={0}
+            style={{border:'none',padding:0,background:'transparent',color:MUTED}}
+            onWikiLinkClick={onWikiLinkClick}
+            completionData={wikiCompletionData}
+          />
           <div style={{fontFamily:serif,fontStyle:'italic',fontSize:'11px',color:FAINT,marginTop:'6px'}}>
             Locked after performance date.
           </div>
           </>
         ):(
-          <textarea
+          <MarkdownField
             value={program.intention||''}
-            onChange={e=>update({intention:e.target.value||null})}
-            onBlur={e=>update({intention:e.target.value.trim()||null})}
+            onChange={v=>update({intention:(v&&v.trim())?v:null})}
             placeholder="Why these pieces. Why this order. What you want to say."
-            rows={4}
-            className="w-full focus:outline-none bg-transparent resize-none"
-            style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.8,color:MUTED}}
+            minHeight={96}
+            style={{border:'none',background:'transparent'}}
+            onWikiLinkClick={onWikiLinkClick}
+            completionData={wikiCompletionData}
           />
         )}
       </div>
@@ -316,14 +322,14 @@ function ProgramEditor({program,items,onUpdate,onBack,freeNotes,setView,setActiv
         {isFuture?(
           <div style={{fontFamily:serifText,fontSize:'15px',color:DIM}}>—</div>
         ):(
-          <textarea
+          <MarkdownField
             value={program.reflection||''}
-            onChange={e=>update({reflection:e.target.value||null})}
-            onBlur={e=>update({reflection:e.target.value.trim()||null})}
+            onChange={v=>update({reflection:(v&&v.trim())?v:null})}
             placeholder="What the evening meant. What the room held. Whether the argument landed."
-            rows={4}
-            className="w-full focus:outline-none bg-transparent resize-none"
-            style={{fontFamily:serifText,fontSize:'15px',lineHeight:1.8,color:MUTED}}
+            minHeight={96}
+            style={{border:'none',background:'transparent'}}
+            onWikiLinkClick={onWikiLinkClick}
+            completionData={wikiCompletionData}
           />
         )}
       </div>
@@ -480,7 +486,7 @@ function ProgramsList({programs,items,onSelect,onNew,setPrograms}){
 }
 
 // ── Main view ────────────────────────────────────────────────────────────────
-export default function ProgramsView({items,programs,setPrograms,selectedProgramId,setSelectedProgramId,setView,freeNotes,setActiveNoteId,setConfirmModal}){
+export default function ProgramsView({items,programs,setPrograms,selectedProgramId,setSelectedProgramId,setView,freeNotes,setActiveNoteId,setConfirmModal,onWikiLinkClick,wikiCompletionData}){
   const {isMobile}=useViewport();
   const selectedProgram=programs.find(p=>p.id===selectedProgramId)||null;
 
@@ -508,6 +514,8 @@ export default function ProgramsView({items,programs,setPrograms,selectedProgram
         setConfirmModal={setConfirmModal}
         setView={setView}
         setActiveNoteId={setActiveNoteId}
+        onWikiLinkClick={onWikiLinkClick}
+        wikiCompletionData={wikiCompletionData}
       />
     );
   }

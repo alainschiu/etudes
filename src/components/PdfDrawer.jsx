@@ -104,6 +104,7 @@ export default function PdfDrawer({
   addBookmark,removeBookmark,renameBookmark,
   fmt,setPromptModal,setConfirmModal,onClose,dayClosed,
   addSpot,updateSpot,deleteSpot,editSpotTime,
+  onWikiLinkClick,wikiCompletionData,
   jumpToPageRef,
 }){
   const {isMobile}=useViewport();
@@ -520,10 +521,10 @@ export default function PdfDrawer({
                     style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}>
                     <Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot
                   </button>
-                  <textarea value={pdfItem.todayNote||''} onChange={e=>updateItem(pdfItem.id,{todayNote:e.target.value})}
-                    placeholder="Today's notes…" className="w-full resize-none focus:outline-none mt-4"
-                    rows={5}
-                    style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'13px',lineHeight:1.7,fontWeight:300,border:`1px solid ${LINE}`,padding:'8px'}}/>
+                  <MarkdownField value={pdfItem.todayNote||''} onChange={v=>updateItem(pdfItem.id,{todayNote:v})}
+                    placeholder="Today's notes…" className="mt-4" minHeight={100}
+                    style={{background:'transparent',border:`1px solid ${LINE}`}}
+                    onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
                 </div>
               )}
 
@@ -610,10 +611,10 @@ export default function PdfDrawer({
             </div>
 
             {/* Persistent notes */}
-            <textarea value={pdfItem.detail} onChange={e=>updateItem(pdfItem.id,{detail:e.target.value})}
-              placeholder="Long-running notes…" className="resize-none focus:outline-none"
-              rows={5}
-              style={{background:'transparent',color:TEXT,fontFamily:serif,fontSize:'13px',lineHeight:1.7,fontWeight:300,padding:'12px',borderTop:`1px solid ${LINE}`,flexShrink:0}}/>
+            <MarkdownField value={pdfItem.detail||''} onChange={v=>updateItem(pdfItem.id,{detail:v})}
+              placeholder="Long-running notes…" minHeight={100}
+              style={{background:'transparent',border:'none',borderTop:`1px solid ${LINE}`,flexShrink:0}}
+              onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
           </div>
           )}
         </div>
