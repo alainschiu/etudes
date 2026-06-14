@@ -64,6 +64,8 @@ function ProgramEditor({program,items,onUpdate,onBack,setConfirmModal,onWikiLink
   const [dragOverIdx,setDragOverIdx]=useState(null);
   const [confirmRemoveId,setConfirmRemoveId]=useState(null);
   const [bodyMode,setBodyMode]=useState('edit');
+  const [intentionMode,setIntentionMode]=useState('edit');
+  const [reflectionMode,setReflectionMode]=useState('edit');
 
   const pieceItems=useMemo(()=>program.itemIds.map(id=>items.find(i=>i.id===id)).filter(Boolean),[program.itemIds,items]);
   const existingIds=useMemo(()=>new Set(program.itemIds),[program.itemIds]);
@@ -170,7 +172,14 @@ function ProgramEditor({program,items,onUpdate,onBack,setConfirmModal,onWikiLink
 
       {/* Intention */}
       <div className="mb-8">
-        <div className="uppercase mb-2" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.32em',color:DIM}}>Intention</div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.32em',color:DIM}}>Intention</div>
+          {!intentionReadOnly&&(
+            <button onClick={()=>setIntentionMode(m=>m==='edit'?'preview':'edit')} className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:FAINT}}>
+              {intentionMode==='preview'?'Edit':'Preview'}
+            </button>
+          )}
+        </div>
         {intentionReadOnly?(
           <>
           <MarkdownField
@@ -186,6 +195,16 @@ function ProgramEditor({program,items,onUpdate,onBack,setConfirmModal,onWikiLink
             Locked after performance date.
           </div>
           </>
+        ):intentionMode==='preview'?(
+          <MarkdownField
+            value={program.intention||''}
+            readOnly
+            placeholder="Nothing here yet."
+            minHeight={0}
+            style={{border:'none',padding:0,background:'transparent'}}
+            onWikiLinkClick={onWikiLinkClick}
+            completionData={wikiCompletionData}
+          />
         ):(
           <MarkdownField
             value={program.intention||''}
@@ -300,9 +319,26 @@ function ProgramEditor({program,items,onUpdate,onBack,setConfirmModal,onWikiLink
 
       {/* Reflection */}
       <div className="mt-8 mb-8">
-        <div className="uppercase mb-2" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.32em',color:DIM}}>Reflection</div>
+        <div className="flex items-center justify-between mb-2">
+          <div className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.32em',color:DIM}}>Reflection</div>
+          {!isFuture&&(
+            <button onClick={()=>setReflectionMode(m=>m==='edit'?'preview':'edit')} className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:FAINT}}>
+              {reflectionMode==='preview'?'Edit':'Preview'}
+            </button>
+          )}
+        </div>
         {isFuture?(
           <div style={{fontFamily:serifText,fontSize:'15px',color:DIM}}>—</div>
+        ):reflectionMode==='preview'?(
+          <MarkdownField
+            value={program.reflection||''}
+            readOnly
+            placeholder="Nothing here yet."
+            minHeight={0}
+            style={{border:'none',padding:0,background:'transparent'}}
+            onWikiLinkClick={onWikiLinkClick}
+            completionData={wikiCompletionData}
+          />
         ):(
           <MarkdownField
             value={program.reflection||''}
