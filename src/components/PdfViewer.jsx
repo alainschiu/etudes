@@ -74,9 +74,16 @@ function TBtn({active,disabled,onClick,children,label,extra,btnRef:extRef}){
 //   onAddBookmark(name, page) – called when user adds a bookmark from the popover
 //   onBookmarkClick – optional override; if not provided, a built-in popover is shown
 // ──────────────────────────────────────────────────────────────────────────────
+// F3: bounded retry window for a pending jump that arrives before the target
+// page is mounted (cold load, large PDF, or a fresh attachment still loading).
+// ~20 attempts at 150ms — generous without hanging around forever.
+const PENDING_JUMP_RETRY_MS=150;
+const PENDING_JUMP_MAX_ATTEMPTS=20;
+
 const PdfViewer=forwardRef(function PdfViewer({
   url,startPage=1,endPage=null,bookmarks=[],
   onPageChange,onAddBookmark,dragging=false,
+  pendingPage=null,onPendingPageHandled,
 },ref){
   const {isMobile}=useViewport();
   const [numPages,setNumPages]=useState(null);
@@ -181,6 +188,37 @@ const PdfViewer=forwardRef(function PdfViewer({
   },[clamp,mode,onPageChange]);
 
   useImperativeHandle(ref,()=>({jumpToPage}),[jumpToPage]);
+
+  // F3: onLoad-gated jump with bounded retry. A pending page (from the parent —
+  // the score-view bridge or a spot-activation auto-jump) may arrive before the
+  // target is mounted: cold load, a large PDF still parsing, or a just-switched
+  // attachment whose document hasn't loaded yet. Retry until the target is ready
+  // (numPages known; in continuous mode, that page's wrapper actually mounted),
+  // then jump once and report success. Give up silently past the retry budget —
+  // no error toast for a navigation (NS voice).
+  useEffect(()=>{
+    if(pendingPage==null)return;
+    let cancelled=false;
+    let attempts=0;
+    const attempt=()=>{
+      if(cancelled)return;
+      attempts++;
+      const ready=mode==='continuous'?!!pageRefs.current[clamp(pendingPage)]:numPages!=null;
+      if(ready){
+        jumpToPage(pendingPage);
+        onPendingPageHandled&&onPendingPageHandled();
+        return;
+      }
+      if(attempts>=PENDING_JUMP_MAX_ATTEMPTS){
+        onPendingPageHandled&&onPendingPageHandled();
+        return;
+      }
+      setTimeout(attempt,PENDING_JUMP_RETRY_MS);
+    };
+    attempt();
+    return()=>{cancelled=true;};
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[pendingPage,numPages,mode]);
 
   // Non-passive wheel listener — flips pages in single/spread mode
   const jumpToPageRef2=useRef(jumpToPage);

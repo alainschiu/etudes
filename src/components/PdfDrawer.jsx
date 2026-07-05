@@ -55,6 +55,7 @@ export default function PdfDrawer({
   const [expanded,setExpanded]=useState(false); // fullscreen modal
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false);
   const viewerRef=useRef(null); // exposed jumpToPage from PdfViewer
+  const [pendingJumpPage,setPendingJumpPage]=useState(null); // F3: onLoad-gated jump target
 
   useEffect(()=>{
     if(!pdfItem.pdfs||pdfItem.pdfs.length===0){setActivePdfId(null);return;}
@@ -161,18 +162,19 @@ export default function PdfDrawer({
   };
 
   // C3: one path for every scoreLink jump — selects the right attachment (switching
-  // it if needed) and jumps once it's active. Both the external open-score channel
-  // (requestScoreView, consumed below) and the internal spot-activation auto-jump
-  // ride this single function.
+  // it if needed) and hands the target page to PdfViewer as a pending jump (F3:
+  // onLoad-gated, retried until the page is actually mounted — a switched
+  // attachment's document, in particular, hasn't loaded yet at this point). Both
+  // the external open-score channel (requestScoreView, consumed below) and the
+  // internal spot-activation auto-jump ride this single function.
   const applyScoreLink=useCallback((link)=>{
     if(!link)return;
     const att=(pdfItem.pdfs||[]).find(p=>p.id===link.attId);
     if(!att)return;
     const page=resolveScoreLinkPage(link,pdfItem.pdfs);
     if(!page)return;
-    const switching=att.id!==activePdfId;
-    if(switching)setActivePdfId(att.id);
-    setTimeout(()=>{viewerRef.current?.jumpToPage(page);},switching?80:0);
+    if(att.id!==activePdfId)setActivePdfId(att.id);
+    setPendingJumpPage(page);
   },[pdfItem.pdfs,activePdfId]);
 
   // External bridge (C3): App's requestScoreView set pdfDrawerItemId and a pending
@@ -331,6 +333,8 @@ export default function PdfDrawer({
                 bookmarks={activePdf?.bookmarks||[]}
                 onPageChange={setCurrentViewPage}
                 dragging={drawerResizing}
+                pendingPage={pendingJumpPage}
+                onPendingPageHandled={()=>setPendingJumpPage(null)}
                 onAddBookmark={addBookmark?(name,page)=>{
                   addBookmark(pdfItem.id,activePdfId,name,page);
                 }:undefined}
