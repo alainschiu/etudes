@@ -102,10 +102,54 @@ export default function PdfDrawer({
   const [bmPage,setBmPage]=useState('');
   const [bmNote,setBmNote]=useState('');
   const [currentViewPage,setCurrentViewPage]=useState(1);
-  const [expanded,setExpanded]=useState(false); // fullscreen modal
+  // F6: true Fullscreen API where supported (desktop, iPadOS 16.4+); `expanded` is
+  // the CSS-only maximized-overlay fallback for iPhone Safari, which doesn't
+  // support element fullscreen at all (platform limit).
+  const [expanded,setExpanded]=useState(false);
+  // The fullscreened DOM node (or null) — tracked as state, not read from the ref
+  // during render, so the C6 portal target is always sourced from a committed value.
+  const [fullscreenEl,setFullscreenEl]=useState(null);
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false);
   const viewerRef=useRef(null); // exposed jumpToPage from PdfViewer
+  const contentRef=useRef(null); // fullscreen target element
   const [pendingJumpPage,setPendingJumpPage]=useState(null); // F3: onLoad-gated jump target
+  const isFullscreen=!!fullscreenEl;
+  const isMaximized=expanded||isFullscreen;
+  const fullscreenSupported=typeof document!=='undefined'&&!!(document.fullscreenEnabled||document.webkitFullscreenEnabled);
+
+  useEffect(()=>{
+    const onFsChange=()=>setFullscreenEl(document.fullscreenElement===contentRef.current?contentRef.current:null);
+    document.addEventListener('fullscreenchange',onFsChange);
+    document.addEventListener('webkitfullscreenchange',onFsChange);
+    return()=>{
+      document.removeEventListener('fullscreenchange',onFsChange);
+      document.removeEventListener('webkitfullscreenchange',onFsChange);
+    };
+  },[]);
+
+  const toggleExpand=async()=>{
+    if(!fullscreenSupported){setExpanded(v=>!v);return;}
+    if(document.fullscreenElement){
+      await (document.exitFullscreen?.()||document.webkitExitFullscreen?.());
+      return;
+    }
+    try{
+      const el=contentRef.current;
+      await (el.requestFullscreen?.()||el.webkitRequestFullscreen?.());
+    }catch{
+      setExpanded(v=>!v); // permission denied or unsupported at runtime — CSS fallback
+    }
+  };
+
+  // C6: any path that opens an app-level modal (ConfirmModal renders in App.jsx,
+  // outside PdfDrawer's subtree) must exit fullscreen first — otherwise the modal
+  // is invisible and the app appears frozen.
+  const exitFullscreenIfActive=()=>{
+    if(document.fullscreenElement){
+      (document.exitFullscreen?.()||document.webkitExitFullscreen?.())?.catch?.(()=>{});
+    }
+  };
+  const showConfirmModal=(cfg)=>{exitFullscreenIfActive();setConfirmModal&&setConfirmModal(cfg);};
 
   useEffect(()=>{
     if(!pdfItem.pdfs||pdfItem.pdfs.length===0){setActivePdfId(null);return;}
@@ -119,11 +163,11 @@ export default function PdfDrawer({
 
   const handleFile=async(file)=>{
     if(!file||file.type!=='application/pdf'){
-      setConfirmModal&&setConfirmModal({message:'Please select a PDF file.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+      showConfirmModal({message:'Please select a PDF file.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
       return;
     }
     if(atLimit){
-      setConfirmModal&&setConfirmModal({message:'Up to 5 PDFs per item.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+      showConfirmModal({message:'Up to 5 PDFs per item.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
       return;
     }
     const id=await addPdfToItem(pdfItem.id,file,file.name.replace(/\.pdf$/i,''));
@@ -136,7 +180,7 @@ export default function PdfDrawer({
   const startRename=(p)=>{setRenamingId(p.id);setRenameVal(p.name);};
   const commitRename=()=>{if(renamingId&&renameVal.trim())renamePdf(pdfItem.id,renamingId,renameVal.trim());setRenamingId(null);};
   const confirmRemove=(p)=>{
-    setConfirmModal&&setConfirmModal({
+    showConfirmModal({
       message:`Remove "${p.name}"?`,
       confirmLabel:'Remove',
       isDestructive:true,
@@ -247,9 +291,9 @@ export default function PdfDrawer({
   const eIn={background:'transparent',color:TEXT,border:'none',outline:'none',fontFamily:mono,fontSize:'11px'};
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{padding:(isMobile||expanded)?0:'24px',background:'rgba(0,0,0,0.85)',backdropFilter:'blur(8px)'}}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{padding:(isMobile||isMaximized)?0:'24px',background:'rgba(0,0,0,0.85)',backdropFilter:'blur(8px)'}}>
       <div className="absolute inset-0" onClick={onClose}/>
-      <div className="relative flex flex-col" style={{width:'100%',maxWidth:expanded?'100%':'112rem',height:(drawerH&&!expanded)?`${drawerH}px`:'100%',background:BG,border:expanded?'none':`1px solid ${LINE_STR}`,boxShadow:expanded?'none':'0 20px 60px rgba(0,0,0,0.8)'}}>
+      <div ref={contentRef} className="relative flex flex-col" style={{width:'100%',maxWidth:isMaximized?'100%':'112rem',height:(drawerH&&!isMaximized)?`${drawerH}px`:'100%',background:BG,border:isMaximized?'none':`1px solid ${LINE_STR}`,boxShadow:isMaximized?'none':'0 20px 60px rgba(0,0,0,0.8)'}}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 gap-3 shrink-0" style={{borderBottom:`1px solid ${LINE_MED}`}}>
@@ -273,8 +317,8 @@ export default function PdfDrawer({
                 :{background:'transparent',color:dayClosed?FAINT:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em',cursor:(dayClosed&&!isActiveAny)?'not-allowed':'pointer'}}>
               {isActiveAny?<><Pause className="w-3 h-3" strokeWidth={1.25}/> Pause</>:<><Play className="w-3 h-3" strokeWidth={1.25}/> {dayClosed?'Closed':'Whole piece'}</>}
             </button>
-            <button onClick={()=>setExpanded(v=>!v)} title={expanded?'Restore':'Expand'} style={{color:MUTED}}>
-              {expanded?<Minimize2 className="w-4 h-4" strokeWidth={1.25}/>:<Maximize2 className="w-4 h-4" strokeWidth={1.25}/>}
+            <button onClick={toggleExpand} title={isMaximized?'Restore':(fullscreenSupported?'Enter fullscreen':'Expand')} style={{color:MUTED}}>
+              {isMaximized?<Minimize2 className="w-4 h-4" strokeWidth={1.25}/>:<Maximize2 className="w-4 h-4" strokeWidth={1.25}/>}
             </button>
             <button onClick={onClose} style={{color:MUTED}}><X className="w-4 h-4" strokeWidth={1.25}/></button>
           </div>
@@ -385,6 +429,7 @@ export default function PdfDrawer({
                 }:undefined}
                 onWikiLinkClick={onWikiLinkClick}
                 completionData={wikiCompletionData}
+                fullscreenElement={fullscreenEl}
               />
             ):activePdf?(
               <div className="h-full flex flex-col items-center justify-center p-8 text-center">
@@ -546,7 +591,7 @@ export default function PdfDrawer({
                             onRemove={()=>{
                               const doRemove=()=>removeBookmark&&removeBookmark(pdfItem.id,activePdfId,bm.id);
                               if(setConfirmModal){
-                                setConfirmModal({message:`Delete bookmark "${bm.name}"?`,confirmLabel:'Delete',isDestructive:true,onConfirm:()=>{setConfirmModal(null);doRemove();}});
+                                showConfirmModal({message:`Delete bookmark "${bm.name}"?`,confirmLabel:'Delete',isDestructive:true,onConfirm:()=>{setConfirmModal(null);doRemove();}});
                               }else{
                                 doRemove();
                               }
@@ -597,7 +642,7 @@ export default function PdfDrawer({
         </div>
 
         {/* Bottom resize handle — drag to resize the whole drawer height */}
-        {!isMobile&&!expanded&&(
+        {!isMobile&&!isMaximized&&(
           <div
             onMouseDown={onDrawerResizeMouseDown}
             style={{height:'10px',flexShrink:0,cursor:'row-resize',
