@@ -44,6 +44,17 @@ export default function useEtudesState(){
   const [restoreBusy,setRestoreBusy]=useState(false);
   const [expandedItemId,setExpandedItemId]=useState(null);
   const [pdfDrawerItemId,setPdfDrawerItemId]=useState(null);
+  // C3: one generic open-score channel. requestScoreView sets pdfDrawerItemId and
+  // hands PdfDrawer a pending target it consumes once the document reports loaded.
+  // Spot-tap from anywhere (Today, Repertoire, inside the drawer itself) rides this
+  // single mechanism — no feature-specific jump variants.
+  const [pendingScoreTarget,setPendingScoreTarget]=useState(null); // {attId,bookmarkId,page} | null
+  const requestScoreView=useCallback(({itemId,attId=null,bookmarkId=null,page=null})=>{
+    setPdfDrawerItemId(itemId);
+    setPendingScoreTarget({attId,bookmarkId,page});
+  },[]);
+  const consumePendingScoreTarget=useCallback(()=>setPendingScoreTarget(null),[]);
+  const closePdfDrawer=useCallback(()=>{setPdfDrawerItemId(null);setPendingScoreTarget(null);},[]);
   const [logDrawerDate,setLogDrawerDate]=useState(null);
   const [logDrawerEntry,setLogDrawerEntry]=useState(null);
   const [editingTimeItemId,setEditingTimeItemId]=useState(null);
@@ -673,6 +684,7 @@ export default function useEtudesState(){
     freshDevicePromptPending,setFreshDevicePromptPending,
     quickNoteOpen,setQuickNoteOpen,restoreBusy,
     expandedItemId,setExpandedItemId,pdfDrawerItemId,setPdfDrawerItemId,
+    requestScoreView,pendingScoreTarget,consumePendingScoreTarget,closePdfDrawer,
     logDrawerDate,logDrawerEntry,editingTimeItemId,setEditingTimeItemId,
     dragIdx,dragOverIdx,
     storageMode,storageQuotaHit,setStorageQuotaHit,saveStatus,
