@@ -34,7 +34,7 @@ export default function PdfDrawer({
   fmt,setPromptModal,setConfirmModal,onClose,dayClosed,
   addSpot,updateSpot,deleteSpot,editSpotTime,
   onWikiLinkClick,wikiCompletionData,
-  jumpToPageRef,
+  pendingScoreTarget,consumePendingScoreTarget,
 }){
   const {isMobile}=useViewport();
   const [activePdfId,setActivePdfId]=useState(pdfItem.defaultPdfId||pdfItem.pdfs?.[0]?.id||null);
@@ -160,18 +160,38 @@ export default function PdfDrawer({
     viewerRef.current?.jumpToPage(bm.page);
   };
 
-  // Auto-jump when a spot with a scoreLink (C1) becomes active.
+  // C3: one path for every scoreLink jump — selects the right attachment (switching
+  // it if needed) and jumps once it's active. Both the external open-score channel
+  // (requestScoreView, consumed below) and the internal spot-activation auto-jump
+  // ride this single function.
+  const applyScoreLink=useCallback((link)=>{
+    if(!link)return;
+    const att=(pdfItem.pdfs||[]).find(p=>p.id===link.attId);
+    if(!att)return;
+    const page=resolveScoreLinkPage(link,pdfItem.pdfs);
+    if(!page)return;
+    const switching=att.id!==activePdfId;
+    if(switching)setActivePdfId(att.id);
+    setTimeout(()=>{viewerRef.current?.jumpToPage(page);},switching?80:0);
+  },[pdfItem.pdfs,activePdfId]);
+
+  // External bridge (C3): App's requestScoreView set pdfDrawerItemId and a pending
+  // target — consume it once, on receipt, so a stale value can't re-fire on a
+  // later unrelated re-render.
+  useEffect(()=>{
+    if(!pendingScoreTarget)return;
+    consumePendingScoreTarget&&consumePendingScoreTarget();
+    applyScoreLink(pendingScoreTarget);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[pendingScoreTarget]);
+
+  // Auto-jump when a spot with a scoreLink (C1) becomes active — same path, internal trigger.
   useEffect(()=>{
     if(!activeSpotId||activeItemId!==pdfItem.id)return;
     const spot=(pdfItem.spots||[]).find(s=>s.id===activeSpotId);
-    if(!spot||!spot.scoreLink)return;
-    const att=(pdfItem.pdfs||[]).find(p=>p.id===spot.scoreLink.attId);
-    if(!att)return;
-    const page=resolveScoreLinkPage(spot.scoreLink,pdfItem.pdfs);
-    if(!page)return;
-    setActivePdfId(att.id);
-    setTimeout(()=>{viewerRef.current?.jumpToPage(page);},80);
-  },[activeSpotId,activeItemId,pdfItem.id,pdfItem.spots,pdfItem.pdfs]);
+    applyScoreLink(spot?.scoreLink);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[activeSpotId,activeItemId,pdfItem.id,pdfItem.spots]);
 
   // Library: PDFs in library not yet attached to this item
   const attachedLibraryIds=new Set((pdfItem.pdfs||[]).map(p=>p.libraryId));
@@ -426,15 +446,7 @@ export default function PdfDrawer({
                             onDelete={()=>deleteSpot(pdfItem.id,s.id)}
                             onEditTime={editSpotTime?(v)=>editSpotTime(pdfItem.id,s.id,v):undefined}
                             scoreLinkPage={resolveScoreLinkPage(s.scoreLink,pdfItem.pdfs)}
-                            onScoreLinkJump={s.scoreLink?()=>{
-                              const att=(pdfItem.pdfs||[]).find(p=>p.id===s.scoreLink.attId);
-                              if(!att)return;
-                              const page=resolveScoreLinkPage(s.scoreLink,pdfItem.pdfs);
-                              if(!page)return;
-                              const switching=att.id!==activePdfId;
-                              if(switching)setActivePdfId(att.id);
-                              setTimeout(()=>viewerRef.current?.jumpToPage(page),switching?80:0);
-                            }:undefined}
+                            onScoreLinkJump={s.scoreLink?()=>applyScoreLink(s.scoreLink):undefined}
                             onScoreLinkSet={(pg)=>{
                               const attId=activePdfId||pdfItem.defaultPdfId||pdfItem.pdfs?.[0]?.id||null;
                               updateSpot(pdfItem.id,s.id,{scoreLink:(attId&&pg)?{attId,bookmarkId:null,page:pg}:null});

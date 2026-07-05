@@ -428,11 +428,12 @@ export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,
             <Pencil className="w-3 h-3" strokeWidth={1.25}/>
           </button>
         )}
-        {/* Score link badge (C1 scoreLink).
-            - If linked + onScoreLinkJump (inside PdfDrawer): tap = jump.
-            - If linked without a jumper (Today/Repertoire): tap = open editor.
-            - If unlinked + onScoreLinkSet (editable contexts): icon button = open editor.
-            - If neither: render nothing. */}
+        {/* Score link badge (C1 scoreLink). Badge tap always jumps; editing the
+            link is a separate, always-reachable affordance (F2 — no hover needed).
+            - Linked: badge = jump (falls back to opening the editor if no jumper
+              is wired); a pencil beside it opens the editor when one's available.
+            - Unlinked + onScoreLinkSet (editable contexts): icon button opens the editor.
+            - Neither: render nothing. */}
         {editingPage?(
           <span className="shrink-0 flex items-center gap-1" onClick={e=>e.stopPropagation()}>
             <input autoFocus type="text" inputMode="numeric" placeholder="page" value={pageVal}
@@ -442,15 +443,22 @@ export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,
               style={{width:'48px',background:'transparent',color:TEXT,border:`1px solid ${LINE_MED}`,fontSize:'10px',padding:'1px 4px',outline:'none',fontFamily:mono,textAlign:'center'}}/>
           </span>
         ):scoreLinkPage?(
-          <button
-            onClick={onScoreLinkJump?()=>onScoreLinkJump():(onScoreLinkSet?openPageEditor:undefined)}
-            onDoubleClick={onScoreLinkSet?openPageEditor:undefined}
-            className="shrink-0 flex items-center gap-0.5"
-            style={{color:IKB,fontSize:'9px',fontFamily:mono,cursor:(onScoreLinkJump||onScoreLinkSet)?'pointer':'default',background:'transparent',border:'none',padding:'1px 3px',lineHeight:1}}
-            title={onScoreLinkJump?`Jump to score p.${scoreLinkPage}`:onScoreLinkSet?`Score p.${scoreLinkPage} — tap to change`:`Score p.${scoreLinkPage}`}>
-            <FileText className="w-2.5 h-2.5" strokeWidth={1.5}/>
-            {scoreLinkPage}
-          </button>
+          <span className="shrink-0 flex items-center gap-0.5">
+            <button
+              onClick={onScoreLinkJump?onScoreLinkJump:(onScoreLinkSet?openPageEditor:undefined)}
+              className="shrink-0 flex items-center gap-0.5"
+              style={{color:IKB,fontSize:'9px',fontFamily:mono,cursor:(onScoreLinkJump||onScoreLinkSet)?'pointer':'default',background:'transparent',border:'none',padding:'1px 3px',lineHeight:1}}
+              title={onScoreLinkJump?`Jump to score p.${scoreLinkPage}`:`Score p.${scoreLinkPage}`}>
+              <FileText className="w-2.5 h-2.5" strokeWidth={1.5}/>
+              {scoreLinkPage}
+            </button>
+            {onScoreLinkSet&&(
+              <button onClick={openPageEditor} className="target-hover-reveal" title="Edit score link"
+                style={{color:FAINT,background:'transparent',border:'none',padding:'1px 2px',cursor:'pointer',lineHeight:1}}>
+                <Pencil className="w-2.5 h-2.5" strokeWidth={1.5}/>
+              </button>
+            )}
+          </span>
         ):onScoreLinkSet?(
           <button onClick={openPageEditor} className="shrink-0 target-hover-reveal" title="Link to a PDF page"
             style={{color:FAINT,background:'transparent',border:'none',padding:'1px 3px',cursor:'pointer',lineHeight:1}}>
@@ -635,12 +643,12 @@ function setSpotPageLink(updateSpot,item,spotId,page){
   updateSpot(item.id,spotId,{scoreLink:(attId&&page)?{attId,bookmarkId:null,page}:null});
 }
 
-export function SpotsBlock({item,itemTimes,activeItemId,activeSpotId,startItem,stopItem,addSpot,updateSpot,deleteSpot,editSpotTime,dayClosed,setConfirmModal,onWikiLinkClick,completionData}){
+export function SpotsBlock({item,itemTimes,activeItemId,activeSpotId,startItem,stopItem,addSpot,updateSpot,deleteSpot,editSpotTime,dayClosed,setConfirmModal,onWikiLinkClick,completionData,requestScoreView}){
   const spots=item.spots||[];
   const onDelete=(spotId)=>{
     const sp=spots.find(s=>s.id===spotId);
     confirmDestructive(setConfirmModal,`Delete spot "${sp?.label||'this spot'}"? Tempo log and time will be removed.`,
       ()=>deleteSpot(item.id,spotId));
   };
-  return (<div><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {spots.length>0&&<span style={{color:DIM,letterSpacing:'0.2em'}}>· {spots.length}</span>}</div>{spots.length>0&&(<div style={{background:SURFACE2,border:`1px solid ${LINE}`}}>{spots.map((s,idx)=>(<div key={s.id} style={{borderBottom:idx<spots.length-1?`1px solid ${LINE}`:'none'}}><SpotRow spot={s} itemId={item.id} itemTimes={itemTimes} isActive={activeItemId===item.id&&activeSpotId===s.id} onStart={()=>startItem(item.id,s.id)} onStop={stopItem} onRename={(label)=>updateSpot(item.id,s.id,{label})} onDelete={()=>onDelete(s.id)} onEditTime={editSpotTime?(v)=>editSpotTime(item.id,s.id,v):undefined} scoreLinkPage={resolveScoreLinkPage(s.scoreLink,item.pdfs)} onScoreLinkSet={updateSpot?(pg)=>setSpotPageLink(updateSpot,item,s.id,pg):undefined} onNoteChange={updateSpot?(v)=>updateSpot(item.id,s.id,{note:v}):undefined} onWikiLinkClick={onWikiLinkClick} completionData={completionData} dayClosed={dayClosed}/></div>))}</div>)}<button onClick={()=>addSpot(item.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button></div>);
+  return (<div><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {spots.length>0&&<span style={{color:DIM,letterSpacing:'0.2em'}}>· {spots.length}</span>}</div>{spots.length>0&&(<div style={{background:SURFACE2,border:`1px solid ${LINE}`}}>{spots.map((s,idx)=>(<div key={s.id} style={{borderBottom:idx<spots.length-1?`1px solid ${LINE}`:'none'}}><SpotRow spot={s} itemId={item.id} itemTimes={itemTimes} isActive={activeItemId===item.id&&activeSpotId===s.id} onStart={()=>startItem(item.id,s.id)} onStop={stopItem} onRename={(label)=>updateSpot(item.id,s.id,{label})} onDelete={()=>onDelete(s.id)} onEditTime={editSpotTime?(v)=>editSpotTime(item.id,s.id,v):undefined} scoreLinkPage={resolveScoreLinkPage(s.scoreLink,item.pdfs)} onScoreLinkJump={(s.scoreLink&&requestScoreView)?()=>requestScoreView({itemId:item.id,...s.scoreLink}):undefined} onScoreLinkSet={updateSpot?(pg)=>setSpotPageLink(updateSpot,item,s.id,pg):undefined} onNoteChange={updateSpot?(v)=>updateSpot(item.id,s.id,{note:v}):undefined} onWikiLinkClick={onWikiLinkClick} completionData={completionData} dayClosed={dayClosed}/></div>))}</div>)}<button onClick={()=>addSpot(item.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button></div>);
 }

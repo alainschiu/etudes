@@ -53,7 +53,7 @@ function AnalogClock({size=40}){
 
 export default function TodayView(p){
   const {isMobile}=useViewport();
-  const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm,refTrackMeta,refBarItemId,setRefBarItemId,onWikiLinkClick,wikiCompletionData}=p;
+  const {items,view,setView,todaySessions,moveSession,hideSession,addSessionType,toggleSessionWarmup,removeItemFromSession,addItemToSession,setSessionTarget,setItemTarget,routines,loadedRoutine,loadRoutine,resetToFree,saveRoutine,updateLoadedRoutine,sectionTimes,activeItemId,activeSpotId,activeSessionId,itemTimes,expandedItemId,setExpandedItemId,startItem,stopItem,updateItem,deleteItem,addItem,workingOn,toggleWorking,setPdfDrawerItemId,dailyReflection,setDailyReflection,settings,totalToday,effectiveTotalToday,warmupTimeToday,restToday,fmt,fmtMin,setPromptModal,dragIdx,dragOverIdx,handleDragStart,handleDragOver,handleDrop,handleDragEnd,sessionRefs,reflectionRef,endDay,dayClosed,reopenDay,editingTimeItemId,setEditingTimeItemId,editItemTime,editSpotTime,addSpot,updateSpot,deleteSpot,startPieceRecording,stopPieceRecording,pieceRecordingItemId,pieceRecordingMeta,isRecording,currentBpm,refTrackMeta,refBarItemId,setRefBarItemId,onWikiLinkClick,wikiCompletionData,requestScoreView}=p;
   const today=new Date();const todayKey=todayDateStr();
   const [routineMenu,setRoutineMenu]=useState(false);const [addMenu,setAddMenu]=useState(false);const [pickerSessionId,setPickerSessionId]=useState(null);const [quickAdd,setQuickAdd]=useState(null);const [confirmClose,setConfirmClose]=useState(false);const [overflowSessionId,setOverflowSessionId]=useState(null);
   // Click-outside to collapse expanded item panel
@@ -262,7 +262,7 @@ export default function TodayView(p){
                   {/* Recording — shown first if present */}
                   {(()=>{const todayEntry=pieceRecordingMeta?.[item.id]?.[todayKey];if(!todayEntry)return null;const bkey=todayEntry.idbKey??`${item.id}__${todayKey}`;return(<Waveform key={todayEntry.ts} compact blobLoader={()=>idbGet('pieceRecordings',bkey)} meta={todayEntry}/>);})()}
                   <div><div className="uppercase mb-1.5 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><MessageSquarePlus className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Today</div><MarkdownField value={item.todayNote||''} onChange={v=>updateItem(item.id,{todayNote:v})} placeholder="What happened." minHeight={80} style={{background:SURFACE2,border:`1px solid ${IKB}40`}} showDeepLinkHint onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/></div>
-                  {item.type==='piece'&&<SpotsBlock item={item} itemTimes={itemTimes} activeItemId={activeItemId} activeSpotId={activeSpotId} startItem={(id,sid)=>startItem(id,sid,session.id)} stopItem={stopItem} addSpot={addSpot} updateSpot={updateSpot} deleteSpot={deleteSpot} editSpotTime={editSpotTime} dayClosed={dayClosed} setConfirmModal={p.setConfirmModal} onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>}
+                  {item.type==='piece'&&<SpotsBlock item={item} itemTimes={itemTimes} activeItemId={activeItemId} activeSpotId={activeSpotId} startItem={(id,sid)=>startItem(id,sid,session.id)} stopItem={stopItem} addSpot={addSpot} updateSpot={updateSpot} deleteSpot={deleteSpot} editSpotTime={editSpotTime} dayClosed={dayClosed} setConfirmModal={p.setConfirmModal} onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData} requestScoreView={requestScoreView}/>}
                   {item.referenceUrl&&(()=>{const embed=getEmbedInfo(item.referenceUrl);return(<div><div className="uppercase mb-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}>Reference</div>{embed?.type==='youtube'?(<div style={{position:'relative',paddingBottom:'56.25%',height:0,overflow:'hidden',background:SURFACE2,borderRadius:2}}><iframe src={embed.src} style={{position:'absolute',top:0,left:0,width:'100%',height:'100%',border:'none'}} allowFullScreen loading="lazy" title="Reference"/></div>):embed?.type==='spotify'?(<iframe src={embed.src} width="100%" height={embed.compact?152:352} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy" title="Reference"/>):embed?.type==='apple'?(<iframe src={embed.src} width="100%" height={175} style={{border:'none',borderRadius:2,display:'block'}} allow="autoplay *; encrypted-media *; fullscreen *" loading="lazy" title="Reference"/>):(<a href={item.referenceUrl} target="_blank" rel="noopener noreferrer" className="uppercase flex items-center gap-1" style={{color:IKB,fontSize:'10px',letterSpacing:'0.22em'}}>Open reference ↗</a>)}</div>);})()}
                   <div><div className="uppercase mb-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}>Notes <span style={{color:DIM,letterSpacing:'0.2em'}}>· persistent</span></div><MarkdownField value={item.detail||''} onChange={v=>updateItem(item.id,{detail:v})} placeholder="Long-running notes…" minHeight={80} style={{background:SURFACE2}} showDeepLinkHint onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/></div>
                   <div className="flex items-center gap-2 text-xs flex-wrap">
@@ -302,7 +302,7 @@ export default function TodayView(p){
 }
 
 // ── Mobile item row — extracted so useLongPress is called at component top-level
-function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta,addSpot,updateSpot,deleteSpot,editSpotTime,onWikiLinkClick,completionData,setView,setExpandedItemId,workingOn,toggleWorking,setConfirmModal}){
+function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,itemTimes,dayClosed,startItem,stopItem,fmt,onLongPress,startPieceRecording,stopPieceRecording,pieceRecordingItemId,isRecording,pieceRecordingMeta,todayKey,setPdfDrawerItemId,handleStartRecording,updateItem,refTrackMeta,addSpot,updateSpot,deleteSpot,editSpotTime,onWikiLinkClick,completionData,setView,setExpandedItemId,workingOn,toggleWorking,setConfirmModal,requestScoreView}){
   const isActiveAny = activeItemId === item.id && activeSessionId === session.id;
   const isActiveWhole = isActiveAny && !activeSpotId;
   const time = getItemTime(itemTimes, item.id);
@@ -483,6 +483,7 @@ function MobileItemRow({item,session,activeItemId,activeSpotId,activeSessionId,i
                 setConfirmModal={setConfirmModal}
                 onWikiLinkClick={onWikiLinkClick}
                 completionData={completionData}
+                requestScoreView={requestScoreView}
               />
             </div>
           )}
@@ -557,7 +558,7 @@ function TodayMobile(p){
     effectiveDailyTarget,hiddenTypes,collapsedSessions,setCollapsedSessions,
     toggleCollapsed,handleFilePlus,addSpot,updateSpot,deleteSpot,editSpotTime,
     routines,loadedRoutine,loadRoutine,resetToFree,setPromptModal,saveRoutine,setItemTarget,
-    handleStartRecording,
+    handleStartRecording,requestScoreView,
   } = p;
   const [actionSheetItem, setActionSheetItem] = useState(null);
   const [routineMenuOpen, setRoutineMenuOpen] = useState(false);
@@ -825,6 +826,7 @@ function TodayMobile(p){
                     editSpotTime={p.editSpotTime}
                     onWikiLinkClick={p.onWikiLinkClick}
                     completionData={p.wikiCompletionData}
+                    requestScoreView={requestScoreView}
                     setView={setView}
                     setExpandedItemId={p.setExpandedItemId}
                     workingOn={p.workingOn}
