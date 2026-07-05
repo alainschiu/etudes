@@ -11,6 +11,7 @@ import Music from 'lucide-react/dist/esm/icons/music';
 import Crosshair from 'lucide-react/dist/esm/icons/crosshair';
 import Library from 'lucide-react/dist/esm/icons/library';
 import Pencil from 'lucide-react/dist/esm/icons/pencil';
+import MessageSquare from 'lucide-react/dist/esm/icons/message-square';
 import Maximize2 from 'lucide-react/dist/esm/icons/maximize-2';
 import Minimize2 from 'lucide-react/dist/esm/icons/minimize-2';
 import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
@@ -25,12 +26,62 @@ import PdfViewer from './PdfViewer.jsx';
 const SIDEBAR_W=300;
 const MIN_DRAWER_H=320;
 
+// F5: a bookmark row with its own inline, collapsible note editor — same pattern
+// as SpotRow's persistent note (default open when a note exists, collapsed when
+// empty, toggled by a MessageSquare button).
+function BookmarkRow({bm,onJump,onRename,onRemove,onNoteChange,onWikiLinkClick,wikiCompletionData}){
+  const [renaming,setRenaming]=useState(false);
+  const [renameVal,setRenameVal]=useState(bm.name);
+  const hasNote=!!(bm.note&&bm.note.trim());
+  const [noteOpen,setNoteOpen]=useState(()=>hasNote);
+  const commitRename=()=>{if(renameVal.trim())onRename(renameVal.trim());setRenaming(false);};
+  return (
+    <div>
+      <div className="group flex items-center gap-2 px-3 py-2" style={{cursor:'pointer'}} onClick={onJump}>
+        <Bookmark className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:IKB}}/>
+        {renaming?(
+          <input autoFocus value={renameVal} onChange={e=>setRenameVal(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={e=>{if(e.key==='Enter')commitRename();else if(e.key==='Escape')setRenaming(false);}}
+            onClick={e=>e.stopPropagation()}
+            className="flex-1 focus:outline-none"
+            style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE_MED}`,fontSize:'11px',padding:'1px 4px'}}/>
+        ):(
+          <span className="flex-1 truncate" style={{fontSize:'12px',color:TEXT}}>{bm.name}</span>
+        )}
+        <span style={{color:FAINT,fontSize:'10px',fontFamily:mono,flexShrink:0}}>p.{bm.page}</span>
+        <button onClick={e=>{e.stopPropagation();setNoteOpen(o=>!o);}}
+          className={hasNote?'shrink-0':'opacity-0 group-hover:opacity-100 shrink-0'}
+          style={{color:(hasNote||noteOpen)?IKB:FAINT,background:'transparent',border:'none',cursor:'pointer'}}
+          title={hasNote?'Bookmark note':'Add note'}>
+          <MessageSquare className="w-3 h-3" strokeWidth={1.25}/>
+        </button>
+        <button onClick={e=>{e.stopPropagation();setRenaming(true);setRenameVal(bm.name);}}
+          className="opacity-0 group-hover:opacity-100 shrink-0" style={{color:FAINT}}>
+          <Pencil className="w-3 h-3" strokeWidth={1.25}/>
+        </button>
+        <button onClick={e=>{e.stopPropagation();onRemove();}}
+          className="opacity-0 group-hover:opacity-100 shrink-0" style={{color:FAINT}}>
+          <X className="w-3 h-3" strokeWidth={1.25}/>
+        </button>
+      </div>
+      {noteOpen&&(
+        <div className="px-3 pb-2" onClick={e=>e.stopPropagation()}>
+          <MarkdownField value={bm.note||''} onChange={onNoteChange} placeholder="Note…" minHeight={36}
+            style={{background:BG,border:`1px solid ${LINE}`}}
+            onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function PdfDrawer({
   pdfItem,items,pdfUrlMap,pdfLibrary=[],itemTimes,
   activeItemId,activeSpotId,
   startItem,stopItem,updateItem,
   addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,
-  addBookmark,removeBookmark,renameBookmark,
+  addBookmark,removeBookmark,renameBookmark,setBookmarkNote,
   fmt,setPromptModal,setConfirmModal,onClose,dayClosed,
   addSpot,updateSpot,deleteSpot,editSpotTime,
   onWikiLinkClick,wikiCompletionData,
@@ -49,8 +100,7 @@ export default function PdfDrawer({
   const [pageRangeVals,setPageRangeVals]=useState({start:'',end:''});
   const [bmName,setBmName]=useState('');
   const [bmPage,setBmPage]=useState('');
-  const [bmRenamingId,setBmRenamingId]=useState(null);
-  const [bmRenameVal,setBmRenameVal]=useState('');
+  const [bmNote,setBmNote]=useState('');
   const [currentViewPage,setCurrentViewPage]=useState(1);
   const [expanded,setExpanded]=useState(false); // fullscreen modal
   const [sidebarCollapsed,setSidebarCollapsed]=useState(false);
@@ -149,13 +199,8 @@ export default function PdfDrawer({
   const handleAddBookmark=()=>{
     if(!activePdfId||!bmName.trim())return;
     const page=parseInt(bmPage,10)||currentViewPage||1;
-    addBookmark&&addBookmark(pdfItem.id,activePdfId,bmName.trim(),page);
-    setBmName('');setBmPage('');
-  };
-  const commitBmRename=()=>{
-    if(bmRenamingId&&bmRenameVal.trim())
-      renameBookmark&&renameBookmark(pdfItem.id,activePdfId,bmRenamingId,bmRenameVal.trim());
-    setBmRenamingId(null);
+    addBookmark&&addBookmark(pdfItem.id,activePdfId,bmName.trim(),page,bmNote.trim());
+    setBmName('');setBmPage('');setBmNote('');
   };
   const jumpToBookmark=(bm)=>{
     viewerRef.current?.jumpToPage(bm.page);
@@ -335,9 +380,11 @@ export default function PdfDrawer({
                 dragging={drawerResizing}
                 pendingPage={pendingJumpPage}
                 onPendingPageHandled={()=>setPendingJumpPage(null)}
-                onAddBookmark={addBookmark?(name,page)=>{
-                  addBookmark(pdfItem.id,activePdfId,name,page);
+                onAddBookmark={addBookmark?(name,page,note)=>{
+                  addBookmark(pdfItem.id,activePdfId,name,page,note);
                 }:undefined}
+                onWikiLinkClick={onWikiLinkClick}
+                completionData={wikiCompletionData}
               />
             ):activePdf?(
               <div className="h-full flex flex-col items-center justify-center p-8 text-center">
@@ -492,27 +539,11 @@ export default function PdfDrawer({
                   {bookmarks.length>0&&(
                     <div style={{border:`1px solid ${LINE}`,marginBottom:'12px'}}>
                       {bookmarks.map((bm,idx)=>(
-                        <div key={bm.id} className="group flex items-center gap-2 px-3 py-2"
-                          style={{borderBottom:idx<bookmarks.length-1?`1px solid ${LINE}`:'none',cursor:'pointer'}}
-                          onClick={()=>jumpToBookmark(bm)}>
-                          <Bookmark className="w-3 h-3 shrink-0" strokeWidth={1.25} style={{color:IKB}}/>
-                          {bmRenamingId===bm.id?(
-                            <input autoFocus value={bmRenameVal} onChange={e=>setBmRenameVal(e.target.value)}
-                              onBlur={commitBmRename}
-                              onKeyDown={e=>{if(e.key==='Enter')commitBmRename();else if(e.key==='Escape')setBmRenamingId(null);}}
-                              onClick={e=>e.stopPropagation()}
-                              className="flex-1 focus:outline-none"
-                              style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE_MED}`,fontSize:'11px',padding:'1px 4px'}}/>
-                          ):(
-                            <span className="flex-1 truncate" style={{fontSize:'12px',color:TEXT}}>{bm.name}</span>
-                          )}
-                          <span style={{color:FAINT,fontSize:'10px',fontFamily:mono,flexShrink:0}}>p.{bm.page}</span>
-                          <button onClick={e=>{e.stopPropagation();setBmRenamingId(bm.id);setBmRenameVal(bm.name);}}
-                            className="opacity-0 group-hover:opacity-100 shrink-0" style={{color:FAINT}}>
-                            <Pencil className="w-3 h-3" strokeWidth={1.25}/>
-                          </button>
-                          <button onClick={e=>{
-                              e.stopPropagation();
+                        <div key={bm.id} style={{borderBottom:idx<bookmarks.length-1?`1px solid ${LINE}`:'none'}}>
+                          <BookmarkRow bm={bm}
+                            onJump={()=>jumpToBookmark(bm)}
+                            onRename={(name)=>renameBookmark&&renameBookmark(pdfItem.id,activePdfId,bm.id,name)}
+                            onRemove={()=>{
                               const doRemove=()=>removeBookmark&&removeBookmark(pdfItem.id,activePdfId,bm.id);
                               if(setConfirmModal){
                                 setConfirmModal({message:`Delete bookmark "${bm.name}"?`,confirmLabel:'Delete',isDestructive:true,onConfirm:()=>{setConfirmModal(null);doRemove();}});
@@ -520,9 +551,8 @@ export default function PdfDrawer({
                                 doRemove();
                               }
                             }}
-                            className="opacity-0 group-hover:opacity-100 shrink-0" style={{color:FAINT}}>
-                            <X className="w-3 h-3" strokeWidth={1.25}/>
-                          </button>
+                            onNoteChange={setBookmarkNote?(v)=>setBookmarkNote(pdfItem.id,activePdfId,bm.id,v):undefined}
+                            onWikiLinkClick={onWikiLinkClick} wikiCompletionData={wikiCompletionData}/>
                         </div>
                       ))}
                     </div>
@@ -537,7 +567,7 @@ export default function PdfDrawer({
                         onChange={e=>setBmName(e.target.value)}
                         onKeyDown={e=>{if(e.key==='Enter')handleAddBookmark();}}
                         style={{width:'100%',background:'transparent',color:TEXT,border:`1px solid ${LINE_MED}`,fontSize:'12px',padding:'4px 6px',outline:'none',marginBottom:'6px'}}/>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2" style={{marginBottom:'6px'}}>
                         <input
                           type="number" placeholder={`p.${currentViewPage}`} value={bmPage} min="1"
                           onChange={e=>setBmPage(e.target.value)}
@@ -548,6 +578,9 @@ export default function PdfDrawer({
                           Add
                         </button>
                       </div>
+                      <MarkdownField value={bmNote} onChange={setBmNote} placeholder="Note…" minHeight={36}
+                        style={{background:'transparent',border:`1px solid ${LINE}`}}
+                        onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
                     </div>
                   )}
                 </div>

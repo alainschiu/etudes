@@ -17,6 +17,7 @@ import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
 import useViewport from '../hooks/useViewport.js';
 import {BG,TEXT,MUTED,FAINT,LINE,LINE_MED,IKB,IKB_SOFT,serif,sans,mono} from '../constants/theme.js';
+import {MarkdownField} from './shared.jsx';
 
 const BTN_BASE={cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',width:'28px',height:'28px',flexShrink:0,background:'transparent',border:`1px solid ${LINE_MED}`,color:TEXT};
 const BTN_ACT={...BTN_BASE,background:IKB,border:`1px solid ${IKB}`,color:'#fff'};
@@ -84,6 +85,7 @@ const PdfViewer=forwardRef(function PdfViewer({
   url,startPage=1,endPage=null,bookmarks=[],
   onPageChange,onAddBookmark,dragging=false,
   pendingPage=null,onPendingPageHandled,
+  onWikiLinkClick,completionData,
 },ref){
   const {isMobile}=useViewport();
   const [numPages,setNumPages]=useState(null);
@@ -96,6 +98,7 @@ const PdfViewer=forwardRef(function PdfViewer({
   const [pageSize,setPageSize]=useState({width:612,height:792});
   const [bmPopover,setBmPopover]=useState(false);  // bookmark popover open
   const [bmName,setBmName]=useState('');           // new bookmark name draft
+  const [bmNote,setBmNote]=useState('');           // new bookmark note draft
   const [pageEditing,setPageEditing]=useState(false);
   const [pageInputVal,setPageInputVal]=useState('');
   const containerRef=useRef(null);
@@ -281,7 +284,7 @@ const PdfViewer=forwardRef(function PdfViewer({
     const bms=(bookmarks||[]).filter(b=>b.page===page);
     if(!bms.length)return null;
     return(
-      <div title={bms.map(b=>b.name).join(', ')}
+      <div title={bms.map(b=>b.note?`${b.name} — ${b.note}`:b.name).join(', ')}
         style={{position:'absolute',top:0,right:0,zIndex:3,display:'flex',alignItems:'center',
           gap:3,padding:'3px 7px',background:IKB,pointerEvents:'none'}}>
         <BookMarked style={{width:10,height:10,color:'#fff',flexShrink:0}}/>
@@ -302,12 +305,14 @@ const PdfViewer=forwardRef(function PdfViewer({
     }
     setBmPopover(v=>!v);
     setBmName('');
+    setBmNote('');
   };
 
   const handleAddBm=()=>{
     if(!bmName.trim())return;
-    onAddBookmark&&onAddBookmark(bmName.trim(),currentPage);
+    onAddBookmark&&onAddBookmark(bmName.trim(),currentPage,bmNote.trim());
     setBmName('');
+    setBmNote('');
   };
 
   return(
@@ -470,13 +475,16 @@ const PdfViewer=forwardRef(function PdfViewer({
           {curPageBms.length>0&&(
             <div style={{borderBottom:`1px solid ${LINE_MED}`}}>
               {curPageBms.map(bm=>(
-                <div key={bm.id} style={{display:'flex',alignItems:'center',gap:6,padding:'7px 10px',
+                <div key={bm.id} style={{display:'flex',alignItems:'flex-start',gap:6,padding:'7px 10px',
                   borderBottom:`1px solid ${LINE}`}}>
-                  <BookMarked style={{width:11,height:11,color:IKB,flexShrink:0}}/>
-                  <span style={{flex:1,color:TEXT,fontSize:'12px',fontFamily:serif,fontStyle:'italic'}}>
-                    {bm.name}
-                  </span>
-                  <span style={{color:FAINT,fontSize:'10px',fontFamily:mono}}>p.{bm.page}</span>
+                  <BookMarked style={{width:11,height:11,color:IKB,flexShrink:0,marginTop:2}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <span style={{color:TEXT,fontSize:'12px',fontFamily:serif,fontStyle:'italic'}}>
+                      {bm.name}
+                    </span>
+                    {bm.note&&<div style={{color:FAINT,fontSize:'10px',fontFamily:serif,fontStyle:'italic',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{bm.note}</div>}
+                  </div>
+                  <span style={{color:FAINT,fontSize:'10px',fontFamily:mono,flexShrink:0}}>p.{bm.page}</span>
                 </div>
               ))}
             </div>
@@ -491,14 +499,17 @@ const PdfViewer=forwardRef(function PdfViewer({
               {(bookmarks||[]).filter(b=>b.page!==currentPage).map(bm=>(
                 <button key={bm.id}
                   onClick={()=>{jumpToPage(bm.page);setBmPopover(false);}}
-                  style={{display:'flex',alignItems:'center',gap:6,padding:'6px 10px',width:'100%',
+                  style={{display:'flex',alignItems:'flex-start',gap:6,padding:'6px 10px',width:'100%',
                     background:'transparent',border:'none',cursor:'pointer',textAlign:'left',
                     borderBottom:`1px solid ${LINE}`}}>
-                  <BookMarked style={{width:11,height:11,color:MUTED,flexShrink:0}}/>
-                  <span style={{flex:1,color:MUTED,fontSize:'12px',fontFamily:serif,fontStyle:'italic'}}>
-                    {bm.name}
-                  </span>
-                  <span style={{color:FAINT,fontSize:'10px',fontFamily:mono}}>p.{bm.page}</span>
+                  <BookMarked style={{width:11,height:11,color:MUTED,flexShrink:0,marginTop:2}}/>
+                  <div style={{flex:1,minWidth:0}}>
+                    <span style={{color:MUTED,fontSize:'12px',fontFamily:serif,fontStyle:'italic'}}>
+                      {bm.name}
+                    </span>
+                    {bm.note&&<div style={{color:FAINT,fontSize:'10px',fontFamily:serif,fontStyle:'italic',marginTop:2,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{bm.note}</div>}
+                  </div>
+                  <span style={{color:FAINT,fontSize:'10px',fontFamily:mono,flexShrink:0}}>p.{bm.page}</span>
                 </button>
               ))}
             </div>
@@ -510,7 +521,7 @@ const PdfViewer=forwardRef(function PdfViewer({
               <div style={{color:FAINT,fontSize:'9px',letterSpacing:'0.2em',fontFamily:sans,marginBottom:6}}>
                 ADD TO p.{currentPage}
               </div>
-              <div style={{display:'flex',gap:6}}>
+              <div className="flex" style={{gap:6,marginBottom:6}}>
                 <input
                   autoFocus
                   type="text"
@@ -525,6 +536,9 @@ const PdfViewer=forwardRef(function PdfViewer({
                   <Plus style={{width:11,height:11}}/>
                 </button>
               </div>
+              <MarkdownField value={bmNote} onChange={setBmNote} placeholder="Note…" minHeight={32}
+                style={{background:'transparent',border:`1px solid ${LINE_MED}`}}
+                onWikiLinkClick={onWikiLinkClick} completionData={completionData}/>
             </div>
           )}
         </div>,
