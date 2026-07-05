@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.98.8] — 2026-07-05
+
+### Score linking + durability
+
+The first release of the score trilogy (spec: `v0.98.8-10-spec.md`). Tap a
+spot anywhere in the app and the score opens to the passage; scores and
+recordings can no longer silently vanish under storage pressure.
+
+- **`SCHEMA_VERSION` → 12.** `spot.bookmarkId`+`spot.pdfAttachmentId` and any
+  surviving `spot.pdfPage` unify into one `spot.scoreLink =
+  {attId, bookmarkId, page}`, migrated idempotently on load and import.
+  This is also a bug fix: `spot.pdfPage` was silently stripped by
+  `migrateItems` on every load, so the bare-page link never actually
+  persisted — only the bookmark-linked mechanism did.
+- New `requestScoreView` bridge: the score-link badge on Today, in
+  Répertoire, and inside the score drawer now jumps to the right
+  attachment and page from anywhere, including cold load, with a bounded
+  retry so the target page being not-yet-mounted doesn't silently no-op.
+  Editing a link moves to an adjacent pencil; a bare tap always jumps.
+- **Storage durability:** `navigator.storage.persist()` requested once at
+  boot, surfaced as a quiet status line in the Sync tab. Score, reference
+  track, and recording uploads now honor a failed write — the upload is
+  rejected with an honest message and no ghost attachment is left behind,
+  instead of silently succeeding until the next reload. (Fixed a related
+  bug in `idbPut` itself: a real quota failure could escape as an
+  unhandled rejection rather than resolving `false`.)
+- Bookmarks gain a note field, editable in the score drawer and the
+  in-viewer bookmark popover; the note shows in the jump list and the
+  page ribbon.
+- True fullscreen on the score drawer where supported (desktop, iPadOS
+  16.4+); iPhone keeps the maximized overlay (platform limit). Any action
+  that would open an app-level confirm now exits fullscreen first, and the
+  bookmark popover portals inside the fullscreened element — both would
+  otherwise render invisible.
+- Page turns no longer flash white (outgoing page stays until the
+  incoming one has actually rendered, with the likely-next page kept
+  pre-rendered hidden). Fit-to-page is available on every screen size, not
+  just desktop.
+
 ## [0.98.7] — 2026-06-14
 
 ### Writing-surface markdown
