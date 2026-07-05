@@ -63,6 +63,52 @@ function TBtn({active,disabled,onClick,children,label,extra,btnRef:extRef}){
   );
 }
 
+// F6/C8: dual-mount page swap, the hidden-render utility. The outgoing page stays
+// mounted and visible until the incoming one's onRenderSuccess fires (no white
+// flash), and the likely-next page is kept pre-rendered hidden the rest of the
+// time so a forward turn swaps instantly. One utility, reused for single mode's
+// page and each pane of spread mode; v0.98.9's continuous virtualization widens
+// the same window logic rather than rebuilding this.
+function FlashFreePage({pageNumber,adjacentPage,minPage=1,maxPage=null,width,onLoadSuccess}){
+  const inRange=(p)=>p!=null&&p>=minPage&&(maxPage==null||p<=maxPage);
+  const [visible,setVisible]=useState(pageNumber);
+  const [shadowPage,setShadowPage]=useState(inRange(adjacentPage)?adjacentPage:null);
+  const shadowReadyRef=useRef({});
+
+  useEffect(()=>{
+    if(pageNumber===visible){
+      const nextShadow=inRange(adjacentPage)?adjacentPage:null;
+      setShadowPage(prev=>prev===nextShadow?prev:nextShadow);
+      return;
+    }
+    if(shadowPage===pageNumber&&shadowReadyRef.current[pageNumber]){
+      setVisible(pageNumber);
+      setShadowPage(inRange(adjacentPage)?adjacentPage:null);
+    }else{
+      setShadowPage(pageNumber);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[pageNumber,adjacentPage]);
+
+  return (
+    <>
+      <Page pageNumber={visible} width={width} onLoadSuccess={onLoadSuccess} renderTextLayer renderAnnotationLayer/>
+      {shadowPage!=null&&shadowPage!==visible&&(
+        <div style={{position:'absolute',inset:0,opacity:0,pointerEvents:'none'}} aria-hidden="true">
+          <Page pageNumber={shadowPage} width={width} renderTextLayer={false} renderAnnotationLayer={false}
+            onRenderSuccess={()=>{
+              shadowReadyRef.current[shadowPage]=true;
+              if(shadowPage===pageNumber){
+                setVisible(shadowPage);
+                setShadowPage(inRange(adjacentPage)?adjacentPage:null);
+              }
+            }}/>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ──────────────────────────────────────────────────────────────────────────────
 // PdfViewer
 // Exposed via ref: { jumpToPage(n) }
@@ -86,6 +132,7 @@ const PdfViewer=forwardRef(function PdfViewer({
   onPageChange,onAddBookmark,dragging=false,
   pendingPage=null,onPendingPageHandled,
   onWikiLinkClick,completionData,
+  fullscreenElement=null,
 },ref){
   const {isMobile}=useViewport();
   const [numPages,setNumPages]=useState(null);
@@ -322,16 +369,14 @@ const PdfViewer=forwardRef(function PdfViewer({
       <div style={{display:'flex',alignItems:'center',gap:'3px',padding:'5px 8px',
         borderBottom:`1px solid ${LINE}`,flexShrink:0,overflowX:'auto',scrollbarWidth:'none'}}>
 
-        {/* Fit — hidden on mobile (always width-fit on small screens) */}
-        {!isMobile&&(<>
-          <TBtn active={fitMode==='width'} label="Fit to width" onClick={()=>setFitMode('width')}>
-            <AlignJustify style={{width:12,height:12}}/>
-          </TBtn>
-          <TBtn active={fitMode==='page'} label="Fit to page" onClick={()=>setFitMode('page')}>
-            <Maximize2 style={{width:12,height:12}}/>
-          </TBtn>
-          <SEP/>
-        </>)}
+        {/* F6: fit-to-page available everywhere — first slice of container-gating (P8, 98.9). */}
+        <TBtn active={fitMode==='width'} label="Fit to width" onClick={()=>setFitMode('width')}>
+          <AlignJustify style={{width:12,height:12}}/>
+        </TBtn>
+        <TBtn active={fitMode==='page'} label="Fit to page" onClick={()=>setFitMode('page')}>
+          <Maximize2 style={{width:12,height:12}}/>
+        </TBtn>
+        <SEP/>
 
         {/* Zoom */}
         <TBtn label="Zoom out" onClick={zoomOut}><ZoomOut style={{width:12,height:12}}/></TBtn>
@@ -420,21 +465,25 @@ const PdfViewer=forwardRef(function PdfViewer({
             {mode==='single'&&(
               <div style={{position:'relative'}}>
                 <BookmarkRibbon page={currentPage}/>
-                <Page pageNumber={currentPage} width={dw} onLoadSuccess={onPageLoaded}
-                  renderTextLayer renderAnnotationLayer/>
+                <FlashFreePage key={url} pageNumber={currentPage} adjacentPage={currentPage+1}
+                  minPage={clampStart} maxPage={effectiveEnd||numPages}
+                  width={dw} onLoadSuccess={onPageLoaded}/>
               </div>
             )}
             {mode==='spread'&&(
               <div style={{display:'flex',gap:'8px',alignItems:'flex-start',justifyContent:'center'}}>
                 <div style={{position:'relative'}}>
                   <BookmarkRibbon page={currentPage}/>
-                  <Page pageNumber={currentPage} width={sw} onLoadSuccess={onPageLoaded}
-                    renderTextLayer renderAnnotationLayer/>
+                  <FlashFreePage key={url} pageNumber={currentPage} adjacentPage={currentPage+2}
+                    minPage={clampStart} maxPage={effectiveEnd||numPages}
+                    width={sw} onLoadSuccess={onPageLoaded}/>
                 </div>
                 {showRight&&(
                   <div style={{position:'relative'}}>
                     <BookmarkRibbon page={rightPage}/>
-                    <Page pageNumber={rightPage} width={sw} renderTextLayer renderAnnotationLayer/>
+                    <FlashFreePage key={`${url}-r`} pageNumber={rightPage} adjacentPage={rightPage+2}
+                      minPage={clampStart} maxPage={effectiveEnd||numPages}
+                      width={sw}/>
                   </div>
                 )}
               </div>
@@ -542,7 +591,9 @@ const PdfViewer=forwardRef(function PdfViewer({
             </div>
           )}
         </div>,
-        document.body
+        // C6: fullscreen hides everything outside the fullscreened element — the
+        // popover must portal inside it there, or it's invisible.
+        fullscreenElement||document.body
       )}
     </div>
   );
