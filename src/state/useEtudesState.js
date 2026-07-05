@@ -479,7 +479,11 @@ export default function useEtudesState(){
     const libraryId=mkPdfId();
     const attachId=mkAttachId();
     const displayName=name||file.name.replace(/\.pdf$/i,'');
-    await idbPut('pdfs',libraryId,file);
+    const ok=await idbPut('pdfs',libraryId,file);
+    if(!ok){
+      setConfirmModal({message:'Could not store the score on this device.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+      return null;
+    }
     driveSync.notifyBlobWrite();
     const url=URL.createObjectURL(file);
     setPdfUrlMap(m=>({...m,[libraryId]:url}));
@@ -536,7 +540,15 @@ export default function useEtudesState(){
   const renameBookmark=(itemId,attachId,bmId,name)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,bookmarks:(x.bookmarks||[]).map(b=>b.id===bmId?{...b,name}:b)}:x)}));
 
   // ── Reference track management ─────────────────────────────────────────────
-  const uploadRefTrack=async(itemId,file,peaks)=>{await idbPut('refTracks',itemId,file);driveSync.notifyBlobWrite();setRefTrackMeta(m=>({...m,[itemId]:{peaks,filename:file.name}}));};
+  const uploadRefTrack=async(itemId,file,peaks)=>{
+    const ok=await idbPut('refTracks',itemId,file);
+    if(!ok){
+      setConfirmModal({message:'Could not store the reference track on this device.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+      return;
+    }
+    driveSync.notifyBlobWrite();
+    setRefTrackMeta(m=>({...m,[itemId]:{peaks,filename:file.name}}));
+  };
   const deleteRefTrack=(itemId)=>{idbDel('refTracks',itemId);setRefTrackMeta(m=>{const c={...m};delete c[itemId];return c;});};
 
   // ── Session / routine management ──────────────────────────────────────────

@@ -342,8 +342,8 @@ export default function PdfDrawer({
             ):activePdf?(
               <div className="h-full flex flex-col items-center justify-center p-8 text-center">
                 <FileText className="w-10 h-10 mb-5" strokeWidth={1} style={{color:DIM}}/>
-                <p className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Attached on another device</p>
-                <p className="text-sm max-w-sm italic" style={{color:MUTED,fontFamily:serif,fontSize:'15px',lineHeight:1.6}}>This score is not available here.</p>
+                <p className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Score not stored here</p>
+                <p className="text-sm max-w-sm italic" style={{color:MUTED,fontFamily:serif,fontSize:'15px',lineHeight:1.6}}>Not on this device. Restore from a Drive backup, or open it where it was added.</p>
               </div>
             ):(
               <div className="h-full flex flex-col items-center justify-center p-8 text-center">

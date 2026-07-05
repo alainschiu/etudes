@@ -25,7 +25,19 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
         const mr=new MediaRecorder(stream,...(mimeType?[{mimeType}]:[]));
         recordedChunksRef.current=[];
         mr.ondataavailable=(e)=>{if(e.data.size>0)recordedChunksRef.current.push(e.data);};
-        mr.onstop=async()=>{if(mediaRecorderRef.current!==mr)return;const blob=new Blob(recordedChunksRef.current,{type:mimeType||'audio/webm'});const peaks=await computePeaks(blob,60);await idbPut('recordings',tk,blob);onBlobWritten?.();setRecordingMeta(m=>({...m,[tk]:{peaks,size:blob.size,ts:Date.now(),mimeType:mimeType||'audio/webm'}}));stream.getTracks().forEach(t=>t.stop());};
+        mr.onstop=async()=>{
+          if(mediaRecorderRef.current!==mr)return;
+          const blob=new Blob(recordedChunksRef.current,{type:mimeType||'audio/webm'});
+          const peaks=await computePeaks(blob,60);
+          const ok=await idbPut('recordings',tk,blob);
+          if(ok){
+            onBlobWritten?.();
+            setRecordingMeta(m=>({...m,[tk]:{peaks,size:blob.size,ts:Date.now(),mimeType:mimeType||'audio/webm'}}));
+          }else{
+            setConfirmModal({message:'Could not store the recording on this device.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+          }
+          stream.getTracks().forEach(t=>t.stop());
+        };
         mediaRecorderRef.current=mr;mr.start();setIsRecording(true);
       }catch(e){setConfirmModal({message:'Microphone unavailable. Check browser permissions.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
     };
@@ -74,13 +86,17 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
           const idbKey=`${itemId}__${date}__${Date.now()}`;
           const blob=new Blob(pieceChunksRef.current,{type:mimeType||'audio/webm'});
           const peaks=await computePeaks(blob,120);
-          await idbPut('pieceRecordings',idbKey,blob);
-          onBlobWritten?.();
-          setPieceRecordingMeta(m=>{
-            const prev=m[itemId]||{};
-            const updated={...prev,[date]:{peaks,size:blob.size,ts:Date.now(),bpm:bpm||null,stage:stage||'',locked:false,mimeType:mimeType||'audio/webm',idbKey}};
-            return {...m,[itemId]:applyFifo(itemId,updated)};
-          });
+          const ok=await idbPut('pieceRecordings',idbKey,blob);
+          if(ok){
+            onBlobWritten?.();
+            setPieceRecordingMeta(m=>{
+              const prev=m[itemId]||{};
+              const updated={...prev,[date]:{peaks,size:blob.size,ts:Date.now(),bpm:bpm||null,stage:stage||'',locked:false,mimeType:mimeType||'audio/webm',idbKey}};
+              return {...m,[itemId]:applyFifo(itemId,updated)};
+            });
+          }else{
+            setConfirmModal({message:'Could not store the recording on this device.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+          }
           setPieceRecordingItemId(null);
           stream.getTracks().forEach(t=>t.stop());
         };
@@ -133,13 +149,19 @@ export default function useRecording({dayClosed,recordingMeta,setRecordingMeta,s
     if(!blob)return;
     const idbKey=`${itemId}__${date}__${Date.now()}`;
     const peaks=await computePeaks(blob,120);
-    await idbPut('pieceRecordings',idbKey,blob);
+    const ok=await idbPut('pieceRecordings',idbKey,blob);
+    if(!ok){
+      setConfirmModal({message:'Could not store the recording on this device.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+      return;
+    }
     onBlobWritten?.();
     setPieceRecordingMeta(m=>{
       const prev=m[itemId]||{};
       const updated={...prev,[date]:{peaks,size:blob.size,ts:Date.now(),bpm:bpm||null,stage:stage||'',locked:false,idbKey}};
       return {...m,[itemId]:applyFifo(itemId,updated)};
     });
+    // Daily recording only cleared once the piece-scoped copy is confirmed stored —
+    // an idbPut failure above must not lose the still-valid daily blob (F4 honesty).
     await idbDel('recordings',date);
     setRecordingMeta(m=>{const c={...m};delete c[date];return c;});
   };

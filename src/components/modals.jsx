@@ -20,7 +20,7 @@ const SHORTCUTS=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
 const USER_GUIDE_URL='https://etudes.me/guide';
 
-export function SettingsModal({settings,setSettings,storageQuotaHit,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect,initialTab='settings',setConfirmModal}){
+export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersisted=null,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect,initialTab='settings',setConfirmModal}){
   const [devBusy,setDevBusy]=useState(false);
   const [devStatus,setDevStatus]=useState('');
   const [driveBusy,setDriveBusy]=useState(false);
@@ -71,6 +71,11 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,onExportZip,
           <div className="italic" style={{color:WARN,fontFamily:serif,fontSize:'13px',lineHeight:1.5}}>Local storage is full.</div>
           <div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.5,marginTop:'4px'}}>New recordings and edits cannot be saved on this device. Export a backup, then remove old data, or sign in on a device with more space.</div>
         </div>)}
+        {storagePersisted!==null&&(
+          <div className="italic" style={{color:storagePersisted?FAINT:WARN,fontFamily:serif,fontSize:'11px',lineHeight:1.5}}>
+            {storagePersisted?'Storage is protected from cleanup.':'Storage may be cleared under pressure. Back up to Drive.'}
+          </div>
+        )}
         {user?(
           <>
             <div className="italic" style={{color:MUTED,fontFamily:serif,fontSize:'13px',lineHeight:1.6}}>
