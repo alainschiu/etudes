@@ -520,7 +520,7 @@ export default function useEtudesState(){
   const setDefaultPdf=(itemId,attachId)=>setItems(p=>p.map(i=>i.id===itemId?{...i,defaultPdfId:attachId}:i));
   const setPdfPageRange=(itemId,attachId,startPage,endPage)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,startPage,endPage}:x)}));
   // Bookmark management (P2)
-  const addBookmark=(itemId,attachId,name,page)=>{const bm={id:mkBookmarkId(),name,page};setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,bookmarks:[...(x.bookmarks||[]),bm]}:x)}));return bm.id;};
+  const addBookmark=(itemId,attachId,name,page)=>{const bm={id:mkBookmarkId(),name,page,note:''};setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,bookmarks:[...(x.bookmarks||[]),bm]}:x)}));return bm.id;};
   const removeBookmark=(itemId,attachId,bmId)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,bookmarks:(x.bookmarks||[]).filter(b=>b.id!==bmId)}:x)}));
   const renameBookmark=(itemId,attachId,bmId,name)=>setItems(p=>p.map(i=>i.id!==itemId?i:{...i,pdfs:i.pdfs.map(x=>x.id===attachId?{...x,bookmarks:(x.bookmarks||[]).map(b=>b.id===bmId?{...b,name}:b)}:x)}));
 

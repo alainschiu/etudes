@@ -27,7 +27,7 @@ import {BG, SURFACE, SURFACE2, TEXT, MUTED, FAINT, DIM, LINE, LINE_MED, LINE_STR
 import {STAGES} from '../constants/config.js';
 import {idbGet} from '../lib/storage.js';
 import {daysUntil} from '../lib/dates.js';
-import {getItemTime, getSpotTime, displayTitle, formatByline} from '../lib/items.js';
+import {getItemTime, getSpotTime, displayTitle, formatByline, resolveScoreLinkPage} from '../lib/items.js';
 
 export function DisplayHeader({eyebrow,title,suffix,right,titleRight}){return (<div className="mb-12 flex items-end justify-between gap-6"><div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>{eyebrow}</div><div className="flex items-end gap-5"><h1 className="leading-none" style={{fontFamily:serif,fontWeight:400,fontSize:'clamp(32px,6vw,56px)',letterSpacing:'-0.02em'}}><span style={{fontStyle:'italic'}}>{title}</span>{suffix&&<span style={{color:FAINT}}>{suffix}</span>}</h1>{titleRight&&<div className="pb-2">{titleRight}</div>}</div></div>{right}</div>);}
 
@@ -385,7 +385,7 @@ export function fmtSpotTime(s){s=s||0;const m=Math.floor(s/60);const sec=s%60;re
 
 export function PerformanceChip({perf,compact=false}){if(!perf||!perf.date)return null;const days=daysUntil(perf.date);if(days===null||days<-30)return null;let color,text;if(days<0){color=MUTED;text=`${Math.abs(days)}d ago`;}else if(days===0){color=WARM;text='today';}else if(days<=7){color=WARM;text=`${days}d`;}else if(days<=30){color=IKB;text=`${days}d`;}else{color=FAINT;text=`${days}d`;}const label=perf.label||'perf';return (<span className="inline-flex items-center gap-1 uppercase" title={`${label} · ${perf.date}`} style={{color,fontSize:compact?'9px':'10px',letterSpacing:'0.22em',padding:compact?'1px 5px':'2px 6px',border:`1px solid ${color}40`,background:(days<=7&&days>=0)?`${color}15`:'transparent'}}><Calendar className="w-2.5 h-2.5" strokeWidth={1.25}/>{label} · {text}</span>);}
 
-export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,onDelete,onEditTime,onPdfPageJump,onPdfPageSet,onNoteChange,onWikiLinkClick,completionData,dayClosed,compact=false}){
+export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,onDelete,onEditTime,scoreLinkPage,onScoreLinkJump,onScoreLinkSet,onNoteChange,onWikiLinkClick,completionData,dayClosed,compact=false}){
   const [editing,setEditing]=useState(false);
   const [val,setVal]=useState(spot.label);
   const [editingTime,setEditingTime]=useState(false);
@@ -399,11 +399,11 @@ export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,
   const commit=()=>{if(val.trim())onRename(val.trim());else setVal(spot.label);setEditing(false);};
   const commitPage=(raw)=>{
     const n=parseInt(raw,10);
-    if(Number.isFinite(n)&&n>0&&onPdfPageSet)onPdfPageSet(n);
-    else if(raw===''&&onPdfPageSet)onPdfPageSet(null);
+    if(Number.isFinite(n)&&n>0&&onScoreLinkSet)onScoreLinkSet(n);
+    else if(raw===''&&onScoreLinkSet)onScoreLinkSet(null);
     setEditingPage(false);
   };
-  const openPageEditor=()=>{setPageVal(spot.pdfPage?String(spot.pdfPage):'');setEditingPage(true);};
+  const openPageEditor=()=>{setPageVal(scoreLinkPage?String(scoreLinkPage):'');setEditingPage(true);};
   return (
     <div>
     <div className="group flex items-center gap-2 py-2 px-2" style={{background:isActive?IKB_SOFT:'transparent',borderLeft:isActive?`2px solid ${IKB}`:`2px solid transparent`}}>
@@ -428,10 +428,10 @@ export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,
             <Pencil className="w-3 h-3" strokeWidth={1.25}/>
           </button>
         )}
-        {/* PDF page attach / jump.
-            - If pdfPage set + onPdfPageJump (inside PdfDrawer): tap = jump.
-            - If pdfPage set without jumper (Today/Repertoire): tap = open editor.
-            - If pdfPage unset + onPdfPageSet (editable contexts): icon button = open editor.
+        {/* Score link badge (C1 scoreLink).
+            - If linked + onScoreLinkJump (inside PdfDrawer): tap = jump.
+            - If linked without a jumper (Today/Repertoire): tap = open editor.
+            - If unlinked + onScoreLinkSet (editable contexts): icon button = open editor.
             - If neither: render nothing. */}
         {editingPage?(
           <span className="shrink-0 flex items-center gap-1" onClick={e=>e.stopPropagation()}>
@@ -441,17 +441,17 @@ export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,
               onBlur={()=>commitPage(pageVal)}
               style={{width:'48px',background:'transparent',color:TEXT,border:`1px solid ${LINE_MED}`,fontSize:'10px',padding:'1px 4px',outline:'none',fontFamily:mono,textAlign:'center'}}/>
           </span>
-        ):spot.pdfPage?(
+        ):scoreLinkPage?(
           <button
-            onClick={onPdfPageJump?()=>onPdfPageJump(spot.pdfPage):(onPdfPageSet?openPageEditor:undefined)}
-            onDoubleClick={onPdfPageSet?openPageEditor:undefined}
+            onClick={onScoreLinkJump?()=>onScoreLinkJump():(onScoreLinkSet?openPageEditor:undefined)}
+            onDoubleClick={onScoreLinkSet?openPageEditor:undefined}
             className="shrink-0 flex items-center gap-0.5"
-            style={{color:IKB,fontSize:'9px',fontFamily:mono,cursor:(onPdfPageJump||onPdfPageSet)?'pointer':'default',background:'transparent',border:'none',padding:'1px 3px',lineHeight:1}}
-            title={onPdfPageJump?`Jump to score p.${spot.pdfPage}`:onPdfPageSet?`Score p.${spot.pdfPage} — tap to change`:`Score p.${spot.pdfPage}`}>
+            style={{color:IKB,fontSize:'9px',fontFamily:mono,cursor:(onScoreLinkJump||onScoreLinkSet)?'pointer':'default',background:'transparent',border:'none',padding:'1px 3px',lineHeight:1}}
+            title={onScoreLinkJump?`Jump to score p.${scoreLinkPage}`:onScoreLinkSet?`Score p.${scoreLinkPage} — tap to change`:`Score p.${scoreLinkPage}`}>
             <FileText className="w-2.5 h-2.5" strokeWidth={1.5}/>
-            {spot.pdfPage}
+            {scoreLinkPage}
           </button>
-        ):onPdfPageSet?(
+        ):onScoreLinkSet?(
           <button onClick={openPageEditor} className="shrink-0 target-hover-reveal" title="Link to a PDF page"
             style={{color:FAINT,background:'transparent',border:'none',padding:'1px 3px',cursor:'pointer',lineHeight:1}}>
             <FileText className="w-2.5 h-2.5" strokeWidth={1.5}/>
@@ -627,6 +627,14 @@ export function SaveIndicator({saveStatus,filter}){
   return <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',letterSpacing:'0.22em',color:display.ok?FAINT:WARN}}>{label}</span>;
 }
 
+// Setting a bare page number from a context with no "active attachment" (Today,
+// Repertoire) implicitly links against the item's default attachment (or its first),
+// mirroring the migration's own fallback (F1) — never a range-relative page (C2).
+function setSpotPageLink(updateSpot,item,spotId,page){
+  const attId=item.defaultPdfId||item.pdfs?.[0]?.id||null;
+  updateSpot(item.id,spotId,{scoreLink:(attId&&page)?{attId,bookmarkId:null,page}:null});
+}
+
 export function SpotsBlock({item,itemTimes,activeItemId,activeSpotId,startItem,stopItem,addSpot,updateSpot,deleteSpot,editSpotTime,dayClosed,setConfirmModal,onWikiLinkClick,completionData}){
   const spots=item.spots||[];
   const onDelete=(spotId)=>{
@@ -634,5 +642,5 @@ export function SpotsBlock({item,itemTimes,activeItemId,activeSpotId,startItem,s
     confirmDestructive(setConfirmModal,`Delete spot "${sp?.label||'this spot'}"? Tempo log and time will be removed.`,
       ()=>deleteSpot(item.id,spotId));
   };
-  return (<div><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {spots.length>0&&<span style={{color:DIM,letterSpacing:'0.2em'}}>· {spots.length}</span>}</div>{spots.length>0&&(<div style={{background:SURFACE2,border:`1px solid ${LINE}`}}>{spots.map((s,idx)=>(<div key={s.id} style={{borderBottom:idx<spots.length-1?`1px solid ${LINE}`:'none'}}><SpotRow spot={s} itemId={item.id} itemTimes={itemTimes} isActive={activeItemId===item.id&&activeSpotId===s.id} onStart={()=>startItem(item.id,s.id)} onStop={stopItem} onRename={(label)=>updateSpot(item.id,s.id,{label})} onDelete={()=>onDelete(s.id)} onEditTime={editSpotTime?(v)=>editSpotTime(item.id,s.id,v):undefined} onPdfPageSet={updateSpot?(pg)=>updateSpot(item.id,s.id,{pdfPage:pg}):undefined} onNoteChange={updateSpot?(v)=>updateSpot(item.id,s.id,{note:v}):undefined} onWikiLinkClick={onWikiLinkClick} completionData={completionData} dayClosed={dayClosed}/></div>))}</div>)}<button onClick={()=>addSpot(item.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button></div>);
+  return (<div><div className="uppercase mb-2 flex items-center gap-1.5" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.25em'}}><Crosshair className="w-3 h-3" strokeWidth={1.25} style={{color:IKB}}/> Spots {spots.length>0&&<span style={{color:DIM,letterSpacing:'0.2em'}}>· {spots.length}</span>}</div>{spots.length>0&&(<div style={{background:SURFACE2,border:`1px solid ${LINE}`}}>{spots.map((s,idx)=>(<div key={s.id} style={{borderBottom:idx<spots.length-1?`1px solid ${LINE}`:'none'}}><SpotRow spot={s} itemId={item.id} itemTimes={itemTimes} isActive={activeItemId===item.id&&activeSpotId===s.id} onStart={()=>startItem(item.id,s.id)} onStop={stopItem} onRename={(label)=>updateSpot(item.id,s.id,{label})} onDelete={()=>onDelete(s.id)} onEditTime={editSpotTime?(v)=>editSpotTime(item.id,s.id,v):undefined} scoreLinkPage={resolveScoreLinkPage(s.scoreLink,item.pdfs)} onScoreLinkSet={updateSpot?(pg)=>setSpotPageLink(updateSpot,item,s.id,pg):undefined} onNoteChange={updateSpot?(v)=>updateSpot(item.id,s.id,{note:v}):undefined} onWikiLinkClick={onWikiLinkClick} completionData={completionData} dayClosed={dayClosed}/></div>))}</div>)}<button onClick={()=>addSpot(item.id,'New spot')} className="uppercase flex items-center gap-1.5 mt-2 italic" style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}><Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot</button></div>);
 }

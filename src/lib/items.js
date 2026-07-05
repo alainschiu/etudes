@@ -14,6 +14,21 @@ export function displayTitle(i){if(i.collection&&i.movement)return `${i.collecti
 export function formatByline(i){const p=[];if(i.composer)p.push(i.composer);if(i.arranger)p.push(`arr. ${i.arranger}`);if(i.author)p.push(i.author);return p.join(', ');}
 export function formatForMarkdown(i){let base;if(i.collection&&i.movement){base=i.catalog?`${i.collection}, ${i.catalog} — ${i.movement}`:`${i.collection} — ${i.movement}`;}else if(i.collection){base=i.catalog?`${i.collection}, ${i.catalog}`:i.collection;}else{base=i.catalog?`${i.title||'Untitled'}, ${i.catalog}`:(i.title||'Untitled');}const by=formatByline(i);return by?`${base} (${by})`:base;}
 
+// C1/C2: resolve a scoreLink to the absolute PDF page it currently points at.
+// A bookmarkId link follows bookmark edits (looked up live, not cached at link time);
+// a page link is the direct fallback. Returns null if nothing resolves (e.g. the
+// bookmark or attachment was since removed) — callers treat null as "nothing to jump to".
+export function resolveScoreLinkPage(scoreLink,pdfs){
+  if(!scoreLink)return null;
+  const att=(pdfs||[]).find(p=>p.id===scoreLink.attId);
+  if(!att)return null;
+  if(scoreLink.bookmarkId){
+    const bm=(att.bookmarks||[]).find(b=>b.id===scoreLink.bookmarkId);
+    return bm?bm.page:null;
+  }
+  return scoreLink.page||null;
+}
+
 export function resolveHistoryItem(e,items){
   const has=e.title!==undefined||e.type!==undefined||e.composer!==undefined;
   const live=items.find(i=>i.id===e.id);
