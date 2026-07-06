@@ -12,6 +12,7 @@ import BookMarked from 'lucide-react/dist/esm/icons/book-marked';
 import AlignJustify from 'lucide-react/dist/esm/icons/align-justify';
 import List from 'lucide-react/dist/esm/icons/list';
 import Columns2 from 'lucide-react/dist/esm/icons/columns-2';
+import ArrowLeftRight from 'lucide-react/dist/esm/icons/arrow-left-right';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
@@ -141,6 +142,21 @@ const PENDING_JUMP_MAX_ATTEMPTS=20;
 // current (topmost-visible) page; the rest collapse to sized placeholders.
 const CONTINUOUS_WINDOW=2;
 
+// P8: container-gating — spread mode is offered when the viewer's OWN container
+// is wide enough, not based on useViewport's device-class isMobile flag. An
+// iPad in portrait qualifies; an iPhone never does; desktop is unaffected.
+const CONTAINER_SPREAD_MIN=700;
+
+// P8: pure so both normal navigation (memoized on the current seamOffset) and
+// the seam-toggle button (which must resnap using the NEXT offset, before the
+// state update re-renders) share one definition. Offset 0 pairs (1,2),(3,4)…;
+// offset 1 leaves page 1 alone (a cover) and pairs (2,3),(4,5)….
+function computePairLeft(p,offset){
+  if(offset===0)return p%2===1?p:p-1;
+  if(p<=1)return 1;
+  return p%2===0?p:p-1;
+}
+
 // P3: reading prefs are global (one player, one reading habit), not per-attachment.
 const PDF_PREFS_KEY='etudes-pdfPrefs';
 function loadPdfPrefs(){
@@ -172,6 +188,10 @@ const PdfViewer=forwardRef(function PdfViewer({
   const [fitMode,setFitMode]=useState(()=>{ // 'width' | 'page'
     const v=loadPdfPrefs().fitMode;
     return v==='width'||v==='page'?v:'width';
+  });
+  const [seamOffset,setSeamOffset]=useState(()=>{ // P8: 0 | 1 — shifts spread pairing by one page
+    const v=loadPdfPrefs().seamOffset;
+    return v===1?1:0;
   });
   const [containerW,setContainerW]=useState(0);
   const [containerH,setContainerH]=useState(0);
@@ -211,21 +231,34 @@ const PdfViewer=forwardRef(function PdfViewer({
   const curPageBms=(bookmarks||[]).filter(b=>b.page===currentPage);
   const hasBookmarkHere=curPageBms.length>0;
 
+  // P8: read inside the ResizeObserver callback below (not a reactive effect) so
+  // narrowing past the spread threshold can downgrade the mode from the same
+  // callback that already owns containerW — a ref avoids a stale closure without
+  // adding another setState-in-effect (already tolerated 4x elsewhere in this file).
+  const modeRef=useRef(mode);
+  useEffect(()=>{modeRef.current=mode;},[mode]);
+
   // Measure container. During active drag-resize we debounce (80ms) to avoid
   // re-rendering every animation frame. For discrete changes (sidebar collapse,
   // initial mount) we update immediately so there's no stale-width flash.
   useEffect(()=>{
     if(!containerRef.current)return;
     let timer=null;
+    const applyWidth=(w,h)=>{
+      setContainerW(w);setContainerH(h);
+      // P8: a container that's narrowed below the spread threshold (drawer
+      // resize, orientation change) can't show a legible spread — fall back.
+      if(modeRef.current==='spread'&&w>0&&w<CONTAINER_SPREAD_MIN)setMode('single');
+    };
     const ro=new ResizeObserver(entries=>{
       if(dragging){
         clearTimeout(timer);
         timer=setTimeout(()=>{
-          for(const e of entries){setContainerW(e.contentRect.width);setContainerH(e.contentRect.height);}
+          for(const e of entries)applyWidth(e.contentRect.width,e.contentRect.height);
         },80);
       }else{
         clearTimeout(timer);
-        for(const e of entries){setContainerW(e.contentRect.width);setContainerH(e.contentRect.height);}
+        for(const e of entries)applyWidth(e.contentRect.width,e.contentRect.height);
       }
     });
     ro.observe(containerRef.current);
@@ -234,10 +267,10 @@ const PdfViewer=forwardRef(function PdfViewer({
 
   useEffect(()=>{setCurrentPage(effectiveStart);setNumPages(null);},[url,effectiveStart]);// eslint-disable-line
 
-  // P3: persist reading prefs on change. expanded/fullscreen (owned by PdfDrawer) stays per-session — R9.
+  // P3/P8: persist reading prefs on change. expanded/fullscreen (owned by PdfDrawer) stays per-session — R9.
   useEffect(()=>{
-    try{localStorage.setItem(PDF_PREFS_KEY,JSON.stringify({zoom,mode,fitMode}));}catch{/* quota/private-mode — non-fatal, NS voice: silent */}
-  },[zoom,mode,fitMode]);
+    try{localStorage.setItem(PDF_PREFS_KEY,JSON.stringify({zoom,mode,fitMode,seamOffset}));}catch{/* quota/private-mode — non-fatal, NS voice: silent */}
+  },[zoom,mode,fitMode,seamOffset]);
 
   // Keep a ref so the wheel handler always reads the latest page without stale closure
   useEffect(()=>{currentPageRef.current=currentPage;},[currentPage]);
@@ -265,15 +298,25 @@ const PdfViewer=forwardRef(function PdfViewer({
     return Math.max(clampStart,Math.min(end,pg));
   },[clampStart,effectiveEnd,numPages]);
 
+  // P8: seam-offset pairing. Offset 0 pairs (1,2),(3,4)…; offset 1 leaves page 1
+  // alone (a cover) and pairs (2,3),(4,5)… — so the two pages of a musical
+  // opening land on the correct seam when the score's front matter is odd.
+  const pairLeft=useCallback((p)=>computePairLeft(p,seamOffset),[seamOffset]);
+
   const jumpToPage=useCallback((pg)=>{
-    const c=clamp(pg);
+    let c=clamp(pg);
+    if(mode==='spread')c=Math.max(clampStart,pairLeft(c));
     setCurrentPage(c);
     if(mode==='continuous'){
       const el=pageRefs.current[c];
       if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
     }
     onPageChange&&onPageChange(c);
-  },[clamp,mode,onPageChange]);
+  },[clamp,mode,onPageChange,pairLeft,clampStart]);
+
+  // P8: container-gating — spread offered when the viewer's own container is
+  // wide enough (iPad-portrait qualifies, iPhone doesn't), not device class.
+  const canSpread=containerW>=CONTAINER_SPREAD_MIN;
 
   useImperativeHandle(ref,()=>({jumpToPage}),[jumpToPage]);
 
@@ -372,8 +415,10 @@ const PdfViewer=forwardRef(function PdfViewer({
   const allPages=[];
   if(numPages){for(let p=effectiveStart;p<=(effectiveEnd||numPages);p++)allPages.push(p);}
 
+  // P8: with seamOffset 1, page 1 stands alone (a cover) rather than pairing.
+  const alone=mode==='spread'&&seamOffset===1&&currentPage===1;
   const rightPage=numPages?clamp(currentPage+1):null;
-  const showRight=mode==='spread'&&rightPage!==null&&rightPage!==currentPage&&rightPage<=(effectiveEnd||numPages||0);
+  const showRight=mode==='spread'&&!alone&&rightPage!==null&&rightPage!==currentPage&&rightPage<=(effectiveEnd||numPages||0);
   const isAtStart=currentPage<=effectiveStart;
   const isAtEnd=mode==='spread'
     ?currentPage+(showRight?1:0)>=(effectiveEnd||numPages||1)
@@ -446,11 +491,12 @@ const PdfViewer=forwardRef(function PdfViewer({
 
         <SEP/>
 
-        {/* View mode — spread hidden on mobile (too narrow) */}
+        {/* View mode — spread offered when the container is wide enough (P8:
+            container-gating, not isMobile — iPad-portrait qualifies, iPhone doesn't) */}
         <TBtn active={mode==='single'} label="Single page" onClick={()=>setMode('single')}>
           <FileText style={{width:12,height:12}}/>
         </TBtn>
-        {!isMobile&&(
+        {canSpread&&(
           <TBtn active={mode==='spread'} label="Two-page spread" onClick={()=>setMode('spread')}>
             <Columns2 style={{width:12,height:12}}/>
           </TBtn>
@@ -458,6 +504,19 @@ const PdfViewer=forwardRef(function PdfViewer({
         <TBtn active={mode==='continuous'} label="Continuous scroll" onClick={()=>setMode('continuous')}>
           <List style={{width:12,height:12}}/>
         </TBtn>
+        {mode==='spread'&&canSpread&&(
+          <TBtn label="Shift spread seam" onClick={()=>{
+            const nextOffset=seamOffset===0?1:0;
+            setSeamOffset(nextOffset);
+            // Resnap the displayed pair to the new seam immediately, rather
+            // than leaving a stale pairing on screen until the next flip.
+            const c=Math.max(clampStart,computePairLeft(currentPage,nextOffset));
+            setCurrentPage(c);
+            onPageChange&&onPageChange(c);
+          }}>
+            <ArrowLeftRight style={{width:12,height:12}}/>
+          </TBtn>
+        )}
 
         <SEP/>
 
@@ -533,9 +592,10 @@ const PdfViewer=forwardRef(function PdfViewer({
               <div style={{display:'flex',gap:'8px',alignItems:'flex-start',justifyContent:'center'}}>
                 <div style={{position:'relative'}}>
                   <BookmarkRibbon page={currentPage}/>
-                  <FlashFreePage key={url} pageNumber={currentPage} adjacentPage={currentPage+2}
+                  {/* P8: a lone cover (seamOffset 1, page 1) renders at full width — no partner to share the row with. */}
+                  <FlashFreePage key={url} pageNumber={currentPage} adjacentPage={alone?null:currentPage+2}
                     minPage={clampStart} maxPage={effectiveEnd||numPages}
-                    width={sw} onLoadSuccess={onPageLoaded}/>
+                    width={alone?dw:sw} onLoadSuccess={onPageLoaded}/>
                 </div>
                 {showRight&&(
                   <div style={{position:'relative'}}>
