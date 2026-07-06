@@ -447,8 +447,10 @@ export function SpotRow({spot,itemId,itemTimes,isActive,onStart,onStop,onRename,
             <button
               onClick={onScoreLinkJump?onScoreLinkJump:(onScoreLinkSet?openPageEditor:undefined)}
               className="shrink-0 flex items-center gap-0.5"
-              style={{color:IKB,fontSize:'9px',fontFamily:mono,cursor:(onScoreLinkJump||onScoreLinkSet)?'pointer':'default',background:'transparent',border:'none',padding:'1px 3px',lineHeight:1}}
+              style={{position:'relative',color:IKB,fontSize:'9px',fontFamily:mono,cursor:(onScoreLinkJump||onScoreLinkSet)?'pointer':'default',background:'transparent',border:'none',padding:'1px 3px',lineHeight:1}}
               title={onScoreLinkJump?`Jump to score p.${scoreLinkPage}`:`Score p.${scoreLinkPage}`}>
+              {/* P8b: touch hit-area enlarged (invisible, out-of-flow) without growing the visible badge */}
+              <span aria-hidden="true" style={{position:'absolute',top:'-10px',bottom:'-10px',left:'-6px',right:'-4px'}}/>
               <FileText className="w-2.5 h-2.5" strokeWidth={1.5}/>
               {scoreLinkPage}
             </button>

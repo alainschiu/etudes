@@ -34,12 +34,20 @@ const RESIZE_HANDLE_MIN_W=700;
 // F5: a bookmark row with its own inline, collapsible note editor — same pattern
 // as SpotRow's persistent note (default open when a note exists, collapsed when
 // empty, toggled by a MessageSquare button).
-function BookmarkRow({bm,onJump,onRename,onRemove,onNoteChange,onWikiLinkClick,wikiCompletionData}){
+function BookmarkRow({bm,onJump,onRename,onRemove,onNoteChange,onWikiLinkClick,wikiCompletionData,isMobile=false,onOpenNoteSheet}){
   const [renaming,setRenaming]=useState(false);
   const [renameVal,setRenameVal]=useState(bm.name);
   const hasNote=!!(bm.note&&bm.note.trim());
   const [noteOpen,setNoteOpen]=useState(()=>hasNote);
   const commitRename=()=>{if(renameVal.trim())onRename(renameVal.trim());setRenaming(false);};
+  // P8b(1): on mobile the note button opens the lifted sheet instead of the
+  // inline collapsible editor — the 240px shelf has no room for it once the
+  // keyboard is up. Desktop keeps the original toggle behavior byte-for-byte.
+  const handleNoteClick=(e)=>{
+    e.stopPropagation();
+    if(isMobile&&onOpenNoteSheet&&onNoteChange)onOpenNoteSheet('Bookmark note',bm.note||'',onNoteChange,'Note…');
+    else setNoteOpen(o=>!o);
+  };
   return (
     <div>
       <div className="group flex items-center gap-2 px-3 py-2" style={{cursor:'pointer'}} onClick={onJump}>
@@ -55,7 +63,7 @@ function BookmarkRow({bm,onJump,onRename,onRemove,onNoteChange,onWikiLinkClick,w
           <span className="flex-1 truncate" style={{fontSize:'12px',color:TEXT}}>{bm.name}</span>
         )}
         <span style={{color:FAINT,fontSize:'10px',fontFamily:mono,flexShrink:0}}>p.{bm.page}</span>
-        <button onClick={e=>{e.stopPropagation();setNoteOpen(o=>!o);}}
+        <button onClick={handleNoteClick}
           className={hasNote?'shrink-0':'opacity-0 group-hover:opacity-100 shrink-0'}
           style={{color:(hasNote||noteOpen)?IKB:FAINT,background:'transparent',border:'none',cursor:'pointer'}}
           title={hasNote?'Bookmark note':'Add note'}>
@@ -70,7 +78,7 @@ function BookmarkRow({bm,onJump,onRename,onRemove,onNoteChange,onWikiLinkClick,w
           <X className="w-3 h-3" strokeWidth={1.25}/>
         </button>
       </div>
-      {noteOpen&&(
+      {!isMobile&&noteOpen&&(
         <div className="px-3 pb-2" onClick={e=>e.stopPropagation()}>
           <MarkdownField value={bm.note||''} onChange={onNoteChange} placeholder="Note…" minHeight={36}
             style={{background:BG,border:`1px solid ${LINE}`}}
@@ -78,6 +86,22 @@ function BookmarkRow({bm,onJump,onRename,onRemove,onNoteChange,onWikiLinkClick,w
         </div>
       )}
     </div>
+  );
+}
+
+// P8b(1): a tappable preview row that opens the lifted mobile note sheet,
+// standing in for an inline MarkdownField wherever the 240px shelf has no
+// room for one once the keyboard is up.
+function NoteSheetTrigger({label,value,placeholder,onOpen}){
+  const preview=(value||'').trim();
+  return (
+    <button onClick={onOpen} className="w-full text-left" type="button"
+      style={{background:'transparent',border:`1px solid ${LINE}`,padding:'8px 10px',cursor:'pointer'}}>
+      <div className="uppercase" style={{color:FAINT,fontSize:'9px',letterSpacing:'0.22em',marginBottom:'4px'}}>{label}</div>
+      <div className="italic truncate" style={{color:preview?MUTED:FAINT,fontFamily:serif,fontSize:'12px'}}>
+        {preview||placeholder}
+      </div>
+    </button>
   );
 }
 
@@ -107,6 +131,11 @@ export default function PdfDrawer({
   const [bmName,setBmName]=useState('');
   const [bmPage,setBmPage]=useState('');
   const [bmNote,setBmNote]=useState('');
+  // P8b(1): mobile note editing lifts into a sheet over the viewer rather than
+  // expanding inline in the 240px shelf — mirrors NotesView's mobile edit-sheet
+  // (same useKeyboardInset mechanism). null = closed.
+  const [noteSheet,setNoteSheet]=useState(null); // {label,value,onChange,placeholder} | null
+  const openNoteSheet=(label,value,onChange,placeholder)=>setNoteSheet({label,value,onChange,placeholder});
   const [currentViewPage,setCurrentViewPage]=useState(1);
   // F6: true Fullscreen API where supported (desktop, iPadOS 16.4+); `expanded` is
   // the CSS-only maximized-overlay fallback for iPhone Safari, which doesn't
@@ -581,10 +610,17 @@ export default function PdfDrawer({
                     style={{color:MUTED,fontFamily:serif,fontSize:'12px'}}>
                     <Plus className="w-3 h-3 not-italic" strokeWidth={1.25}/> Add spot
                   </button>
-                  <MarkdownField value={pdfItem.todayNote||''} onChange={v=>updateItem(pdfItem.id,{todayNote:v})}
-                    placeholder="Today's notes…" className="mt-4" minHeight={100}
-                    style={{background:'transparent',border:`1px solid ${LINE}`}}
-                    onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
+                  {isMobile?(
+                    <div className="mt-4">
+                      <NoteSheetTrigger label="Today's notes" value={pdfItem.todayNote} placeholder="Today's notes…"
+                        onOpen={()=>openNoteSheet("Today's notes",pdfItem.todayNote||'',v=>updateItem(pdfItem.id,{todayNote:v}),"Today's notes…")}/>
+                    </div>
+                  ):(
+                    <MarkdownField value={pdfItem.todayNote||''} onChange={v=>updateItem(pdfItem.id,{todayNote:v})}
+                      placeholder="Today's notes…" className="mt-4" minHeight={100}
+                      style={{background:'transparent',border:`1px solid ${LINE}`}}
+                      onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
+                  )}
                 </div>
               )}
 
@@ -621,7 +657,8 @@ export default function PdfDrawer({
                               }
                             }}
                             onNoteChange={setBookmarkNote?(v)=>setBookmarkNote(pdfItem.id,activePdfId,bm.id,v):undefined}
-                            onWikiLinkClick={onWikiLinkClick} wikiCompletionData={wikiCompletionData}/>
+                            onWikiLinkClick={onWikiLinkClick} wikiCompletionData={wikiCompletionData}
+                            isMobile={isMobile} onOpenNoteSheet={openNoteSheet}/>
                         </div>
                       ))}
                     </div>
@@ -647,9 +684,14 @@ export default function PdfDrawer({
                           Add
                         </button>
                       </div>
-                      <MarkdownField value={bmNote} onChange={setBmNote} placeholder="Note…" minHeight={36}
-                        style={{background:'transparent',border:`1px solid ${LINE}`}}
-                        onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
+                      {isMobile?(
+                        <NoteSheetTrigger label="Note" value={bmNote} placeholder="Note…"
+                          onOpen={()=>openNoteSheet('Bookmark note',bmNote,setBmNote,'Note…')}/>
+                      ):(
+                        <MarkdownField value={bmNote} onChange={setBmNote} placeholder="Note…" minHeight={36}
+                          style={{background:'transparent',border:`1px solid ${LINE}`}}
+                          onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
+                      )}
                     </div>
                   )}
                 </div>
@@ -657,10 +699,17 @@ export default function PdfDrawer({
             </div>
 
             {/* Persistent notes */}
-            <MarkdownField value={pdfItem.detail||''} onChange={v=>updateItem(pdfItem.id,{detail:v})}
-              placeholder="Long-running notes…" minHeight={100}
-              style={{background:'transparent',border:'none',borderTop:`1px solid ${LINE}`,flexShrink:0}}
-              onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
+            {isMobile?(
+              <div style={{flexShrink:0,borderTop:`1px solid ${LINE}`,padding:'10px'}}>
+                <NoteSheetTrigger label="Persistent notes" value={pdfItem.detail} placeholder="Long-running notes…"
+                  onOpen={()=>openNoteSheet('Persistent notes',pdfItem.detail||'',v=>updateItem(pdfItem.id,{detail:v}),'Long-running notes…')}/>
+              </div>
+            ):(
+              <MarkdownField value={pdfItem.detail||''} onChange={v=>updateItem(pdfItem.id,{detail:v})}
+                placeholder="Long-running notes…" minHeight={100}
+                style={{background:'transparent',border:'none',borderTop:`1px solid ${LINE}`,flexShrink:0}}
+                onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
+            )}
           </div>
           )}
         </div>
@@ -685,6 +734,47 @@ export default function PdfDrawer({
           </div>
         )}
       </div>
+
+      {/* P8b(1): mobile note-edit sheet — lifted over the viewer/shelf, keyboard-aware
+          via kbInset (F5's useKeyboardInset), mirroring NotesView's mobile edit-sheet.
+          A normal descendant of contentRef (not a portal) — already inside the
+          fullscreened subtree when C6 applies, so no extra portal handling is needed. */}
+      {isMobile&&noteSheet&&(
+        <div className="absolute inset-0" style={{background:'rgba(0,0,0,0.5)',zIndex:59}} onClick={()=>setNoteSheet(null)}/>
+      )}
+      {isMobile&&(
+        <div style={{
+          position:'absolute',bottom:kbInset,left:0,right:0,height:'70vh',
+          background:BG,borderTop:`1px solid ${LINE_STR}`,zIndex:60,
+          transform:noteSheet?'translateY(0)':'translateY(100%)',
+          transition:noteSheet?'transform 240ms ease-out':'transform 200ms ease-in',
+          display:'flex',flexDirection:'column',
+        }}>
+          <div style={{display:'flex',justifyContent:'center',padding:'10px 0 4px',flexShrink:0}}>
+            <div style={{width:'36px',height:'3px',background:LINE_STR,borderRadius:'999px'}}/>
+          </div>
+          {noteSheet&&(
+            <>
+              <div className="flex items-center gap-2" style={{padding:'4px 16px 8px',borderBottom:`1px solid ${LINE}`,flexShrink:0}}>
+                <div className="uppercase flex-1" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.22em'}}>{noteSheet.label}</div>
+                <button onClick={()=>setNoteSheet(null)}
+                  style={{flexShrink:0,minWidth:'44px',minHeight:'44px',display:'flex',alignItems:'center',
+                    justifyContent:'center',background:'transparent',border:'none',cursor:'pointer'}}>
+                  <span className="uppercase" style={{fontFamily:sans,fontSize:'9px',fontWeight:500,letterSpacing:'0.22em',color:IKB}}>Done</span>
+                </button>
+              </div>
+              <div style={{flex:1,minHeight:0,overflowY:'auto',WebkitOverflowScrolling:'touch',padding:'12px 16px'}}>
+                <MarkdownField value={noteSheet.value} onChange={v=>{
+                  noteSheet.onChange(v);
+                  setNoteSheet(s=>s?{...s,value:v}:s);
+                }} placeholder={noteSheet.placeholder} minHeight={200}
+                  style={{background:'transparent',border:'none'}}
+                  onWikiLinkClick={onWikiLinkClick} completionData={wikiCompletionData}/>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
