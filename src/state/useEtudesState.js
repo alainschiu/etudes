@@ -583,7 +583,7 @@ export default function useEtudesState(){
     pieceRecordingMeta,noteCategories,refTrackMeta,programs,
     pdfUrlMap,todayHistoryEntry,
     setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
-    setRoutines,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
+    setRoutines,setPrograms,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
     setRecordingMeta,setHistory,setDayClosed,setPdfUrlMap,
     setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,
     setLocalPieceRecordingIds,setLocalRefTrackIds,

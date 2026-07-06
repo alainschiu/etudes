@@ -460,7 +460,7 @@ export default function useImportExport({
   const applyImport=async(data)=>{
     try{
       setRestoreBusy(true);
-      await applyJournalPayload(data,{blobMode:'embedded'},{
+      const {failed}=await applyJournalPayload(data,{blobMode:'embedded'},{
         idbPut,idbDel,idbGet,idbAllKeys,lsSet,pdfUrlMap,
         setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
         setRoutines,setPrograms,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
@@ -469,7 +469,13 @@ export default function useImportExport({
         setLocalPieceRecordingIds,setLocalRefTrackIds,
         setActiveItemId,setActiveSpotId,setActiveSessionId,setIsResting,setExpandedItemId,setPdfDrawerItemId,
       });
-      setRestoreBusy(false);setConfirmModal({message:'Backup restored successfully.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+      setRestoreBusy(false);
+      // F4 honesty: a quota failure mid-restore must not report success — some
+      // files may be missing even though the rest of the journal restored fine.
+      const message=failed?.length
+        ?`Backup restored. ${failed.length} file${failed.length===1?'':'s'} could not be stored on this device.`
+        :'Backup restored successfully.';
+      setConfirmModal({message,confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
     }catch(e){setRestoreBusy(false);setConfirmModal({message:'Restore failed: '+(e.message||'unknown error'),confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
   };
 
