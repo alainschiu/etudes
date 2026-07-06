@@ -16,6 +16,7 @@ import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
 import useViewport from '../hooks/useViewport.js';
+import useKeyboardInset from '../hooks/useKeyboardInset.js';
 import {BG,TEXT,MUTED,FAINT,LINE,LINE_MED,IKB,IKB_SOFT,serif,sans,mono} from '../constants/theme.js';
 import {MarkdownField} from './shared.jsx';
 
@@ -135,6 +136,7 @@ const PdfViewer=forwardRef(function PdfViewer({
   fullscreenElement=null,
 },ref){
   const {isMobile}=useViewport();
+  const kbInset=useKeyboardInset(); // F5 fix: keyboard covered the bookmark popover's add-form/note editor
   const [numPages,setNumPages]=useState(null);
   const [currentPage,setCurrentPage]=useState(startPage||1);
   const [zoom,setZoom]=useState(1.0);
@@ -507,7 +509,8 @@ const PdfViewer=forwardRef(function PdfViewer({
         <div ref={bmPopRef}
           style={{position:'fixed',top:popPos.y,left:popPos.x,zIndex:99999,
             width:240,background:'#141412',border:`1px solid ${LINE_MED}`,
-            boxShadow:'0 8px 32px rgba(0,0,0,0.6)'}}>
+            boxShadow:'0 8px 32px rgba(0,0,0,0.6)',
+            maxHeight:Math.max(160,window.innerHeight-kbInset-popPos.y-16),overflowY:'auto'}}>
 
           {/* Header */}
           <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',
