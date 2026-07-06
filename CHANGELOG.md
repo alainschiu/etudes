@@ -1,5 +1,44 @@
 # Changelog
 
+## [0.98.9] — 2026-07-06
+
+### Viewer polish
+
+The second release of the score trilogy (spec: `v0.98.8-10-spec.md`). No
+schema or storage-layout change — five Tier-2 audit items plus two device
+findings from the v0.98.8 pass, verified as one cluster.
+
+- Reading preferences (zoom, fit mode, single/spread/continuous) persist
+  across close/reopen — one player, one reading habit, not per-attachment.
+  Fullscreen/expanded state stays per-session, unaffected.
+- In single/spread mode, the wheel now scrolls within an overflowing
+  (zoomed) page first; it only flips to the adjacent page once you're
+  already at a scroll edge, landing at the top of the new page.
+- Continuous mode is virtualized: only the pages near the one you're
+  looking at actually render, the rest collapse to sized placeholders, so
+  a long score no longer mounts every page's canvas at once. Scroll
+  geometry stays stable through the swap.
+- Export fixes: two scores on one item no longer overwrite each other in
+  the zip (uniqueSlug, same mechanism as notes/programs); `_data.json`
+  now carries `etudes-pdfLibrary` and a libraryId→filename map, neither of
+  which was exported before; every item's `.md` gains a readable "Score
+  links" section — each attachment's bookmarks (name, absolute page,
+  note) and every linked spot's resolved destination, closing the gap
+  where bookmark notes existed but weren't human-readable outside the app.
+- Two-page spread is now offered based on the viewer's own measured
+  container width (~700px), not device class — iPad in portrait qualifies
+  even though it counts as mobile elsewhere in the app; phones don't.
+  Spread pairing gained an odd/even seam-offset toggle, so a musical
+  opening lands on the correct two pages regardless of a score's
+  front-matter parity. The drawer's height-resize handle moved to pointer
+  events and the same container-gating, so it now works via touch on
+  iPad.
+- Two device findings from the v0.98.8 pass: editing a note on mobile
+  (persistent notes, today's notes, a bookmark's note) now opens in a
+  sheet lifted above the keyboard instead of squeezing into the drawer's
+  240px shelf; the spot page-badge's touch target is larger without
+  changing its visible size.
+
 ## [0.98.8] — 2026-07-05
 
 ### Score linking + durability
