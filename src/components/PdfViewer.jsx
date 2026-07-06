@@ -18,6 +18,7 @@ import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
 import useViewport from '../hooks/useViewport.js';
 import useKeyboardInset from '../hooks/useKeyboardInset.js';
+import {lsGet,lsSet} from '../lib/storage.js';
 import {BG,TEXT,MUTED,FAINT,LINE,LINE_MED,IKB,IKB_SOFT,serif,sans,mono} from '../constants/theme.js';
 import {MarkdownField} from './shared.jsx';
 
@@ -158,12 +159,12 @@ function computePairLeft(p,offset){
 }
 
 // P3: reading prefs are global (one player, one reading habit), not per-attachment.
+// Routed through storage.js's lsGet/lsSet (house doctrine) for the uniform
+// memStore fallback, not raw localStorage.
 const PDF_PREFS_KEY='etudes-pdfPrefs';
 function loadPdfPrefs(){
-  try{
-    const p=JSON.parse(localStorage.getItem(PDF_PREFS_KEY));
-    return p&&typeof p==='object'?p:{};
-  }catch{return{};}
+  const p=lsGet(PDF_PREFS_KEY,{});
+  return p&&typeof p==='object'?p:{};
 }
 
 const PdfViewer=forwardRef(function PdfViewer({
@@ -269,7 +270,7 @@ const PdfViewer=forwardRef(function PdfViewer({
 
   // P3/P8: persist reading prefs on change. expanded/fullscreen (owned by PdfDrawer) stays per-session — R9.
   useEffect(()=>{
-    try{localStorage.setItem(PDF_PREFS_KEY,JSON.stringify({zoom,mode,fitMode,seamOffset}));}catch{/* quota/private-mode — non-fatal, NS voice: silent */}
+    lsSet(PDF_PREFS_KEY,{zoom,mode,fitMode,seamOffset});
   },[zoom,mode,fitMode,seamOffset]);
 
   // Keep a ref so the wheel handler always reads the latest page without stale closure
