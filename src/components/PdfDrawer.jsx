@@ -26,6 +26,10 @@ import PdfViewer from './PdfViewer.jsx';
 
 const SIDEBAR_W=300;
 const MIN_DRAWER_H=320;
+// P8: container-gating, not device-class — an iPad in portrait is `isMobile`
+// per useViewport, but its drawer is plenty wide for the resize handle; a
+// phone never is. Same ~700px threshold PdfViewer uses for spread mode.
+const RESIZE_HANDLE_MIN_W=700;
 
 // F5: a bookmark row with its own inline, collapsible note editor — same pattern
 // as SpotRow's persistent note (default open when a note exists, collapsed when
@@ -129,6 +133,18 @@ export default function PdfDrawer({
     };
   },[]);
 
+  // P8: the drawer's own rendered width — container-gating for the resize
+  // handle (iPad-portrait is wide enough even though useViewport calls it mobile).
+  const [contentW,setContentW]=useState(0);
+  useEffect(()=>{
+    if(!contentRef.current)return;
+    const ro=new ResizeObserver(entries=>{
+      for(const e of entries)setContentW(e.contentRect.width);
+    });
+    ro.observe(contentRef.current);
+    return()=>ro.disconnect();
+  },[]);
+
   const toggleExpand=async()=>{
     if(!fullscreenSupported){setExpanded(v=>!v);return;}
     if(document.fullscreenElement){
@@ -193,7 +209,8 @@ export default function PdfDrawer({
   // Outer drawer height resize
   const drawerResizeDragStartY=useRef(0);
   const drawerResizeDragStartH=useRef(0);
-  const onDrawerResizeMouseDown=(e)=>{
+  // P8: pointer events (not mouse-only) so the handle works via touch on iPad.
+  const onDrawerResizePointerDown=(e)=>{
     e.preventDefault();
     e.stopPropagation();
     const currentH=drawerH||(window.innerHeight-48);
@@ -209,9 +226,14 @@ export default function PdfDrawer({
       setDrawerH(Math.max(MIN_DRAWER_H,Math.min(maxH,drawerResizeDragStartH.current+delta)));
     };
     const up=()=>setDrawerResizing(false);
-    window.addEventListener('mousemove',move);
-    window.addEventListener('mouseup',up);
-    return()=>{window.removeEventListener('mousemove',move);window.removeEventListener('mouseup',up);};
+    window.addEventListener('pointermove',move);
+    window.addEventListener('pointerup',up);
+    window.addEventListener('pointercancel',up);
+    return()=>{
+      window.removeEventListener('pointermove',move);
+      window.removeEventListener('pointerup',up);
+      window.removeEventListener('pointercancel',up);
+    };
   },[drawerResizing]);
 
   const isActiveWhole=activeItemId===pdfItem.id&&!activeSpotId;
@@ -643,11 +665,14 @@ export default function PdfDrawer({
           )}
         </div>
 
-        {/* Bottom resize handle — drag to resize the whole drawer height */}
-        {!isMobile&&!isMaximized&&(
+        {/* Bottom resize handle — drag to resize the whole drawer height.
+            P8: gated on the drawer's own rendered width, not isMobile — an
+            iPad in portrait is wide enough for this even though useViewport
+            calls it mobile; a phone never is. */}
+        {contentW>=RESIZE_HANDLE_MIN_W&&!isMaximized&&(
           <div
-            onMouseDown={onDrawerResizeMouseDown}
-            style={{height:'10px',flexShrink:0,cursor:'row-resize',
+            onPointerDown={onDrawerResizePointerDown}
+            style={{height:'10px',flexShrink:0,cursor:'row-resize',touchAction:'none',
               background:drawerResizing?IKB:'rgba(244,238,227,0.05)',
               transition:'background 0.12s',
               display:'flex',alignItems:'center',justifyContent:'center',
