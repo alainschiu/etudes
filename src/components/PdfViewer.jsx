@@ -295,7 +295,10 @@ const PdfViewer=forwardRef(function PdfViewer({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[pendingPage,numPages,mode]);
 
-  // Non-passive wheel listener — flips pages in single/spread mode
+  // Non-passive wheel listener — flips pages in single/spread mode.
+  // P5: when the page overflows the container (zoomed in), a wheel tick scrolls
+  // within the page first; only at a scroll edge does it fall through to the
+  // page-flip accumulator (preserved from before).
   const jumpToPageRef2=useRef(jumpToPage);
   useEffect(()=>{jumpToPageRef2.current=jumpToPage;},[jumpToPage]);
   useEffect(()=>{
@@ -303,6 +306,17 @@ const PdfViewer=forwardRef(function PdfViewer({
     if(!el)return;
     const handler=(e)=>{
       if(mode==='continuous')return; // native scroll handles it
+      const scrollable=el.scrollHeight-el.clientHeight>1;
+      if(scrollable){
+        const atTop=el.scrollTop<=0;
+        const atBottom=el.scrollTop+el.clientHeight>=el.scrollHeight-1;
+        const scrollingUp=e.deltaY<0;
+        const scrollingDown=e.deltaY>0;
+        if((scrollingUp&&!atTop)||(scrollingDown&&!atBottom)){
+          wheelAccum.current=0; // reset while actively scrolling inside the page
+          return; // let the native scroll happen
+        }
+      }
       e.preventDefault();
       wheelAccum.current+=e.deltaY;
       if(Math.abs(wheelAccum.current)<80)return;
@@ -313,6 +327,13 @@ const PdfViewer=forwardRef(function PdfViewer({
     el.addEventListener('wheel',handler,{passive:false});
     return()=>el.removeEventListener('wheel',handler);
   },[mode]);
+
+  // P5: land at the top of the page after a flip (button nav or wheel-edge flip)
+  // so a zoomed page never opens mid-scroll. Continuous mode scrolls natively.
+  useEffect(()=>{
+    if(mode==='continuous')return;
+    if(containerRef.current)containerRef.current.scrollTop=0;
+  },[currentPage,mode]);
 
   const prevPage=()=>jumpToPage(currentPage-(mode==='spread'?2:1));
   const nextPage=()=>jumpToPage(currentPage+(mode==='spread'?2:1));
