@@ -128,6 +128,15 @@ function FlashFreePage({pageNumber,adjacentPage,minPage=1,maxPage=null,width,onL
 const PENDING_JUMP_RETRY_MS=150;
 const PENDING_JUMP_MAX_ATTEMPTS=20;
 
+// P3: reading prefs are global (one player, one reading habit), not per-attachment.
+const PDF_PREFS_KEY='etudes-pdfPrefs';
+function loadPdfPrefs(){
+  try{
+    const p=JSON.parse(localStorage.getItem(PDF_PREFS_KEY));
+    return p&&typeof p==='object'?p:{};
+  }catch{return{};}
+}
+
 const PdfViewer=forwardRef(function PdfViewer({
   url,startPage=1,endPage=null,bookmarks=[],
   onPageChange,onAddBookmark,dragging=false,
@@ -139,9 +148,18 @@ const PdfViewer=forwardRef(function PdfViewer({
   const kbInset=useKeyboardInset(); // F5 fix: keyboard covered the bookmark popover's add-form/note editor
   const [numPages,setNumPages]=useState(null);
   const [currentPage,setCurrentPage]=useState(startPage||1);
-  const [zoom,setZoom]=useState(1.0);
-  const [mode,setMode]=useState('single');   // 'single' | 'spread' | 'continuous'
-  const [fitMode,setFitMode]=useState('width'); // 'width' | 'page'
+  const [zoom,setZoom]=useState(()=>{
+    const v=loadPdfPrefs().zoom;
+    return typeof v==='number'&&v>0?v:1.0;
+  });
+  const [mode,setMode]=useState(()=>{ // 'single' | 'spread' | 'continuous'
+    const v=loadPdfPrefs().mode;
+    return v==='single'||v==='spread'||v==='continuous'?v:'single';
+  });
+  const [fitMode,setFitMode]=useState(()=>{ // 'width' | 'page'
+    const v=loadPdfPrefs().fitMode;
+    return v==='width'||v==='page'?v:'width';
+  });
   const [containerW,setContainerW]=useState(0);
   const [containerH,setContainerH]=useState(0);
   const [pageSize,setPageSize]=useState({width:612,height:792});
@@ -202,6 +220,11 @@ const PdfViewer=forwardRef(function PdfViewer({
   },[dragging]);
 
   useEffect(()=>{setCurrentPage(effectiveStart);setNumPages(null);},[url,effectiveStart]);// eslint-disable-line
+
+  // P3: persist reading prefs on change. expanded/fullscreen (owned by PdfDrawer) stays per-session — R9.
+  useEffect(()=>{
+    try{localStorage.setItem(PDF_PREFS_KEY,JSON.stringify({zoom,mode,fitMode}));}catch{/* quota/private-mode — non-fatal, NS voice: silent */}
+  },[zoom,mode,fitMode]);
 
   // Keep a ref so the wheel handler always reads the latest page without stale closure
   useEffect(()=>{currentPageRef.current=currentPage;},[currentPage]);
