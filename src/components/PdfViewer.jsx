@@ -70,7 +70,12 @@ function TBtn({active,disabled,onClick,children,label,extra,btnRef:extRef}){
 // time so a forward turn swaps instantly. One utility, reused for single mode's
 // page and each pane of spread mode; v0.98.9's continuous virtualization widens
 // the same window logic rather than rebuilding this.
-function FlashFreePage({pageNumber,adjacentPage,minPage=1,maxPage=null,width,onLoadSuccess}){
+// P6: widened (not rewritten) for continuous-mode virtualization — `active`
+// lets a slot outside the render window collapse to a sized placeholder
+// (scroll geometry stays stable) instead of mounting react-pdf's <Page>, and
+// the text/annotation layer flags let continuous mode keep them off for perf,
+// same as before. Defaults preserve single/spread mode's existing behavior.
+function FlashFreePage({pageNumber,adjacentPage,minPage=1,maxPage=null,width,height,active=true,onLoadSuccess,renderTextLayer=true,renderAnnotationLayer=true}){
   const inRange=(p)=>p!=null&&p>=minPage&&(maxPage==null||p<=maxPage);
   const [visible,setVisible]=useState(pageNumber);
   const [shadowPage,setShadowPage]=useState(inRange(adjacentPage)?adjacentPage:null);
@@ -91,9 +96,13 @@ function FlashFreePage({pageNumber,adjacentPage,minPage=1,maxPage=null,width,onL
     // eslint-disable-next-line react-hooks/exhaustive-deps
   },[pageNumber,adjacentPage]);
 
+  if(!active){
+    return <div style={{width,height,flexShrink:0}} aria-hidden="true"/>;
+  }
+
   return (
     <>
-      <Page pageNumber={visible} width={width} onLoadSuccess={onLoadSuccess} renderTextLayer renderAnnotationLayer/>
+      <Page pageNumber={visible} width={width} onLoadSuccess={onLoadSuccess} renderTextLayer={renderTextLayer} renderAnnotationLayer={renderAnnotationLayer}/>
       {shadowPage!=null&&shadowPage!==visible&&(
         <div style={{position:'absolute',inset:0,opacity:0,pointerEvents:'none'}} aria-hidden="true">
           <Page pageNumber={shadowPage} width={width} renderTextLayer={false} renderAnnotationLayer={false}
@@ -127,6 +136,10 @@ function FlashFreePage({pageNumber,adjacentPage,minPage=1,maxPage=null,width,onL
 // ~20 attempts at 150ms — generous without hanging around forever.
 const PENDING_JUMP_RETRY_MS=150;
 const PENDING_JUMP_MAX_ATTEMPTS=20;
+
+// P6: continuous mode only fully renders pages within this radius of the
+// current (topmost-visible) page; the rest collapse to sized placeholders.
+const CONTINUOUS_WINDOW=2;
 
 // P3: reading prefs are global (one player, one reading habit), not per-attachment.
 const PDF_PREFS_KEY='etudes-pdfPrefs';
@@ -534,12 +547,25 @@ const PdfViewer=forwardRef(function PdfViewer({
                 )}
               </div>
             )}
-            {mode==='continuous'&&allPages.map(p=>(
-              <div key={p} ref={el=>{pageRefs.current[p]=el;}} data-page={p} style={{position:'relative'}}>
-                <BookmarkRibbon page={p}/>
-                <Page pageNumber={p} width={dw} renderTextLayer={false} renderAnnotationLayer={false}/>
-              </div>
-            ))}
+            {mode==='continuous'&&allPages.map(p=>{
+              // P6: windowed rendering around the current (topmost-visible) page.
+              // The C7 wrapper (position:relative + data-page) is unchanged and
+              // always mounts — only the content inside it is a real <Page> or
+              // a sized placeholder — so scroll-position lookups, jumpToPage's
+              // scrollIntoView, and the IntersectionObserver above keep working.
+              const active=Math.abs(p-currentPage)<=CONTINUOUS_WINDOW;
+              const placeholderH=dw?Math.round(dw*((pageSize.height||792)/(pageSize.width||612))):(pageSize.height||792);
+              return (
+                <div key={p} ref={el=>{pageRefs.current[p]=el;}} data-page={p} style={{position:'relative'}}>
+                  <BookmarkRibbon page={p}/>
+                  <FlashFreePage pageNumber={p} adjacentPage={null}
+                    minPage={clampStart} maxPage={effectiveEnd||numPages}
+                    width={dw} height={placeholderH} active={active}
+                    renderTextLayer={false} renderAnnotationLayer={false}
+                    onLoadSuccess={p===currentPage?onPageLoaded:undefined}/>
+                </div>
+              );
+            })}
           </Document>
         ):(
           <div style={{color:FAINT,fontSize:'12px',padding:'40px 20px',fontFamily:sans,textAlign:'center'}}>
