@@ -97,6 +97,10 @@ export async function buildFullJournalPayload(slice, lsGet) {
  * @param {object} data — migrateImport output
  * @param {{ blobMode: 'embedded' | 'none' }} options
  * @param {object} deps
+ * @returns {Promise<{failed: Array<{store:string,key:string}>}>} blobs that failed
+ *   to write in 'embedded' mode (F4 honesty — a quota failure mid-restore no longer
+ *   silently reports success); always empty in 'none' mode, which reads existing
+ *   blobs rather than writing new ones.
  */
 export async function applyJournalPayload(data, options, deps) {
   const {blobMode} = options;
@@ -139,6 +143,7 @@ export async function applyJournalPayload(data, options, deps) {
   } = deps;
 
   const st = data.state || {};
+  const failed = [];
 
   if (blobMode === 'embedded') {
     const npb = {};
@@ -179,12 +184,19 @@ export async function applyJournalPayload(data, options, deps) {
     }
     const newUrl = {};
     for (const [k, b] of Object.entries(npb)) {
-      await idbPut('pdfs', k, b);
-      newUrl[k] = URL.createObjectURL(b);
+      const ok = await idbPut('pdfs', k, b);
+      if (ok) newUrl[k] = URL.createObjectURL(b);
+      else failed.push({store: 'pdfs', key: k});
     }
-    for (const [k, b] of Object.entries(nrb)) await idbPut('recordings', k, b);
-    for (const [k, b] of Object.entries(nprb)) await idbPut('pieceRecordings', k, b);
-    for (const [k, b] of Object.entries(nrtb)) await idbPut('refTracks', k, b);
+    for (const [k, b] of Object.entries(nrb)) {
+      if (!(await idbPut('recordings', k, b))) failed.push({store: 'recordings', key: k});
+    }
+    for (const [k, b] of Object.entries(nprb)) {
+      if (!(await idbPut('pieceRecordings', k, b))) failed.push({store: 'pieceRecordings', key: k});
+    }
+    for (const [k, b] of Object.entries(nrtb)) {
+      if (!(await idbPut('refTracks', k, b))) failed.push({store: 'refTracks', key: k});
+    }
     const importedRecKeys = new Set(Object.keys(nrb));
     const reconciledMeta = Object.fromEntries(
       Object.entries(st.recordingMeta || {}).filter(([k]) => importedRecKeys.has(k)),
@@ -265,4 +277,6 @@ export async function applyJournalPayload(data, options, deps) {
   else lsSet(WEEK_ROLLOVER_KEY, getWeekStart(todayDateStr()));
   if (st.rolloverKeys?.month) lsSet(MONTH_ROLLOVER_KEY, st.rolloverKeys.month);
   else lsSet(MONTH_ROLLOVER_KEY, getMonthKey(todayDateStr()));
+
+  return {failed};
 }

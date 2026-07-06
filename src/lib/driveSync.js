@@ -367,7 +367,8 @@ export async function restoreBlobsFromDrive(remoteState, getAccessToken, onProgr
     }
     try {
       const blob = await driveDownloadBlob(token, fileId);
-      await idbPut(store, key, blob);
+      const ok = await idbPut(store, key, blob);
+      if (!ok) failed.push({ns, store, key});
     } catch {
       failed.push({ns, store, key});
     }
