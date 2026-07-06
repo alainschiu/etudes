@@ -1,5 +1,6 @@
 import React,{useState,useEffect,useRef,useCallback} from 'react';
 import useViewport from '../hooks/useViewport.js';
+import useKeyboardInset from '../hooks/useKeyboardInset.js';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Upload from 'lucide-react/dist/esm/icons/upload';
 import Plus from 'lucide-react/dist/esm/icons/plus';
@@ -88,6 +89,7 @@ export default function PdfDrawer({
   pendingScoreTarget,consumePendingScoreTarget,
 }){
   const {isMobile}=useViewport();
+  const kbInset=useKeyboardInset(); // F5 fix: keyboard covered the mobile bottom-shelf sidebar's bookmark form
   const [activePdfId,setActivePdfId]=useState(pdfItem.defaultPdfId||pdfItem.pdfs?.[0]?.id||null);
   const [dragOver,setDragOver]=useState(false);
   const [renamingId,setRenamingId]=useState(null);
@@ -405,7 +407,7 @@ export default function PdfDrawer({
         )}
 
         {/* Main body: viewer + sidebar */}
-        <div className="flex-1 flex overflow-hidden" style={{userSelect:drawerResizing?'none':'auto',flexDirection:isMobile?'column':'row'}}>
+        <div className="flex-1 flex overflow-hidden" style={{userSelect:drawerResizing?'none':'auto',flexDirection:isMobile?'column':'row',paddingBottom:isMobile?kbInset:0}}>
 
           {/* PDF viewer area */}
           <div className="flex-1 relative overflow-hidden"
