@@ -4,7 +4,7 @@ import {idbPut,idbDel,idbGet,idbAllKeys,lsGet,lsSet} from '../lib/storage.js';
 import {buildFullJournalPayload,applyJournalPayload} from '../lib/journalPayload.js';
 import {triggerDownload} from '../lib/media.js';
 import {todayDateStr,getWeekStart,getMonthKey} from '../lib/dates.js';
-import {formatForMarkdown,resolveHistoryItem} from '../lib/items.js';
+import {formatForMarkdown,resolveHistoryItem,resolveScoreLinkPage} from '../lib/items.js';
 import {migrateImport} from '../lib/migrations.js';
 import {toSlug,uniqueSlug} from '../lib/slug.js';
 
@@ -185,7 +185,42 @@ function generateNoteFile(note,todayKey){
   return lines.join('\n');
 }
 
-function generateRepertoireFile(item,todayKey,itemTimes){
+// P7: a readable "Score links" section — the export-side counterpart to the
+// scoreLink data model (C1/C2): which file a spot jumps to, at which absolute
+// page, and every bookmark (with its note) on each attached score.
+function generateScoreLinksSection(item,pdfFilenameByLibraryId){
+  const pdfs=item.pdfs||[];
+  if(!pdfs.length)return[];
+  const lines=[];
+  lines.push(`## Score links`);
+  lines.push(``);
+  for(const att of pdfs){
+    const filename=pdfFilenameByLibraryId[att.libraryId];
+    const rangePart=(att.startPage||att.endPage)?` (pages ${att.startPage||1}–${att.endPage||'end'})`:'';
+    lines.push(`**${att.name||'Score'}**${rangePart} — ${filename?`\`${filename}\``:'not on this device'}`);
+    for(const bm of(att.bookmarks||[])){
+      const notePart=bm.note?.trim()?` — ${bm.note.trim()}`:'';
+      lines.push(`- Bookmark: "${bm.name||'Untitled'}" — p. ${bm.page}${notePart}`);
+    }
+    lines.push(``);
+  }
+  const linkedSpots=(item.spots||[]).filter(s=>s.scoreLink);
+  if(linkedSpots.length){
+    lines.push(`### Spots`);
+    for(const s of linkedSpots){
+      const page=resolveScoreLinkPage(s.scoreLink,pdfs);
+      const att=pdfs.find(p=>p.id===s.scoreLink.attId);
+      const filename=att?pdfFilenameByLibraryId[att.libraryId]:null;
+      const bmName=s.scoreLink.bookmarkId&&att?(att.bookmarks||[]).find(b=>b.id===s.scoreLink.bookmarkId)?.name:null;
+      const dest=page?`${filename?`\`${filename}\``:'score'}, p. ${page}${bmName?` (bookmark: "${bmName}")`:''}`:'link no longer resolves';
+      lines.push(`- ${s.label||'Unnamed spot'} → ${dest}`);
+    }
+    lines.push(``);
+  }
+  return lines;
+}
+
+function generateRepertoireFile(item,todayKey,itemTimes,pdfFilenameByLibraryId={}){
   const lines=[];
   lines.push(`---`);
   lines.push(`type: ${item.type}`);
@@ -221,6 +256,7 @@ function generateRepertoireFile(item,todayKey,itemTimes){
       lines.push(``);
     }
   }
+  lines.push(...generateScoreLinksSection(item,pdfFilenameByLibraryId));
   lines.push(`---`);
   lines.push(``);
   lines.push(`*Exported from Études · ${todayKey}*`);
@@ -323,20 +359,6 @@ export default function useImportExport({
     await new Promise(r=>setTimeout(r,0));
     zip.file(`${root}README.md`,generateReadme(todayKey));
 
-    // _data.json — strip audience from programs
-    const safePrograms=(programs||[]).map(p=>{
-      // eslint-disable-next-line no-unused-vars
-      const {audience,...rest}=p;
-      return rest;
-    });
-    const allLsKeys=['etudes-items','etudes-itemTimes','etudes-warmupTimeToday','etudes-restToday','etudes-workingOn','etudes-todaySessions','etudes-loadedRoutineId','etudes-routines','etudes-programs','etudes-dailyReflection','etudes-weekReflection','etudes-monthReflection','etudes-settings','etudes-freeNotes','etudes-noteCategories','etudes-recordingMeta','etudes-pieceRecordingMeta','etudes-refTrackMeta','etudes-history','etudes-dayClosed'];
-    const dataJson={};
-    for(const k of allLsKeys){
-      try{const v=localStorage.getItem(k);if(v)dataJson[k]=JSON.parse(v);}catch{}
-    }
-    dataJson['etudes-programs']=safePrograms;
-    zip.file(`${root}_data.json`,JSON.stringify(dataJson,null,2));
-
     // Journal entries
     const days=[...history.filter(h=>h.kind==='day'||!h.kind)];
     if(todayHistoryEntry&&(todayHistoryEntry.minutes>0||todayHistoryEntry.items?.length>0||todayHistoryEntry.reflection?.trim())){
@@ -364,11 +386,39 @@ export default function useImportExport({
       zip.file(`${root}notes/${sl}.md`,generateNoteFile(note,todayKey));
     }
 
+    // Scores (PDFs) — computed before Repertoire so each item's .md can link to
+    // the actual exported filename via the libraryId→filename map (P7).
+    setExportProgress('Exporting scores…');
+    await new Promise(r=>setTimeout(r,0));
+    const pdfKeys=await idbAllKeys('pdfs');
+    const scoreUsedSlugs=new Set();
+    const pdfFilenameByLibraryId={};
+    for(const libraryId of pdfKeys){
+      const blob=await idbGet('pdfs',libraryId);
+      if(!blob)continue;
+      // Find the item that owns this pdf via its pdfLibrary entry
+      let itemForPdf=null;
+      for(const it of(items||[])){
+        const att=(it.pdfs||[]).find(p=>p.libraryId===libraryId||p.id===libraryId);
+        if(att){itemForPdf=it;break;}
+      }
+      if(!itemForPdf)continue;
+      const composerPart=itemForPdf.composer?toSlug(itemForPdf.composer):'';
+      const titlePart=toSlug(itemForPdf.title||itemForPdf.collection||'untitled');
+      const baseSlug=composerPart?`${composerPart}_${titlePart}`:titlePart;
+      // P7: uniqueSlug — two PDFs on one item (or same composer/title across
+      // items) no longer overwrite each other in the zip.
+      const pdfSlug=uniqueSlug(baseSlug,scoreUsedSlugs);
+      const relPath=`scores/${pdfSlug}.pdf`;
+      zip.file(`${root}${relPath}`,blob);
+      pdfFilenameByLibraryId[libraryId]=relPath;
+    }
+
     // Repertoire
     const repUsedSlugs=new Set();
     for(const item of(items||[])){
       const sl=itemSlug(item,repUsedSlugs);
-      zip.file(`${root}repertoire/${sl}.md`,generateRepertoireFile(item,todayKey,itemTimes));
+      zip.file(`${root}repertoire/${sl}.md`,generateRepertoireFile(item,todayKey,itemTimes,pdfFilenameByLibraryId));
     }
 
     // Programs (audience already stripped above)
@@ -380,6 +430,22 @@ export default function useImportExport({
       const sl=uniqueSlug(baseSlug,progUsedSlugs);
       zip.file(`${root}programs/${sl}.md`,generateProgramFile(prog,items,todayKey));
     }
+
+    // _data.json — strip audience from programs; carries etudes-pdfLibrary and
+    // the libraryId→filename map (P7) alongside the rest of the machine-readable state.
+    const safePrograms=(programs||[]).map(p=>{
+      // eslint-disable-next-line no-unused-vars
+      const {audience,...rest}=p;
+      return rest;
+    });
+    const allLsKeys=['etudes-items','etudes-itemTimes','etudes-warmupTimeToday','etudes-restToday','etudes-workingOn','etudes-todaySessions','etudes-loadedRoutineId','etudes-routines','etudes-programs','etudes-dailyReflection','etudes-weekReflection','etudes-monthReflection','etudes-settings','etudes-freeNotes','etudes-noteCategories','etudes-recordingMeta','etudes-pieceRecordingMeta','etudes-refTrackMeta','etudes-history','etudes-dayClosed','etudes-pdfLibrary'];
+    const dataJson={};
+    for(const k of allLsKeys){
+      try{const v=localStorage.getItem(k);if(v)dataJson[k]=JSON.parse(v);}catch{}
+    }
+    dataJson['etudes-programs']=safePrograms;
+    dataJson['pdfFilenames']=pdfFilenameByLibraryId;
+    zip.file(`${root}_data.json`,JSON.stringify(dataJson,null,2));
 
     // Recordings
     setExportProgress('Exporting recordings…');
@@ -412,26 +478,6 @@ export default function useImportExport({
         const date=take.ts?new Date(take.ts).toISOString().slice(0,10):'unknown';
         zip.file(`${root}recordings/pieces/${folderSlug}/${date}_take-${n+1}${lockSuffix}.${ext}`,blob);
       }
-    }
-
-    // Scores (PDFs)
-    setExportProgress('Exporting scores…');
-    await new Promise(r=>setTimeout(r,0));
-    const pdfKeys=await idbAllKeys('pdfs');
-    for(const libraryId of pdfKeys){
-      const blob=await idbGet('pdfs',libraryId);
-      if(!blob)continue;
-      // Find the item that owns this pdf via its pdfLibrary entry
-      let itemForPdf=null;
-      for(const it of(items||[])){
-        const att=(it.pdfs||[]).find(p=>p.libraryId===libraryId||p.id===libraryId);
-        if(att){itemForPdf=it;break;}
-      }
-      if(!itemForPdf)continue;
-      const composerPart=itemForPdf.composer?toSlug(itemForPdf.composer):'';
-      const titlePart=toSlug(itemForPdf.title||itemForPdf.collection||'untitled');
-      const pdfSlug=composerPart?`${composerPart}_${titlePart}`:titlePart;
-      zip.file(`${root}scores/${pdfSlug}.pdf`,blob);
     }
 
     // Build and deliver
