@@ -4,7 +4,7 @@ Before doing anything, read `North_Star_V2.5.md`. It is the authoritative
 product document and supersedes all other instructions.
 
 Current version: v2.5
-Current app version: v0.98.3
+Current app version: v0.98.9
 
 -----
 
@@ -150,7 +150,7 @@ These conventions are in force across the app:
 - `src/constants/config.js` → `APP_VERSION` (footer badge)
 - `package.json` → `version` (Settings modal reads `appPkg.version` directly)
 
-`SCHEMA_VERSION` in `config.js` — increment only when the persisted state shape changes. Current: `10`.
+`SCHEMA_VERSION` in `config.js` — increment only when the persisted state shape changes. Current: `12` (v11 added notes `updatedAt`; v12 unified spot score links into `spot.scoreLink` + bookmark `note`).
 
 Drive manifest fields are not part of `SCHEMA_VERSION`; the manifest has its own forward-compatible field-addition policy in `driveManifest.js` (additive only, defaults preserved).
 
