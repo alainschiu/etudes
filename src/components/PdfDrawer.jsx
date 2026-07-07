@@ -744,7 +744,10 @@ export default function PdfDrawer({
       )}
       {isMobile&&(
         <div style={{
-          position:'absolute',bottom:kbInset,left:0,right:0,height:'70vh',
+          // P8c: anchor top AND bottom (not a fixed height) so the sheet fills
+          // whatever space is actually above the keyboard instead of a fixed
+          // 70vh block that clips off-screen once kbInset lifts it.
+          position:'absolute',top:'72px',bottom:kbInset,left:0,right:0,
           background:BG,borderTop:`1px solid ${LINE_STR}`,zIndex:60,
           transform:noteSheet?'translateY(0)':'translateY(100%)',
           transition:noteSheet?'transform 240ms ease-out':'transform 200ms ease-in',

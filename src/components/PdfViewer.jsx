@@ -450,10 +450,15 @@ const PdfViewer=forwardRef(function PdfViewer({
 
   // Bookmark popover position (anchored to the bookmark button)
   const [popPos,setPopPos]=useState({x:0,y:0});
+  const BM_POPOVER_WIDTH=240;
   const openBmPopover=()=>{
     if(bmBtnRef.current){
       const r=bmBtnRef.current.getBoundingClientRect();
-      setPopPos({x:r.left,y:r.bottom+4});
+      // P8c: clamp horizontally into the viewport — on a narrow phone the
+      // button's own rect.left can leave the fixed-width popover overflowing
+      // the right edge. F5b already handles the vertical/keyboard axis.
+      const x=Math.max(8,Math.min(r.left,window.innerWidth-BM_POPOVER_WIDTH-8));
+      setPopPos({x,y:r.bottom+4});
     }
     setBmPopover(v=>!v);
     setBmName('');
@@ -639,7 +644,7 @@ const PdfViewer=forwardRef(function PdfViewer({
       {bmPopover&&createPortal(
         <div ref={bmPopRef}
           style={{position:'fixed',top:popPos.y,left:popPos.x,zIndex:99999,
-            width:240,background:'#141412',border:`1px solid ${LINE_MED}`,
+            width:BM_POPOVER_WIDTH,background:'#141412',border:`1px solid ${LINE_MED}`,
             boxShadow:'0 8px 32px rgba(0,0,0,0.6)',
             maxHeight:Math.max(160,window.innerHeight-kbInset-popPos.y-16),overflowY:'auto'}}>
 
