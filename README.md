@@ -1,4 +1,4 @@
-# Études — v0.98.3
+# Études — v0.98.9
 
 A practice journal for musicians. Seven views: Today, Review, Répertoire, Routines, Logs, Notes, Programs. Works offline as a PWA — install from the browser on any device.
 
@@ -7,7 +7,7 @@ A practice journal for musicians. Seven views: Today, Review, Répertoire, Routi
 - **Today** — session timer, spot-level timing, warmup and rest tracking, day close
 - **Review** — Week and Month scales in one tab; IKB ring graphs, reflections, temporal navigation; scale selector persists last-used choice
 - **Répertoire** — pieces, technique, play, and study items with stage labels, performance dates, spots, tempo history, reference links, and PDF scores
-- **PDF score viewer** — upload scores to any repertoire item; shared score library (one PDF, multiple items with independent page ranges); named bookmarks with jump-to-page; spot ↔ bookmark link; two-page / single-page / continuous scroll; zoom, fit-to-width/page; resizable sidebar; fullscreen modal
+- **PDF score viewer** — upload scores to any repertoire item; shared score library (one PDF, multiple items with independent page ranges); named bookmarks (each with its own note) and jump-to-page; a single attachment-qualified score link per spot, so **tapping a practice spot anywhere opens the score to its page**; two-page / single-page / continuous scroll (long scores virtualised), two-page seam offset for cover pages; zoom, fit-to-width/page (both on iPad); wheel scrolls within a zoomed page; reading preferences (zoom / fit / mode) persist; true fullscreen where supported; scores stored durably offline (persistent storage requested)
 - **Audio recording** — per-day and per-piece recordings with scrubbable SVG waveforms, A/B comparison (same piece or cross-piece); FIFO rolling archive (10 slots, lockable); context-aware record button routes to active piece or daily log; attach daily recordings to a routine piece
 - **Reference tracks** — upload a reference audio file per piece; varispeed playback (25–100%); pull-up bar in Today view; inline player in Répertoire; waveform renders in `--muted`
 - **Routines** — build and load practice routines with pinned pieces and optional targets; save changes back to loaded routine

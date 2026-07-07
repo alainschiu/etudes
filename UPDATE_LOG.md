@@ -1,5 +1,16 @@
 # Update Log
 
+## v0.98.9 — 2026-07-06 — Viewer polish
+
+- **Score reading preferences persist** — zoom, fit mode, single/spread/continuous, and the two-page seam offset are remembered across sessions.
+- **Zoom then scroll** — the wheel/trackpad scrolls within a zoomed page and only flips pages at the edges.
+- **Long scores stay light** — continuous scroll now renders only the pages near the viewport, so a 200-page urtext no longer strains the browser.
+- **iPad, held portrait, is a first-class score reader** — two-page spread, fit-to-page, and drawer resize are offered by available space rather than device class; a seam-offset toggle pairs music openings correctly around a cover page.
+- **Readable export** — a PDF attached twice no longer overwrites itself in the ZIP, and each item's markdown now lists its bookmarks (with notes) and every spot's score link.
+- **Mobile note editing** — persistent, today, and bookmark notes open in a sheet lifted clear of the keyboard, and the jump-to-page badge is easier to tap.
+
+> Detailed developer changelog for the whole v0.98.x line (v0.98.0 – v0.98.8) lives in [`CHANGELOG.md`](CHANGELOG.md); this file resumes user-facing notes at v0.98.9.
+
 ## v0.97.38 — 2026-05-07
 
 - **iPad layout follows orientation** — iPad in landscape uses the desktop layout, iPad in portrait uses the mobile layout. iPhones still use the mobile layout in any orientation. Detection is based on the device's short edge (≥ 768 = tablet) plus current orientation, so this works for iPad mini through 12.9″.
