@@ -6,7 +6,7 @@ import {formatDriveOAuthError} from '../lib/driveOAuthMessages.js';
 import {readDriveManifest, writeDriveManifest} from '../lib/driveManifest.js';
 import {getDriveQueueCircuitState} from '../lib/driveQueueCircuit.js';
 import {deriveDriveStatus, formatRelative, formatResumeIn} from '../lib/driveStatus.js';
-import {mapSyncError} from '../lib/syncErrors.js';
+import {mapSyncError, probeAuthReachable} from '../lib/syncErrors.js';
 import X from 'lucide-react/dist/esm/icons/x';
 import Download from 'lucide-react/dist/esm/icons/download';
 import Archive from 'lucide-react/dist/esm/icons/archive';
@@ -39,6 +39,15 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
   useEffect(()=>{if(tab!=='sync')return;const id=setInterval(()=>forceTick(n=>n+1),60000);return()=>clearInterval(id);},[tab]);
   // C1: mapped copy only — the raw Supabase/fetch message never reaches the surface.
   const handleAuth=async(e)=>{e.preventDefault();setAuthError('');setAuthBusy(true);try{const fn=authMode==='signin'?signIn:signUp;const {error}=await fn(authEmail,authPassword);if(error){setAuthError(mapSyncError(error));}else if(authMode==='signup'){setSignupSent(true);}}catch(err){setAuthError(mapSyncError(err));}finally{setAuthBusy(false);}};
+  // F2: probe reachability before the OAuth redirect — signInWithGoogle
+  // navigates the whole tab; if the backend is unreachable the user would land
+  // on a browser error page with the app gone. Any HTTP response = reachable.
+  const handleGoogle=async()=>{
+    setAuthError('');setAuthBusy(true);
+    const reachable=await probeAuthReachable(import.meta.env.VITE_SUPABASE_URL);
+    if(!reachable){setAuthBusy(false);setAuthError(mapSyncError(new TypeError('Failed to fetch')));return;}
+    signInWithGoogle(); // navigates away; no need to clear busy
+  };
   const provider=user?.app_metadata?.provider;
   const providerLabel=provider==='google'?'signed in with Google':provider==='email'?'signed in with email':null;
   return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onClose}><div ref={panelRef} className="max-w-md w-full max-h-screen overflow-auto etudes-scroll" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
@@ -255,7 +264,7 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
           </div>
         ):(
           <div className="space-y-5">
-          {signInWithGoogle&&(<div className="space-y-2"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Continue with</div><button type="button" onClick={signInWithGoogle} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Google</button><div className="flex items-center gap-3 py-1"><span style={{flex:1,height:'1px',background:LINE_STR}}/><span className="uppercase" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>or</span><span style={{flex:1,height:'1px',background:LINE_STR}}/></div></div>)}
+          {signInWithGoogle&&(<div className="space-y-2"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Continue with</div><button type="button" disabled={authBusy} onClick={handleGoogle} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em',opacity:authBusy?0.6:1}}>Google</button><div className="flex items-center gap-3 py-1"><span style={{flex:1,height:'1px',background:LINE_STR}}/><span className="uppercase" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>or</span><span style={{flex:1,height:'1px',background:LINE_STR}}/></div></div>)}
           <form onSubmit={handleAuth} className="space-y-5">
             <div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Sign in with email</div>
               <div className="space-y-4 overflow-hidden">
