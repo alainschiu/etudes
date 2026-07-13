@@ -6,6 +6,7 @@ import {formatDriveOAuthError} from '../lib/driveOAuthMessages.js';
 import {readDriveManifest, writeDriveManifest} from '../lib/driveManifest.js';
 import {getDriveQueueCircuitState} from '../lib/driveQueueCircuit.js';
 import {deriveDriveStatus, formatRelative, formatResumeIn} from '../lib/driveStatus.js';
+import {mapSyncError} from '../lib/syncErrors.js';
 import X from 'lucide-react/dist/esm/icons/x';
 import Download from 'lucide-react/dist/esm/icons/download';
 import Archive from 'lucide-react/dist/esm/icons/archive';
@@ -36,7 +37,8 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
   const [signupSent,setSignupSent]=useState(false);
   const [,forceTick]=useState(0);
   useEffect(()=>{if(tab!=='sync')return;const id=setInterval(()=>forceTick(n=>n+1),60000);return()=>clearInterval(id);},[tab]);
-  const handleAuth=async(e)=>{e.preventDefault();setAuthError('');setAuthBusy(true);const fn=authMode==='signin'?signIn:signUp;const {error}=await fn(authEmail,authPassword);setAuthBusy(false);if(error){setAuthError(error.message);}else if(authMode==='signup'){setSignupSent(true);}};
+  // C1: mapped copy only — the raw Supabase/fetch message never reaches the surface.
+  const handleAuth=async(e)=>{e.preventDefault();setAuthError('');setAuthBusy(true);try{const fn=authMode==='signin'?signIn:signUp;const {error}=await fn(authEmail,authPassword);if(error){setAuthError(mapSyncError(error));}else if(authMode==='signup'){setSignupSent(true);}}catch(err){setAuthError(mapSyncError(err));}finally{setAuthBusy(false);}};
   const provider=user?.app_metadata?.provider;
   const providerLabel=provider==='google'?'signed in with Google':provider==='email'?'signed in with email':null;
   return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onClose}><div ref={panelRef} className="max-w-md w-full max-h-screen overflow-auto etudes-scroll" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
