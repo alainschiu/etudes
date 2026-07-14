@@ -84,7 +84,7 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
         </div>)}
         {storagePersisted!==null&&(
           <div className="italic" style={{color:storagePersisted?FAINT:WARN,fontFamily:serif,fontSize:'11px',lineHeight:1.5}}>
-            {storagePersisted?'Storage is protected from cleanup.':'Storage may be cleared under pressure. Back up to Drive.'}
+            {storagePersisted?'Storage is protected from cleanup.':(user?'Storage may be cleared under pressure. Back up to Drive.':'Storage may be cleared under pressure. Back up with Export, or sign in to enable Drive backup.')}
           </div>
         )}
         {user?(
