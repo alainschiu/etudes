@@ -91,6 +91,7 @@ export default function useDriveSync({
         setConfirmModal({
           message: 'No journal on Google Drive yet.',
           confirmLabel: 'OK',
+          ackOnly: true,
           onConfirm: () => setConfirmModal(null),
         });
         return;
@@ -126,6 +127,7 @@ export default function useDriveSync({
       setConfirmModal({
         message: 'Restored from Google Drive.',
         confirmLabel: 'OK',
+        ackOnly: true,
         onConfirm: () => setConfirmModal(null),
       });
     } catch (e) {

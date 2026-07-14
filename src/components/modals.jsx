@@ -35,6 +35,7 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
   const [authError,setAuthError]=useState('');
   const [authBusy,setAuthBusy]=useState(false);
   const [signupSent,setSignupSent]=useState(false);
+  const [fileBackupSaved,setFileBackupSaved]=useState(false); // F5: quiet feedback after the file backup fires
   const [,forceTick]=useState(0);
   useEffect(()=>{if(tab!=='sync')return;const id=setInterval(()=>forceTick(n=>n+1),60000);return()=>clearInterval(id);},[tab]);
   // C1: mapped copy only — the raw Supabase/fetch message never reaches the surface.
@@ -175,8 +176,8 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
                     </button>}
                     {hasDriveToken()&&(
                       <>
-                        {onBackupDrive&&<button type="button" disabled={driveBusy} onClick={()=>{onBackupDrive();setDriveLine('Backup queued…');}} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}>Backup now</button>}
-                        {onRestoreFromDrive&&<button type="button" disabled={driveBusy} onClick={()=>setConfirmModal?.({message:'Replace local journal with the Drive backup?\n\nLocal changes since the last successful backup will be lost. Audio and PDFs already on this device are kept.',confirmLabel:'Replace',isDestructive:true,onConfirm:()=>{setConfirmModal(null);onRestoreFromDrive();},onCancel:()=>setConfirmModal(null)})} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}>Restore</button>}
+                        {onBackupDrive&&<button type="button" disabled={driveBusy} onClick={()=>{onBackupDrive();setDriveLine('Backup queued…');}} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}>Back up to Drive</button>}
+                        {onRestoreFromDrive&&<button type="button" disabled={driveBusy} onClick={()=>setConfirmModal?.({message:'Replace local journal with the Drive backup?\n\nLocal changes since the last successful backup will be lost. Audio and PDFs already on this device are kept.',confirmLabel:'Replace',isDestructive:true,onConfirm:()=>{setConfirmModal(null);onRestoreFromDrive();},onCancel:()=>setConfirmModal(null)})} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}>Restore from Drive</button>}
                         <button
                           type="button"
                           disabled={driveBusy}
@@ -266,7 +267,7 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
           <div className="space-y-5">
           {signInWithGoogle&&(<div className="space-y-2"><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Continue with</div><button type="button" disabled={authBusy} onClick={handleGoogle} className="w-full py-2.5 uppercase flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em',opacity:authBusy?0.6:1}}>Google</button><div className="flex items-center gap-3 py-1"><span style={{flex:1,height:'1px',background:LINE_STR}}/><span className="uppercase" style={{color:DIM,fontSize:'9px',letterSpacing:'0.22em'}}>or</span><span style={{flex:1,height:'1px',background:LINE_STR}}/></div></div>)}
           <form onSubmit={handleAuth} className="space-y-5">
-            <div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Sign in with email</div>
+            <div><div className="uppercase mb-3" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>{authMode==='signin'?'Sign in with email':'Create account with email'}</div>
               <div className="space-y-4 overflow-hidden">
                 <input type="email" value={authEmail} onChange={e=>{setAuthEmail(e.target.value);setAuthError('');}} placeholder="Email" required className="w-full pb-1.5 focus:outline-none min-w-0" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'16px',fontWeight:300,boxSizing:'border-box'}}/>
                 <input type="password" value={authPassword} onChange={e=>{setAuthPassword(e.target.value);setAuthError('');}} placeholder="Password" required className="w-full pb-1.5 focus:outline-none min-w-0" style={{background:'transparent',color:TEXT,borderBottom:`1px solid ${LINE_STR}`,fontFamily:serif,fontSize:'16px',fontWeight:300,boxSizing:'border-box'}}/>
@@ -299,7 +300,7 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
             <div className="text-center mb-2" style={{color:FAINT,fontSize:'11px'}}>Includes notes, logs, recordings, and scores. Audio files may be large.</div>
           )}
         </div>
-        <div><div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Backup & restore</div><div className="text-xs italic mb-3" style={{color:FAINT,fontFamily:serif,lineHeight:1.5}}>Full backup of all data, PDFs, and recordings in one file.</div><div className="flex gap-2"><button onClick={onExportJson} className="flex-1 uppercase py-2.5 flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'10px',letterSpacing:'0.22em'}}><Archive className="w-3 h-3" strokeWidth={1.25}/> Backup</button><button onClick={()=>{onClose();setTimeout(onImportClick,100);}} className="flex-1 uppercase py-2.5 flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><UploadIcon className="w-3 h-3" strokeWidth={1.25}/> Restore</button></div></div>
+        <div><div className="uppercase mb-2" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.28em'}}>Backup & restore</div><div className="text-xs italic mb-3" style={{color:FAINT,fontFamily:serif,lineHeight:1.5}}>Full backup of all data, PDFs, and recordings in one file.</div><div className="flex gap-2"><button onClick={async()=>{setFileBackupSaved(false);const ok=await onExportJson?.();if(ok)setFileBackupSaved(true);}} className="flex-1 uppercase py-2.5 flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'10px',letterSpacing:'0.22em'}}><Archive className="w-3 h-3" strokeWidth={1.25}/> Back up to file</button><button onClick={()=>{onClose();setTimeout(onImportClick,100);}} className="flex-1 uppercase py-2.5 flex items-center justify-center gap-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}><UploadIcon className="w-3 h-3" strokeWidth={1.25}/> Restore from file</button></div>{fileBackupSaved&&<div className="text-xs italic mt-2" style={{color:FAINT,fontFamily:serif}}>Backup saved.</div>}</div>
       </div>
     )}
     {tab==='shortcuts'&&(
@@ -412,7 +413,10 @@ export function SyncConflictModal({localCount,remoteCount,hasOverlap,onMerge,onK
   </div></div>);
 }
 
-export function ConfirmModal({message,confirmLabel='Confirm',onConfirm,onCancel,isDestructive=false}){
+// ackOnly (F5, v0.99.0): pure-acknowledgement dialogs render OK only — a CANCEL
+// button on "Backup restored successfully." was a lie about there being a choice.
+// Default false: all existing call sites keep both buttons, byte-identical.
+export function ConfirmModal({message,confirmLabel='Confirm',onConfirm,onCancel,isDestructive=false,ackOnly=false}){
   const panelRef=useRef(null);useFocusTrap(panelRef,true);
   const [hovered,setHovered]=useState(false);
   // Destructive: always WARN border + text so the action is clearly destructive
@@ -420,7 +424,7 @@ export function ConfirmModal({message,confirmLabel='Confirm',onConfirm,onCancel,
   const confirmStyle=isDestructive
     ? {background:hovered?WARN_SOFT:'transparent',color:WARN,border:`1px solid ${WARN}80`,fontSize:'10px',letterSpacing:'0.22em',transition:'background 120ms'}
     : {background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'};
-  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onCancel}><div ref={panelRef} className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}><div className="px-8 py-8 max-h-96 overflow-auto etudes-scroll"><p style={{fontFamily:serif,fontSize:'15px',lineHeight:1.6,fontWeight:300,whiteSpace:'pre-wrap'}}>{message}</p></div><div className="px-8 py-4 flex gap-3" style={{borderTop:`1px solid ${LINE}`}}><button onClick={onCancel} className="flex-1 py-2.5 uppercase" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Cancel</button><button onClick={onConfirm} onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)} className="flex-1 py-2.5 uppercase" style={confirmStyle}>{confirmLabel}</button></div></div></div>);
+  return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onCancel}><div ref={panelRef} className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}><div className="px-8 py-8 max-h-96 overflow-auto etudes-scroll"><p style={{fontFamily:serif,fontSize:'15px',lineHeight:1.6,fontWeight:300,whiteSpace:'pre-wrap'}}>{message}</p></div><div className="px-8 py-4 flex gap-3" style={{borderTop:`1px solid ${LINE}`}}>{!ackOnly&&<button onClick={onCancel} className="flex-1 py-2.5 uppercase" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Cancel</button>}<button onClick={onConfirm} onMouseEnter={()=>setHovered(true)} onMouseLeave={()=>setHovered(false)} className="flex-1 py-2.5 uppercase" style={confirmStyle}>{confirmLabel}</button></div></div></div>);
 }
 
 export function PromptModal({title,placeholder,initial='',onConfirm,onCancel}){

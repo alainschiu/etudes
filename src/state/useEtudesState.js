@@ -252,7 +252,7 @@ export default function useEtudesState(){
           const newUrl={};
           for(const k of pdfKeys){const b=await idbGet('pdfs',k);if(b)newUrl[String(k)]=URL.createObjectURL(b);}
           ad.setPdfUrlMap(newUrl);
-          setC({message:'Restored from Google Drive.',confirmLabel:'OK',onConfirm:()=>setC(null)});
+          setC({message:'Restored from Google Drive.',confirmLabel:'OK',ackOnly:true,onConfirm:()=>setC(null)});
         }catch(e){setC({message:String(e.message||e),confirmLabel:'OK',onConfirm:()=>setC(null)});}
         finally{setBusy(false);}
       },
