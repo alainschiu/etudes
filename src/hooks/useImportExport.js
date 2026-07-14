@@ -345,7 +345,8 @@ export default function useImportExport({
       },lsGet);
       const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
       triggerDownload(blob,`etudes-backup-${todayKey}.json`);setExportMenu(false);
-    }catch(e){setConfirmModal({message:'Export failed: '+(e.message||'unknown error'),confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
+      return true;
+    }catch(e){setConfirmModal({message:'Export failed: '+(e.message||'unknown error'),confirmLabel:'OK',ackOnly:true,onConfirm:()=>setConfirmModal(null)});return false;}
     finally{setRestoreBusy(false);}
   };
 
@@ -475,7 +476,7 @@ export default function useImportExport({
         if(!blob)continue;
         const ext=blobExt(blob);
         const lockSuffix=take.locked?'_locked':'';
-        const date=take.ts?new Date(take.ts).toISOString().slice(0,10):'unknown';
+        const d=take.ts?new Date(take.ts):null;const date=d?`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`:'unknown';
         zip.file(`${root}recordings/pieces/${folderSlug}/${date}_take-${n+1}${lockSuffix}.${ext}`,blob);
       }
     }
@@ -521,7 +522,7 @@ export default function useImportExport({
       const message=failed?.length
         ?`Backup restored. ${failed.length} file${failed.length===1?'':'s'} could not be stored on this device.`
         :'Backup restored successfully.';
-      setConfirmModal({message,confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
+      setConfirmModal({message,confirmLabel:'OK',ackOnly:true,onConfirm:()=>setConfirmModal(null)});
     }catch(e){setRestoreBusy(false);setConfirmModal({message:'Restore failed: '+(e.message||'unknown error'),confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
   };
 
@@ -535,7 +536,7 @@ export default function useImportExport({
         if(parsed.app!=='Etudes')throw new Error('Not an Études backup file.');
         if(typeof parsed.schemaVersion!=='number')throw new Error('Invalid backup file: missing schema version.');
         const m=migrateImport(parsed);const st=m.state||{};
-        const ic=(st.items||[]).length;const rc=(st.routines||[]).length;const hd=(st.history||[]).filter(h=>h.kind==='day'||!h.kind).length;const we=(st.history||[]).filter(h=>h.kind==='week').length;const me=(st.history||[]).filter(h=>h.kind==='month').length;const pc=Object.keys(m.blobs?.pdfs||{}).length;const rec=Object.keys(m.blobs?.recordings||{}).length;const prec=Object.keys(m.blobs?.pieceRecordings||{}).length;const rt=Object.keys(m.blobs?.refTracks||{}).length;const nc=(st.freeNotes||[]).length;const es=m.exportedAt?m.exportedAt.slice(0,10):'unknown';
+        const ic=(st.items||[]).length;const rc=(st.routines||[]).length;const hd=(st.history||[]).filter(h=>h.kind==='day'||!h.kind).length;const we=(st.history||[]).filter(h=>h.kind==='week').length;const me=(st.history||[]).filter(h=>h.kind==='month').length;const pc=Object.keys(m.blobs?.pdfs||{}).length;const rec=Object.keys(m.blobs?.recordings||{}).length;const prec=Object.keys(m.blobs?.pieceRecordings||{}).length;const rt=Object.keys(m.blobs?.refTracks||{}).length;const nc=(st.freeNotes||[]).length;const es=m.exportedAt?new Date(m.exportedAt).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'unknown';
         const sum=[`Replace all current data with this backup?`,``,`${ic} repertoire item${ic===1?'':'s'}`,`${rc} routine${rc===1?'':'s'}`,`${hd} day${hd===1?'':'s'} of practice history`,`${we} weekly · ${me} monthly reflections`,`${pc} PDF${pc===1?'':'s'} · ${rec} day recording${rec===1?'':'s'} · ${prec} piece recording${prec===1?'':'s'} · ${rt} ref track${rt===1?'':'s'} · ${nc} free note${nc===1?'':'s'}`,``,`Exported ${es} (schema v${m.schemaVersion||1})`,``,`This will overwrite everything and cannot be undone.`].join('\n');
         setConfirmModal({message:sum,confirmLabel:'Replace everything',isDestructive:true,onConfirm:async()=>{setConfirmModal(null);await applyImport(m);}});
       }catch(err){setConfirmModal({message:'Could not read backup file: '+(err.message||'invalid format'),confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
