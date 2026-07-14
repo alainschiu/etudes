@@ -213,8 +213,8 @@ export default function useEtudesState(){
 
   // ── Rollover / history snapshot ───────────────────────────────────────────
   useEffect(()=>{if(!lsGet(WEEK_ROLLOVER_KEY,null))lsSet(WEEK_ROLLOVER_KEY,getWeekStart(todayDateStr()));if(!lsGet(MONTH_ROLLOVER_KEY,null))lsSet(MONTH_ROLLOVER_KEY,getMonthKey(todayDateStr()));},[]);
-  const rolloverRef=useRef({totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection,settings,activeItemId});
-  useEffect(()=>{rolloverRef.current={totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection,settings,activeItemId};});
+  const rolloverRef=useRef({totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection,settings,activeItemId,isResting});
+  useEffect(()=>{rolloverRef.current={totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection,settings,activeItemId,isResting};});
 
   // ── Cloud sync state ──────────────────────────────────────────────────────
   const coldState=useMemo(()=>({items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,noteCategories,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday}),[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,noteCategories,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
@@ -273,7 +273,14 @@ export default function useEtudesState(){
   });
   driveBlobProgressRef.current=driveSync.setDriveBlobRestoreProgress;
 
-  const doSync=useCallback(async()=>{if(!userRef.current)return;setSyncStatus('syncing');const ok=await syncToCloud(userRef.current.id,syncStateRef.current);if(ok){const now=Date.now();setLastSyncedAt(now);lsSet('etudes-localDirtyAt',0);setSyncStatus('idle');}else{setSyncStatus('error');}},[]);// eslint-disable-line
+  const lastPushRef=useRef(0); // F3/A5: last successful push, drives the 5-min practice heartbeat
+  const doSync=useCallback(async()=>{if(!userRef.current)return;setSyncStatus('syncing');const ok=await syncToCloud(userRef.current.id,syncStateRef.current);if(ok){const now=Date.now();lastPushRef.current=now;setLastSyncedAt(now);lsSet('etudes-localDirtyAt',0);setSyncStatus('idle');}else{setSyncStatus('error');}},[]);// eslint-disable-line
+  // F3 (T5/A5): itemTimes/restToday stay OUT of the dirty effect's deps — they
+  // mutate every second while the timer runs (the forbidden per-tick path).
+  // Instead, timer activity marks dirty at its natural boundaries and via a
+  // 60s heartbeat, so a timer-only session can no longer read as "not dirty"
+  // and be silently clobbered by the boot-time apply-remote path.
+  const markSyncDirty=useCallback(()=>{if(applyingCloudRef.current)return;lsSet('etudes-localDirtyAt',Date.now());},[]);
   useEffect(()=>{
     const check=()=>{
       const today=todayDateStr();const cw=getWeekStart(today);const cm=getMonthKey(today);
@@ -294,7 +301,17 @@ export default function useEtudesState(){
       if(lw&&lw!==cw){const we=shiftDate(lw,6);if((wr.notes||'').trim()||(wr.goals||'').trim()){const e={kind:'week',weekStart:lw,weekEnd:we,notes:wr.notes||'',goals:wr.goals||''};setHistory(h=>{const i=h.findIndex(x=>x.kind==='week'&&x.weekStart===lw);if(i>=0){const c=[...h];c[i]=e;return c;}return [...h,e];});}setWeekReflection({notes:'',goals:''});lsSet(WEEK_ROLLOVER_KEY,cw);}
       if(lm&&lm!==cm){if((mr.notes||'').trim()||(mr.goals||'').trim()){const e={kind:'month',month:lm,notes:mr.notes||'',goals:mr.goals||''};setHistory(h=>{const i=h.findIndex(x=>x.kind==='month'&&x.month===lm);if(i>=0){const c=[...h];c[i]=e;return c;}return [...h,e];});}setMonthReflection({notes:'',goals:''});lsSet(MONTH_ROLLOVER_KEY,cm);}
     };
-    check();const iv=setInterval(()=>{check();checkAndSendReminder(rolloverRef.current.settings,rolloverRef.current.totalToday);},60000);return()=>clearInterval(iv);
+    check();const iv=setInterval(()=>{
+      check();checkAndSendReminder(rolloverRef.current.settings,rolloverRef.current.totalToday);
+      // F3/A5 heartbeat: while a timer runs, stamp dirty once a minute (so the
+      // boot-time conflict check knows this device has unsynced seconds) and
+      // push at most every 5 minutes (bounds loss from a killed PWA).
+      const {activeItemId:hbActive,isResting:hbResting}=rolloverRef.current;
+      if(hbActive||hbResting){
+        markSyncDirty();
+        if(userRef.current&&Date.now()-lastPushRef.current>5*60*1000)doSync();
+      }
+    },60000);return()=>clearInterval(iv);
   },[]);// eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Item timer ────────────────────────────────────────────────────────────
@@ -316,11 +333,11 @@ export default function useEtudesState(){
   const updateItem=(id,patch)=>setItems(p=>p.map(i=>i.id===id?{...i,...patch}:i));
   const addItem=(type)=>{const ni=makeNewItem(type);setItems(p=>[...p,ni]);setExpandedItemId(ni.id);return ni;};
   const startItem=(id,spotId=null,sessionId=null)=>{if(dayClosed)return;if(dayJustRolled)setDayJustRolled(false);setActiveItemId(id);setActiveSpotId(spotId||null);setActiveSessionId(sessionId||null);if(isResting)setIsResting(false);setItems(p=>p.map(i=>i.id===id&&!i.startedDate?{...i,startedDate:todayDateStr()}:i));};
-  const stopItem=()=>{if(dayJustRolled)setDayJustRolled(false);setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);doSync();};
+  const stopItem=()=>{if(dayJustRolled)setDayJustRolled(false);setActiveItemId(null);setActiveSpotId(null);setActiveSessionId(null);markSyncDirty();doSync();};
   const toggleWorking=(id)=>setWorkingOn(p=>p.includes(id)?p.filter(w=>w!==id):[...p,id]);
-  const toggleRest=()=>{if(dayJustRolled)setDayJustRolled(false);if(isResting){setIsResting(false);return;}if(dayClosed)return;if(activeItemId)stopItem();setIsResting(true);};
-  const editItemTime=(id,min)=>{const n=Math.max(0,Math.floor(Number(min)||0));setItemTimes(t=>({...t,[id]:n*60}));};
-  const editSpotTime=(id,sid,min)=>{const n=Math.max(0,Math.floor(Number(min)||0));setItemTimes(t=>({...t,[`${id}:${sid}`]:n*60}));};
+  const toggleRest=()=>{if(dayJustRolled)setDayJustRolled(false);if(isResting){setIsResting(false);markSyncDirty();doSync();return;}if(dayClosed)return;if(activeItemId)stopItem();setIsResting(true);};
+  const editItemTime=(id,min)=>{const n=Math.max(0,Math.floor(Number(min)||0));setItemTimes(t=>({...t,[id]:n*60}));markSyncDirty();doSync();};
+  const editSpotTime=(id,sid,min)=>{const n=Math.max(0,Math.floor(Number(min)||0));setItemTimes(t=>({...t,[`${id}:${sid}`]:n*60}));markSyncDirty();doSync();};
 
   // ── Spot actions ──────────────────────────────────────────────────────────
   const addSpot=(id,label)=>{const s={id:mkSpotId(),label:label||'New spot',bpmTarget:null,note:'',bpmLog:[]};setItems(p=>p.map(i=>i.id===id?{...i,spots:[...(i.spots||[]),s]}:i));return s.id;};
@@ -677,7 +694,9 @@ export default function useEtudesState(){
   // Debounced cold-state sync (5 s)
   useEffect(()=>{if(!user)return;const t=setTimeout(doSync,5000);return()=>clearTimeout(t);},[coldState,user]);// eslint-disable-line
   // Flush on tab hide and reconnect
-  useEffect(()=>{const onHide=()=>{if(document.visibilityState!=='hidden')return;doSync();};const onOnline=()=>doSync();document.addEventListener('visibilitychange',onHide);window.addEventListener('online',onOnline);return()=>{document.removeEventListener('visibilitychange',onHide);window.removeEventListener('online',onOnline);};},[]);// eslint-disable-line
+  // F3/A5: pagehide added beside visibilitychange — iOS Safari's termination
+  // path doesn't reliably fire visibilitychange. Both are best-effort pushes.
+  useEffect(()=>{const onHide=()=>{if(document.visibilityState!=='hidden')return;doSync();};const onPageHide=()=>doSync();const onOnline=()=>doSync();document.addEventListener('visibilitychange',onHide);window.addEventListener('pagehide',onPageHide);window.addEventListener('online',onOnline);return()=>{document.removeEventListener('visibilitychange',onHide);window.removeEventListener('pagehide',onPageHide);window.removeEventListener('online',onOnline);};},[]);// eslint-disable-line
 
   // ── Keyboard shortcuts (delegated) ────────────────────────────────────────
   useKeyboardShortcuts({
