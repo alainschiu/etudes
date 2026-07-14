@@ -1,5 +1,12 @@
 # Update Log
 
+## v0.99.0 — 2026-07-14 — Sync honesty
+
+- **Sign-in failures speak plainly** — no more raw error codes; if the sync service is unreachable the app says so and reminds you your data is safe on this device. The Google button checks the connection before leaving the app.
+- **Timer practice can't be lost to a reload** — practice time recorded with only the timer running now marks the journal as changed and syncs once a minute while you play, and at most every five minutes pushes to the cloud mid-session.
+- **Backup and restore say what they touch** — "Back up to file / Restore from file" and "Back up to Drive / Restore from Drive"; the file backup confirms with a quiet "Backup saved."
+- **Small honesty fixes** — acknowledgement dialogs no longer offer a meaningless CANCEL; restore dates show in your local time; the create-account form is labeled as one.
+
 ## v0.98.9 — 2026-07-06 — Viewer polish
 
 - **Score reading preferences persist** — zoom, fit mode, single/spread/continuous, and the two-page seam offset are remembered across sessions.

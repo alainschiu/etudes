@@ -4,7 +4,7 @@ Before doing anything, read `North_Star_V2.5.md`. It is the authoritative
 product document and supersedes all other instructions.
 
 Current version: v2.5
-Current app version: v0.98.9
+Current app version: v0.99.0
 
 -----
 
@@ -25,7 +25,7 @@ npm install           # .npmrc sets legacy-peer-deps=true (vite-plugin-pwa/Vite 
 npm run dev           # Vite dev server — http://localhost:5173 — no SW in dev
 npm run build         # production build → dist/; generates sw.js + workbox-*.js
 npm run preview       # serve dist/ locally with SW active
-npm test              # vitest harness — ~400 ms, 28+ smoke tests; sync/drive helpers
+npm test              # vitest harness — fast; 67 tests: sync/drive/migration/error-map helpers
 ```
 
 ## Testing
