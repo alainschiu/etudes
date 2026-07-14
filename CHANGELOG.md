@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.99.0] — 2026-07-14
+
+### Sync honesty + operational
+
+The first release of the Sync Run (v0.99.0–.2). Sync and sign-in failures
+now speak plainly and stay in the app; practice time syncs when the timer
+rests; backup and restore say what they did. No schema change.
+
+- Sign-in and sign-up failures show quiet house-voice lines — the raw
+  Supabase/fetch messages ("Failed to fetch", "Invalid login credentials")
+  never reach the surface.
+- The Google sign-in button probes the backend first; if it is unreachable
+  the app says so instead of stranding you on a browser error page.
+- Timer-only practice marks the journal dirty at its natural boundaries and
+  once a minute while running, and pushes at most every five minutes during
+  a session — so a reload can no longer silently overwrite local practice
+  time with a stale cloud copy. A pagehide push covers iOS termination.
+- Backup and restore are named for what they touch: "Back up to file" /
+  "Restore from file" (Export) and "Back up to Drive" / "Restore from
+  Drive" (Sync). The file backup confirms with a quiet "Backup saved."
+- Acknowledgement dialogs no longer offer a meaningless CANCEL; restore
+  dates render in local time; the signed-out Sync tab points at actions
+  that actually exist; the create-account form is headed as such.
+
 ## [0.98.9] — 2026-07-06
 
 ### Viewer polish
