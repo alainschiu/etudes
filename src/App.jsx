@@ -37,7 +37,8 @@ import UpdatePrompt from './components/UpdatePrompt.jsx';
 import ErrorBoundary from './components/ErrorBoundary.jsx';
 import {SettingsModal,ConfirmModal,PromptModal,SyncConflictModal,DriveConflictModal} from './components/modals.jsx';
 import {getDriveQueueCircuitState,clearDriveQueueCircuitPause} from './lib/driveQueueCircuit.js';
-import {prepareDriveAuth,isDriveConfigured,isDriveAuthReady,requestDriveTokenInteractive,hasDriveToken} from './lib/driveAuth.js';
+import {prepareDriveAuth,isDriveConfigured,isDriveAuthReady,requestDriveTokenInteractive,hasDriveToken,silentRenewWithTimeout} from './lib/driveAuth.js';
+import {readDriveManifest} from './lib/driveManifest.js';
 import {formatDriveOAuthError} from './lib/driveOAuthMessages.js';
 const PdfDrawer = lazy(() => import('./components/PdfDrawer.jsx'));
 import useEtudesState from './state/useEtudesState.js';
@@ -55,6 +56,15 @@ export default function Etudes(){
   useEffect(()=>{const tick=()=>{const n=new Date();setClockTime(`${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`);};const id=setInterval(tick,10000);return()=>clearInterval(id);},[]);
   // Eager GIS load — keeps the iOS user-gesture chain intact when Connect Drive is tapped.
   useEffect(()=>{if(!isDriveConfigured())return;prepareDriveAuth().catch(()=>{});},[]);
+  // F3 (C6/A2/A4): if this device was connected before, attempt ONE silent
+  // renewal at boot — quiet, no popup, no nag. Success caches the token and the
+  // driveAuth pub/sub flips driveReady; failure leaves the honest paused line +
+  // one-tap Resume in the Sync tab. No UI pops from this path.
+  useEffect(()=>{
+    if(!isDriveConfigured())return;
+    if(!readDriveManifest().driveConnectedAt)return;
+    prepareDriveAuth().then(()=>silentRenewWithTimeout(10000)).catch(()=>{});
+  },[]);
   // F4: request persistent storage once at boot — best-effort; the browser may
   // still decline. Result surfaces as a quiet status line in the Sync tab.
   const [storagePersisted,setStoragePersisted]=useState(null); // null=unknown, else boolean
@@ -237,7 +247,7 @@ export default function Etudes(){
       <Footer {...{isMobile,metronome,setMetronome,metroExpanded,setMetroExpanded,drone,setDrone,droneExpanded,setDroneExpanded,toggleDrone,currentBeat,currentSub,activeItemId,activeSpotId,activeItem,activeSpot,activeIsWarmup,sectionTimes,totalToday,effectiveTotalToday,warmupTimeToday,restToday,isResting,toggleRest,itemTimes,fmt,fmtMin,stopItem,handleTap,isRecording,startRecording,stopRecording,logTempo,quickNoteOpen,setQuickNoteOpen,addQuickNote,dayClosed,dayJustRolled,recExpanded,setRecExpanded,recordingMeta,deleteRecording,todayKey,startPieceRecording:s.startPieceRecording,stopPieceRecording:s.stopPieceRecording,pieceRecordingItemId:s.pieceRecordingItemId,pieceRecordingMeta:s.pieceRecordingMeta,attachDailyToPiece:s.attachDailyToPiece,todaySessions,items,settings,handleStartRecording}}/>
       {trash&&<UndoToast item={trash.item} onUndo={undoDelete} onDismiss={dismissTrash}/>}
       <UpdatePrompt />
-      {showSettings&&<SettingsModal initialTab={settingsInitialTab} settings={settings} setSettings={setSettings} storageQuotaHit={storageQuotaHit} storagePersisted={storagePersisted} onExportZip={buildZip} exportProgress={exportProgress} onExportJson={exportJson} onImportClick={()=>importInputRef.current?.click()} onClose={()=>setShowSettings(false)} user={s.user} signIn={s.signIn} signUp={s.signUp} signOut={s.signOut} signInWithGoogle={s.signInWithGoogle} syncStatus={s.syncStatus} lastSyncedAt={s.lastSyncedAt} syncNow={s.syncNow} syncPayloadWarning={s.syncPayloadWarning} seedTestNotes={seedTestNotes} devSeedAll={seedAll} devClearAll={clearAll} onSyncTabVisible={maybePullDriveOnSyncTab} driveBlobRestoreProgress={driveBlobRestoreProgress} driveBlobFailedCount={driveBlobFailedCount} onBackupDrive={()=>{if(getDriveQueueCircuitState().paused)clearDriveQueueCircuitPause();return backupDriveNow();}} onRestoreFromDrive={restoreFromDrive} onDriveDisconnectSession={disconnectDrive} onDriveConnect={connectDrive} setConfirmModal={setConfirmModal}/>}
+      {showSettings&&<SettingsModal initialTab={settingsInitialTab} settings={settings} setSettings={setSettings} storageQuotaHit={storageQuotaHit} storagePersisted={storagePersisted} onExportZip={buildZip} exportProgress={exportProgress} onExportJson={exportJson} onImportClick={()=>importInputRef.current?.click()} onClose={()=>setShowSettings(false)} user={s.user} signIn={s.signIn} signUp={s.signUp} signOut={s.signOut} signInWithGoogle={s.signInWithGoogle} syncStatus={s.syncStatus} lastSyncedAt={s.lastSyncedAt} syncNow={s.syncNow} syncPayloadWarning={s.syncPayloadWarning} seedTestNotes={seedTestNotes} devSeedAll={seedAll} devClearAll={clearAll} onSyncTabVisible={maybePullDriveOnSyncTab} driveBlobRestoreProgress={driveBlobRestoreProgress} driveBlobFailedCount={driveBlobFailedCount} onBackupDrive={()=>{if(getDriveQueueCircuitState().paused)clearDriveQueueCircuitPause();return backupDriveNow();}} onRestoreFromDrive={restoreFromDrive} onDriveDisconnectSession={disconnectDrive} onDriveConnect={connectDrive} driveReady={s.driveReady} setConfirmModal={setConfirmModal}/>}
       {pdfItem&&<Suspense fallback={null}><PdfDrawer {...{pdfItem,items,pdfUrlMap,pdfLibrary,itemTimes,activeItemId,activeSpotId,startItem,stopItem,updateItem,addPdfToItem,attachLibraryPdf,removePdfFromItem,renamePdf,setDefaultPdf,setPdfPageRange,addBookmark,removeBookmark,renameBookmark,setBookmarkNote,fmt,setPromptModal,setConfirmModal,onClose:closePdfDrawer,dayClosed,addSpot,updateSpot,deleteSpot,editSpotTime,onWikiLinkClick:handleWikiLinkClick,wikiCompletionData,requestScoreView,pendingScoreTarget,consumePendingScoreTarget}}/></Suspense>}
       {logDrawerDate&&<LogDrawer entry={logDrawerEntry} dayData={logDrawerEntry?.kind==='day'?logDrawerEntry:(logDrawerEntry?null:resolveDayEntry(logDrawerDate))} items={items} history={history} programs={programs} recordingMeta={recordingMeta} freeNotes={freeNotes} onWikiLinkClick={handleWikiLinkClick} onClose={closeLogDrawer} deleteRecording={deleteRecording}/>}
       {confirmModal&&<ConfirmModal {...confirmModal} onCancel={()=>setConfirmModal(null)}/>}

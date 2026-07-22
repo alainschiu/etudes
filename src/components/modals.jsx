@@ -1,6 +1,6 @@
 import React, {useState, useRef, useEffect} from 'react';
 import useFocusTrap from '../hooks/useFocusTrap.js';
-import {isDriveConfigured, clearDriveSession, hasDriveToken, forceExpireCachedDriveToken, isDriveAuthReady, prepareDriveAuth, requestDriveTokenInteractive} from '../lib/driveAuth.js';
+import {isDriveConfigured, clearDriveSession, forceExpireCachedDriveToken, isDriveAuthReady, prepareDriveAuth, requestDriveTokenInteractive} from '../lib/driveAuth.js';
 import {probeDriveConnection, spikeSilentDriveRenewal} from '../lib/driveSync.js';
 import {formatDriveOAuthError} from '../lib/driveOAuthMessages.js';
 import {readDriveManifest, writeDriveManifest} from '../lib/driveManifest.js';
@@ -21,7 +21,7 @@ const SHORTCUTS=[{k:'Space',v:'Start or pause'},{k:'R',v:'Toggle rest timer'},{k
 const APP_VERSION=(appPkg.version || 'unknown').replace(/\.0$/,'');
 const USER_GUIDE_URL='https://etudes.me/guide';
 
-export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersisted=null,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect,initialTab='settings',setConfirmModal}){
+export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersisted=null,onExportZip,exportProgress,onExportJson,onImportClick,onClose,user,signIn,signUp,signOut,signInWithGoogle,syncStatus,lastSyncedAt,syncNow,syncPayloadWarning,seedTestNotes,devSeedAll,devClearAll,onSyncTabVisible,driveBlobRestoreProgress,driveBlobFailedCount=0,onBackupDrive,onRestoreFromDrive,onDriveDisconnectSession,onDriveConnect,driveReady=false,initialTab='settings',setConfirmModal}){
   const [devBusy,setDevBusy]=useState(false);
   const [devStatus,setDevStatus]=useState('');
   const [driveBusy,setDriveBusy]=useState(false);
@@ -51,6 +51,38 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
   };
   const provider=user?.app_metadata?.provider;
   const providerLabel=provider==='google'?'signed in with Google':provider==='email'?'signed in with email':null;
+  // F3 (C6/A2): device-local connected marker drives the honest paused UI.
+  // A token-dead-but-connected device shows "Backup paused since last app
+  // start" + one-tap Resume, never a silent claim that auto-backup runs.
+  const driveManifestSnap=readDriveManifest();
+  const driveConnectedMarker=!!driveManifestSnap.driveConnectedAt;
+  const drivePaused=driveConnectedMarker&&!driveReady;
+  const driveAccountEmail=driveManifestSnap.driveAccountEmail||'';
+  // F3/F4: interactive connect/resume. Synchronous up to the GIS popup — no
+  // await between the click and requestDriveTokenInteractive (iOS gesture
+  // invariant). Shared by the first-time Connect and the paused-state Resume.
+  const doDriveConnectGesture=()=>{
+    if(!isDriveAuthReady()){
+      setDriveLine('Drive auth still loading. Try again in a moment.');
+      prepareDriveAuth();
+      return;
+    }
+    let tokenPromise;
+    try{tokenPromise=requestDriveTokenInteractive();}
+    catch(e){setDriveLine(formatDriveOAuthError(e instanceof Error?e.message:String(e)));return;}
+    // Popup is in flight (or its error queued); gesture context no longer needed.
+    setDriveBusy(true);
+    setDriveLine('');
+    tokenPromise
+      .then(async()=>{
+        if(onDriveConnect){await onDriveConnect();}
+        const r=await probeDriveConnection();
+        if(r.ok)setDriveLine(r.user?.emailAddress?`Connected (${r.user.emailAddress})`:'Connected to Drive');
+        else setDriveLine(r.error||'Connection failed');
+      })
+      .catch(e=>setDriveLine(formatDriveOAuthError(e instanceof Error?e.message:String(e))))
+      .finally(()=>setDriveBusy(false));
+  };
   return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}} onClick={onClose}><div ref={panelRef} className="max-w-md w-full max-h-screen overflow-auto etudes-scroll" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
     <div className="px-8 py-6 flex items-baseline justify-between" style={{borderBottom:`1px solid ${LINE_MED}`}}>
       <div><div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Configuration</div><h2 className="text-3xl mt-1" style={{fontFamily:serif,fontStyle:'italic',fontWeight:300}}>Réglages</h2></div>
@@ -121,8 +153,12 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
                 </>
               ) : (
                 <div className="space-y-3">
-                  {!hasDriveToken()&&<p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Backs up audio recordings and PDF scores to your Google Drive. Études can only see files it created — never your other Drive files.</p>}
-                  {hasDriveToken()&&(()=>{
+                  {!driveReady&&!drivePaused&&<p className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',lineHeight:1.6}}>Backs up audio recordings and PDF scores to your Google Drive. Études can only see files it created — never your other Drive files.</p>}
+                  {drivePaused&&(<div>
+                    <div className="italic" style={{color:WARN,fontFamily:serif,fontSize:'13px',lineHeight:1.5}}>Backup paused since last app start.</div>
+                    {driveAccountEmail&&<div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',marginTop:'4px'}}>{driveAccountEmail}</div>}
+                  </div>)}
+                  {driveReady&&(()=>{
                     const status=deriveDriveStatus({manifest:readDriveManifest(),circuit:getDriveQueueCircuitState(),autoBackupOn:!!settings.driveAutoBackup,isConnected:true,isConfigured:true});
                     let body=null,sub=null,tone=MUTED;
                     if(status.kind==='never'){tone=FAINT;body=status.autoBackupOn?'Backup will run within ten minutes.':'No backup yet. Auto-backup is off.';}
@@ -134,50 +170,30 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
                     return (<div><div className="italic" style={{color:tone,fontFamily:serif,fontSize:'13px',lineHeight:1.5}}>{body}</div>{sub&&<div className="italic" style={{color:FAINT,fontFamily:serif,fontSize:'11px',marginTop:'4px'}}>{sub}</div>}</div>);
                   })()}
                   <div className="flex flex-wrap gap-2">
-                    {!hasDriveToken()&&<button
+                    {!driveReady&&!drivePaused&&<button
                       type="button"
                       disabled={driveBusy}
-                      onClick={()=>{
-                        // Order matters on iOS Safari: the readiness check must
-                        // run before any React state update, and the popup call
-                        // (requestDriveTokenInteractive) must run before any
-                        // setState. setState schedules a re-render which can
-                        // cost gesture context on strict iOS WebKit builds.
-                        if(!isDriveAuthReady()){
-                          setDriveLine('Drive auth still loading. Try again in a moment.');
-                          prepareDriveAuth();
-                          return;
-                        }
-                        let tokenPromise;
-                        try{tokenPromise=requestDriveTokenInteractive();}
-                        catch(e){
-                          setDriveLine(formatDriveOAuthError(e instanceof Error?e.message:String(e)));
-                          return;
-                        }
-                        // Popup is now in flight (or its error is queued). Safe to
-                        // touch React state — the gesture context is no longer needed.
-                        setDriveBusy(true);
-                        setDriveLine('');
-                        tokenPromise
-                          .then(async()=>{
-                            if(onDriveConnect){await onDriveConnect();}
-                            const r=await probeDriveConnection();
-                            if(r.ok)setDriveLine(r.user?.emailAddress?`Connected (${r.user.emailAddress})`:'Connected to Drive');
-                            else setDriveLine(r.error||'Connection failed');
-                          })
-                          .catch(e=>setDriveLine(formatDriveOAuthError(e instanceof Error?e.message:String(e))))
-                          .finally(()=>setDriveBusy(false));
-                      }}
+                      onClick={doDriveConnectGesture}
                       className="uppercase flex items-center gap-1.5 px-3 py-2"
                       style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em',opacity:driveBusy?0.5:1,touchAction:'manipulation'}}
                     >
                       {driveBusy?<Loader className="w-3 h-3 animate-spin" strokeWidth={1.5}/>:null}
                       Connect Google Drive
                     </button>}
-                    {hasDriveToken()&&(
+                    {drivePaused&&<button
+                      type="button"
+                      disabled={driveBusy}
+                      onClick={doDriveConnectGesture}
+                      className="uppercase flex items-center gap-1.5 px-3 py-2"
+                      style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em',opacity:driveBusy?0.5:1,touchAction:'manipulation'}}
+                    >
+                      {driveBusy?<Loader className="w-3 h-3 animate-spin" strokeWidth={1.5}/>:null}
+                      Resume
+                    </button>}
+                    {driveReady&&onBackupDrive&&<button type="button" disabled={driveBusy} onClick={()=>{onBackupDrive();setDriveLine('Backup queued…');}} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}>Back up to Drive</button>}
+                    {driveReady&&onRestoreFromDrive&&<button type="button" disabled={driveBusy} onClick={()=>setConfirmModal?.({message:'Replace local journal with the Drive backup?\n\nLocal changes since the last successful backup will be lost. Audio and PDFs already on this device are kept.',confirmLabel:'Replace',isDestructive:true,onConfirm:()=>{setConfirmModal(null);onRestoreFromDrive();},onCancel:()=>setConfirmModal(null)})} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}>Restore from Drive</button>}
+                    {(driveReady||drivePaused)&&(
                       <>
-                        {onBackupDrive&&<button type="button" disabled={driveBusy} onClick={()=>{onBackupDrive();setDriveLine('Backup queued…');}} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}>Back up to Drive</button>}
-                        {onRestoreFromDrive&&<button type="button" disabled={driveBusy} onClick={()=>setConfirmModal?.({message:'Replace local journal with the Drive backup?\n\nLocal changes since the last successful backup will be lost. Audio and PDFs already on this device are kept.',confirmLabel:'Replace',isDestructive:true,onConfirm:()=>{setConfirmModal(null);onRestoreFromDrive();},onCancel:()=>setConfirmModal(null)})} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}>Restore from Drive</button>}
                         <button
                           type="button"
                           disabled={driveBusy}
@@ -194,14 +210,14 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
                       </>
                     )}
                   </div>
-                  {hasDriveToken()&&onBackupDrive&&(<div className="flex items-center justify-between gap-4 pt-1">
+                  {driveReady&&onBackupDrive&&(<div className="flex items-center justify-between gap-4 pt-1">
                     <div>
                       <div className="uppercase" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Auto-backup</div>
                       <div className="text-xs italic mt-1" style={{color:FAINT,fontFamily:serif}}>Journal and recordings, every ten minutes</div>
                     </div>
                     <button type="button" onClick={()=>setSettings({...settings,driveAutoBackup:!settings.driveAutoBackup})} className="uppercase px-3 py-1 shrink-0" style={{color:settings.driveAutoBackup?TEXT:FAINT,border:`1px solid ${settings.driveAutoBackup?IKB:LINE_STR}`,background:settings.driveAutoBackup?IKB_SOFT:'transparent',fontSize:'9px',letterSpacing:'0.22em'}}>{settings.driveAutoBackup?'On':'Off'}</button>
                   </div>)}
-                  {hasDriveToken()&&(()=>{const m=readDriveManifest();if(!m.driveRootFolderId)return null;return (<a href={`https://drive.google.com/drive/folders/${m.driveRootFolderId}`} target="_blank" rel="noopener noreferrer" className="italic self-start" style={{color:LINK,fontFamily:serif,fontSize:'11px',borderBottom:`1px solid ${LINK}55`,textDecoration:'none'}}>View backup folder ↗</a>);})()}
+                  {(driveReady||drivePaused)&&(()=>{const m=readDriveManifest();if(!m.driveRootFolderId)return null;return (<a href={`https://drive.google.com/drive/folders/${m.driveRootFolderId}`} target="_blank" rel="noopener noreferrer" className="italic self-start" style={{color:LINK,fontFamily:serif,fontSize:'11px',borderBottom:`1px solid ${LINK}55`,textDecoration:'none'}}>View backup folder ↗</a>);})()}
                   {driveLine&&<div className="text-xs italic" style={{color:MUTED,fontFamily:serif}}>{driveLine}</div>}
                   {driveBlobRestoreProgress&&<div className="text-xs italic" style={{color:MUTED,fontFamily:serif}}>Restoring media {driveBlobRestoreProgress.done} / {driveBlobRestoreProgress.total}…</div>}
                   {!driveBlobRestoreProgress&&driveBlobFailedCount>0&&<div className="text-xs italic" style={{color:FAINT,fontFamily:serif}}>{driveBlobFailedCount} file{driveBlobFailedCount===1?'':'s'} could not be restored from Drive.</div>}

@@ -46,4 +46,25 @@ describe('driveAuth surface', () => {
   it('requestDriveTokenInteractive throws synchronously when not ready', () => {
     expect(() => driveAuth.requestDriveTokenInteractive()).toThrow(/not ready/);
   });
+
+  it('exposes the F3/A4 continuity surface', () => {
+    expect(typeof driveAuth.subscribeDriveToken).toBe('function');
+    expect(typeof driveAuth.silentRenewWithTimeout).toBe('function');
+  });
+
+  it('subscribeDriveToken returns an unsubscribe function and notifies on clear', () => {
+    const seen = [];
+    const unsub = driveAuth.subscribeDriveToken((ready) => seen.push(ready));
+    expect(typeof unsub).toBe('function');
+    driveAuth.clearDriveSession(); // no token → notifies false
+    expect(seen).toContain(false);
+    unsub();
+    seen.length = 0;
+    driveAuth.clearDriveSession();
+    expect(seen).toEqual([]); // no longer notified after unsubscribe
+  });
+
+  it('silentRenewWithTimeout rejects on timeout without a live GIS path', async () => {
+    await expect(driveAuth.silentRenewWithTimeout(20)).rejects.toThrow();
+  });
 });

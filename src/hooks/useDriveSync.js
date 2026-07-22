@@ -1,6 +1,6 @@
 import {useRef, useEffect, useState, useCallback} from 'react';
-import {getDriveAccessToken, clearDriveSession, hasDriveToken, isDriveConfigured} from '../lib/driveAuth.js';
-import {pushToDrive, pullJournalFromDrive, restoreBlobsFromDrive, formatDriveError, restoreManifestFromDriveIfNeeded} from '../lib/driveSync.js';
+import {getDriveAccessToken, clearDriveSession, hasDriveToken, isDriveConfigured, subscribeDriveToken} from '../lib/driveAuth.js';
+import {pushToDrive, pullJournalFromDrive, restoreBlobsFromDrive, formatDriveError, restoreManifestFromDriveIfNeeded, probeDriveConnection} from '../lib/driveSync.js';
 import {applyJournalPayload} from '../lib/journalPayload.js';
 import {writeDriveManifest} from '../lib/driveManifest.js';
 import {clearDriveQueueCircuitPause} from '../lib/driveQueueCircuit.js';
@@ -23,6 +23,18 @@ export default function useDriveSync({
   const blobTimerRef = useRef(null);
   const intervalRef = useRef(null);
 
+  // F3 (C6): token presence is reactive state. It flips on connect, silent
+  // renewal, expiry, and disconnect via the driveAuth pub/sub — replacing the
+  // non-reactive hasDriveToken() reads that left the auto-backup interval and
+  // the blob-write gate stuck on a dead token.
+  const [driveReady, setDriveReady] = useState(() => hasDriveToken());
+  useEffect(() => {
+    // Seed comes from the useState initializer; every later transition (connect,
+    // silent renewal, expiry, disconnect) arrives through the subscription.
+    const unsub = subscribeDriveToken((ready) => setDriveReady(ready));
+    return unsub;
+  }, []);
+
   const runPush = useCallback(
     async (mode) => {
       if (!isDriveConfigured()) return;
@@ -43,16 +55,16 @@ export default function useDriveSync({
 
   const notifyBlobWrite = useCallback(() => {
     if (!settings.driveAutoBackup) return;
-    if (!hasDriveToken()) return;
+    if (!driveReady) return;
     if (blobTimerRef.current) clearTimeout(blobTimerRef.current);
     blobTimerRef.current = setTimeout(() => {
       blobTimerRef.current = null;
       runPush('full');
     }, BLOB_DEBOUNCE_MS);
-  }, [settings.driveAutoBackup, runPush]);
+  }, [settings.driveAutoBackup, driveReady, runPush]);
 
   useEffect(() => {
-    if (!settings.driveAutoBackup || !hasDriveToken()) {
+    if (!settings.driveAutoBackup || !driveReady) {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -65,17 +77,28 @@ export default function useDriveSync({
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [settings.driveAutoBackup, runPush]);
+  }, [settings.driveAutoBackup, driveReady, runPush]);
 
   const connectDrive = useCallback(async () => {
     await getDriveAccessToken({interactive: true});
     clearDriveQueueCircuitPause();
+    // A2: the connected marker is device-local (manifest fields), never
+    // settings.driveConnected — settings rides the synced payload and would
+    // lie on every other device. driveAccountEmail makes a wrong-account
+    // reconnect visible in the Sync tab.
+    let email = '';
+    try {
+      const r = await probeDriveConnection();
+      if (r.ok) email = r.user?.emailAddress || '';
+    } catch { /* email is best-effort; the marker still records the connection */ }
+    writeDriveManifest({driveConnectedAt: new Date().toISOString(), driveAccountEmail: email});
     setSettings((s) => ({...s, driveConnected: true}));
   }, [setSettings]);
 
   const disconnectDrive = useCallback(() => {
     clearDriveSession();
     clearDriveQueueCircuitPause();
+    writeDriveManifest({driveConnectedAt: '', driveAccountEmail: ''});
     setSettings((s) => ({...s, driveConnected: false, driveAutoBackup: false}));
   }, [setSettings]);
 
@@ -143,7 +166,7 @@ export default function useDriveSync({
   }, [applyDeps, setRestoreBusy, setConfirmModal, onDriveConflict]);
 
   const maybePullOnOpen = useCallback(async () => {
-    if (!isDriveConfigured() || !hasDriveToken()) return;
+    if (!isDriveConfigured() || !driveReady) return;
     try {
       const pull = await pullJournalFromDrive(() => getDriveAccessToken({interactive: false}));
       if (pull.action === 'prompt')
@@ -158,7 +181,7 @@ export default function useDriveSync({
       // Background pull on tab open — failures are quiet. The next push
       // attempt surfaces via the manifest-driven status block.
     }
-  }, [onDriveConflict, applyDeps, setRestoreBusy, setConfirmModal]);
+  }, [driveReady, onDriveConflict, applyDeps, setRestoreBusy, setConfirmModal]);
 
   return {
     connectDrive,
@@ -170,7 +193,8 @@ export default function useDriveSync({
     driveBlobRestoreProgress,
     setDriveBlobRestoreProgress,
     driveBlobFailedCount,
+    driveReady,
     isDriveConfigured,
-    isDriveConnected: hasDriveToken,
+    isDriveConnected: driveReady,
   };
 }

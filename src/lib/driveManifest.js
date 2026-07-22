@@ -20,6 +20,8 @@ export const DRIVE_MANIFEST_KEY = 'etudes-driveManifest';
  *   driveFolderIds?: Record<string,string>,
  *   driveFileIndex?: Record<string,string>,
  *   driveBlobHashes?: Record<string,string>,
+ *   driveConnectedAt?: string,
+ *   driveAccountEmail?: string,
  *   lastPushedAt?: string,
  *   lastPulledAt?: string,
  *   journalRemoteModifiedTime?: string,

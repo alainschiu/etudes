@@ -765,5 +765,6 @@ export default function useEtudesState(){
     maybePullDriveOnSyncTab:driveSync.maybePullOnOpen,
     driveBlobRestoreProgress:driveSync.driveBlobRestoreProgress,
     driveBlobFailedCount:driveSync.driveBlobFailedCount,
+    driveReady:driveSync.driveReady,
   };
 }

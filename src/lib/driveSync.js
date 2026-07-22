@@ -59,6 +59,8 @@ function manifestSnapshot(m) {
     driveFolderIds: m.driveFolderIds || {},
     driveFileIndex: m.driveFileIndex || {},
     driveBlobHashes: m.driveBlobHashes || {},
+    driveConnectedAt: m.driveConnectedAt,
+    driveAccountEmail: m.driveAccountEmail,
     lastPushedAt: m.lastPushedAt,
     journalRemoteModifiedTime: m.journalRemoteModifiedTime,
     lastJsonPushAt: m.lastJsonPushAt,
@@ -364,6 +366,8 @@ export async function restoreManifestFromDriveIfNeeded(getAccessToken, confirm) 
     driveFolderIds: snap.driveFolderIds || {},
     driveFileIndex: snap.driveFileIndex || {},
     driveBlobHashes: snap.driveBlobHashes || {},
+    driveConnectedAt: snap.driveConnectedAt,
+    driveAccountEmail: snap.driveAccountEmail,
     lastPushedAt: snap.lastPushedAt,
     journalRemoteModifiedTime: snap.journalRemoteModifiedTime,
   });
