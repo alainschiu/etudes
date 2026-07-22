@@ -2,6 +2,7 @@ import {useRef, useEffect, useState, useCallback} from 'react';
 import {getDriveAccessToken, clearDriveSession, hasDriveToken, isDriveConfigured, subscribeDriveToken} from '../lib/driveAuth.js';
 import {pushToDrive, pullJournalFromDrive, restoreBlobsFromDrive, formatDriveError, restoreManifestFromDriveIfNeeded, probeDriveConnection} from '../lib/driveSync.js';
 import {applyJournalPayload} from '../lib/journalPayload.js';
+import {describeJournalInventory} from '../lib/journalInventory.js';
 import {writeDriveManifest} from '../lib/driveManifest.js';
 import {clearDriveQueueCircuitPause} from '../lib/driveQueueCircuit.js';
 
@@ -104,31 +105,12 @@ export default function useDriveSync({
 
   const backupNow = useCallback(() => runPush('full'), [runPush]);
 
-  const restoreFromDrive = useCallback(async () => {
+  // Apply an already-pulled journal + its Drive blobs. Runs only after the
+  // user confirms the inventory (destructive step).
+  const applyDrivePull = useCallback(async (pull) => {
     setDriveBlobFailedCount(0);
     setRestoreBusy(true);
     try {
-      await restoreManifestFromDriveIfNeeded(() => getDriveAccessToken({interactive: false}), null);
-      const pull = await pullJournalFromDrive(() => getDriveAccessToken({interactive: false}));
-      if (pull.action === 'noop') {
-        setConfirmModal({
-          message: 'No journal on Google Drive yet.',
-          confirmLabel: 'OK',
-          ackOnly: true,
-          onConfirm: () => setConfirmModal(null),
-        });
-        return;
-      }
-      if (pull.action === 'prompt') {
-        onDriveConflict?.({
-          ...pull,
-          getToken: () => getDriveAccessToken({interactive: false}),
-          applyDeps,
-          setRestoreBusy,
-          setConfirmModal,
-        });
-        return;
-      }
       await applyJournalPayload(pull.remoteState, {blobMode: 'none'}, applyDeps);
       const {failed} = await restoreBlobsFromDrive(
         pull.remoteState,
@@ -157,13 +139,75 @@ export default function useDriveSync({
       setConfirmModal({
         message: `Could not restore from Drive. ${formatDriveError(e)}`,
         confirmLabel: 'OK',
+        ackOnly: true,
         onConfirm: () => setConfirmModal(null),
       });
     } finally {
       setRestoreBusy(false);
       setDriveBlobRestoreProgress(null);
     }
-  }, [applyDeps, setRestoreBusy, setConfirmModal, onDriveConflict]);
+  }, [applyDeps, setRestoreBusy, setConfirmModal]);
+
+  // F5: pull the (now tiny, metadata-only) journal FIRST, then show the same
+  // inventory + backup date as the file restore in a destructive confirm
+  // before applying anything.
+  const restoreFromDrive = useCallback(async () => {
+    setRestoreBusy(true);
+    let pull;
+    try {
+      await restoreManifestFromDriveIfNeeded(() => getDriveAccessToken({interactive: false}), null);
+      pull = await pullJournalFromDrive(() => getDriveAccessToken({interactive: false}));
+    } catch (e) {
+      setConfirmModal({
+        message: `Could not restore from Drive. ${formatDriveError(e)}`,
+        confirmLabel: 'OK',
+        ackOnly: true,
+        onConfirm: () => setConfirmModal(null),
+      });
+      setRestoreBusy(false);
+      return;
+    }
+    setRestoreBusy(false);
+    if (pull.action === 'noop') {
+      setConfirmModal({
+        message: 'No journal on Google Drive yet.',
+        confirmLabel: 'OK',
+        ackOnly: true,
+        onConfirm: () => setConfirmModal(null),
+      });
+      return;
+    }
+    if (pull.action === 'prompt') {
+      onDriveConflict?.({
+        ...pull,
+        getToken: () => getDriveAccessToken({interactive: false}),
+        applyDeps,
+        setRestoreBusy,
+        setConfirmModal,
+      });
+      return;
+    }
+    const inv = describeJournalInventory(pull.remoteState);
+    const message = [
+      'Replace all current data with the Drive backup?',
+      '',
+      ...inv.lines,
+      '',
+      'Audio and PDFs already on this device are kept.',
+      '',
+      'This will overwrite everything and cannot be undone.',
+    ].join('\n');
+    setConfirmModal({
+      message,
+      confirmLabel: 'Replace everything',
+      isDestructive: true,
+      onConfirm: () => {
+        setConfirmModal(null);
+        applyDrivePull(pull);
+      },
+      onCancel: () => setConfirmModal(null),
+    });
+  }, [applyDeps, applyDrivePull, setRestoreBusy, setConfirmModal, onDriveConflict]);
 
   const maybePullOnOpen = useCallback(async () => {
     if (!isDriveConfigured() || !driveReady) return;

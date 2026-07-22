@@ -191,7 +191,7 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
                       Resume
                     </button>}
                     {driveReady&&onBackupDrive&&<button type="button" disabled={driveBusy} onClick={()=>{onBackupDrive();setDriveLine('Backup queued…');}} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${IKB}`,background:IKB_SOFT,fontSize:'9px',letterSpacing:'0.22em'}}>Back up to Drive</button>}
-                    {driveReady&&onRestoreFromDrive&&<button type="button" disabled={driveBusy} onClick={()=>setConfirmModal?.({message:'Replace local journal with the Drive backup?\n\nLocal changes since the last successful backup will be lost. Audio and PDFs already on this device are kept.',confirmLabel:'Replace',isDestructive:true,onConfirm:()=>{setConfirmModal(null);onRestoreFromDrive();},onCancel:()=>setConfirmModal(null)})} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}>Restore from Drive</button>}
+                    {driveReady&&onRestoreFromDrive&&<button type="button" disabled={driveBusy} onClick={()=>onRestoreFromDrive()} className="uppercase px-3 py-2" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'9px',letterSpacing:'0.22em'}}>Restore from Drive</button>}
                     {(driveReady||drivePaused)&&(
                       <>
                         <button
