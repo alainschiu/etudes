@@ -18,7 +18,7 @@ import {readDriveManifest, writeDriveManifest} from './driveManifest.js';
 import {buildFullJournalPayload, applyJournalPayload} from './journalPayload.js';
 import {migrateImport} from './migrations.js';
 import {collectJournalBlobRefs} from './driveBlobRefs.js';
-import {BLOB_STORES, hasUnbackedBlobs, namespacedKey} from './driveBlobPolicy.js';
+import {BLOB_STORES, hasUnbackedBlobs, shouldSkipBlobUpload, sha256Hex, namespacedKey} from './driveBlobPolicy.js';
 import {idbGet, idbPut, idbAllKeys} from './storage.js';
 import {lsGet} from './storage.js';
 
@@ -58,6 +58,7 @@ function manifestSnapshot(m) {
     driveRootFolderId: m.driveRootFolderId,
     driveFolderIds: m.driveFolderIds || {},
     driveFileIndex: m.driveFileIndex || {},
+    driveBlobHashes: m.driveBlobHashes || {},
     lastPushedAt: m.lastPushedAt,
     journalRemoteModifiedTime: m.journalRemoteModifiedTime,
     lastJsonPushAt: m.lastJsonPushAt,
@@ -212,14 +213,26 @@ export function pushToDrive(opts) {
     if (mode === 'full') {
       m = readDriveManifest();
       const idx = {...(m.driveFileIndex || {})};
+      const hashes = {...(m.driveBlobHashes || {})};
       for (const store of ['pdfs', 'recordings', 'pieceRecordings', 'refTracks']) {
         const folderKey = STORE_TO_FOLDER_KEY[store];
         const folderId = m.driveFolderIds?.[folderKey] || rootId;
         const keys = await idbAllKeys(store);
         for (const key of keys) {
+          const ns = namespacedKey(store, String(key));
+          // F2/A3: pdfs / recordings / pieceRecordings are immutable per key —
+          // an existing index entry means the Drive file is byte-identical.
+          // Skip before touching IDB: no read, no upload, no hash.
+          if (shouldSkipBlobUpload({store, ns, fileIndex: idx})) continue;
           const blob = await idbGet(store, key);
           if (!blob) continue;
-          const ns = namespacedKey(store, String(key));
+          // refTracks overwrite the same key, so decide by SHA-256 content hash
+          // (sequential — one blob in memory at a time) against driveBlobHashes.
+          let contentHash;
+          if (store === 'refTracks') {
+            contentHash = await sha256Hex(blob);
+            if (shouldSkipBlobUpload({store, ns, hashes, contentHash})) continue;
+          }
           let fileId = idx[ns];
           const ext = blob.type?.includes('pdf')
             ? 'pdf'
@@ -245,10 +258,12 @@ export function pushToDrive(opts) {
             idx[ns] = created.id;
             indexMutated = true;
           }
+          if (store === 'refTracks' && contentHash) hashes[ns] = contentHash;
         }
       }
       writeDriveManifest({
         driveFileIndex: idx,
+        driveBlobHashes: hashes,
         lastPushedAt: new Date().toISOString(),
         journalRemoteModifiedTime: remoteMod,
         lastJsonPushAt: Date.now(),
@@ -348,6 +363,7 @@ export async function restoreManifestFromDriveIfNeeded(getAccessToken, confirm) 
     driveRootFolderId: snap.driveRootFolderId || rootId,
     driveFolderIds: snap.driveFolderIds || {},
     driveFileIndex: snap.driveFileIndex || {},
+    driveBlobHashes: snap.driveBlobHashes || {},
     lastPushedAt: snap.lastPushedAt,
     journalRemoteModifiedTime: snap.journalRemoteModifiedTime,
   });
