@@ -150,7 +150,11 @@ export function requestDriveTokenInteractive() {
     rejectPending  = (e) => settle(() => reject(e));
 
     try {
-      tokenClient.requestAccessToken({ prompt: 'consent' });
+      // F4 (T2b): default prompt — Google shows the account chooser at most,
+      // and skips the consent screen for a returning user who already granted
+      // the drive.file scope. Synchronous-gesture contract and the 12 s timeout
+      // below are preserved verbatim.
+      tokenClient.requestAccessToken({ prompt: '' });
     } catch (e) {
       settle(() => reject(e instanceof Error ? e : new Error(String(e))));
       return;
