@@ -18,6 +18,7 @@ import {readDriveManifest, writeDriveManifest} from './driveManifest.js';
 import {buildFullJournalPayload, applyJournalPayload} from './journalPayload.js';
 import {migrateImport} from './migrations.js';
 import {collectJournalBlobRefs} from './driveBlobRefs.js';
+import {BLOB_STORES, hasUnbackedBlobs, namespacedKey} from './driveBlobPolicy.js';
 import {idbGet, idbPut, idbAllKeys} from './storage.js';
 import {lsGet} from './storage.js';
 
@@ -50,10 +51,6 @@ let coalesceFull = false;
 
 function escapeQueryName(name) {
   return name.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-}
-
-function namespacedKey(store, key) {
-  return `${store}:${String(key)}`;
 }
 
 function manifestSnapshot(m) {
@@ -163,8 +160,19 @@ export function pushToDrive(opts) {
 
   const run = async () => {
     assertDriveQueueNotPaused();
-    const mode = coalesceFull ? 'full' : 'json';
+    let mode = coalesceFull ? 'full' : 'json';
     coalesceFull = false;
+
+    // A1: a metadata-only ('json') push carries no blobs, so if any local blob
+    // was written but never uploaded (token-dead case), the journal would be
+    // that blob's only backup — exactly what F1 removes. Set-difference the
+    // local blob keys against the manifest index; any miss escalates to 'full'.
+    if (mode === 'json') {
+      const mCov = readDriveManifest();
+      const keysByStore = {};
+      for (const store of BLOB_STORES) keysByStore[store] = await idbAllKeys(store);
+      if (hasUnbackedBlobs(keysByStore, mCov.driveFileIndex)) mode = 'full';
+    }
 
     try {
     writeDriveManifest({lastAttemptedAt: new Date().toISOString()});
@@ -185,7 +193,9 @@ export function pushToDrive(opts) {
       await driveCopyFile(token, journalId, {name: JOURNAL_PREV, parents: [rootId]});
     }
 
-    const payload = await buildFullJournalPayload(opts.slice, opts.lsGet);
+    // F1/C2: the Drive journal is metadata-only forever after — no embedded
+    // blobs. Blobs reach Drive as per-file uploads in the full-mode loop below.
+    const payload = await buildFullJournalPayload(opts.slice, opts.lsGet, {includeBlobs: false});
     const jsonBlob = new Blob([JSON.stringify(payload)], {type: 'application/json'});
 
     if (journalId) {

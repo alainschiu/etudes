@@ -5,9 +5,14 @@ import {todayDateStr, getWeekStart, getMonthKey} from './dates.js';
 import {migrateItems, migrateSessions, migrateRoutines, migrateHistory, migratePrograms} from './migrations.js';
 
 /**
+ * @param {object} slice — cold state slice
  * @param {function} lsGet
+ * @param {{ includeBlobs?: boolean }} [options] F1/C2: when includeBlobs is
+ *   false the `blobs` key is omitted entirely and no IDB enumeration runs —
+ *   the metadata-only journal used for Drive push/pull-compare. File
+ *   export/import keeps the default (embedded blobs).
  */
-export async function buildFullJournalPayload(slice, lsGet) {
+export async function buildFullJournalPayload(slice, lsGet, {includeBlobs = true} = {}) {
   const {
     items,
     itemTimes,
@@ -30,31 +35,7 @@ export async function buildFullJournalPayload(slice, lsGet) {
     noteCategories,
     refTrackMeta,
   } = slice;
-  const pk = await idbAllKeys('pdfs');
-  const pb = {};
-  for (const k of pk) {
-    const b = await idbGet('pdfs', k);
-    if (b) pb[String(k)] = await blobToBase64(b);
-  }
-  const rk = await idbAllKeys('recordings');
-  const rb = {};
-  for (const k of rk) {
-    const b = await idbGet('recordings', k);
-    if (b) rb[String(k)] = await blobToBase64(b);
-  }
-  const prk = await idbAllKeys('pieceRecordings');
-  const prb = {};
-  for (const k of prk) {
-    const b = await idbGet('pieceRecordings', k);
-    if (b) prb[String(k)] = await blobToBase64(b);
-  }
-  const rtk = await idbAllKeys('refTracks');
-  const rtb = {};
-  for (const k of rtk) {
-    const b = await idbGet('refTracks', k);
-    if (b) rtb[String(k)] = {d: await blobToBase64(b), t: b.type || 'audio/mpeg'};
-  }
-  return {
+  const payload = {
     app: 'Etudes',
     appVersion: APP_VERSION,
     schemaVersion: SCHEMA_VERSION,
@@ -89,8 +70,37 @@ export async function buildFullJournalPayload(slice, lsGet) {
         month: lsGet(MONTH_ROLLOVER_KEY, null),
       },
     },
-    blobs: {pdfs: pb, recordings: rb, pieceRecordings: prb, refTracks: rtb},
   };
+
+  if (includeBlobs) {
+    const pk = await idbAllKeys('pdfs');
+    const pb = {};
+    for (const k of pk) {
+      const b = await idbGet('pdfs', k);
+      if (b) pb[String(k)] = await blobToBase64(b);
+    }
+    const rk = await idbAllKeys('recordings');
+    const rb = {};
+    for (const k of rk) {
+      const b = await idbGet('recordings', k);
+      if (b) rb[String(k)] = await blobToBase64(b);
+    }
+    const prk = await idbAllKeys('pieceRecordings');
+    const prb = {};
+    for (const k of prk) {
+      const b = await idbGet('pieceRecordings', k);
+      if (b) prb[String(k)] = await blobToBase64(b);
+    }
+    const rtk = await idbAllKeys('refTracks');
+    const rtb = {};
+    for (const k of rtk) {
+      const b = await idbGet('refTracks', k);
+      if (b) rtb[String(k)] = {d: await blobToBase64(b), t: b.type || 'audio/mpeg'};
+    }
+    payload.blobs = {pdfs: pb, recordings: rb, pieceRecordings: prb, refTracks: rtb};
+  }
+
+  return payload;
 }
 
 /**
