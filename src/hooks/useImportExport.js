@@ -2,6 +2,7 @@ import {useState} from 'react';
 import JSZip from 'jszip';
 import {idbPut,idbDel,idbGet,idbAllKeys,lsGet,lsSet} from '../lib/storage.js';
 import {buildFullJournalPayload,applyJournalPayload} from '../lib/journalPayload.js';
+import {describeJournalInventory} from '../lib/journalInventory.js';
 import {triggerDownload} from '../lib/media.js';
 import {todayDateStr,getWeekStart,getMonthKey} from '../lib/dates.js';
 import {formatForMarkdown,resolveHistoryItem,resolveScoreLinkPage} from '../lib/items.js';
@@ -535,9 +536,9 @@ export default function useImportExport({
         const parsed=JSON.parse(e.target.result);
         if(parsed.app!=='Etudes')throw new Error('Not an Études backup file.');
         if(typeof parsed.schemaVersion!=='number')throw new Error('Invalid backup file: missing schema version.');
-        const m=migrateImport(parsed);const st=m.state||{};
-        const ic=(st.items||[]).length;const rc=(st.routines||[]).length;const hd=(st.history||[]).filter(h=>h.kind==='day'||!h.kind).length;const we=(st.history||[]).filter(h=>h.kind==='week').length;const me=(st.history||[]).filter(h=>h.kind==='month').length;const pc=Object.keys(m.blobs?.pdfs||{}).length;const rec=Object.keys(m.blobs?.recordings||{}).length;const prec=Object.keys(m.blobs?.pieceRecordings||{}).length;const rt=Object.keys(m.blobs?.refTracks||{}).length;const nc=(st.freeNotes||[]).length;const es=m.exportedAt?new Date(m.exportedAt).toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'}):'unknown';
-        const sum=[`Replace all current data with this backup?`,``,`${ic} repertoire item${ic===1?'':'s'}`,`${rc} routine${rc===1?'':'s'}`,`${hd} day${hd===1?'':'s'} of practice history`,`${we} weekly · ${me} monthly reflections`,`${pc} PDF${pc===1?'':'s'} · ${rec} day recording${rec===1?'':'s'} · ${prec} piece recording${prec===1?'':'s'} · ${rt} ref track${rt===1?'':'s'} · ${nc} free note${nc===1?'':'s'}`,``,`Exported ${es} (schema v${m.schemaVersion||1})`,``,`This will overwrite everything and cannot be undone.`].join('\n');
+        const m=migrateImport(parsed);
+        const inv=describeJournalInventory(m);
+        const sum=[`Replace all current data with this backup?`,``,...inv.lines,``,`This will overwrite everything and cannot be undone.`].join('\n');
         setConfirmModal({message:sum,confirmLabel:'Replace everything',isDestructive:true,onConfirm:async()=>{setConfirmModal(null);await applyImport(m);}});
       }catch(err){setConfirmModal({message:'Could not read backup file: '+(err.message||'invalid format'),confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});}
     };
