@@ -1,5 +1,12 @@
 # Update Log
 
+## v0.99.1 — 2026-07-22 — Drive backup continuity
+
+- **Drive backups are small and quick now** — the backup file no longer carries copies of your audio and PDFs, so it stays tiny; your recordings and scores are backed up as individual files, and ones already on Drive are skipped. A second backup with nothing new to save uploads nothing.
+- **Auto-backup tells the truth about its connection** — when the app reopens it quietly tries to refresh your Google sign-in. If it can't, the Sync tab says "Backup paused since last app start" and shows a one-tap **Resume** with the account it's connected to — instead of pretending backups are still running.
+- **Reconnecting is one tap** — returning to Drive no longer makes you walk through the Google permission screen again; you'll see the account chooser at most.
+- **Restore shows you what it will replace** — restoring from Drive now lists the pieces, routines, history, notes, and media in the backup, along with its date, before you confirm.
+
 ## v0.99.0 — 2026-07-14 — Sync honesty
 
 - **Sign-in failures speak plainly** — no more raw error codes; if the sync service is unreachable the app says so and reminds you your data is safe on this device. The Google button checks the connection before leaving the app.

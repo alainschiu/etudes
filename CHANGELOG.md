@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.99.1] — 2026-07-22
+
+### Drive backup continuity
+
+The second release of the Sync Run (spec: `v0.99.0-2-spec.md`, Part 2 +
+Reconciliation addendum). No schema change (still v12). Makes Drive backup
+small, incremental, and honest about its token.
+
+- The Drive journal is metadata-only — no more base64 media embedded in it.
+  It drops from potentially hundreds of MB to KBs, and pull-compare stops
+  downloading the whole library. File export/import still embeds blobs.
+- Blob coverage is guaranteed: any metadata-only push that finds a local
+  blob missing from the Drive index escalates itself to a full push, so
+  removing the embedded journal never leaves a blob unbacked (A1).
+- A full push no longer re-uploads every blob. PDFs, day recordings, and
+  piece recordings are immutable per key and skip once uploaded; reference
+  tracks (which reuse their key) are content-hashed and upload only on a
+  real change. A second backup with an unchanged library uploads nothing.
+- The Drive token is now reactive state, fixing the dead-interval wart where
+  auto-backup could keep "running" against an expired token. On app start,
+  a device that was connected attempts one silent renewal — quiet, no popup.
+- When the token can't be renewed, the Sync tab is honest: "Backup paused
+  since last app start" with the connected account and a one-tap Resume,
+  instead of silently claiming auto-backup runs.
+- Reconnecting no longer forces the Google consent screen — a returning user
+  sees the account chooser at most.
+- Restore from Drive pulls the tiny journal first and shows the same
+  inventory (pieces, routines, history, notes, media counts, backup date) as
+  a file restore before the destructive step. Legacy embedded journals from
+  before this release still restore correctly.
+
 ## [0.99.0] — 2026-07-14
 
 ### Sync honesty + operational
