@@ -1,4 +1,4 @@
-# Études — v0.99.0
+# Études — v0.99.1
 
 A practice journal for musicians. Seven views: Today, Review, Répertoire, Routines, Logs, Notes, Programs. Works offline as a PWA — install from the browser on any device.
 
@@ -62,7 +62,7 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 Run `supabase/migrations/001_user_state.sql` in the Supabase SQL editor and enable Email and Google auth under Authentication → Providers.
 
-Optional **Google Drive backup**: set `VITE_GOOGLE_CLIENT_ID` to your OAuth 2.0 Web client ID (Google Cloud Console). The app uses Google Identity Services with the `drive.file` scope for user-owned backups — independent of Supabase. After **Connect Google Drive**, use **Backup now** / **Restore from Drive** and optional **auto-backup** (journal JSON about every 10 minutes; new recordings/PDFs debounced ~30s). There is **no** flush-on-tab-close for Drive. A small `etudes-drive-manifest.json` on Drive helps recover file IDs if local storage is cleared.
+Optional **Google Drive backup**: set `VITE_GOOGLE_CLIENT_ID` to your OAuth 2.0 Web client ID (Google Cloud Console). The app uses Google Identity Services with the `drive.file` scope for user-owned backups — independent of Supabase. After **Connect Google Drive**, use **Back up to Drive** / **Restore from Drive** and optional **auto-backup** (journal JSON about every 10 minutes; new recordings/PDFs debounced ~30s). The Drive journal is **metadata-only** — audio and PDFs go to Drive as individual files and immutable blobs are **skipped once uploaded**, so a second backup with an unchanged library uploads nothing. On app start a **silent token renewal** runs when this device was connected before; if it can't renew, the Sync tab shows an honest **"Backup paused since last app start"** line with a one-tap **Resume** (returning users are not asked to re-consent). Restore pulls the tiny journal first and shows an inventory of what it will replace before the destructive step. There is **no** flush-on-tab-close for Drive. A small `etudes-drive-manifest.json` on Drive helps recover file IDs if local storage is cleared.
 
 ### Google Drive — silent token renewal (merge gate)
 
