@@ -38,6 +38,47 @@ let cachedAccessToken = null;
 /** epoch ms when access token is treated as expired */
 let cachedExpiresAt = 0;
 
+/**
+ * F3 (C6) — token validity as reactive state. Consumers (useDriveSync)
+ * subscribe once and are notified whenever validity changes: a successful
+ * acquire (GIS callback), clearDriveSession, or expiry. This replaces
+ * non-reactive hasDriveToken() polling in effects — the root cause of the
+ * dead-interval wart.
+ * @type {Set<(ready: boolean) => void>}
+ */
+const tokenListeners = new Set();
+
+/** @type {ReturnType<typeof setTimeout> | null} */
+let expiryTimer = null;
+
+function notifyTokenListeners() {
+  const ready = isTokenValid();
+  for (const cb of tokenListeners) {
+    try { cb(ready); } catch { /* a listener throwing must not break the others */ }
+  }
+}
+
+/** Fire a notify at the moment isTokenValid() flips to false, so driveReady tracks expiry. */
+function scheduleExpiryNotify() {
+  if (expiryTimer) { clearTimeout(expiryTimer); expiryTimer = null; }
+  if (!cachedAccessToken) return;
+  const ttlOverride = effectiveTokenTtlMs();
+  const buffer = ttlOverride != null ? Math.min(5000, ttlOverride * 0.1) : 30_000;
+  const delay = cachedExpiresAt - buffer - Date.now() + 100;
+  if (delay <= 0) { notifyTokenListeners(); return; }
+  expiryTimer = setTimeout(() => { expiryTimer = null; notifyTokenListeners(); }, delay);
+}
+
+/**
+ * Subscribe to Drive token validity changes. Returns an unsubscribe fn.
+ * @param {(ready: boolean) => void} cb
+ * @returns {() => void}
+ */
+export function subscribeDriveToken(cb) {
+  tokenListeners.add(cb);
+  return () => tokenListeners.delete(cb);
+}
+
 /** @type {(v: string) => void | null} */
 let resolvePending = null;
 /** @type {(e: Error) => void | null} */
@@ -97,6 +138,10 @@ function ensureTokenClient() {
             ? resp.expires_in
             : 3600;
       cachedExpiresAt = Date.now() + sec * 1000;
+      // F3: token validity just flipped true — notify subscribers and arm the
+      // expiry notify so driveReady goes false again when the token lapses.
+      scheduleExpiryNotify();
+      notifyTokenListeners();
       resolve(resp.access_token);
     },
   });
@@ -210,6 +255,31 @@ export function clearDriveSession() {
   rejectPending = null;
   tokenClient = null;
   inflightToken = null;
+  if (expiryTimer) { clearTimeout(expiryTimer); expiryTimer = null; }
+  notifyTokenListeners();
+}
+
+/**
+ * A4 — silent renewal with an external timeout. Wraps
+ * getDriveAccessToken({interactive:false}) (which itself has no timeout) so a
+ * boot-time renewal cannot hang. The underlying function is untouched; on
+ * success the F3 pub/sub fires and driveReady flips. Quiet on failure.
+ * @param {number} [ms]
+ * @returns {Promise<string>}
+ */
+export function silentRenewWithTimeout(ms = 10000) {
+  return new Promise((resolve, reject) => {
+    let done = false;
+    const timer = setTimeout(() => {
+      if (done) return;
+      done = true;
+      reject(new Error('Silent Drive renewal timed out'));
+    }, ms);
+    getDriveAccessToken({interactive: false}).then(
+      (tok) => { if (done) return; done = true; clearTimeout(timer); resolve(tok); },
+      (e) => { if (done) return; done = true; clearTimeout(timer); reject(e); },
+    );
+  });
 }
 
 export function isDriveConfigured() {
@@ -223,4 +293,6 @@ export function hasDriveToken() {
 /** Dev / spike: force the next getDriveAccessToken to treat the cache as expired (silent renewal test). */
 export function forceExpireCachedDriveToken() {
   cachedExpiresAt = 0;
+  if (expiryTimer) { clearTimeout(expiryTimer); expiryTimer = null; }
+  notifyTokenListeners(); // flips driveReady false so the paused UI can be dev-tested
 }
