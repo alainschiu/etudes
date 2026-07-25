@@ -38,7 +38,7 @@ Vitest harness covers the load-bearing pure functions:
 
 Adding sync/drive logic? Add a test. The harness is fast enough to run in the dev loop without friction.
 
-For UI/integration that the harness can’t cover (iOS Safari popup behavior, real-device gestures, multi-device sync conflicts), there is a 14-item manual-test checklist on PR #15. Future contributors touching `driveAuth.js`, the Connect button, or the conflict-modal flow should re-run it before merge. Consider extracting into `docs/manual-test-checklist.md` if it gets referenced often.
+For UI/integration that the harness can’t cover (iOS Safari popup behavior, real-device gestures, multi-device sync conflicts), the running manual-test checklist lives in `docs/manual-test-checklist.md` — the standing sync/Drive ritual (origin: PR #15) plus a per-release device pass. Future contributors touching `driveAuth.js`, the Connect button, or the conflict-modal flow should re-run the standing ritual before merge, and add a device-pass section for their release.
 
 ## Design Tokens — exact values (`src/constants/theme.js`)
 
@@ -239,4 +239,4 @@ Before merging any PR that touches Drive auth, the Sync tab, or sign-in flows:
 1. Multi-device test — leave two tabs open for 60+ min, edit on both. Token refresh should NOT trigger the conflict modal. Edit the same piece differently on both → modal SHOULD appear.
 1. Destructive confirms — *Restore* and *Sign Out* both open `isDestructive` confirms; *Disconnect Drive* opens non-destructive.
 
-The full 14-item checklist lives in PR #15’s description. Re-run it after any sync/drive change.
+The full running checklist lives in `docs/manual-test-checklist.md` (standing ritual + per-release device passes). Re-run the standing ritual after any sync/drive change.
