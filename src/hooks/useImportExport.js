@@ -323,11 +323,12 @@ export default function useImportExport({
   todayKey,items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,loadedRoutineId,routines,
   dailyReflection,weekReflection,monthReflection,settings,freeNotes,recordingMeta,history,dayClosed,
   pieceRecordingMeta,noteCategories,refTrackMeta,programs,
+  deletions,reflectionMeta, // schema v13 merge metadata — must ride the file backup
   pdfUrlMap,todayHistoryEntry,
   setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
   setRoutines,setPrograms,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
   setRecordingMeta,setHistory,setDayClosed,setPdfUrlMap,
-  setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,
+  setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,setDeletions,setReflectionMeta,
   setLocalPieceRecordingIds,setLocalRefTrackIds,
   setActiveItemId,setActiveSpotId,setActiveSessionId,setIsResting,setExpandedItemId,setPdfDrawerItemId,
   setRestoreBusy,setExportMenu,setConfirmModal,
@@ -342,7 +343,7 @@ export default function useImportExport({
       const payload=await buildFullJournalPayload({
         items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,loadedRoutineId,routines,programs,
         dailyReflection,weekReflection,monthReflection,settings,freeNotes,recordingMeta,history,dayClosed,
-        pieceRecordingMeta,noteCategories,refTrackMeta,
+        pieceRecordingMeta,noteCategories,refTrackMeta,deletions,reflectionMeta,
       },lsGet);
       const blob=new Blob([JSON.stringify(payload)],{type:'application/json'});
       triggerDownload(blob,`etudes-backup-${todayKey}.json`);setExportMenu(false);
@@ -514,6 +515,7 @@ export default function useImportExport({
         setRoutines,setPrograms,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
         setRecordingMeta,setHistory,setDayClosed,setPdfUrlMap,
         setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,
+        setDeletions,setReflectionMeta,
         setLocalPieceRecordingIds,setLocalRefTrackIds,
         setActiveItemId,setActiveSpotId,setActiveSessionId,setIsResting,setExpandedItemId,setPdfDrawerItemId,
       });

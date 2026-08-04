@@ -91,6 +91,8 @@ function makeDeps() {
       setPieceRecordingMeta: setter('pieceRecMeta'),
       setNoteCategories: setter('noteCats'),
       setRefTrackMeta: setter('refTrackMeta'),
+      setDeletions: setter('deletions'),
+      setReflectionMeta: setter('reflectionMeta'),
       setLocalPieceRecordingIds: setter('localPieceIds'),
       setLocalRefTrackIds: setter('localRefIds'),
       setActiveItemId: vi.fn(),
@@ -133,5 +135,42 @@ describe('applyJournalPayload — blob-less vs legacy embedded', () => {
     expect(failed).toEqual([]);
     expect(idb.pdfs.p1).toEqual({__blob: 'AAA'});
     expect(idb.recordings.rec1).toEqual({__blob: 'BBB'});
+  });
+});
+
+// A7-ii — the completeness guard. A v13 key that reaches the payload but never
+// makes it back through the apply path (or vice versa) silently wipes that slice
+// on every restore. This asserts the whole round trip rather than either half.
+describe('schema v13 keys survive the payload round trip', () => {
+  const v13Slice = {
+    ...slice,
+    deletions: [{type: 'item', id: 'gone', deletedAt: 1770000000000}],
+    reflectionMeta: {daily: {updatedAt: 1770000000001}},
+  };
+
+  it('carries deletions and reflectionMeta in both payload modes', async () => {
+    for (const opts of [{includeBlobs: false}, {includeBlobs: true}]) {
+      const p = await buildFullJournalPayload(v13Slice, lsGet, opts);
+      expect(p.state.deletions).toEqual(v13Slice.deletions);
+      expect(p.state.reflectionMeta).toEqual(v13Slice.reflectionMeta);
+    }
+  });
+
+  it('restores them through applyJournalPayload', async () => {
+    const {deps, calls} = makeDeps();
+    const journal = await buildFullJournalPayload(v13Slice, lsGet, {includeBlobs: false});
+    await applyJournalPayload(journal, {blobMode: 'none'}, deps);
+    expect(calls.deletions).toEqual(v13Slice.deletions);
+    expect(calls.reflectionMeta).toEqual(v13Slice.reflectionMeta);
+  });
+
+  it('defaults them safely when restoring a pre-v13 journal', async () => {
+    const {deps, calls} = makeDeps();
+    const journal = await buildFullJournalPayload(slice, lsGet, {includeBlobs: false});
+    delete journal.state.deletions;
+    delete journal.state.reflectionMeta;
+    await applyJournalPayload(journal, {blobMode: 'none'}, deps);
+    expect(calls.deletions).toEqual([]);
+    expect(calls.reflectionMeta).toEqual({});
   });
 });

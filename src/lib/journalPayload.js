@@ -34,6 +34,8 @@ export async function buildFullJournalPayload(slice, lsGet, {includeBlobs = true
     pieceRecordingMeta,
     noteCategories,
     refTrackMeta,
+    deletions,
+    reflectionMeta,
   } = slice;
   const payload = {
     app: 'Etudes',
@@ -63,6 +65,10 @@ export async function buildFullJournalPayload(slice, lsGet, {includeBlobs = true
       noteCategories: Array.isArray(noteCategories) ? noteCategories : [],
       refTrackMeta: refTrackMeta || {},
       history: history || [],
+      // Schema v13 merge metadata. Both are plain metadata, so they ride the
+      // metadata-only Drive journal as well as the embedded file export.
+      deletions: Array.isArray(deletions) ? deletions : [],
+      reflectionMeta: reflectionMeta || {},
       dayClosed: !!dayClosed,
       rolloverKeys: {
         day: lsGet(ROLLOVER_KEY, null),
@@ -142,6 +148,8 @@ export async function applyJournalPayload(data, options, deps) {
     setPieceRecordingMeta,
     setNoteCategories,
     setRefTrackMeta,
+    setDeletions,
+    setReflectionMeta,
     setLocalPieceRecordingIds,
     setLocalRefTrackIds,
     setActiveItemId,
@@ -230,6 +238,9 @@ export async function applyJournalPayload(data, options, deps) {
     if (hasPieceRec) setPieceRecordingMeta(st.pieceRecordingMeta || {});
     if (hasRefTracks) setRefTrackMeta(st.refTrackMeta || {});
     setHistory(migrateHistory(st.history || []));
+    // Schema v13 — absent on a pre-13 payload, so default rather than skip.
+    if (setDeletions) setDeletions(Array.isArray(st.deletions) ? st.deletions : []);
+    if (setReflectionMeta) setReflectionMeta(st.reflectionMeta || {});
     setDayClosed(!!st.dayClosed);
     setPdfUrlMap(newUrl);
     if (hasPieceRec) setLocalPieceRecordingIds(new Set(Object.keys(nprb).map((k) => k.split('__')[0])));
@@ -258,6 +269,9 @@ export async function applyJournalPayload(data, options, deps) {
     setPieceRecordingMeta(st.pieceRecordingMeta || {});
     setRefTrackMeta(st.refTrackMeta || {});
     setHistory(migrateHistory(st.history || []));
+    // Schema v13 — absent on a pre-13 payload, so default rather than skip.
+    if (setDeletions) setDeletions(Array.isArray(st.deletions) ? st.deletions : []);
+    if (setReflectionMeta) setReflectionMeta(st.reflectionMeta || {});
     setDayClosed(!!st.dayClosed);
     Object.values(pdfUrlMap || {}).forEach((u) => {
       try {

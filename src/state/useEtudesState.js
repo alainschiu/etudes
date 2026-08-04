@@ -2,7 +2,7 @@ import {useState,useEffect,useRef,useMemo,useCallback} from 'react';
 import {DEFAULT_SESSIONS,TYPES,ROLLOVER_KEY,WEEK_ROLLOVER_KEY,MONTH_ROLLOVER_KEY} from '../constants/config.js';
 import {idbPut,idbDel,idbGet,idbAllKeys,storageAvailable,detectStorage,lsGet,lsSet} from '../lib/storage.js';
 import {useSupabaseAuth} from '../lib/useSupabaseAuth.js';
-import {loadFromCloud,syncToCloud,mergeStates,structurallyEqual,LS_CLOUD_SYNC_KEY} from '../lib/sync.js';
+import {loadFromCloud,syncToCloud,mergeStates,structurallyEqual,LS_CLOUD_SYNC_KEY,stampCollectionDiff,stampHistoryDiff,pushTombstone,computeDivergence} from '../lib/sync.js';
 import {todayDateStr,shiftDate,getWeekStart,getMonthKey} from '../lib/dates.js';
 import {mkPdfId,mkAttachId,mkBookmarkId,mkSpotId,mkPerfId,mkNoteLogId,getItemTime,displayTitle,formatByline,buildHistoryItems,makeNewItem} from '../lib/items.js';
 import {migrateItems,migrateSessions,migrateRoutines,migrateHistory,migratePrograms,migrateFreeNotes} from '../lib/migrations.js';
@@ -72,27 +72,30 @@ export default function useEtudesState(){
   useEffect(()=>{const h=(e)=>{if(e.detail)setSaveStatus(e.detail);};window.addEventListener('etudes-write-result',h);return()=>window.removeEventListener('etudes-write-result',h);},[]);
 
   // ── Persisted state ───────────────────────────────────────────────────────
-  const [items,setItems]=useState(()=>migrateItems(lsGet('etudes-items',[])));
+  const [items,setItemsRaw]=useState(()=>migrateItems(lsGet('etudes-items',[])));
   const [itemTimes,setItemTimes]=useState(()=>lsGet('etudes-itemTimes',{}));
   const [warmupTimeToday,setWarmupTimeToday]=useState(()=>lsGet('etudes-warmupTimeToday',0));
   const [restToday,setRestToday]=useState(()=>lsGet('etudes-restToday',0));
   const [workingOn,setWorkingOn]=useState(()=>lsGet('etudes-workingOn',[]));
   const [todaySessions,setTodaySessions]=useState(()=>{const raw=migrateSessions(lsGet('etudes-todaySessions',DEFAULT_SESSIONS)).map(s=>({...s,itemIds:s.itemIds===null?[]:s.itemIds}));return [...raw].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type));});
   const [loadedRoutineId,setLoadedRoutineId]=useState(()=>lsGet('etudes-loadedRoutineId',null));
-  const [routines,setRoutines]=useState(()=>migrateRoutines(lsGet('etudes-routines',[])));
-  const [programs,setPrograms]=useState(()=>migratePrograms(lsGet('etudes-programs',[])));
-  const [dailyReflection,setDailyReflection]=useState(()=>lsGet('etudes-dailyReflection',''));
-  const [weekReflection,setWeekReflection]=useState(()=>lsGet('etudes-weekReflection',{notes:'',goals:''}));
-  const [monthReflection,setMonthReflection]=useState(()=>lsGet('etudes-monthReflection',{notes:'',goals:''}));
-  const [settings,setSettings]=useState(()=>lsGet('etudes-settings',{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400}));
-  const [freeNotes,setFreeNotes]=useState(()=>loadFreeNotes());
+  const [routines,setRoutinesRaw]=useState(()=>migrateRoutines(lsGet('etudes-routines',[])));
+  const [programs,setProgramsRaw]=useState(()=>migratePrograms(lsGet('etudes-programs',[])));
+  const [dailyReflection,setDailyReflectionRaw]=useState(()=>lsGet('etudes-dailyReflection',''));
+  const [weekReflection,setWeekReflectionRaw]=useState(()=>lsGet('etudes-weekReflection',{notes:'',goals:''}));
+  const [monthReflection,setMonthReflectionRaw]=useState(()=>lsGet('etudes-monthReflection',{notes:'',goals:''}));
+  const [settings,setSettingsRaw]=useState(()=>({updatedAt:0,...lsGet('etudes-settings',{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400})}));
+  const [freeNotes,setFreeNotesRaw]=useState(()=>loadFreeNotes());
+  // Schema v13 — tombstones and the reflection-singleton timestamps.
+  const [deletions,setDeletions]=useState(()=>lsGet('etudes-deletions',[]));
+  const [reflectionMeta,setReflectionMeta]=useState(()=>lsGet('etudes-reflectionMeta',{}));
   const [noteCategories,setNoteCategories]=useState(()=>lsGet('etudes-noteCategories',[]));
   const [recordingMeta,setRecordingMeta]=useState(()=>lsGet('etudes-recordingMeta',{}));
   const [pieceRecordingMeta,setPieceRecordingMeta]=useState(()=>lsGet('etudes-pieceRecordingMeta',{}));
   const [pieceRecordingItemId,setPieceRecordingItemId]=useState(null);
   const [refTrackMeta,setRefTrackMeta]=useState(()=>lsGet('etudes-refTrackMeta',{}));
   const [refBarItemId,setRefBarItemId]=useState(null);
-  const [history,setHistory]=useState(()=>migrateHistory(lsGet('etudes-history',[])));
+  const [history,setHistoryRaw]=useState(()=>migrateHistory(lsGet('etudes-history',[])));
   const [dayClosed,setDayClosed]=useState(()=>lsGet('etudes-dayClosed',false));
   const [dayJustRolled,setDayJustRolled]=useState(false);
   const [pdfUrlMap,setPdfUrlMap]=useState({});
@@ -101,7 +104,78 @@ export default function useEtudesState(){
   const [pdfLibrary,setPdfLibrary]=useState(()=>lsGet('etudes-pdfLibrary',[]));
   const [trash,setTrash]=useState(null);
 
+  // ── Schema v13 stamping (A6) ──────────────────────────────────────────────
+  // The setters below are what the views receive, so every user mutation passes
+  // through here. Each compares the outgoing collection with the incoming one and
+  // stamps only what genuinely changed — no call-site enumeration to get wrong,
+  // and no timestamp drift on a no-op write. Deletions are derived the same way:
+  // an id that vanishes through a user-facing setter is a user deletion, and gets
+  // a tombstone. Applying cloud/restore state bypasses all of it (see below), so a
+  // restore never mass-stamps or mass-tombstones.
+  const pendingTombstonesRef=useRef([]);
+  const pendingReflectionStampRef=useRef({});
+  const makeStampedSetter=useCallback((setRaw,type)=>(updater)=>{
+    setRaw(prev=>{
+      const next=typeof updater==='function'?updater(prev):updater;
+      if(applyingCloudRef.current)return next;
+      const {next:stamped,removed}=stampCollectionDiff(prev,next);
+      // Ref-queued rather than set here: a setState inside another setState's
+      // updater is unsafe. pushTombstone dedups by type:id keeping the newest
+      // deletedAt, so a StrictMode double-invocation is idempotent.
+      if(removed.length){const at=Date.now();pendingTombstonesRef.current.push(...removed.map(id=>({type,id,deletedAt:at})));}
+      return stamped;
+    });
+  },[]);
+  const setItems=useMemo(()=>makeStampedSetter(setItemsRaw,'item'),[makeStampedSetter]);
+  const setRoutines=useMemo(()=>makeStampedSetter(setRoutinesRaw,'routine'),[makeStampedSetter]);
+  const setPrograms=useMemo(()=>makeStampedSetter(setProgramsRaw,'program'),[makeStampedSetter]);
+  const setFreeNotes=useMemo(()=>makeStampedSetter(setFreeNotesRaw,'note'),[makeStampedSetter]);
+  const setHistory=useCallback((updater)=>{
+    setHistoryRaw(prev=>{
+      const next=typeof updater==='function'?updater(prev):updater;
+      if(applyingCloudRef.current)return next;
+      return stampHistoryDiff(prev,next);
+    });
+  },[]);
+  const setSettings=useCallback((updater)=>{
+    setSettingsRaw(prev=>{
+      const next=typeof updater==='function'?updater(prev):updater;
+      if(applyingCloudRef.current)return next;
+      if(structurallyEqual(prev,next))return next;
+      return {...next,updatedAt:Date.now()};
+    });
+  },[]);
+  const makeReflectionSetter=useCallback((setRaw,scale)=>(updater)=>{
+    setRaw(prev=>{
+      const next=typeof updater==='function'?updater(prev):updater;
+      if(applyingCloudRef.current)return next;
+      if(structurallyEqual(prev,next))return next;
+      pendingReflectionStampRef.current[scale]=Date.now();
+      return next;
+    });
+  },[]);
+  const setDailyReflection=useMemo(()=>makeReflectionSetter(setDailyReflectionRaw,'daily'),[makeReflectionSetter]);
+  const setWeekReflection=useMemo(()=>makeReflectionSetter(setWeekReflectionRaw,'week'),[makeReflectionSetter]);
+  const setMonthReflection=useMemo(()=>makeReflectionSetter(setMonthReflectionRaw,'month'),[makeReflectionSetter]);
+  // Flush what the updaters queued. Deliberately runs after every commit rather
+  // than on a dependency list: the queue is filled from inside a setState updater,
+  // which cannot itself call setState. Both branches are guarded on a non-empty
+  // queue, so this settles in one extra render and cannot loop.
+  useEffect(()=>{// eslint-disable-line react-hooks/exhaustive-deps
+    if(pendingTombstonesRef.current.length){
+      const queued=pendingTombstonesRef.current;pendingTombstonesRef.current=[];
+      setDeletions(d=>pushTombstone(d,queued));
+    }
+    const stamps=pendingReflectionStampRef.current;
+    if(Object.keys(stamps).length){
+      pendingReflectionStampRef.current={};
+      setReflectionMeta(m=>{const n={...m};for(const [scale,at] of Object.entries(stamps))n[scale]={...(n[scale]||{}),updatedAt:at};return n;});
+    }
+  });
+
   useEffect(()=>{lsSet('etudes-items',items.map(i=>{const {pdfUrl,...r}=i;return r;}));},[items]);
+  useEffect(()=>{lsSet('etudes-deletions',deletions);},[deletions]);
+  useEffect(()=>{lsSet('etudes-reflectionMeta',reflectionMeta);},[reflectionMeta]);
   useEffect(()=>{lsSet('etudes-pdfLibrary',pdfLibrary);},[pdfLibrary]);
   useEffect(()=>{lsSet('etudes-itemTimes',itemTimes);},[itemTimes]);
   useEffect(()=>{lsSet('etudes-warmupTimeToday',warmupTimeToday);},[warmupTimeToday]);
@@ -130,7 +204,7 @@ export default function useEtudesState(){
   useEffect(()=>{lsSet('etudes-refTrackMeta',refTrackMeta);},[refTrackMeta]);
   useEffect(()=>{lsSet('etudes-history',history);},[history]);
   useEffect(()=>{lsSet('etudes-dayClosed',dayClosed);},[dayClosed]);
-  useEffect(()=>{if(!mountedRef.current){mountedRef.current=true;return;}if(applyingCloudRef.current)return;lsSet('etudes-localDirtyAt',Date.now());},[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
+  useEffect(()=>{if(!mountedRef.current){mountedRef.current=true;return;}if(applyingCloudRef.current)return;lsSet('etudes-localDirtyAt',Date.now());},[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday,deletions,reflectionMeta]);
 
   // Dev-only: listen for seed-complete event to refresh state without a page reload
   useEffect(()=>{
@@ -156,7 +230,7 @@ export default function useEtudesState(){
     }
     window.addEventListener('etudes-dev-seed-complete',onSeedComplete);
     return()=>window.removeEventListener('etudes-dev-seed-complete',onSeedComplete);
-  },[]);
+  },[]);// eslint-disable-line react-hooks/exhaustive-deps -- mount-only; the stamped setters are referentially stable
 
   // ── Active item / session tracking ────────────────────────────────────────
   const [activeItemId,setActiveItemId]=useState(null);
@@ -218,21 +292,26 @@ export default function useEtudesState(){
   useEffect(()=>{rolloverRef.current={totalToday,warmupTimeToday,itemTimes,items,dailyReflection,weekReflection,monthReflection,settings,activeItemId,isResting};});
 
   // ── Cloud sync state ──────────────────────────────────────────────────────
-  const coldState=useMemo(()=>({items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,noteCategories,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday}),[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,noteCategories,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday]);
+  const coldState=useMemo(()=>({items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,noteCategories,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday,deletions,reflectionMeta}),[items,routines,programs,history,settings,dailyReflection,weekReflection,monthReflection,freeNotes,recordingMeta,pieceRecordingMeta,refTrackMeta,noteCategories,workingOn,todaySessions,dayClosed,loadedRoutineId,warmupTimeToday,deletions,reflectionMeta]);
   const syncPayloadKB=useMemo(()=>measureSyncPayload(coldState),[coldState]);
   const syncPayloadWarning=syncPayloadKB>500;
   const syncStateRef=useRef({});
   useEffect(()=>{syncStateRef.current={...coldState,itemTimes,restToday};});
 
+  // Restore/import/Drive-apply write wholesale, and the incoming entities carry
+  // their own updatedAt. They therefore take the RAW setters: routing them through
+  // the stamped ones would re-stamp every entity and tombstone everything the
+  // restored payload happens not to contain.
   const driveApplyDeps=useMemo(()=>({
     idbPut,idbDel,idbGet,idbAllKeys,lsSet,pdfUrlMap,
-    setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
-    setRoutines,setPrograms,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
-    setRecordingMeta,setHistory,setDayClosed,setPdfUrlMap,
+    setItems:setItemsRaw,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
+    setRoutines:setRoutinesRaw,setPrograms:setProgramsRaw,setDailyReflection:setDailyReflectionRaw,setWeekReflection:setWeekReflectionRaw,setMonthReflection:setMonthReflectionRaw,setSettings:setSettingsRaw,setFreeNotes:setFreeNotesRaw,
+    setRecordingMeta,setHistory:setHistoryRaw,setDayClosed,setPdfUrlMap,
     setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,
+    setDeletions,setReflectionMeta,
     setLocalPieceRecordingIds,setLocalRefTrackIds,
     setActiveItemId,setActiveSpotId,setActiveSessionId,setIsResting,setExpandedItemId,setPdfDrawerItemId,
-  }),[pdfUrlMap,setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,setRoutines,setPrograms,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,setRecordingMeta,setHistory,setDayClosed,setPdfUrlMap,setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,setLocalPieceRecordingIds,setLocalRefTrackIds,setActiveItemId,setActiveSpotId,setActiveSessionId,setIsResting,setExpandedItemId,setPdfDrawerItemId]);
+  }),[pdfUrlMap]);
 
   const driveColdSlice=useCallback(()=>({...coldState,itemTimes,restToday}),[coldState,itemTimes,restToday]);
 
@@ -375,8 +454,8 @@ export default function useEtudesState(){
 
   // ── BPM logging / quick note ──────────────────────────────────────────────
   const BPM_LOG_MAX=200;
-  const logTempo=useCallback(()=>{if(!activeItemId)return;const e={ts:Date.now(),bpm:metronome.bpm};if(activeSpotId){setItems(p=>p.map(i=>i.id!==activeItemId?i:{...i,spots:(i.spots||[]).map(s=>s.id===activeSpotId?{...s,bpmLog:[...(s.bpmLog||[]).slice(-BPM_LOG_MAX+1),e]}:s)}));}else{setItems(p=>p.map(i=>i.id===activeItemId?{...i,bpmLog:[...(i.bpmLog||[]).slice(-BPM_LOG_MAX+1),e]}:i));}},[activeItemId,activeSpotId,metronome.bpm]);
-  const addQuickNote=useCallback((text)=>{if(!activeItemId||!text.trim())return;const ts=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});const pre=activeSpot?`(${activeSpot.label}) `:'';const e=`[${ts}] ${pre}${text.trim()}`;setItems(p=>p.map(i=>i.id===activeItemId?{...i,todayNote:(i.todayNote?i.todayNote+'\n':'')+e}:i));},[activeItemId,activeSpot]);
+  const logTempo=useCallback(()=>{if(!activeItemId)return;const e={ts:Date.now(),bpm:metronome.bpm};if(activeSpotId){setItems(p=>p.map(i=>i.id!==activeItemId?i:{...i,spots:(i.spots||[]).map(s=>s.id===activeSpotId?{...s,bpmLog:[...(s.bpmLog||[]).slice(-BPM_LOG_MAX+1),e]}:s)}));}else{setItems(p=>p.map(i=>i.id===activeItemId?{...i,bpmLog:[...(i.bpmLog||[]).slice(-BPM_LOG_MAX+1),e]}:i));}},[activeItemId,activeSpotId,metronome.bpm,setItems]);
+  const addQuickNote=useCallback((text)=>{if(!activeItemId||!text.trim())return;const ts=new Date().toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});const pre=activeSpot?`(${activeSpot.label}) `:'';const e=`[${ts}] ${pre}${text.trim()}`;setItems(p=>p.map(i=>i.id===activeItemId?{...i,todayNote:(i.todayNote?i.todayNote+'\n':'')+e}:i));},[activeItemId,activeSpot,setItems]);
 
   // ── Note log management ───────────────────────────────────────────────────
   const addNoteLogEntry=(itemId,text,date)=>{const entry={id:mkNoteLogId(),date:date||todayDateStr(),text:text.trim(),source:'manual'};setItems(p=>p.map(i=>i.id===itemId?{...i,noteLog:[...(i.noteLog||[]),entry]}:i));};
@@ -604,11 +683,14 @@ export default function useEtudesState(){
     todayKey,items,itemTimes,warmupTimeToday,restToday,workingOn,todaySessions,loadedRoutineId,routines,
     dailyReflection,weekReflection,monthReflection,settings,freeNotes,recordingMeta,history,dayClosed,
     pieceRecordingMeta,noteCategories,refTrackMeta,programs,
-    pdfUrlMap,todayHistoryEntry,
-    setItems,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
-    setRoutines,setPrograms,setDailyReflection,setWeekReflection,setMonthReflection,setSettings,setFreeNotes,
-    setRecordingMeta,setHistory,setDayClosed,setPdfUrlMap,
+    pdfUrlMap,todayHistoryEntry,deletions,reflectionMeta,
+    // Raw setters — an import replaces state wholesale and its entities carry
+    // their own stamps (see driveApplyDeps).
+    setItems:setItemsRaw,setItemTimes,setWarmupTimeToday,setRestToday,setWorkingOn,setTodaySessions,setLoadedRoutineId,
+    setRoutines:setRoutinesRaw,setPrograms:setProgramsRaw,setDailyReflection:setDailyReflectionRaw,setWeekReflection:setWeekReflectionRaw,setMonthReflection:setMonthReflectionRaw,setSettings:setSettingsRaw,setFreeNotes:setFreeNotesRaw,
+    setRecordingMeta,setHistory:setHistoryRaw,setDayClosed,setPdfUrlMap,
     setPieceRecordingMeta,setNoteCategories,setRefTrackMeta,
+    setDeletions,setReflectionMeta,
     setLocalPieceRecordingIds,setLocalRefTrackIds,
     setActiveItemId,setActiveSpotId,setActiveSessionId,setIsResting,setExpandedItemId,setPdfDrawerItemId,
     setRestoreBusy,setExportMenu,setConfirmModal,importInputRef,
@@ -621,7 +703,10 @@ export default function useEtudesState(){
 
   // ── Cloud sync effects ─────────────────────────────────────────────────────
   const applyCloudStateRef=useRef(null);
-  applyCloudStateRef.current=(s)=>{if(!s)return;applyingCloudRef.current=true;setItems(migrateItems(s.items||[]));setRoutines(migrateRoutines(s.routines||[]));setPrograms(s.programs||[]);setHistory(migrateHistory(s.history||[]));setSettings(s.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setDailyReflection(s.dailyReflection||'');setWeekReflection(s.weekReflection||{notes:'',goals:''});setMonthReflection(s.monthReflection||{notes:'',goals:''});setFreeNotes(migrateFreeNotes(s.freeNotes||[]));setRecordingMeta(s.recordingMeta||{});setPieceRecordingMeta(s.pieceRecordingMeta||{});setRefTrackMeta(s.refTrackMeta||{});setWorkingOn(s.workingOn||[]);setTodaySessions([...migrateSessions(s.todaySessions||DEFAULT_SESSIONS).map(s=>({...s,itemIds:s.itemIds===null?[]:s.itemIds}))].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type)));setDayClosed(!!s.dayClosed);setLoadedRoutineId(s.loadedRoutineId||null);setWarmupTimeToday(s.warmupTimeToday||0);setItemTimes(s.itemTimes||{});setRestToday(s.restToday||0);requestAnimationFrame(()=>{applyingCloudRef.current=false;});};
+  // Raw setters throughout: this is a cloud apply, not a user edit. Nothing here
+  // may stamp updatedAt or raise a tombstone — the incoming entities already carry
+  // their own stamps, and re-stamping would make this device win every later merge.
+  applyCloudStateRef.current=(s)=>{if(!s)return;applyingCloudRef.current=true;setItemsRaw(migrateItems(s.items||[]));setRoutinesRaw(migrateRoutines(s.routines||[]));setProgramsRaw(migratePrograms(s.programs||[]));setHistoryRaw(migrateHistory(s.history||[]));setSettingsRaw(s.settings||{dailyTarget:90,weeklyTarget:600,monthlyTarget:2400});setDailyReflectionRaw(s.dailyReflection||'');setWeekReflectionRaw(s.weekReflection||{notes:'',goals:''});setMonthReflectionRaw(s.monthReflection||{notes:'',goals:''});setFreeNotesRaw(migrateFreeNotes(s.freeNotes||[]));setDeletions(Array.isArray(s.deletions)?s.deletions:[]);setReflectionMeta(s.reflectionMeta||{});setRecordingMeta(s.recordingMeta||{});setPieceRecordingMeta(s.pieceRecordingMeta||{});setRefTrackMeta(s.refTrackMeta||{});setWorkingOn(s.workingOn||[]);setTodaySessions([...migrateSessions(s.todaySessions||DEFAULT_SESSIONS).map(s=>({...s,itemIds:s.itemIds===null?[]:s.itemIds}))].sort((a,b)=>TYPES.indexOf(a.type)-TYPES.indexOf(b.type)));setDayClosed(!!s.dayClosed);setLoadedRoutineId(s.loadedRoutineId||null);setWarmupTimeToday(s.warmupTimeToday||0);setItemTimes(s.itemTimes||{});setRestToday(s.restToday||0);requestAnimationFrame(()=>{applyingCloudRef.current=false;});};
   // Load or first-run migration on sign-in
   useEffect(()=>{if(!user)return;(async()=>{try{setSyncStatus('syncing');const result=await loadFromCloud(user.id);
 
@@ -663,22 +748,27 @@ export default function useEtudesState(){
       applyCloudStateRef.current(remoteState);setLastSyncedAt(Date.now());setSyncStatus('idle');return;
     }
 
-    // Both sides have data and local has unsaved changes — decide what to do
+    // Both sides have data and local has unsaved changes — decide what to do.
     const remoteIds=new Set(remoteItems.map(i=>i.id));
     const localIds=new Set(localItems.map(i=>i.id));
     const localOnlyItems=localItems.filter(i=>!remoteIds.has(i.id));
     const remoteOnlyItems=remoteItems.filter(i=>!localIds.has(i.id));
-    // Structural compare — JSON.stringify false-positives on key-order differences
-    // (Postgres JSONB does not preserve key order on round-trip).
-    const hasOverlap=localItems.some(i=>remoteIds.has(i.id)&&remoteItems.find(r=>r.id===i.id&&!structurallyEqual(r,i)));
+    // Divergence spans items, routines, programs and notes (v13) — not items
+    // alone. Structural compare, because JSON.stringify false-positives on
+    // key-order differences (Postgres JSONB does not preserve key order).
+    const divergence=computeDivergence(syncStateRef.current,remoteState);
+    // LWW resolves a divergence silently whenever both sides carry a real,
+    // distinct stamp. What is left — an exact tie, or pre-v13 data stamped 0 —
+    // is what a human is actually needed for.
+    const undecidable=divergence.filter(d=>d.undecidable);
+    const hasOverlap=divergence.length>0;
 
-    // Silent auto-merge: every shared id has identical content. The union of
-    // unique items merges via mergeStates (local wins on shared ids — a no-op
-    // here since they're equal — and unique items from each side combine).
-    // This is the expected multi-device case: practiced on both, no semantic
-    // conflict, no user decision needed.
-    if(!hasOverlap){
-      if(remoteOnlyItems.length>0||localOnlyItems.length>0){
+    // Silent path: either nothing diverges, or every divergence has a clear
+    // winner by recency. mergeStates unions the unique entities from each side
+    // and keeps the newer copy of anything shared. This is the expected
+    // multi-device case — practised on both, no decision needed.
+    if(undecidable.length===0){
+      if(remoteOnlyItems.length>0||localOnlyItems.length>0||hasOverlap){
         const merged=mergeStates(syncStateRef.current,remoteState);
         applyCloudStateRef.current(merged);
         await syncToCloud(user.id,merged);
@@ -686,12 +776,16 @@ export default function useEtudesState(){
       lsSet('etudes-localDirtyAt',0);setLastSyncedAt(Date.now());setSyncStatus('idle');return;
     }
 
-    // Genuine conflict: at least one shared id differs. Ask the user.
+    // Genuine conflict: something diverged that recency cannot settle. Ask, and
+    // say what it is.
     pendingRemoteRef.current=remoteState;
     setSyncConflictModal({
       localCount:localOnlyItems.length||localItems.length,
       remoteCount:remoteOnlyItems.length||remoteItems.length,
       hasOverlap,
+      divergence:undecidable,
+      localEditedAt:lsGet('etudes-localDirtyAt',0),
+      remoteEditedAt:result.updated_at?new Date(result.updated_at).getTime():0,
       onMerge:async()=>{const merged=mergeStates(syncStateRef.current,pendingRemoteRef.current);applyCloudStateRef.current(merged);await syncToCloud(user.id,merged);lsSet('etudes-localDirtyAt',0);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
       onKeepLocal:async()=>{await syncToCloud(user.id,syncStateRef.current);lsSet('etudes-localDirtyAt',0);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},
       onKeepCloud:()=>{applyCloudStateRef.current(pendingRemoteRef.current);lsSet(LS_CLOUD_SYNC_KEY,Date.now());lsSet('etudes-localDirtyAt',0);setLastSyncedAt(Date.now());setSyncStatus('idle');setSyncConflictModal(null);},

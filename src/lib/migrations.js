@@ -47,8 +47,37 @@ export const IMPORT_MIGRATIONS=[
     const s=d.state||{};
     return {...d,schemaVersion:12,state:{...s,items:migrateScoreLinks(s.items||[])}};
   }},
+  {from:12,to:13,migrate:(d)=>{
+    // Multi-device merge (schema v13). Entities gain updatedAt so merges can pick
+    // the newer side; deletions gains tombstones so a delete propagates instead of
+    // resurrecting; reflectionMeta timestamps the three id-less reflection
+    // singletons. Shares migrateMergeMeta with the live-state loader so an
+    // imported pre-13 backup lands identical to a live-migrated one.
+    const s=d.state||{};
+    return {...d,schemaVersion:13,state:migrateMergeMeta(s)};
+  }},
 ];
 export function migrateImport(data){let c=data;let v=c.schemaVersion||1;for(const m of IMPORT_MIGRATIONS){if(m.from===v){c=m.migrate(c);v=m.to;c.schemaVersion=v;}}return c;}
+
+// Schema v13 defaults. Idempotent — an existing updatedAt is preserved, and a
+// pre-13 entity defaults to 0 ("unknown / oldest") rather than migration-time, so
+// two devices that upgrade independently do not tie: the first real post-upgrade
+// edit deterministically wins.
+export function migrateMergeMeta(state){
+  const s=state||{};
+  const stamp=(arr)=>(arr||[]).map(x=>({...x,updatedAt:x.updatedAt||0}));
+  return {
+    ...s,
+    items:stamp(s.items),
+    routines:stamp(s.routines),
+    programs:stamp(s.programs),
+    history:stamp(s.history),
+    freeNotes:migrateFreeNotes(s.freeNotes),
+    settings:{...(s.settings||{}),updatedAt:s.settings?.updatedAt||0},
+    deletions:Array.isArray(s.deletions)?s.deletions:[],
+    reflectionMeta:(s.reflectionMeta&&typeof s.reflectionMeta==='object')?s.reflectionMeta:{},
+  };
+}
 
 // Notes gain updatedAt (schema v11). Shared by the live-state loader and the
 // import 10->11 migration. Idempotent: an existing updatedAt is preserved; a
@@ -97,6 +126,8 @@ export function migratePrograms(programs){
     venue:null,audience:null,itemNotes:{},intention:null,
     reflection:null,body:null,
     ...p,
+    updatedAt:p.updatedAt||0, // schema v13
+
     // itemNotes re-checked after spread to guard against corrupted non-object values
     itemNotes:(p.itemNotes&&typeof p.itemNotes==='object')?p.itemNotes:{},
   }));
@@ -111,8 +142,8 @@ export function migrateItems(items){return (items||[]).map(i=>{
   const pdfs=rawPdfs.map(p=>p.libraryId?{...p,bookmarks:(p.bookmarks||[]).map(b=>({note:'',...b}))}:{id:mkAttachId(),libraryId:p.id,name:p.name,startPage:null,endPage:null,bookmarks:[]});
   // defaultPdfId was old libraryId; find matching attachment
   const defaultPdfId=pdfs.length>0?(pdfs.find(p=>p.libraryId===i.defaultPdfId)||pdfs[0]).id:null;
-  return {...i,type:i.type==='jam'?'play':i.type,stage:stage||'learning',startedDate:i.startedDate??null,bpmLog:Array.isArray(i.bpmLog)?i.bpmLog:[],arranger:i.arranger||'',author:i.author||'',catalog:i.catalog||'',collection:i.collection||'',movement:i.movement||'',pdfs,defaultPdfId,bpmTarget:typeof i.bpmTarget==='number'?i.bpmTarget:null,todayNote:i.todayNote||'',instrument:typeof i.instrument==='string'?i.instrument:'',spots:Array.isArray(i.spots)?i.spots.map(s=>({id:s.id||mkSpotId(),label:s.label||'Untitled spot',bpmTarget:typeof s.bpmTarget==='number'?s.bpmTarget:null,note:typeof s.note==='string'?s.note:'',bpmLog:Array.isArray(s.bpmLog)?s.bpmLog:[],scoreLink:deriveScoreLink(s,pdfs,defaultPdfId)})):[],performances:Array.isArray(i.performances)?i.performances.map(p=>({id:p.id||mkPerfId(),date:p.date||'',label:p.label||''})):[],lengthSecs:i.lengthSecs??null,noteLog:Array.isArray(i.noteLog)?i.noteLog:[],pdfUrl:undefined};
+  return {...i,updatedAt:i.updatedAt||0,type:i.type==='jam'?'play':i.type,stage:stage||'learning',startedDate:i.startedDate??null,bpmLog:Array.isArray(i.bpmLog)?i.bpmLog:[],arranger:i.arranger||'',author:i.author||'',catalog:i.catalog||'',collection:i.collection||'',movement:i.movement||'',pdfs,defaultPdfId,bpmTarget:typeof i.bpmTarget==='number'?i.bpmTarget:null,todayNote:i.todayNote||'',instrument:typeof i.instrument==='string'?i.instrument:'',spots:Array.isArray(i.spots)?i.spots.map(s=>({id:s.id||mkSpotId(),label:s.label||'Untitled spot',bpmTarget:typeof s.bpmTarget==='number'?s.bpmTarget:null,note:typeof s.note==='string'?s.note:'',bpmLog:Array.isArray(s.bpmLog)?s.bpmLog:[],scoreLink:deriveScoreLink(s,pdfs,defaultPdfId)})):[],performances:Array.isArray(i.performances)?i.performances.map(p=>({id:p.id||mkPerfId(),date:p.date||'',label:p.label||''})):[],lengthSecs:i.lengthSecs??null,noteLog:Array.isArray(i.noteLog)?i.noteLog:[],pdfUrl:undefined};
 });}
 export function migrateSessions(sessions){return (sessions||[]).map(s=>({id:s.id,type:s.type,itemIds:s.itemIds===undefined?null:s.itemIds,target:typeof s.target==='number'?s.target:null,itemTargets:s.itemTargets&&typeof s.itemTargets==='object'?s.itemTargets:{},isWarmup:!!s.isWarmup}));}
-export function migrateRoutines(routines){return (routines||[]).map(r=>({...r,sessions:(r.sessions||[]).map(s=>({type:s.type,intention:s.intention||'',itemIds:Array.isArray(s.itemIds)?s.itemIds:[],target:typeof s.target==='number'?s.target:null,itemTargets:s.itemTargets&&typeof s.itemTargets==='object'?s.itemTargets:{},isWarmup:!!s.isWarmup}))}));}
-export function migrateHistory(h){const arr=Array.isArray(h)?h:(h&&typeof h==='object'?Object.values(h):[]);return arr.map(x=>({...x,kind:x.kind||'day'}));}
+export function migrateRoutines(routines){return (routines||[]).map(r=>({...r,updatedAt:r.updatedAt||0,sessions:(r.sessions||[]).map(s=>({type:s.type,intention:s.intention||'',itemIds:Array.isArray(s.itemIds)?s.itemIds:[],target:typeof s.target==='number'?s.target:null,itemTargets:s.itemTargets&&typeof s.itemTargets==='object'?s.itemTargets:{},isWarmup:!!s.isWarmup}))}));}
+export function migrateHistory(h){const arr=Array.isArray(h)?h:(h&&typeof h==='object'?Object.values(h):[]);return arr.map(x=>({...x,kind:x.kind||'day',updatedAt:x.updatedAt||0}));}

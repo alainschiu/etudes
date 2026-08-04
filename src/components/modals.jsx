@@ -409,20 +409,34 @@ export function DriveConflictModal({remoteModified,localMarker,onLoadFromDrive,o
   </div></div>);
 }
 
-export function SyncConflictModal({localCount,remoteCount,hasOverlap,onMerge,onKeepLocal,onKeepCloud}){
-  const overlapNote=hasOverlap
-    ? 'Some pieces exist on both devices with different edits. Merge combines everything — local edits win on the same piece.'
-    : 'Both devices have unique pieces. Merge combines everything safely.';
+const DIVERGENCE_KIND={item:'piece',routine:'routine',program:'program',note:'note'};
+
+export function SyncConflictModal({localCount,remoteCount,hasOverlap,divergence=[],localEditedAt=0,remoteEditedAt=0,onMerge,onKeepLocal,onKeepCloud}){
+  // v0.99.2: recency settles the ordinary case silently, so anything that reaches
+  // this modal is genuinely undecidable — an exact tie, or data that predates
+  // stamping. Name it rather than reporting counts.
+  const shown=divergence.slice(0,5);
+  const more=divergence.length-shown.length;
+  const overlapNote=divergence.length>0
+    ? `Edited on both devices, with no way to tell which came last: ${shown.map(d=>d.label).join(', ')}${more>0?` and ${more} more`:''}.`
+    : hasOverlap
+      ? 'Some pieces exist on both devices with different edits. Merge keeps the most recent version of each.'
+      : 'Both devices have unique pieces. Merge combines everything safely.';
+  const fmtWhen=(t)=>t?new Date(t).toLocaleString(undefined,{day:'numeric',month:'short',hour:'numeric',minute:'2-digit'}):'unknown';
   const panelRef=useRef(null);useFocusTrap(panelRef,true);
   return (<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:'rgba(0,0,0,0.7)',backdropFilter:'blur(8px)'}}><div ref={panelRef} className="max-w-sm w-full" style={{background:BG,border:`1px solid ${LINE_STR}`}} onClick={e=>e.stopPropagation()}>
     <div className="px-8 py-7">
       <div className="uppercase mb-4" style={{color:FAINT,fontSize:'10px',letterSpacing:'0.32em'}}>Sync — both devices have data</div>
       <p style={{fontFamily:serif,fontSize:'15px',lineHeight:1.7,fontWeight:300}}>This device has <span style={{color:TEXT}}>{localCount} {localCount===1?'piece':'pieces'}</span>. The cloud has <span style={{color:TEXT}}>{remoteCount} {remoteCount===1?'piece':'pieces'}</span> from another device.</p>
       <p className="mt-3" style={{fontFamily:serif,fontSize:'13px',lineHeight:1.6,fontWeight:300,color:MUTED,fontStyle:'italic'}}>{overlapNote}</p>
+      {divergence.length>0&&(<div className="mt-3" style={{fontFamily:serif,fontSize:'12px',lineHeight:1.7,fontWeight:300,color:FAINT,fontStyle:'italic'}}>
+        {shown.map(d=>(<div key={`${d.type}:${d.id}`}>{d.label} <span style={{color:DIM}}>· {DIVERGENCE_KIND[d.type]||d.type}</span></div>))}
+      </div>)}
+      <p className="mt-3" style={{fontFamily:serif,fontSize:'11px',lineHeight:1.6,fontWeight:300,color:FAINT,fontStyle:'italic'}}>This device last edited {fmtWhen(localEditedAt)}. The cloud last changed {fmtWhen(remoteEditedAt)}.</p>
       <p className="mt-3" style={{fontFamily:serif,fontSize:'11px',lineHeight:1.6,fontWeight:300,color:FAINT,fontStyle:'italic'}}>Audio recordings and PDFs are stored locally and are not affected by this choice.</p>
     </div>
     <div className="px-8 pb-6 flex flex-col gap-2" style={{borderTop:`1px solid ${LINE}`,paddingTop:'20px'}}>
-      <button onClick={onMerge} className="w-full py-2.5 uppercase" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'}}>Merge — keep everything</button>
+      <button onClick={onMerge} className="w-full py-2.5 uppercase" style={{background:IKB,color:TEXT,fontSize:'10px',letterSpacing:'0.22em'}}>Merge — keep newest of each</button>
       <button onClick={onKeepLocal} className="w-full py-2.5 uppercase" style={{color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Keep this device</button>
       <button onClick={onKeepCloud} className="w-full py-2.5 uppercase" style={{color:MUTED,border:`1px solid ${LINE_STR}`,fontSize:'10px',letterSpacing:'0.22em'}}>Keep cloud version</button>
     </div>
