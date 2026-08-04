@@ -174,7 +174,7 @@ export function pushToDrive(opts) {
       const mCov = readDriveManifest();
       const keysByStore = {};
       for (const store of BLOB_STORES) keysByStore[store] = await idbAllKeys(store);
-      if (hasUnbackedBlobs(keysByStore, mCov.driveFileIndex)) mode = 'full';
+      if (hasUnbackedBlobs(keysByStore, mCov.driveFileIndex, mCov.driveBlobHashes)) mode = 'full';
     }
 
     try {

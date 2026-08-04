@@ -18,7 +18,8 @@ import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts.js';
 import useDriveSync from '../hooks/useDriveSync.js';
 import {applyJournalPayload} from '../lib/journalPayload.js';
 import {restoreBlobsFromDrive} from '../lib/driveSync.js';
-import {writeDriveManifest} from '../lib/driveManifest.js';
+import {writeDriveManifest,readDriveManifest} from '../lib/driveManifest.js';
+import {withoutBlobHash} from '../lib/driveBlobPolicy.js';
 
 export default function useEtudesState(){
   // ── UI state ──────────────────────────────────────────────────────────────
@@ -564,6 +565,11 @@ export default function useEtudesState(){
       setConfirmModal({message:'Could not store the reference track on this device.',confirmLabel:'OK',onConfirm:()=>setConfirmModal(null)});
       return;
     }
+    // A1: refTracks reuse their key, so the recorded content hash now describes
+    // the previous file. Clear it — hasUnbackedBlobs treats an indexed refTrack
+    // with no hash as unbacked, so the next json push escalates to full and the
+    // new content actually reaches Drive.
+    writeDriveManifest({driveBlobHashes:withoutBlobHash(readDriveManifest().driveBlobHashes,'refTracks',itemId)});
     driveSync.notifyBlobWrite();
     setRefTrackMeta(m=>({...m,[itemId]:{peaks,filename:file.name}}));
   };
