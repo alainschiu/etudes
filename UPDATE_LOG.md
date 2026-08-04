@@ -1,5 +1,13 @@
 # Update Log
 
+## v0.99.2 — 2026-08-05 — Multi-device merge
+
+- **Your phone and your laptop stop overwriting each other** — practise or edit on both in the same day and both sets of changes survive. Whichever edit you made most recently is the one that's kept.
+- **Deleting something makes it stay deleted** — a piece you delete on one device no longer reappears the next time your other device syncs. (If you edit that piece on the other device *after* deleting it, it does come back — that's on purpose.)
+- **You'll almost never see the "which version?" prompt again** — and when you do, it now tells you exactly what differs and when each device last changed it, instead of showing a count of pieces.
+- **Settings and reflections merge too** — your targets, reminders and your daily, weekly and monthly reflections all keep the most recent version.
+- **A replaced reference track reaches Drive** — swapping a reference recording while Drive was disconnected no longer leaves the old file as your backup.
+
 ## v0.99.1 — 2026-07-22 — Drive backup continuity
 
 - **Drive backups are small and quick now** — the backup file no longer carries copies of your audio and PDFs, so it stays tiny; your recordings and scores are backed up as individual files, and ones already on Drive are skipped. A second backup with nothing new to save uploads nothing.

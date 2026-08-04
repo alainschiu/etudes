@@ -1,4 +1,4 @@
-# Études — v0.99.1
+# Études — v0.99.2
 
 A practice journal for musicians. Seven views: Today, Review, Répertoire, Routines, Logs, Notes, Programs. Works offline as a PWA — install from the browser on any device.
 
@@ -18,7 +18,7 @@ A practice journal for musicians. Seven views: Today, Review, Répertoire, Routi
 - **Metronome** — tap tempo, BPM scrub drag, accelerando; BPM respects the **Note** (denominator) and compound grouping; look-ahead scheduler stays stable while editing; optional per-beat **accent** pattern in the mobile sheet; **Auto** folds 6/9/12/15 beats into triple compound when you turn it on (Sub 1, Group Off); shorter percussive **click** sound with noise burst
 - **Tuning drone** — piano-keyboard note picker, pitch reference; open with `D`
 - **Keyboard shortcuts** — `Space` start or pause · `R` rest · `M` metronome · `T` tap · `L` log BPM · `D` tuning · `N` quick note · `?` Réglages · `1–4` jump to section on Today
-- **Sync** — optional sign-in (Google or email); data syncs across devices via Supabase; practice time syncs at timer boundaries with a mid-session heartbeat; sign-in and sync failures report in plain language inside the app; payload size warning when backup exceeds 500 KB
+- **Sync** — optional sign-in (Google or email); data syncs across devices via Supabase; practice time syncs at timer boundaries with a mid-session heartbeat; **multi-device merge keeps the most recent edit of each piece, routine, program, note, history entry and setting, and propagates deletions instead of resurrecting them** — the conflict prompt appears only when recency genuinely cannot decide, and names what differs; sign-in and sync failures report in plain language inside the app; payload size warning when backup exceeds 500 KB
 - **Daily reminder** — optional push notification at a chosen time (requires notification permission)
 - **Mobile PWA** — bottom tab navigation (7 tabs), compact header, mobile-optimised footer bar, Répertoire sidebar as full-screen overlay sheet, PDF drawer full-screen on mobile; installable from any browser
 

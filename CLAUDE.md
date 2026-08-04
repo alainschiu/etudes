@@ -4,7 +4,7 @@ Before doing anything, read `North_Star_V2.5.md`. It is the authoritative
 product document and supersedes all other instructions.
 
 Current version: v2.5
-Current app version: v0.99.1
+Current app version: v0.99.2
 
 -----
 
@@ -25,7 +25,7 @@ npm install           # .npmrc sets legacy-peer-deps=true (vite-plugin-pwa/Vite 
 npm run dev           # Vite dev server — http://localhost:5173 — no SW in dev
 npm run build         # production build → dist/; generates sw.js + workbox-*.js
 npm run preview       # serve dist/ locally with SW active
-npm test              # vitest harness — fast; 67 tests: sync/drive/migration/error-map helpers
+npm test              # vitest harness — fast; 136 tests: sync/merge/drive/migration/error-map helpers
 ```
 
 ## Testing
@@ -33,8 +33,16 @@ npm test              # vitest harness — fast; 67 tests: sync/drive/migration/
 Vitest harness covers the load-bearing pure functions:
 
 - `structurallyEqual` in `src/lib/sync.js`
+- `mergeStates`, `stampCollectionDiff`, `pushTombstone` / `applyTombstones`, `computeDivergence` in `src/lib/sync.js` (schema v13 merge)
+- `migrateMergeMeta` + the v12→v13 import migration in `src/lib/migrations.js`
 - `deriveDriveStatus`, `formatRelative`, `formatResumeIn` in `src/lib/driveStatus.js`
 - `driveAuth` surface shape (export presence)
+
+Two of these are deliberate tripwires rather than ordinary coverage: `mergeStates`
+“returns every key the state carries” fails loudly if a key is dropped from the
+merge (which would wipe that slice on every sync), and the `journalPayload`
+round-trip asserts each v13 key survives export *and* re-import (the A7-ii
+completeness trap). Keep both in step when the state shape changes.
 
 Adding sync/drive logic? Add a test. The harness is fast enough to run in the dev loop without friction.
 
@@ -95,6 +103,11 @@ Every writing surface persists to one of these `etudes-*` localStorage keys (aud
 | 12 | Program reflection           | `program.reflection`           | `etudes-programs`        |
 | 13 | Program body / notes         | `program.body`                 | `etudes-programs`        |
 
+Two `etudes-*` keys carry no writing but are load-bearing for sync (schema v13):
+`etudes-deletions` (tombstones — `{type,id,deletedAt}`, pruned at 90 days / 500
+entries) and `etudes-reflectionMeta` (per-scale `updatedAt` for the three
+reflection singletons, which have no id to stamp).
+
 ### Wiki-link grammar
 
 `[[…]]` is recognised in every markdown surface; the resolver is `resolveWikiLink` in `src/lib/notes.js`, which returns one of five target types: `day`, `item`, `spot`, `program`, `note`.
@@ -128,7 +141,10 @@ Established by the v0.98.x trilogy. Do not undo these without explicit need:
 - **Auth surface is split.** `driveAuth.js` exports `prepareDriveAuth` / `isDriveAuthReady` / `requestDriveTokenInteractive` for the interactive path. `getDriveAccessToken({interactive: false})` remains the silent renewal path; do not change its behavior.
 - **iOS Safari requires synchronous popup trigger.** Any code path that opens a Drive OAuth popup must call `requestDriveTokenInteractive()` synchronously from a user gesture (click, confirm modal onConfirm). No `await` between the gesture and the popup. Even an immediately-resolved await breaks iOS.
 - **`signInEpoch` gates the sync-conflict effect.** Don’t change the dependency back to `[user]`.
-- **`structurallyEqual` (in `sync.js`), not `JSON.stringify`, for sync overlap detection.** Postgres JSONB does not preserve key order on round-trip; JSON.stringify equality false-positives constantly.
+- **`structurallyEqual` (in `sync.js`), not `JSON.stringify`, for sync overlap detection.** Postgres JSONB does not preserve key order on round-trip; JSON.stringify equality false-positives constantly. It ignores `updatedAt` at every depth, which is what keeps a post-edit round-trip from reading as a conflict — don’t remove that from `IGNORED_EQUALITY_KEYS`.
+- **Stamping is a diff in the wrapped setters, never per call site (v13/A6).** `useEtudesState` exposes *wrapped* `setItems` / `setRoutines` / `setPrograms` / `setFreeNotes` / `setHistory` / `setSettings` / the three reflection setters; each compares outgoing against incoming and stamps only genuine content changes, and vanished ids become tombstones. The views mutate these collections from dozens of places, so call-site stamping would silently miss some. Don’t “simplify” this back into the reducers.
+- **Restore / import / cloud-apply use the RAW setters.** `driveApplyDeps`, the `useImportExport` deps, and `applyCloudStateRef` all pass `set*Raw`. Routing any of them through a wrapped setter re-stamps every entity (so the restoring device wins every later merge) and tombstones everything the payload omits.
+- **Every new state key must reach all seven surfaces.** `coldState`, `applyCloudStateRef`, `syncStateRef`, `buildFullJournalPayload`, `applyJournalPayload` (both paths), the migration, and the `useImportExport` export slice + import deps. A key in one but not the other is a silent data wipe; the two tripwire tests above exist to catch it.
 - **`lastAttemptedAt` manifest write lives inside the try block** in `driveSync.js`’s push function. Moving it outside re-introduces the silent-failure-on-quota-error class.
 - **`prepareDriveAuth()` is called eagerly on app mount** in `App.jsx` when `isDriveConfigured()`. Don’t lazy-load GIS on first click.
 - **`<link rel="preload">` for `accounts.google.com/gsi/client`** lives in `index.html`. Removing it re-introduces the iOS gesture race.
@@ -150,7 +166,7 @@ These conventions are in force across the app:
 - `src/constants/config.js` → `APP_VERSION` (footer badge)
 - `package.json` → `version` (Settings modal reads `appPkg.version` directly)
 
-`SCHEMA_VERSION` in `config.js` — increment only when the persisted state shape changes. Current: `12` (v11 added notes `updatedAt`; v12 unified spot score links into `spot.scoreLink` + bookmark `note`).
+`SCHEMA_VERSION` in `config.js` — increment only when the persisted state shape changes. Current: `13` (v11 added notes `updatedAt`; v12 unified spot score links into `spot.scoreLink` + bookmark `note`; v13 added per-entity `updatedAt`, `deletions` tombstones, `reflectionMeta`, `settings.updatedAt` for multi-device merge).
 
 Drive manifest fields are not part of `SCHEMA_VERSION`; the manifest has its own forward-compatible field-addition policy in `driveManifest.js` (additive only, defaults preserved).
 

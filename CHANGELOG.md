@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.99.2] — 2026-08-05
+
+### Multi-device merge
+
+The last release of the Sync Run (spec: `v0.99.2-spec.md` + addendum). **Schema
+v13** — the one schema change of the run. Two devices can now be used in the same
+day without either overwriting the other.
+
+- Edits made on two devices both survive. Previously a device could overwrite a
+  newer remote edit with an older local copy; the most recent edit of each piece,
+  routine, program, note, history entry and setting now wins.
+- Deletions stay deleted. A piece deleted on one device no longer reappears when
+  another device that still held it syncs. Editing a piece *after* it was deleted
+  elsewhere brings it back — deliberately.
+- The conflict prompt is now rare and specific. It appears only when two devices
+  changed the same thing and recency cannot say which came last, and it names what
+  differs and when each side last changed instead of showing counts. Detection
+  covers routines, programs and notes, not only pieces.
+- Settings and the daily / weekly / monthly reflections merge by recency too.
+- Reference tracks: replacing one while Drive was disconnected now forces the next
+  backup to upload the new file instead of leaving the old one on Drive.
+
+Migration is additive: a v12 journal loads under v13 with entities stamped
+"oldest", so the first edit after upgrading wins on either device.
+
 ## [0.99.1] — 2026-07-22
 
 ### Drive backup continuity

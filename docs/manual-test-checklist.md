@@ -127,6 +127,8 @@ one-way migration before beta, so these three run right after merge rather than 
 - [ ] **Reflections merge by recency** — edit today's reflection on both devices; the newer one survives.
 - [ ] **Informed conflict modal** — when it appears, it shows each side's last-edit time and a summary of what differs, before you choose.
 - [ ] **Migration triad** — fresh install / a real pre-v13 backup / empty state each migrate correctly, and idempotently on a second load.
+- [ ] **Tombstones survive a file round trip** — delete a piece, back up to file, restore that file on a second device: the piece does not come back. (Implementation note: `deletions` and `reflectionMeta` had to be threaded through the export slice *and* the import deps separately from the Drive path — this check covers the file path specifically.)
+- [ ] **A restore does not mass-delete** — restore a backup that omits pieces the device currently has, then sync. The omitted pieces are not tombstoned by the restore itself.
 - [ ] **Legacy links survive** — a v0.98.7-era backup restores with spot→score links intact and bookmarks carrying notes.
 
 ---
