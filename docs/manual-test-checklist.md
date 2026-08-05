@@ -130,6 +130,8 @@ one-way migration before beta, so these three run right after merge rather than 
 - [ ] **Tombstones survive a file round trip** — delete a piece, back up to file, restore that file on a second device: the piece does not come back. (Implementation note: `deletions` and `reflectionMeta` had to be threaded through the export slice *and* the import deps separately from the Drive path — this check covers the file path specifically.)
 - [ ] **A restore does not mass-delete** — restore a backup that omits pieces the device currently has, then sync. The omitted pieces are not tombstoned by the restore itself.
 - [ ] **Legacy links survive** — a v0.98.7-era backup restores with spot→score links intact and bookmarks carrying notes.
+- [ ] **Settings and log entries merge by recency too** — change the daily target on both devices, and edit the same day's log entry on both. The later change wins in each case (settings merge whole-object; history merges per entry by date). *(Architect review: covered by tests, never yet seen on glass.)*
+- [ ] **First sync after both devices upgrade — a prompt here is EXPECTED, not a bug.** Entities created before v13 carry no timestamp (`updatedAt: 0`, deliberately — stamping them at migration time would make two upgraded devices tie on everything). So the first time two upgraded devices meet on a genuinely divergent entity, recency cannot decide and the conflict modal appears **by design**. Confirm it names what differs, that choosing resolves it, and that it does **not** keep reappearing for the same item afterwards.
 
 ---
 
