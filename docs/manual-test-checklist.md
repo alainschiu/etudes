@@ -135,6 +135,18 @@ one-way migration before beta, so these three run right after merge rather than 
 
 ---
 
+## v0.99.3 — Honest input (no schema change; verify on production)
+
+Browser-verified before merge against both 16 Aug repros (local `vite preview`, desktop Chrome). What still wants real hands:
+
+- [ ] **Near-miss click can't become commands** — open a piece's detail, click *beside* a field (its label or hint, not the field), type a sentence with spaces. No timer starts, the tuner doesn't open, rest doesn't toggle. Repeat with a missed click on the Répertoire search row.
+- [ ] **Shortcuts come back** — after the above, click somewhere away from any field, press Space: the last piece starts.
+- [ ] **Click a piece row on Today, then Space** — the everyday path. Must start the timer. *(Unit-tested and browser-checked only on an empty Today; this is its first real run with pieces in sessions.)*
+- [ ] **New piece under a filter** — with a search or filter active, ADD → PIECES. The new piece is visible, its form open, the title ready to type. Collapse it: normal filtering resumes.
+- [ ] **iPad with a keyboard** — the near-miss check again, if the hardware lands. Touch-only phones don't fire keyboard shortcuts.
+
+---
+
 ## Lane B — iPad, **portrait** (blocked on hardware; deferred since v0.98.8)
 
 Portrait is the music-stand orientation and the audit's flagged worst case — it gets the
