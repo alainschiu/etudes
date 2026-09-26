@@ -1,5 +1,12 @@
 # Update Log
 
+## v0.99.3 — 2026-09-27 — Honest input
+
+- **Typing can no longer start your practice timer** — if a click lands just beside a field instead of in it, the sentence you type is no longer read as shortcuts. Before this, Space could quietly start a piece's timer and add practice time you never played, and letters could open the tuner or jump to another piece. Shortcuts now pause after a click beside a field and come back on your next click elsewhere.
+- **Adding a piece always shows you the piece** — with a search or filter active, a new piece used to be hidden the moment it was made, so the ADD button looked like it did nothing and invited a second click and a second empty piece. The new piece now stays visible while it is open, and its title is ready to type into.
+
+*Not in this release, on purpose:* removing empty "Untitled" pieces automatically. Deleting anything on your behalf needs more care than a small release allows; for now, delete a stray one by hand.
+
 ## v0.99.2 — 2026-08-05 — Multi-device merge
 
 - **Your phone and your laptop stop overwriting each other** — practise or edit on both in the same day and both sets of changes survive. Whichever edit you made most recently is the one that's kept.
