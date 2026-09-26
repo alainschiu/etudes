@@ -1,5 +1,5 @@
 import {describe,it,expect} from 'vitest';
-import {isTypingTarget,isTextEditable,isNearEditable} from './hotkeys.js';
+import {isTypingTarget,isTextEditable,isNearEditable,pressHoldsShortcuts} from './hotkeys.js';
 
 // Minimal element trees: enough of the DOM shape (tagName, children, parentElement) for the helpers.
 function h(tagName,props={},...children){
@@ -75,5 +75,31 @@ describe('isNearEditable — the protected paths stay live',()=>{
   });
   it('handles a missing target',()=>{
     expect(isNearEditable(null)).toBe(false);
+  });
+});
+
+describe('pressHoldsShortcuts — both moments must agree',()=>{
+  const press=(el)=>({el,near:isNearEditable(el)});
+  it('a click that reveals fields (a collapsed piece expanding) keeps Space live',()=>{
+    // Guards the layout case where expansion renders a field beside the clicked element. In today's
+    // Today view it does not (checked on the live page, 27 Sep); this keeps it true if that changes.
+    const title=h('SPAN');const row=h('DIV',{},title,h('BUTTON'));
+    const p=press(title);                        // collapsed: no field beside the click
+    const note=h('TEXTAREA');row.children.push(note);note.parentElement=row; // expansion renders fields
+    expect(isNearEditable(title)).toBe(true);    // near *now*…
+    expect(pressHoldsShortcuts(p)).toBe(false);  // …but not when pressed, so Space still works
+  });
+  it('a near-miss beside a field holds shortcuts off',()=>{
+    const row=h('DIV',{},h('DIV'),h('INPUT'));
+    expect(pressHoldsShortcuts(press(row))).toBe(true);
+  });
+  it('a field that has since closed releases shortcuts (time editor after Enter)',()=>{
+    const input=h('INPUT');h('DIV',{},input);
+    const p=press(input);
+    input.isConnected=false;                     // unmounted on commit
+    expect(pressHoldsShortcuts(p)).toBe(false);
+  });
+  it('no press yet',()=>{
+    expect(pressHoldsShortcuts(null)).toBe(false);
   });
 });

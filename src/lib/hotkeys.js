@@ -54,3 +54,16 @@ export function isNearEditable(el,{levels=2,depth=3}={}){
   }
   return false;
 }
+
+// Decides at key-time whether the last press still holds shortcuts off. A press counts only if it
+// was beside a field *when it happened* AND still is now:
+// - a click that expands something and reveals fields beside it (a collapsed piece opening) was not
+//   near a field when made, so Space still starts the piece (the everyday path);
+// - clicking into the time editor then pressing Enter closes the field; the press no longer has a
+//   field beside it, so shortcuts return without another click.
+// `press` is {el, near} recorded at pointerdown, with near = isNearEditable(el) at that moment.
+export function pressHoldsShortcuts(press){
+  if(!press||!press.near||!press.el)return false;
+  if(press.el.isConnected===false)return false;
+  return isNearEditable(press.el);
+}

@@ -1,5 +1,5 @@
 import {useEffect,useRef} from 'react';
-import {isTypingTarget,isNearEditable} from '../lib/hotkeys.js';
+import {isTypingTarget,isNearEditable,pressHoldsShortcuts} from '../lib/hotkeys.js';
 
 export default function useKeyboardShortcuts({
   activeItemId,activeSpotId,activeSessionId,workingOn,items,view,todaySessions,isResting,
@@ -10,13 +10,12 @@ export default function useKeyboardShortcuts({
   setExportMenu,setQuickNoteOpen,setEditingTimeItemId,setDroneExpanded,setMetroExpanded,setMetronome,
   sessionRefs,lastActiveRef,
 }){
-  // Where the last pointer press landed. A press in or beside a text field means the person meant
-  // to type, so single-key shortcuts stay off until they press somewhere else (v0.99.3).
-  // Re-checked on each key, so a field that has since closed (time editor after Enter) no longer
-  // holds the shortcuts off.
+  // Where the last pointer press landed, and whether it was beside a text field at that moment.
+  // A press beside a field means the person meant to type, so single-key shortcuts stay off until
+  // they press somewhere else (v0.99.3). See pressHoldsShortcuts for why both moments count.
   const lastPressRef=useRef(null);
   useEffect(()=>{
-    const onPress=(e)=>{lastPressRef.current=e.target;};
+    const onPress=(e)=>{lastPressRef.current={el:e.target,near:isNearEditable(e.target)};};
     window.addEventListener('pointerdown',onPress,true);
     return()=>window.removeEventListener('pointerdown',onPress,true);
   },[]);
@@ -39,8 +38,7 @@ export default function useKeyboardShortcuts({
         return;
       }
       if(typing)return;
-      const lp=lastPressRef.current;
-      if(lp&&lp.isConnected&&isNearEditable(lp))return;
+      if(pressHoldsShortcuts(lastPressRef.current))return;
       if(e.key==='?'){e.preventDefault();if(showSettings)setShowSettings(false);else openSettings('shortcuts');return;}
       if(e.key===' '||e.code==='Space'){
         e.preventDefault();
