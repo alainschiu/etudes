@@ -1,4 +1,4 @@
-import React, {useState, useMemo, useEffect} from 'react';
+import React, {useState, useMemo, useEffect, useRef} from 'react';
 import useViewport from '../hooks/useViewport.js';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Pause from 'lucide-react/dist/esm/icons/pause';
@@ -107,6 +107,9 @@ export default function RepertoireView(p){
   const [search,setSearch]=useState('');const [filterType,setFilterType]=useState('');const [filterComposer,setFilterComposer]=useState('');const [filterStyle,setFilterStyle]=useState('');const [filterStatus,setFilterStatus]=useState('');const [filterInstrument,setFilterInstrument]=useState('');
   const [sortBy,setSortBy]=useState('');
   const [justAddedId,setJustAddedId]=useState(null);
+  // Collapsing the new piece, or opening another, ends its pin; re-opening it later is an ordinary open.
+  const openPiece=(id)=>{setExpandedId(id);setJustAddedId(j=>j===id?j:null);};
+  const focusedNewRef=useRef(null); // the title takes focus once per new piece, never on a re-open
   const [groupByCollection,setGroupByCollection]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(false);const [composerOpen,setComposerOpen]=useState(true);const [instrumentOpen,setInstrumentOpen]=useState(true);const [expandedId,setExpandedId]=useState(()=>expandedItemId||null);const [showMoreIds,setShowMoreIds]=useState({});
   const [globalAbA,setGlobalAbA]=useState(null);
   const [globalAbB,setGlobalAbB]=useState(null);
@@ -131,7 +134,7 @@ export default function RepertoireView(p){
     if(setExpandedItemId)setExpandedItemId(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[expandedItemId,isMobile]);
-  useEffect(()=>{if(!expandedId)return;const t=setTimeout(()=>{const el=document.querySelector(`[data-rep-id="${expandedId}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});const ti=document.querySelector(`[data-rep-title="${expandedId}"]`);if(ti&&el&&el.dataset.repNew==='1')ti.focus({preventScroll:true});},80);return()=>clearTimeout(t);},[expandedId]);
+  useEffect(()=>{if(!expandedId)return;const t=setTimeout(()=>{const el=document.querySelector(`[data-rep-id="${expandedId}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});const ti=document.querySelector(`[data-rep-title="${expandedId}"]`);if(ti&&el&&el.dataset.repNew==='1'&&focusedNewRef.current!==expandedId){focusedNewRef.current=expandedId;ti.focus({preventScroll:true});}},80);return()=>clearTimeout(t);},[expandedId]);
   useEffect(()=>{
     if(!expandedId)return;
     const handler=(e)=>{
@@ -141,7 +144,7 @@ export default function RepertoireView(p){
       // would fall through to this handler and collapse the editor.
       if(e.target.closest('.fixed.inset-0.z-50'))return;
       const el=document.querySelector(`[data-rep-id="${expandedId}"]`);
-      if(el&&!el.contains(e.target))setExpandedId(null);
+      if(el&&!el.contains(e.target)){setExpandedId(null);setJustAddedId(null);}
     };
     document.addEventListener('mousedown',handler);
     return()=>document.removeEventListener('mousedown',handler);
@@ -186,7 +189,7 @@ export default function RepertoireView(p){
     const showPerformances=i.type==='piece';
     const showArranger=i.type==='piece';
     return (<div key={i.id} data-rep-id={i.id} data-rep-new={i.id===pinnedId?'1':undefined} style={{borderBottom:`1px solid ${LINE}`}}>
-      <div onClick={()=>setExpandedId(expanded?null:i.id)} className="py-2.5 px-2 flex items-start gap-2 cursor-pointer" style={{background:expanded?SURFACE:'transparent'}}>
+      <div onClick={()=>openPiece(expanded?null:i.id)} className="py-2.5 px-2 flex items-start gap-2 cursor-pointer" style={{background:expanded?SURFACE:'transparent'}}>
         <div className="shrink-0 mt-0.5 tabular-nums" style={{color:MUTED,fontFamily:serif,fontStyle:'italic',fontSize:'14px',width:'28px'}}>{SECTION_CONFIG[i.type].roman}</div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-3 flex-wrap">
@@ -269,7 +272,7 @@ export default function RepertoireView(p){
               <div className="pt-1" style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',alignItems:'center'}}>
                 <div><button onClick={()=>setPdfDrawerItemId(i.id)} title={hasPdfMeta&&!hasLocalPdf?'PDF not on this device — open to upload':undefined} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:MUTED,border:`1px ${hasPdfMeta&&!hasLocalPdf?'dashed':'solid'} ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em',opacity:hasPdfMeta&&!hasLocalPdf?0.55:1}}><FileText className="w-3 h-3" strokeWidth={1.25} style={hasPdfMeta&&!hasLocalPdf?{strokeDasharray:'2 1.5'}:{}}/> {hasPdfMeta?`Scores (${i.pdfs.length})`:'Scores'}</button></div>
                 <div className="flex justify-center">{(i.type==='piece'||i.type==='play')&&<button onClick={()=>updateItem(i.id,{type:i.type==='piece'?'play':'piece'})} className="uppercase px-3 py-1.5" style={{color:MUTED,border:`1px solid ${LINE_MED}`,fontSize:'9px',letterSpacing:'0.22em'}}>→ {i.type==='piece'?'Play':'Pieces'}</button>}</div>
-                <div className="flex justify-end"><button onClick={()=>confirmDeletePiece(i.id,()=>setExpandedId(null))} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:WARN,border:`1px solid ${WARN}80`,fontSize:'9px',letterSpacing:'0.22em',background:'transparent'}}><Trash2 className="w-3 h-3" strokeWidth={1.25}/> Delete</button></div>
+                <div className="flex justify-end"><button onClick={()=>confirmDeletePiece(i.id,()=>openPiece(null))} className="uppercase flex items-center gap-1.5 px-3 py-1.5" style={{color:WARN,border:`1px solid ${WARN}80`,fontSize:'9px',letterSpacing:'0.22em',background:'transparent'}}><Trash2 className="w-3 h-3" strokeWidth={1.25}/> Delete</button></div>
               </div>
             </div>
           </div>
