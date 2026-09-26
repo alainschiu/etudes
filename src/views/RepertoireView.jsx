@@ -106,6 +106,7 @@ export default function RepertoireView(p){
   useEffect(()=>{if(view!=='repertoire')setMobileDetailId(null);},[view]);
   const [search,setSearch]=useState('');const [filterType,setFilterType]=useState('');const [filterComposer,setFilterComposer]=useState('');const [filterStyle,setFilterStyle]=useState('');const [filterStatus,setFilterStatus]=useState('');const [filterInstrument,setFilterInstrument]=useState('');
   const [sortBy,setSortBy]=useState('');
+  const [justAddedId,setJustAddedId]=useState(null);
   const [groupByCollection,setGroupByCollection]=useState(false);const [sidebarOpen,setSidebarOpen]=useState(false);const [composerOpen,setComposerOpen]=useState(true);const [instrumentOpen,setInstrumentOpen]=useState(true);const [expandedId,setExpandedId]=useState(()=>expandedItemId||null);const [showMoreIds,setShowMoreIds]=useState({});
   const [globalAbA,setGlobalAbA]=useState(null);
   const [globalAbB,setGlobalAbB]=useState(null);
@@ -130,7 +131,7 @@ export default function RepertoireView(p){
     if(setExpandedItemId)setExpandedItemId(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[expandedItemId,isMobile]);
-  useEffect(()=>{if(!expandedId)return;const t=setTimeout(()=>{const el=document.querySelector(`[data-rep-id="${expandedId}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},80);return()=>clearTimeout(t);},[expandedId]);
+  useEffect(()=>{if(!expandedId)return;const t=setTimeout(()=>{const el=document.querySelector(`[data-rep-id="${expandedId}"]`);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});const ti=document.querySelector(`[data-rep-title="${expandedId}"]`);if(ti&&el&&el.dataset.repNew==='1')ti.focus({preventScroll:true});},80);return()=>clearTimeout(t);},[expandedId]);
   useEffect(()=>{
     if(!expandedId)return;
     const handler=(e)=>{
@@ -153,13 +154,17 @@ export default function RepertoireView(p){
   const allInstruments=useMemo(()=>{const g={};items.forEach(i=>{if(!i.instrument)return;const raw=i.instrument.trim();if(!raw)return;const key=normalizeComposerKey(raw);if(!g[key])g[key]={variants:{},count:0};g[key].variants[raw]=(g[key].variants[raw]||0)+1;g[key].count++;});return Object.entries(g).map(([key,gg])=>{const d=Object.entries(gg.variants).sort((a,b)=>b[1]-a[1])[0][0];return {key,display:d,count:gg.count};}).sort((a,b)=>a.display.localeCompare(b.display));},[items]);
   const uniqueInstrumentNames=useMemo(()=>{const s=new Set();const o=[];items.forEach(i=>{const c=(i.instrument||'').trim();if(c&&!s.has(c.toLowerCase())){s.add(c.toLowerCase());o.push(c);}});return o.sort();},[items]);
 
-  const filtered=items.filter(i=>{if(filterType&&i.type!==filterType)return false;if(filterComposer){const k=normalizeComposerKey(filterComposer);const ik=normalizeComposerKey(i.composer||'(unspecified)');if(k!==ik)return false;}if(filterStyle&&!i.tags.includes(filterStyle))return false;if(filterStatus&&i.stage!==filterStatus)return false;if(filterInstrument){const k=normalizeComposerKey(filterInstrument);const ik=normalizeComposerKey(i.instrument||'');if(k!==ik)return false;}if(search){const s=search.toLowerCase();const b=[i.title,i.composer,i.author,i.arranger,i.catalog,i.collection,i.movement,i.instrument,...(i.tags||[])].join(' ').toLowerCase();if(!b.includes(s))return false;}return true;});
+  const pinnedId=expandedId&&expandedId===justAddedId?justAddedId:null;
+  const filtered=items.filter(i=>{if(i.id===pinnedId)return true;if(filterType&&i.type!==filterType)return false;if(filterComposer){const k=normalizeComposerKey(filterComposer);const ik=normalizeComposerKey(i.composer||'(unspecified)');if(k!==ik)return false;}if(filterStyle&&!i.tags.includes(filterStyle))return false;if(filterStatus&&i.stage!==filterStatus)return false;if(filterInstrument){const k=normalizeComposerKey(filterInstrument);const ik=normalizeComposerKey(i.instrument||'');if(k!==ik)return false;}if(search){const s=search.toLowerCase();const b=[i.title,i.composer,i.author,i.arranger,i.catalog,i.collection,i.movement,i.instrument,...(i.tags||[])].join(' ').toLowerCase();if(!b.includes(s))return false;}return true;});
 
   const sorted=useMemo(()=>{const arr=[...filtered];if(!sortBy)return arr;return arr.sort((a,b)=>{if(sortBy==='composer')return(a.composer||'').localeCompare(b.composer||'');if(sortBy==='title')return displayTitle(a).localeCompare(displayTitle(b));if(sortBy==='stage')return STAGES.findIndex(s=>s.key===a.stage)-STAGES.findIndex(s=>s.key===b.stage);if(sortBy==='type')return TYPES.indexOf(a.type)-TYPES.indexOf(b.type);if(sortBy==='lastPracticed'){const la=lastPracticedLabel(a.id,history);const lb=lastPracticedLabel(b.id,history);return(lb||'').localeCompare(la||'');}if(sortBy==='timeInvested')return getItemTime(itemTimes,b.id)-getItemTime(itemTimes,a.id);if(sortBy==='length')return(b.lengthSecs||0)-(a.lengthSecs||0);return 0;});},[filtered,sortBy,itemTimes,history]);
 
   const grouped=useMemo(()=>{if(!groupByCollection)return null;const m={};const sa=[];sorted.forEach(i=>{if(i.collection){(m[i.collection]=m[i.collection]||[]).push(i);}else sa.push(i);});const s=Object.entries(m).sort((a,b)=>a[0].localeCompare(b[0])).map(([name,list])=>({name,list:list.sort((a,b)=>(a.movement||a.title).localeCompare(b.movement||b.title))}));return {collections:s,standalone:sa};},[sorted,groupByCollection]);
 
-  const handleAdd=(t)=>{const ni=addItem(t);setExpandedId(ni.id);};
+  // v0.99.3: a new piece has no composer, no tags and stage 'queued', so any active filter or search
+  // used to hide it the moment it was created. The ADD click then read as a no-op and invited a
+  // second click, leaving a second empty record. Pin it visible while it is the piece open.
+  const handleAdd=(t)=>{const ni=addItem(t);setExpandedId(ni.id);setJustAddedId(ni.id);};
   const clearFilters=()=>{setFilterType('');setFilterComposer('');setFilterStyle('');setFilterStatus('');setFilterInstrument('');setSearch('');};
   const hasFilters=!!(filterType||filterComposer||filterStyle||filterStatus||filterInstrument||search);
 
@@ -180,7 +185,7 @@ export default function RepertoireView(p){
     const showBpmTarget=i.type!=='play'&&i.type!=='study';
     const showPerformances=i.type==='piece';
     const showArranger=i.type==='piece';
-    return (<div key={i.id} data-rep-id={i.id} style={{borderBottom:`1px solid ${LINE}`}}>
+    return (<div key={i.id} data-rep-id={i.id} data-rep-new={i.id===pinnedId?'1':undefined} style={{borderBottom:`1px solid ${LINE}`}}>
       <div onClick={()=>setExpandedId(expanded?null:i.id)} className="py-2.5 px-2 flex items-start gap-2 cursor-pointer" style={{background:expanded?SURFACE:'transparent'}}>
         <div className="shrink-0 mt-0.5 tabular-nums" style={{color:MUTED,fontFamily:serif,fontStyle:'italic',fontSize:'14px',width:'28px'}}>{SECTION_CONFIG[i.type].roman}</div>
         <div className="flex-1 min-w-0">
@@ -208,7 +213,7 @@ export default function RepertoireView(p){
         <div className="grid grid-cols-12 gap-8">
           <div className="col-span-8">
             <div className="mb-5">
-              <EditorRow label="Work title" hint="Leave blank if this is a movement of a collection."><DebouncedField type="text" value={titleValue} onFocus={selectOnFocus} onChange={v=>updateItem(i.id,{title:v})} placeholder="Untitled" style={{...eIn,fontFamily:serif}}/></EditorRow>
+              <EditorRow label="Work title" hint="Leave blank if this is a movement of a collection."><DebouncedField type="text" data-rep-title={i.id} value={titleValue} onFocus={selectOnFocus} onChange={v=>updateItem(i.id,{title:v})} placeholder="Untitled" style={{...eIn,fontFamily:serif}}/></EditorRow>
               <EditorRow label="Movement / part"><DebouncedField type="text" value={i.movement||''} onFocus={selectOnFocus} onChange={v=>updateItem(i.id,{movement:v})} placeholder="I. Prélude" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
               <EditorRow label="Collection"><DebouncedField type="text" value={i.collection||''} onFocus={selectOnFocus} onChange={v=>updateItem(i.id,{collection:v})} placeholder="Suite Bergamasque" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
               <EditorRow label="Catalog"><DebouncedField type="text" value={i.catalog||''} onFocus={selectOnFocus} onChange={v=>updateItem(i.id,{catalog:v})} placeholder="Op. 110" style={{...eIn,fontFamily:serif,fontSize:'13px'}}/></EditorRow>
