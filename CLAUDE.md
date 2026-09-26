@@ -25,7 +25,7 @@ npm install           # .npmrc sets legacy-peer-deps=true (vite-plugin-pwa/Vite 
 npm run dev           # Vite dev server — http://localhost:5173 — no SW in dev
 npm run build         # production build → dist/; generates sw.js + workbox-*.js
 npm run preview       # serve dist/ locally with SW active
-npm test              # vitest harness — fast; 136 tests: sync/merge/drive/migration/error-map helpers
+npm test              # vitest harness — fast; 151 tests: sync/merge/drive/migration/error-map/hotkey helpers
 ```
 
 ## Testing
@@ -37,6 +37,7 @@ Vitest harness covers the load-bearing pure functions:
 - `migrateMergeMeta` + the v12→v13 import migration in `src/lib/migrations.js`
 - `deriveDriveStatus`, `formatRelative`, `formatResumeIn` in `src/lib/driveStatus.js`
 - `driveAuth` surface shape (export presence)
+- `isTypingTarget`, `isNearEditable`, `pressHoldsShortcuts` in `src/lib/hotkeys.js` (the v0.99.3 near-miss guard; DOM-free fake element trees, no DOM library)
 
 Two of these are deliberate tripwires rather than ordinary coverage: `mergeStates`
 “returns every key the state carries” fails loudly if a key is dropped from the

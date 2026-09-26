@@ -142,7 +142,8 @@ Browser-verified before merge against both 16 Aug repros (local `vite preview`, 
 - [ ] **Near-miss click can't become commands** — open a piece's detail, click *beside* a field (its label or hint, not the field), type a sentence with spaces. No timer starts, the tuner doesn't open, rest doesn't toggle. Repeat with a missed click on the Répertoire search row.
 - [ ] **Shortcuts come back** — after the above, click somewhere away from any field, press Space: the last piece starts.
 - [ ] **Click a piece row on Today, then Space** — the everyday path. Must start the timer. *(Browser-checked with a piece in a session. Note: after a page reload Space has nothing to resume until a piece has been started once or pinned to Working on — true in every version, not a regression.)*
-- [ ] **New piece under a filter** — with a search or filter active, ADD → PIECES. The new piece is visible, its form open, the title ready to type. Collapse it: normal filtering resumes.
+- [ ] **New piece under a filter** — with a search or filter active, ADD → PIECES. The new piece is visible, its form open, the title ready to type. Collapse it: normal filtering resumes. Re-open it: the title is **not** re-focused or re-selected.
+- [ ] **New piece under a filter, on the phone** (MobileRepertoireList) — the same check on iPhone; verified on desktop only before merge.
 - [ ] **iPad with a keyboard** — the near-miss check again, if the hardware lands. Touch-only phones don't fire keyboard shortcuts.
 
 ---
