@@ -322,7 +322,7 @@ export function SettingsModal({settings,setSettings,storageQuotaHit,storagePersi
     {tab==='shortcuts'&&(
       <div className="px-8 py-6">
         {SHORTCUTS.map((r,i)=>(<div key={r.k} className="flex items-baseline justify-between gap-6 py-3" style={{borderBottom:i<SHORTCUTS.length-1?`1px solid ${LINE}`:'none'}}><kbd className="font-mono px-2.5 py-1 tabular-nums shrink-0" style={{background:SURFACE2,color:TEXT,border:`1px solid ${LINE_STR}`,fontSize:'12px'}}>{r.k}</kbd><span style={{color:MUTED,fontFamily:serif,fontSize:'14px',fontStyle:'italic',fontWeight:300,textAlign:'right'}}>{r.v}</span></div>))}
-        <div className="mt-5 italic" style={{color:FAINT,fontFamily:serif,fontSize:'12px',lineHeight:1.6}}>Shortcuts are disabled while typing in a field.</div>
+        <div className="mt-5 italic" style={{color:FAINT,fontFamily:serif,fontSize:'12px',lineHeight:1.6}}>Shortcuts are off while you type in a field, and after you click beside one. They return on your next click elsewhere.</div>
       </div>
     )}
     {tab==='about'&&(
